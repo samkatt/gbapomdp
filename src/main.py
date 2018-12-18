@@ -2,6 +2,7 @@
 from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
 import time
+from math import sqrt
 
 from episode import run_episode
 
@@ -10,26 +11,50 @@ from environments import cartpole
 
 from agents.dqn import DQN
 
-import numpy as np # [fixme] remove at some point
+import numpy as np
 
 def main():
     """ start of program """
 
     conf = parse_arguments()
-    env = get_environment(conf)
-    agent = DQN(env, conf)
 
-    cur_time = 0
-    run = 1
-    returns = np.zeros(500)
-    while True:
+    cur_time = time.time()
+    result = np.zeros((conf.runs, conf.episodes))
+    for run in range(conf.runs):
 
-        returns[run % 500] = run_episode(env, agent, conf)
-        run = run+1
+        if conf.verbose:
+            print('starting run', run)
 
-        if  conf.verbose and time.time() - cur_time > 10:
-            print(time.ctime(), run, "runs, avg return:", np.mean(returns))
-            cur_time = time.time()
+        env = get_environment(conf)
+        agent = DQN(env, conf)
+
+        for episode in range(conf.episodes):
+
+            result[run][episode] = run_episode(env, agent, conf)
+
+            if  conf.verbose and time.time() - cur_time > 10:
+
+                print(time.ctime(),
+                      "run", run, "episode", episode,
+                      ": avg return",
+                      np.mean(result[run, max(0, episode-100):episode]))
+
+                cur_time = time.time()
+
+    # process results into rows of (for each episode
+    # return avg, return var, return #, return stder
+    summary = np.transpose([
+        np.mean(result, axis=0),
+        np.var(result, axis=0),
+        [conf.runs] * conf.episodes, \
+        np.var(result, axis=0) / sqrt(conf.runs)
+        ])
+
+    np.savetxt(
+        conf.file,
+        summary,
+        delimiter=', ',
+        header="version 1:\nreturn mean, return var, return count, return stder")
 
 
 def parse_arguments():
@@ -51,6 +76,23 @@ def parse_arguments():
         help="which domain to use method on",
         required=True,
         choices=["cartpole", "tiger"])
+
+    parser.add_argument(
+        "--file", "-f",
+        default="output.npy",
+        help="output file path")
+
+    parser.add_argument(
+        "--runs",
+        default=1,
+        type=int,
+        help="number of runs to average returns over")
+
+    parser.add_argument(
+        "--episodes",
+        default=100000,
+        type=int,
+        help="number of episodes to run")
 
     parser.add_argument(
         "--network_size",

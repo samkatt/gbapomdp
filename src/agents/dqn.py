@@ -45,7 +45,7 @@ class DQN(agents.Agent):
         q_net = archs.TwoHiddenLayerQNet(conf)
 
         # build q network
-        input_shape = (conf.observation_len, *env.spaces()["O"].shape)
+        input_shape = env.spaces()["O"].shape if conf.observation_len == 1 else (conf.observation_len, *env.spaces()["O"].shape)
 
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
         self.act_t_ph = tf.placeholder(tf.int32, [None])

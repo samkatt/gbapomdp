@@ -65,12 +65,12 @@ class Tiger(Environment):
         # if we were recording, output the history and stop
         if self._recording:
             self.display_history()
-            self._history = [copy.deepcopy(self.state)]
             self._recording = False
 
         # record episodes every so often
         if self._verbose and time.time() - self._last_recording_time > 15:
             self._last_recording_time = time.time()
+            self._history = [copy.deepcopy(self.state)]
             self._recording = True
 
         return np.zeros(2)
@@ -102,10 +102,10 @@ class Tiger(Environment):
 
         def to_string(element):
             """ return string rep of the element (action, state, or obs element) """
-            return "L" if element == self.LEFT else "R"
+            return "L" if int(element) == self.LEFT else "R"
 
         descr = "Tiger (" + to_string(self._history[0]) + ") and heard: "
         for step in self._history[1:-1]:
-            descr = descr + to_string(step["obs"][0])
+            descr = descr + to_string(step["obs"][1])
 
         print(descr + ", opened " + to_string(self._history[-1]["action"]))
