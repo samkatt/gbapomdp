@@ -13,6 +13,7 @@ from utils import misc
 class DQN(agents.Agent):
     """ DQN implementation"""
 
+    # [fixme] create separate functions for getting architectures and train methods
     def __init__(self, env, conf):
         """ initialize network """
 
@@ -21,7 +22,7 @@ class DQN(agents.Agent):
             # outside_value=0.1)
 
         self.exploration = misc.PiecewiseSchedule(
-            [(0, 1.0), (2e4, 0.1), (2e5, 0.05)],
+            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)],
             outside_value=0.05)
 
         # init
@@ -100,7 +101,6 @@ class DQN(agents.Agent):
 
     def select_action(self):
         """ requests greedy action from network """
-        # [checkme] why None?
         q_values = self.session.run(self.qvalues, feed_dict={self.obs_t_ph: self.latest_obs[None]})
         epsilon = self.exploration.value(self.t)
 

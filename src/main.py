@@ -19,22 +19,27 @@ def main():
     env = get_environment(conf)
     agent = DQN(env, conf)
 
-    t = time.time()
+    cur_time = 0
     run = 1
-    returns = np.zeros(1000)
+    returns = np.zeros(500)
     while True:
 
-        returns[run % 1000] = run_episode(env, agent, conf)
+        returns[run % 500] = run_episode(env, agent, conf)
         run = run+1
 
-        if  time.time() - t  > 5:
-            print( time.ctime() + ', ' + str(run) + " runs, avg return: " + str(np.mean(returns)))
-            t = time.time()
+        if  conf.verbose and time.time() - cur_time > 10:
+            print(time.ctime(), run, " runs, avg return:", np.mean(returns))
+            cur_time = time.time()
 
 
 def parse_arguments():
     """ parse command line arguments, returns a namespace with all variables"""
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument(
+        "--verbose", "-v",
+        action='store_true',
+        help="whether to output verbose messages")
 
     parser.add_argument(
         "--method",
@@ -112,9 +117,9 @@ def parse_arguments():
 def get_environment(conf):
     """ returns environments as indicated in conf """
     if conf.domain == "tiger":
-        return tiger.Tiger()
+        return tiger.Tiger(conf)
     if conf.domain == "cartpole":
-        return cartpole.Cartpole()
+        return cartpole.Cartpole(conf)
 
 if __name__ == '__main__':
     main()

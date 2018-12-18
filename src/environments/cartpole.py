@@ -1,5 +1,7 @@
 """ cartpole environment """
 
+import time
+
 from environments.environment import Environment
 
 import gym
@@ -7,9 +9,27 @@ import gym
 class Cartpole(Environment):
     """ cartpole environment """
 
-    def __init__(self):
+    def __init__(self, conf):
+
+        self._cur_time = 0
+
+        recording_policy = self._show_recording if conf.verbose else False
+
         self.cartpole = gym.make('CartPole-v0')
-        self.cartpole = gym.wrappers.Monitor(self.cartpole, 'videos/', force=True)
+        self.cartpole = gym.wrappers.Monitor(
+            self.cartpole,
+            'videos/',
+            force=True,
+            video_callable=recording_policy)
+
+    def _show_recording(self, _):
+        """ returns whether a recording should be shown """
+        if time.time() - self._cur_time > 20:
+            self._cur_time = time.time()
+            return True
+
+        return False
+
 
     def __del__(self):
         self.cartpole.close()
