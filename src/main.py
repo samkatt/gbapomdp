@@ -17,14 +17,14 @@ def main():
     agent = DQN(env, conf)
 
     run = 1
-    returns = []
+    returns = np.zeros(100)
     while True:
+
         print("running episode " + str(run))
+        returns[run % 100] = run_episode(env, agent, conf)
+        print('mean return: ' + str(np.mean(returns)))
 
-        returns.append(run_episode(env, agent, conf))
-
-        run = run + 1
-        print('mean return: ' + str(np.mean(returns[-100:])))
+        run = run+1
 
 def parse_arguments():
     """ parse command line arguments, returns a namespace with all variables"""

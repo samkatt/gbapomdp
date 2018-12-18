@@ -3,6 +3,7 @@
 import abc
 import tensorflow as tf
 from tensorflow.python.layers.layers import dense
+from tensorflow.python.layers.layers import flatten
 
 class QNet(abc.ABC):
     """ implementation a q-function """
@@ -16,7 +17,7 @@ class TwoHiddenLayerQNet(QNet):
     """ Regular Q network with 2 hidden layers """
 
     def __call__(self, net_input, n_actions, scope):
-        hidden = net_input
+        hidden = flatten(net_input)
 
         with tf.variable_scope(scope):
             hidden = dense(hidden, units=512, activation=tf.nn.tanh) # first layer

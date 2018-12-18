@@ -16,10 +16,13 @@ class DQN(agents.Agent):
     def __init__(self, env, conf):
         """ initialize network """
 
+        # self.exploration = misc.PiecewiseSchedule(
+            # [(0, 1.0), (2e5, 0.1)],
+            # outside_value=0.1)
+
         self.exploration = misc.PiecewiseSchedule(
-            [(0, 1.0), (2e5, 0.1)],
-            outside_value=0.1,
-            )
+            [(0, 1.0), (1e4, 0.1), (5e4, 0.01)],
+            outside_value=0.01)
 
         # init
         self.t = 0
@@ -41,13 +44,7 @@ class DQN(agents.Agent):
         q_net = archs.TwoHiddenLayerQNet()
 
         # build q network
-        # [fixme] len of history for shape == 1 ? 
-        if len(env.spaces()["O"].shape) == 1:
-            # This means we are running on low-dimensional observations (e.g. RAM)
-            input_shape = env.spaces()["O"].shape
-        else:
-            img_h, img_w, img_c = env.spaces()["O"].shape
-            input_shape = (conf.observation_len, img_h, img_w, img_c)
+        input_shape = (conf.observation_len, *env.spaces()["O"].shape)
 
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
         self.act_t_ph = tf.placeholder(tf.int32, [None])
@@ -66,13 +63,12 @@ class DQN(agents.Agent):
             scope='target_q_net')
 
         # build train operation
-        # [fixme] : understand me and fix for tiger
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         onpolicy_qvalues = tf.gather_nd(self.qvalues, action_indices)
-
         targets = tf.reduce_max(target_qvalues, axis=-1)
 
         done_td_error = self.rew_t_ph - onpolicy_qvalues
+
         not_done_td_error = done_td_error + (conf.gamma * targets)
 
         td_error = tf.where(
@@ -89,7 +85,6 @@ class DQN(agents.Agent):
         # build target update operation
         update_target_fn = []
         target_q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_net')
-
         for var, var_target in zip(sorted(q_net_vars, key=lambda v: v.name),
                                    sorted(target_q_net_vars, key=lambda v: v.name)):
             update_target_fn.append(var_target.assign(var))
@@ -105,6 +100,7 @@ class DQN(agents.Agent):
 
     def select_action(self):
         """ requests greedy action from network """
+        # [checkme] why None?
         q_values = self.session.run(self.qvalues, feed_dict={self.obs_t_ph: self.latest_obs[None]})
         epsilon = self.exploration.value(self.t)
 

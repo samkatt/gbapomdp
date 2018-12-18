@@ -118,8 +118,9 @@ is acceptable. """
         start_idx = end_idx - self.history_len
         # this checks if we are using low-dimensional observations, such as RAM
         # state, in which case we just directly return the latest RAM.
-        if len(self.obs.shape) == 2:
-            return self.obs[end_idx-1]
+        # [fixme] why this (what if history_len != 1 ?! -- commented out for now
+        # if len(self.obs.shape) == 2:
+            # return self.obs[end_idx-1]
         # if there weren't enough frames ever in the buffer for context
         if start_idx < 0 and self.num_in_buffer != self.size:
             start_idx = 0

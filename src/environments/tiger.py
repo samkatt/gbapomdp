@@ -44,7 +44,7 @@ class Tiger(Environment):
         """ resets state """
         self.state = self.sample_start_state()
 
-        return self._spaces["O"].sample()
+        return np.array([self._spaces["O"].sample()])
 
     def step(self, action):
         """ update state wrt action (listen or open) """
@@ -59,7 +59,7 @@ class Tiger(Environment):
             terminal = False
             reward = self.LISTEN_REWARD
 
-        return obs, reward, terminal
+        return np.array(obs), reward, terminal
 
     def spaces(self):
         """ A: 3, O: 2 """
