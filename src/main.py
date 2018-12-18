@@ -1,5 +1,8 @@
 """ run Neural RL methods on partially observable environments """
 from argparse import ArgumentParser
+from argparse import ArgumentDefaultsHelpFormatter
+import time
+
 from episode import run_episode
 
 from environments import tiger
@@ -16,19 +19,22 @@ def main():
     env = get_environment(conf)
     agent = DQN(env, conf)
 
+    t = time.time()
     run = 1
-    returns = np.zeros(100)
+    returns = np.zeros(1000)
     while True:
 
-        print("running episode " + str(run))
-        returns[run % 100] = run_episode(env, agent, conf)
-        print('mean return: ' + str(np.mean(returns)))
-
+        returns[run % 1000] = run_episode(env, agent, conf)
         run = run+1
+
+        if  time.time() - t  > 5:
+            print( time.ctime() + ', ' + str(run) + " runs, avg return: " + str(np.mean(returns)))
+            t = time.time()
+
 
 def parse_arguments():
     """ parse command line arguments, returns a namespace with all variables"""
-    parser = ArgumentParser()
+    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "--method",
@@ -42,10 +48,28 @@ def parse_arguments():
         choices=["cartpole", "tiger"])
 
     parser.add_argument(
+        "--network_size",
+        required=True,
+        help='the size of the q-network',
+        choices=["small", "med", "large"])
+
+    parser.add_argument(
+        "--learning_rate", "--alpha",
+        default=1e-4,
+        type=float,
+        help="learning rate of the policy gradient descent")
+
+    parser.add_argument(
         "--discount", "-d",
         default=1,
         type=float,
         help="the discount factor used in the domain")
+
+    parser.add_argument(
+        "--gamma",
+        default=0.99,
+        type=float,
+        help="discount factor to be used")
 
     parser.add_argument(
         "--observation_len",
@@ -66,12 +90,6 @@ def parse_arguments():
         help="size of learning batch")
 
     parser.add_argument(
-        "--gamma",
-        default=0.99,
-        type=float,
-        help="discount factor to be used")
-
-    parser.add_argument(
         "--q_target_update_freq",
         default=250,
         type=int,
@@ -88,12 +106,6 @@ def parse_arguments():
         default=10000,
         type=int,
         help="how long to wait before training (# time steps)")
-
-    parser.add_argument(
-        "--learning_rate", "--alpha",
-        default=1e-4,
-        type=float,
-        help="learning rate of the policy gradient descent")
 
     return parser.parse_args()
 

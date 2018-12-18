@@ -21,8 +21,8 @@ class DQN(agents.Agent):
             # outside_value=0.1)
 
         self.exploration = misc.PiecewiseSchedule(
-            [(0, 1.0), (1e4, 0.1), (5e4, 0.01)],
-            outside_value=0.01)
+            [(0, 1.0), (2e4, 0.1), (2e5, 0.05)],
+            outside_value=0.05)
 
         # init
         self.t = 0
@@ -41,7 +41,7 @@ class DQN(agents.Agent):
             conf.observation_len, True)
 
         optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
-        q_net = archs.TwoHiddenLayerQNet()
+        q_net = archs.TwoHiddenLayerQNet(conf)
 
         # build q network
         input_shape = (conf.observation_len, *env.spaces()["O"].shape)
