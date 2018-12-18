@@ -1,66 +1,143 @@
 """ dqn implementation """
 
-from agents.agent import Agent
+import numpy as np
+import tensorflow as tf
 
-class DQN(Agent):
-    """ the agent that uses DQN """
+import agents.agent as agents
+import networks.replay_buffer as rb
+import networks.architectures as archs
 
-    def __init__(self):
-        self.last_observation = None
-        self.last_action = None
+from utils import tf_wrapper
+from utils import misc
 
-    def reset(self):
-        """ resets temporal information, not network """
-        self.last_observation = None
-        self.last_action = None
+class DQN(agents.Agent):
+    """ DQN implementation"""
+
+    def __init__(self, env, conf):
+        """ initialize network """
+
+        self.exploration = misc.PiecewiseSchedule(
+            [(0, 1.0), (2e5, 0.1)],
+            outside_value=0.1,
+            )
+
+        # init
+        self.t = 0
+        self.session = tf_wrapper.get_session()
+        self.action_space = env.spaces()["A"]
+
+        # confs
+        self.target_update_freq = conf.q_target_update_freq
+        self.batch_size = conf.batch_size
+        self.train_freq = conf.train_frequency
+        self.explore_duration = conf.explore_duration
+
+        # construct the replay buffer
+        self.replay_buffer = rb.ReplayBuffer(
+            conf.replay_buffer_size,
+            conf.observation_len, True)
+
+        optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
+        q_net = archs.TwoHiddenLayerQNet()
+
+        # build q network
+        # [fixme] len of history for shape == 1 ? 
+        if len(env.spaces()["O"].shape) == 1:
+            # This means we are running on low-dimensional observations (e.g. RAM)
+            input_shape = env.spaces()["O"].shape
+        else:
+            img_h, img_w, img_c = env.spaces()["O"].shape
+            input_shape = (conf.observation_len, img_h, img_w, img_c)
+
+        self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
+        self.act_t_ph = tf.placeholder(tf.int32, [None])
+        self.rew_t_ph = tf.placeholder(tf.float32, [None])
+        self.obs_tp1_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
+        self.done_mask_ph = tf.placeholder(tf.float32, [None])
+
+        self.qvalues = q_net(
+            self.obs_t_ph,
+            env.spaces()["A"].n,
+            scope='q_net')
+
+        target_qvalues = q_net(
+            self.obs_tp1_ph,
+            env.spaces()["A"].n,
+            scope='target_q_net')
+
+        # build train operation
+        # [fixme] : understand me and fix for tiger
+        action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
+        onpolicy_qvalues = tf.gather_nd(self.qvalues, action_indices)
+
+        targets = tf.reduce_max(target_qvalues, axis=-1)
+
+        done_td_error = self.rew_t_ph - onpolicy_qvalues
+        not_done_td_error = done_td_error + (conf.gamma * targets)
+
+        td_error = tf.where(
+            tf.cast(self.done_mask_ph, tf.bool),
+            x=done_td_error, y=not_done_td_error)
+
+        total_error = tf.reduce_mean(tf.square(td_error))
+
+        q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_net')
+        grads_and_vars = optimizer.compute_gradients(total_error, var_list=q_net_vars)
+
+        self.train_op = optimizer.apply_gradients(grads_and_vars)
+
+        # build target update operation
+        update_target_fn = []
+        target_q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_net')
+
+        for var, var_target in zip(sorted(q_net_vars, key=lambda v: v.name),
+                                   sorted(target_q_net_vars, key=lambda v: v.name)):
+            update_target_fn.append(var_target.assign(var))
+        self.update_target_fn = tf.group(*update_target_fn)
+
+        # finalize networks
+        self.session.run(tf.global_variables_initializer())
+
+    def reset(self, obs):
+        """ resets the rnn state """
+        self.replay_index = self.replay_buffer.store_frame(obs)
+        self.latest_obs = self.replay_buffer.encode_recent_observation()
 
     def select_action(self):
-        """ selects an action according to its network """
+        """ requests greedy action from network """
+        q_values = self.session.run(self.qvalues, feed_dict={self.obs_t_ph: self.latest_obs[None]})
+        epsilon = self.exploration.value(self.t)
 
-        # store we performed this action
-        raise NotImplementedError()
+        self.latest_action = misc.epsilon_greedy(q_values, epsilon, self.action_space)
 
-    def update(self, _observation, _reward, _terminal):
-        """ stores interaction and learns network """
-        assert self.last_action is not None
+        return self.latest_action
 
-        raise NotImplementedError()
+    def update(self, obs, reward, terminal):
+        """ store experience and batch update """
 
-class DQNBrett(Agent):
-    """ DQN implementation almost directly taken from Brett """
+        # store experience
+        self.replay_buffer.store_effect(
+            self.replay_index,
+            self.latest_action,
+            reward,
+            terminal)
 
-    def __init__(self):
-        """ TODO """
-        raise NotImplementedError()
+        self.replay_index = self.replay_buffer.store_frame(obs)
+        self.latest_obs = self.replay_buffer.encode_recent_observation()
 
-    def reset(self):
-        """ TODO """
-        raise NotImplementedError()
+        # batch update
+        if self.t > self.explore_duration and self.t % self.train_freq == 0:
+            obs, actions, rewards, next_obs, done_mask = self.replay_buffer.sample(self.batch_size)
 
-    def select_action(self):
-        """ TODO """
-        raise NotImplementedError()
+            self.session.run(self.train_op, feed_dict={
+                self.obs_t_ph: obs,
+                self.act_t_ph: actions,
+                self.rew_t_ph: rewards,
+                self.obs_tp1_ph: next_obs,
+                self.done_mask_ph: done_mask})
 
-    def update(self, _observation, _reward, _terminal):
-        """ TODO """
-        raise NotImplementedError()
+        # update target network occasionally
+        if self.t % self.target_update_freq == 0:
+            self.session.run(self.update_target_fn)
 
-
-class DQNLuke(Agent):
-    """ DQN implementation almost directly taken from Brett """
-
-    def __init__(self):
-        """ TODO """
-        raise NotImplementedError()
-
-    def reset(self):
-        """ TODO """
-        raise NotImplementedError()
-
-    def select_action(self):
-        """ TODO """
-        raise NotImplementedError()
-
-    def update(self, _observation, _reward, _terminal):
-        """ TODO """
-        raise NotImplementedError()
+        self.t = self.t + 1

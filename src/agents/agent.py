@@ -5,8 +5,8 @@ class Agent(abc.ABC):
     """ agent interface """
 
     @abc.abstractmethod
-    def reset(self):
-        """ requests the agent to reset its internal state for a new episode """
+    def reset(self, obs):
+        """ requests the agent to reset its internal state with first observation"""
         pass
 
     @abc.abstractmethod

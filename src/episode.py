@@ -7,8 +7,8 @@ def run_episode(env, agent, conf):
     discounted_return = 0
     discount = conf.discount
 
-    env.reset()
-    agent.reset()
+    obs = env.reset()
+    agent.reset(obs)
     while not terminal:
 
         action = agent.select_action()
