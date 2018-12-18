@@ -35,7 +35,7 @@ class Tiger(Environment):
 
         self._spaces = {
             "A": math_space.DiscreteSpace([3]),
-            "O": math_space.DiscreteSpace([2])
+            "O": math_space.DiscreteSpace([1,1])
         }
 
     # pylint: disable=R0201
@@ -45,13 +45,17 @@ class Tiger(Environment):
 
     def sample_observation(self, listening):
         """ samples an observation, listening is true if agent is performing that action """
+        obs = np.zeros(self._spaces["O"].shape)
+
         if not listening:
-            return self._spaces["O"].sample()
+            return obs
 
         if np.random.random() < self.CORRECT_OBSERVATION_PROB:
-            return self.state
+            obs[self.state] = 1
         else:
-            return int(not self.state)
+            obs[int(not self.state)] = 1
+
+        return obs
 
     def reset(self):
         """ resets state """
@@ -69,7 +73,7 @@ class Tiger(Environment):
             self._last_recording_time = time.time()
             self._recording = True
 
-        return np.array([self._spaces["O"].sample()])
+        return np.zeros(2)
 
     def step(self, action):
         """ update state wrt action (listen or open) """
@@ -87,7 +91,7 @@ class Tiger(Environment):
         if self._recording:
             self._history.append({'action': action, 'obs': obs, 'reward': reward})
 
-        return np.array(obs), reward, terminal
+        return obs, reward, terminal
 
     def spaces(self):
         """ A: 3, O: 2 """
@@ -97,11 +101,11 @@ class Tiger(Environment):
         """ prints out transitions """
 
         def to_string(element):
-            """ return string rep of the element (action, state, or obs) """
+            """ return string rep of the element (action, state, or obs element) """
             return "L" if element == self.LEFT else "R"
 
         descr = "Tiger (" + to_string(self._history[0]) + ") and heard: "
         for step in self._history[1:-1]:
-            descr = descr + to_string(step["obs"])
+            descr = descr + to_string(step["obs"][0])
 
         print(descr + ", opened " + to_string(self._history[-1]["action"]))

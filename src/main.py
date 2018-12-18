@@ -28,7 +28,7 @@ def main():
         run = run+1
 
         if  conf.verbose and time.time() - cur_time > 10:
-            print(time.ctime(), run, " runs, avg return:", np.mean(returns))
+            print(time.ctime(), run, "runs, avg return:", np.mean(returns))
             cur_time = time.time()
 
 
