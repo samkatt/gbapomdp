@@ -14,27 +14,22 @@ class DQN(agents.Agent):
     """ DQN implementation"""
 
     # [fixme] create separate functions for getting architectures and train methods
-    def __init__(self, env, conf):
+    def __init__(self, env, conf, sess, name='dqn-agent'):
         """ initialize network """
-
-        # self.exploration = misc.PiecewiseSchedule(
-            # [(0, 1.0), (2e5, 0.1)],
-            # outside_value=0.1)
 
         self.exploration = misc.PiecewiseSchedule(
             [(0, 1.0), (2e4, 0.1), (1e5, 0.05)],
             outside_value=0.05)
 
-        # init
-        self.t = 0
-        self.session = tf_wrapper.get_session()
-        self.action_space = env.spaces()["A"]
-
         # confs
         self.target_update_freq = conf.q_target_update_freq
         self.batch_size = conf.batch_size
         self.train_freq = conf.train_frequency
-        self.explore_duration = conf.explore_duration
+
+        # init
+        self.t = 0
+        self.session = sess
+        self.action_space = env.spaces()["A"]
 
         # construct the replay buffer
         self.replay_buffer = rb.ReplayBuffer(
@@ -45,7 +40,8 @@ class DQN(agents.Agent):
         q_net = archs.TwoHiddenLayerQNet(conf)
 
         # build q network
-        input_shape = env.spaces()["O"].shape if conf.observation_len == 1 else (conf.observation_len, *env.spaces()["O"].shape)
+        input_shape = env.spaces()["O"].shape if conf.observation_len == 1 \
+                else (conf.observation_len, *env.spaces()["O"].shape)
 
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
         self.act_t_ph = tf.placeholder(tf.int32, [None])
@@ -56,12 +52,12 @@ class DQN(agents.Agent):
         self.qvalues = q_net(
             self.obs_t_ph,
             env.spaces()["A"].n,
-            scope='q_net')
+            scope=name+'q_net')
 
         target_qvalues = q_net(
             self.obs_tp1_ph,
             env.spaces()["A"].n,
-            scope='target_q_net')
+            scope=name+'target_q_net')
 
         # build train operation
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
@@ -78,14 +74,14 @@ class DQN(agents.Agent):
 
         total_error = tf.reduce_mean(tf.square(td_error))
 
-        q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_net')
+        q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name+'q_net')
         grads_and_vars = optimizer.compute_gradients(total_error, var_list=q_net_vars)
 
         self.train_op = optimizer.apply_gradients(grads_and_vars)
 
         # build target update operation
         update_target_fn = []
-        target_q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_net')
+        target_q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name+'target_q_net')
         for var, var_target in zip(sorted(q_net_vars, key=lambda v: v.name),
                                    sorted(target_q_net_vars, key=lambda v: v.name)):
             update_target_fn.append(var_target.assign(var))
@@ -122,7 +118,7 @@ class DQN(agents.Agent):
         self.latest_obs = self.replay_buffer.encode_recent_observation()
 
         # batch update
-        if self.t > self.explore_duration and self.t % self.train_freq == 0:
+        if self.replay_buffer.can_sample(self.batch_size) and self.t % self.train_freq == 0:
             obs, actions, rewards, next_obs, done_mask = self.replay_buffer.sample(self.batch_size)
 
             self.session.run(self.train_op, feed_dict={

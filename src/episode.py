@@ -5,7 +5,7 @@ def run_episode(env, agent, conf):
 
     terminal = False
     discounted_return = 0
-    discount = conf.discount
+    discount = conf.gamma
 
     obs = env.reset()
     agent.reset(obs)
@@ -18,6 +18,6 @@ def run_episode(env, agent, conf):
         agent.update(observation, reward, terminal)
 
         discounted_return += discount * reward
-        discount *= conf.discount
+        discount *= conf.gamma
 
     return discounted_return

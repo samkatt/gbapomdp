@@ -3,6 +3,9 @@ from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
 import time
 from math import sqrt
+import numpy as np
+
+from utils import tf_wrapper
 
 from episode import run_episode
 
@@ -11,12 +14,14 @@ from environments import cartpole
 
 from agents.dqn import DQN
 
-import numpy as np
 
 def main():
     """ start of program """
 
     conf = parse_arguments()
+
+    env = get_environment(conf)
+    sess = tf_wrapper.get_session()
 
     cur_time = time.time()
     result = np.zeros((conf.runs, conf.episodes))
@@ -25,14 +30,13 @@ def main():
         if conf.verbose:
             print('starting run', run)
 
-        env = get_environment(conf)
-        agent = DQN(env, conf)
+        agent = DQN(env, conf, sess, name='agent-' + str(run))
 
         for episode in range(conf.episodes):
 
             result[run][episode] = run_episode(env, agent, conf)
 
-            if  conf.verbose and time.time() - cur_time > 10:
+            if  conf.verbose and time.time() - cur_time > 5:
 
                 print(time.ctime(),
                       "run", run, "episode", episode,
@@ -41,20 +45,21 @@ def main():
 
                 cur_time = time.time()
 
-    # process results into rows of (for each episode
-    # return avg, return var, return #, return stder
-    summary = np.transpose([
-        np.mean(result, axis=0),
-        np.var(result, axis=0),
-        [conf.runs] * conf.episodes, \
-        np.var(result, axis=0) / sqrt(conf.runs)
-        ])
+        # process results into rows of (for each episode
+        # return avg, return var, return #, return stder
+        tmp_result = result[:run+1]
+        summary = np.transpose([
+            np.mean(tmp_result, axis=0),
+            np.var(tmp_result, axis=0),
+            [run+1] * conf.episodes,
+            np.var(tmp_result, axis=0) / sqrt(conf.runs)
+            ])
 
-    np.savetxt(
-        conf.file,
-        summary,
-        delimiter=', ',
-        header="version 1:\nreturn mean, return var, return count, return stder")
+        np.savetxt(
+            conf.file,
+            summary,
+            delimiter=', ',
+            header="version 1:\nreturn mean, return var, return count, return stder")
 
 
 def parse_arguments():
@@ -107,12 +112,6 @@ def parse_arguments():
         help="learning rate of the policy gradient descent")
 
     parser.add_argument(
-        "--discount", "-d",
-        default=1,
-        type=float,
-        help="the discount factor used in the domain")
-
-    parser.add_argument(
         "--gamma",
         default=0.99,
         type=float,
@@ -147,12 +146,6 @@ def parse_arguments():
         default=4,
         type=int,
         help="how often the agent performs a batch update (every # time steps)")
-
-    parser.add_argument(
-        "--explore_duration",
-        default=10000,
-        type=int,
-        help="how long to wait before training (# time steps)")
 
     return parser.parse_args()
 
