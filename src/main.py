@@ -94,6 +94,12 @@ def parse_arguments():
         help="number of runs to average returns over")
 
     parser.add_argument(
+        "--horizon", "-h",
+        default=200,
+        type=int,
+        help="length of the problem")
+
+    parser.add_argument(
         "--episodes",
         default=100000,
         type=int,
@@ -137,7 +143,7 @@ def parse_arguments():
 
     parser.add_argument(
         "--q_target_update_freq",
-        default=250,
+        default=256,
         type=int,
         help="how often the target network should be updated (every # time steps)")
 

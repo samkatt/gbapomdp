@@ -9,7 +9,8 @@ def run_episode(env, agent, conf):
 
     obs = env.reset()
     agent.reset(obs)
-    while not terminal:
+    time = 0
+    while not terminal and time < conf.horizon:
 
         action = agent.select_action()
 
@@ -19,5 +20,7 @@ def run_episode(env, agent, conf):
 
         discounted_return += discount * reward
         discount *= conf.gamma
+
+        time += 1
 
     return discounted_return
