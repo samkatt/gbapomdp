@@ -64,27 +64,27 @@ class DQN(agents.Agent):
         onpolicy_qvalues = tf.gather_nd(self.qvalues, action_indices)
         targets = tf.reduce_max(target_qvalues, axis=-1)
 
-        done_td_error = self.rew_t_ph - onpolicy_qvalues
-
-        not_done_td_error = done_td_error + (conf.gamma * targets)
-
-        td_error = tf.where(
+        labels = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
-            x=done_td_error, y=not_done_td_error)
+            x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * targets))
 
-        total_error = tf.reduce_mean(tf.square(td_error))
+        loss = tf.losses.huber_loss(labels, onpolicy_qvalues, delta=25.0)
 
         q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name+'q_net')
-        grads_and_vars = optimizer.compute_gradients(total_error, var_list=q_net_vars)
+        grads_and_vars = optimizer.compute_gradients(loss, var_list=q_net_vars)
 
         self.train_op = optimizer.apply_gradients(grads_and_vars)
 
         # build target update operation
         update_target_fn = []
-        target_q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name+'target_q_net')
+        target_q_net_vars = tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=name+'target_q_net')
+
         for var, var_target in zip(sorted(q_net_vars, key=lambda v: v.name),
                                    sorted(target_q_net_vars, key=lambda v: v.name)):
             update_target_fn.append(var_target.assign(var))
+
         self.update_target_fn = tf.group(*update_target_fn)
 
         # finalize networks
