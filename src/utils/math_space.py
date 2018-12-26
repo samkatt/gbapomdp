@@ -19,4 +19,4 @@ class DiscreteSpace():
     def sample(self):
         """ returns element at random """
         # [fixme] make this more general
-        return (np.random.random(self.shape) * self.dim).astype(int)[0]
+        return (np.random.random(self.shape) * self.dim).astype(int)

@@ -36,7 +36,7 @@ def main():
 
             result[run][episode] = run_episode(env, agent, conf)
 
-            if  conf.verbose and time.time() - cur_time > 5:
+            if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
 
                 print(time.ctime(),
                       "run", run, "episode", episode,
@@ -73,7 +73,8 @@ def parse_arguments():
 
     parser.add_argument(
         "--method",
-        help="which learning method to use (dqn)",
+        help="which learning method to use",
+        choices={"dqn"},
         required=True)
 
     parser.add_argument(
@@ -94,7 +95,7 @@ def parse_arguments():
         help="number of runs to average returns over")
 
     parser.add_argument(
-        "--horizon", "-h",
+        "--horizon", "-H",
         default=200,
         type=int,
         help="length of the problem")
@@ -106,10 +107,10 @@ def parse_arguments():
         help="number of episodes to run")
 
     parser.add_argument(
-        "--network_size",
-        required=True,
-        help='the size of the q-network',
-        choices=["small", "med", "large"])
+        "--gamma",
+        default=0.99,
+        type=float,
+        help="discount factor to be used")
 
     parser.add_argument(
         "--learning_rate", "--alpha",
@@ -118,10 +119,16 @@ def parse_arguments():
         help="learning rate of the policy gradient descent")
 
     parser.add_argument(
-        "--gamma",
-        default=0.99,
-        type=float,
-        help="discount factor to be used")
+        "--loss",
+        default="rmse",
+        help="type of loss to consider",
+        choices={"rmse", "huber"})
+
+    parser.add_argument(
+        "--network_size",
+        required=True,
+        help='the size of the q-network',
+        choices=["small", "med", "large"])
 
     parser.add_argument(
         "--observation_len",

@@ -61,19 +61,26 @@ class DQN(agents.Agent):
 
         # build train operation
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
-        onpolicy_qvalues = tf.gather_nd(self.qvalues, action_indices)
+        q_values = tf.gather_nd(self.qvalues, action_indices)
         targets = tf.reduce_max(target_qvalues, axis=-1)
 
-        labels = tf.where(
+        targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
             x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * targets))
 
-        loss = tf.losses.huber_loss(labels, onpolicy_qvalues, delta=25.0)
+        # loss
+        if conf.loss == "huber":
+            loss = tf.losses.huber_loss(targets, q_values, delta=10.0)
+        else:
+            loss = tf.losses.mean_squared_error(targets, q_values)
 
         q_net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name+'q_net')
-        grads_and_vars = optimizer.compute_gradients(loss, var_list=q_net_vars)
+        gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=q_net_vars))
+        # clipping
+        gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
-        self.train_op = optimizer.apply_gradients(grads_and_vars)
+
+        self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
         # build target update operation
         update_target_fn = []
