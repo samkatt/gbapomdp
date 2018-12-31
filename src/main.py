@@ -24,35 +24,42 @@ def main():
     sess = tf_wrapper.get_session()
 
     cur_time = time.time()
-    result = np.zeros((conf.runs, conf.episodes))
+    result_mean = np.zeros(conf.episodes)
+    result_var = np.zeros(conf.episodes)
     for run in range(conf.runs):
 
         if conf.verbose:
             print('starting run', run)
 
         agent = DQN(env, conf, sess, name='agent-' + str(run))
+        tmp_res = np.zeros(conf.episodes)
 
         for episode in range(conf.episodes):
 
-            result[run][episode] = run_episode(env, agent, conf)
+            tmp_res[episode] = run_episode(env, agent, conf)
 
             if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
 
                 print(time.ctime(),
                       "run", run, "episode", episode,
                       ": avg return",
-                      np.mean(result[run, max(0, episode-100):episode]))
+                      np.mean(tmp_res[max(0, episode-100):episode]))
 
                 cur_time = time.time()
 
-        # process results into rows of (for each episode
+        # update mean and variance
+        delta = tmp_res - result_mean
+        result_mean += delta / (run+1)
+        delta_2  = tmp_res - result_mean
+        result_var += delta * delta_2
+
+        # process results into rows of for each episode
         # return avg, return var, return #, return stder
-        tmp_result = result[:run+1]
         summary = np.transpose([
-            np.mean(tmp_result, axis=0),
-            np.var(tmp_result, axis=0),
+            result_mean,
+            result_var,
             [run+1] * conf.episodes,
-            np.var(tmp_result, axis=0) / sqrt(conf.runs)
+            result_var / sqrt(conf.runs)
             ])
 
         np.savetxt(
