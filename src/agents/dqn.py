@@ -14,12 +14,11 @@ class DQN(agents.Agent):
     """ DQN implementation"""
 
     # [fixme] create separate functions for getting architectures and train methods
-    def __init__(self, env, conf, sess, name='dqn-agent'):
+    def __init__(self, env, conf, sess, exploration=None, name='dqn-agent'):
         """ initialize network """
 
-        self.exploration = misc.PiecewiseSchedule(
-            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)],
-            outside_value=0.05)
+        self.exploration = exploration if exploration is not None else \
+                misc.PiecewiseSchedule([(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05)
 
         # confs
         self.target_update_freq = conf.q_target_update_freq
@@ -98,7 +97,7 @@ class DQN(agents.Agent):
         self.session.run(tf.global_variables_initializer())
 
     def reset(self, obs):
-        """ resets the rnn state """
+        """ resets to finish episode """
         self.replay_index = self.replay_buffer.store_frame(obs)
         self.latest_obs = self.replay_buffer.encode_recent_observation()
 
