@@ -21,52 +21,53 @@ def main():
     conf = parse_arguments()
 
     env = get_environment(conf)
-    sess = tf_wrapper.get_session()
 
     cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
-    for run in range(conf.runs):
 
-        if conf.verbose:
-            print('starting run', run)
+    with tf_wrapper.get_session() as sess:
+        for run in range(conf.runs):
 
-        agent = DQN(env, conf, sess, name='agent-' + str(run))
-        tmp_res = np.zeros(conf.episodes)
+            if conf.verbose:
+                print('starting run', run)
 
-        for episode in range(conf.episodes):
+            agent = DQN(env, conf, sess, name='agent-' + str(run))
+            tmp_res = np.zeros(conf.episodes)
 
-            tmp_res[episode] = run_episode(env, agent, conf)
+            for episode in range(conf.episodes):
 
-            if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
+                tmp_res[episode] = run_episode(env, agent, conf)
 
-                print(time.ctime(),
-                      "run", run, "episode", episode,
-                      ": avg return",
-                      np.mean(tmp_res[max(0, episode-100):episode]))
+                if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
 
-                cur_time = time.time()
+                    print(time.ctime(),
+                          "run", run, "episode", episode,
+                          ": avg return",
+                          np.mean(tmp_res[max(0, episode-100):episode]))
 
-        # update mean and variance
-        delta = tmp_res - result_mean
-        result_mean += delta / (run+1)
-        delta_2  = tmp_res - result_mean
-        result_var += delta * delta_2
+                    cur_time = time.time()
 
-        # process results into rows of for each episode
-        # return avg, return var, return #, return stder
-        summary = np.transpose([
-            result_mean,
-            result_var,
-            [run+1] * conf.episodes,
-            result_var / sqrt(conf.runs)
-            ])
+            # update mean and variance
+            delta = tmp_res - result_mean
+            result_mean += delta / (run+1)
+            delta_2 = tmp_res - result_mean
+            result_var += delta * delta_2
 
-        np.savetxt(
-            conf.file,
-            summary,
-            delimiter=', ',
-            header="version 1:\nreturn mean, return var, return count, return stder")
+            # process results into rows of for each episode
+            # return avg, return var, return #, return stder
+            summary = np.transpose([
+                result_mean,
+                result_var,
+                [run+1] * conf.episodes,
+                result_var / sqrt(conf.runs)
+                ])
+
+            np.savetxt(
+                conf.file,
+                summary,
+                delimiter=', ',
+                header="version 1:\nreturn mean, return var, return count, return stder")
 
 
 def parse_arguments():
