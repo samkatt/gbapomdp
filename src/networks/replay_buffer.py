@@ -4,6 +4,7 @@ from numpy import random
 import numpy as np
 
 from utils.sample import sample_n_unique
+from utils.sample import sample_n
 
 class ReplayBuffer(object):
     """This is a memory efficient implementation of the replay buffer.
@@ -97,7 +98,7 @@ is acceptable. """
             Array of shape (batch_size,) and dtype np.float32
         """
         assert self.can_sample(batch_size)
-        idxes = sample_n_unique(lambda: random.randint(0, self.num_in_buffer - 2), batch_size)
+        idxes = sample_n(lambda: random.randint(0, self.num_in_buffer - 2), batch_size)
         return self._encode_sample(idxes)
 
     def encode_recent_observation(self):

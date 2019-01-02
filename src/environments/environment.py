@@ -17,5 +17,5 @@ class Environment(abc.ABC):
 
     @abc.abstractmethod
     def spaces(self):
-        """ returns size of domain space """
+        """ returns size of domain space {'O', 'A'} """
         pass

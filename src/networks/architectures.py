@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.python.layers.layers import dense
 from tensorflow.python.layers.layers import flatten
 
-class QNet(abc.ABC):
+class Architecture(abc.ABC):
     """ implementation a q-function """
 
     @abc.abstractmethod
@@ -13,7 +13,7 @@ class QNet(abc.ABC):
         """ returns qvalues """
         pass
 
-class TwoHiddenLayerQNet(QNet):
+class TwoHiddenLayerQNet(Architecture):
     """ Regular Q network with 2 hidden layers """
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
