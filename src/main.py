@@ -13,6 +13,7 @@ from environments import tiger
 from environments import cartpole
 
 from agents.dqn import DQN
+from agents.ensemble_dqn import ensemble_DQN
 
 
 def main():
@@ -32,7 +33,7 @@ def main():
             if conf.verbose:
                 print('starting run', run)
 
-            agent = DQN(env, conf, sess, name='agent-' + str(run))
+            agent = get_agent(conf, env, sess, 'agent-' + str(run))
             tmp_res = np.zeros(conf.episodes)
 
             for episode in range(conf.episodes):
@@ -82,7 +83,7 @@ def parse_arguments():
     parser.add_argument(
         "--method",
         help="which learning method to use",
-        choices={"dqn"},
+        choices={"dqn", "ensemble_dqn"},
         required=True)
 
     parser.add_argument(
@@ -145,6 +146,13 @@ def parse_arguments():
         help="number of past observations to provide to the policy")
 
     parser.add_argument(
+        "--num_nets",
+        default=1,
+        type=int,
+        help='number of nets to use in ensemble methods'
+        )
+
+    parser.add_argument(
         "--replay_buffer_size", "--rb_size",
         default=1000000,
         type=int,
@@ -176,6 +184,13 @@ def get_environment(conf):
         return tiger.Tiger(conf)
     if conf.domain == "cartpole":
         return cartpole.Cartpole(conf)
+
+def get_agent(conf, env, sess, name):
+    """ returns agent given configurations and environment """
+    if conf.method == "dqn":
+        return DQN(env, conf, sess, name=name)
+    if conf.method == "ensemble_dqn":
+        return ensemble_DQN(env, conf, sess, name=name)
 
 if __name__ == '__main__':
     main()
