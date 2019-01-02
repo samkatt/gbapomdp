@@ -64,15 +64,9 @@ class ensemble_DQN(agents.Agent):
     def select_action(self):
         """ requests greedy action from network """
 
-        # [fixme] improve on picking q values in DQN ensemble
+        # [fixme] too naive:
+        # current q values are just randomly picked from the network
         q_values = np.random.choice(self.nets).Qvalues(self.latest_obs)
-        q_values_tmp = np.random.choice(self.nets).Qvalues(self.latest_obs)
-
-        self.file.write(
-            ','.join(str(x) for x in q_values) +\
-            " vs " +\
-            ','.join(str(x) for x in q_values_tmp) + '\n')
-
         epsilon = self.exploration.value(self.t)
 
         self.latest_action = misc.epsilon_greedy(q_values, epsilon, self.action_space)
@@ -92,7 +86,7 @@ class ensemble_DQN(agents.Agent):
         self.replay_index = self.replay_buffer.store_frame(obs)
         self.latest_obs = self.replay_buffer.encode_recent_observation()
 
-        # batch update networks
+        # batch update all networks
         if self.replay_buffer.can_sample(self.batch_size) and self.t % self.train_freq == 0:
             for net in self.nets:
 
@@ -101,7 +95,7 @@ class ensemble_DQN(agents.Agent):
 
                 net.batch_update(obs, actions, rewards, next_obs, done_mask)
 
-        # update target networks occasionally
+        # update all target networks occasionally
         if self.t % self.target_update_freq == 0:
             for net in self.nets:
                 net.update_target()

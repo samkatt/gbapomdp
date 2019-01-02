@@ -25,11 +25,11 @@ class DQN(agents.Agent):
         self.batch_size = conf.batch_size
         self.train_freq = conf.train_frequency
 
+        # inits
         self.t = 0
         self.session = sess
         self.action_space = env.spaces()["A"]
 
-        # construct the replay buffer
         self.replay_buffer = rb.ReplayBuffer(
             conf.replay_buffer_size,
             conf.observation_len, True)
