@@ -20,9 +20,13 @@ class GridWorld(Environment):
 
     CORRECT_OBSERVATION_PROB = .8
     MOVE_SUCCESS_PROB = .95
+    SLOW_MOVE_SUCCESS_PROB = .15
 
-    # move helpres
+    _slow_cells = set()
+
+    # move helpers
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+
     # verbosity helpers
     action_to_string = ["^", ">", "v", "<"]
 
@@ -48,7 +52,6 @@ class GridWorld(Environment):
             "O": math_space.DiscreteSpace(np.ones((self._size, self._size)).tolist())
         }
 
-
         # generate multinomial probabilities for the observation function (1-D)
         _obs_mult = [self.CORRECT_OBSERVATION_PROB]
 
@@ -62,6 +65,23 @@ class GridWorld(Environment):
         _obs_mult.insert(0, left_over_p / 2)
 
         self._obs_mult = np.array(_obs_mult)
+
+        # generate slow locations
+        edge = self._size-1
+
+        # bottom left side for larger domains
+        if self._size > 5:
+            self._slow_cells.add((1, 1))
+
+        if self._size == 3:
+            self._slow_cells.add((1, 1))
+        elif self._size < 7:
+            self._slow_cells.add((edge-1, edge-2))
+            self._slow_cells.add((edge-2, edge-1))
+        else:
+            self._slow_cells.add((edge-1, edge-3))
+            self._slow_cells.add((edge-3, edge-1))
+            self._slow_cells.add((edge-2, edge-2))
 
     def bound_in_grid(self, state_or_obs):
         """ makes sure input state or observation is bounded within <0,size> """
@@ -102,9 +122,12 @@ class GridWorld(Environment):
     def step(self, action):
         """ update state wrt action (listen or open) """
 
-        # [fixme] test gridworld.step
+        if tuple(self.state) not in self._slow_cells:
+            move_prob = self.MOVE_SUCCESS_PROB
+        else:
+            move_prob = self.SLOW_MOVE_SUCCESS_PROB
 
-        if np.random.uniform() < self.MOVE_SUCCESS_PROB:
+        if np.random.uniform() < move_prob:
             self.state = self.bound_in_grid(self.state + self.action_to_vec[int(action)])
 
         obs = self.generate_observation(self.state)
