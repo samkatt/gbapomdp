@@ -118,7 +118,7 @@ is acceptable. """
 
         # this checks if we are using low-dimensional observations, such as RAM
         # state, in which case we just directly return the latest RAM.
-        if len(self.obs.shape) == 2 and self.history_len == 1:
+        if self.history_len == 1:
             return self.obs[idx]
 
         end_idx = idx + 1 # make noninclusive

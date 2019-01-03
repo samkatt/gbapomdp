@@ -1,13 +1,12 @@
 """ tiger environment """
 
 import copy
+import time
 
 import numpy as np
 from environments.environment import Environment
 
 from utils import math_space
-
-import time
 
 class Tiger(Environment):
     """ the tiger environment """
@@ -35,7 +34,7 @@ class Tiger(Environment):
 
         self._spaces = {
             "A": math_space.DiscreteSpace([3]),
-            "O": math_space.DiscreteSpace([1,1])
+            "O": math_space.DiscreteSpace([1, 1])
         }
 
     # pylint: disable=R0201
