@@ -11,6 +11,7 @@ from episode import run_episode
 
 from environments import tiger
 from environments import cartpole
+from environments import gridworld
 
 from agents.dqn import DQN
 from agents.ensemble_dqn import ensemble_DQN
@@ -90,7 +91,7 @@ def parse_arguments():
         "--domain", "-D",
         help="which domain to use method on",
         required=True,
-        choices=["cartpole", "tiger"])
+        choices=["cartpole", "tiger", "gridworld"])
 
     parser.add_argument(
         "--file", "-f",
@@ -132,6 +133,12 @@ def parse_arguments():
         default="rmse",
         help="type of loss to consider",
         choices={"rmse", "huber"})
+
+    parser.add_argument(
+        "--domain_size",
+        type=int,
+        default=0,
+        help="size of domain (gridworld is size of grid)")
 
     parser.add_argument(
         "--network_size",
@@ -184,6 +191,8 @@ def get_environment(conf):
         return tiger.Tiger(conf)
     if conf.domain == "cartpole":
         return cartpole.Cartpole(conf)
+    if conf.domain == "gridworld":
+        return gridworld.GridWorld(conf)
 
 def get_agent(conf, env, sess, name):
     """ returns agent given configurations and environment """
