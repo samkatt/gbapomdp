@@ -12,6 +12,7 @@ from episode import run_episode
 from environments import tiger
 from environments import cartpole
 from environments import gridworld
+from environments import collision_avoidance
 
 from agents.dqn import DQN
 from agents.ensemble_dqn import ensemble_DQN
@@ -31,7 +32,7 @@ def main():
     with tf_wrapper.get_session() as sess:
         for run in range(conf.runs):
 
-            print('starting run', run)
+            print(time.ctime(), "starting run", run)
 
             agent = get_agent(conf, env, sess, 'agent-' + str(run))
             tmp_res = np.zeros(conf.episodes)
@@ -90,7 +91,7 @@ def parse_arguments():
         "--domain", "-D",
         help="which domain to use method on",
         required=True,
-        choices=["cartpole", "tiger", "gridworld"])
+        choices=["cartpole", "tiger", "gridworld", "collision_avoidance"])
 
     parser.add_argument(
         "--file", "-f",
@@ -197,6 +198,8 @@ def get_environment(conf):
         return cartpole.Cartpole(conf)
     if conf.domain == "gridworld":
         return gridworld.GridWorld(conf)
+    if conf.domain == "collision_avoidance":
+        return collision_avoidance.CollisionAvoidance(conf)
 
 def get_agent(conf, env, sess, name):
     """ returns agent given configurations and environment """

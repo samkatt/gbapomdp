@@ -22,6 +22,7 @@ class GridWorld(Environment):
     MOVE_SUCCESS_PROB = .95
     SLOW_MOVE_SUCCESS_PROB = .15
 
+    state = np.zeros(2)
     _slow_cells = set()
 
     # move helpers
@@ -40,11 +41,10 @@ class GridWorld(Environment):
         assert conf.domain_size > 0
         assert conf.domain_size % 2 == 1
 
-        # verbosity settings
+        # confs
         self._verbose = conf.verbose
         self._size = conf.domain_size
 
-        self.state = np.zeros(2)
         self.goal_state = np.array([self._size-1, self._size-1])
 
         self._spaces = {
