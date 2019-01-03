@@ -49,15 +49,18 @@ class DQNNet:
             x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * targets))
 
         # training operation loss
-        if conf.loss == "huber":
+        if conf.loss == "rmse":
+            loss = tf.losses.mean_squared_error(targets, q_values)
+        elif conf.loss == "huber":
             loss = tf.losses.huber_loss(targets, q_values, delta=10.0)
         else:
-            loss = tf.losses.mean_squared_error(targets, q_values)
+            raise ValueError('Entered unknown value for loss ' + conf.loss)
 
         net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope+'_net')
         gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=net_vars))
 
-        gradients, _ = tf.clip_by_global_norm(gradients, 5)
+        if conf.clipping:
+            gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 

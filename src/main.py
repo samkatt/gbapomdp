@@ -31,8 +31,7 @@ def main():
     with tf_wrapper.get_session() as sess:
         for run in range(conf.runs):
 
-            if conf.verbose:
-                print('starting run', run)
+            print('starting run', run)
 
             agent = get_agent(conf, env, sess, 'agent-' + str(run))
             tmp_res = np.zeros(conf.episodes)
@@ -133,6 +132,11 @@ def parse_arguments():
         default="rmse",
         help="type of loss to consider",
         choices={"rmse", "huber"})
+
+    parser.add_argument(
+        "--clipping",
+        action='store_true',
+        help="whether or not to use clipping in computing loss")
 
     parser.add_argument(
         "--domain_size",
