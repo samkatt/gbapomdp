@@ -7,10 +7,12 @@ import agents.agent as agents
 import networks.replay_buffer as rb
 import networks.architectures as archs
 import networks.DQNNet as DQNNet
+import networks.DRQNNet as DRQNNet
 
 from utils import tf_wrapper
 from utils import misc
 
+# [fixme] rename to ensemble_agent
 class ensemble_DQN(agents.Agent):
     """ DQN implementation"""
 
@@ -27,6 +29,7 @@ class ensemble_DQN(agents.Agent):
         self.target_update_freq = conf.q_target_update_freq
         self.batch_size = conf.batch_size
         self.train_freq = conf.train_frequency
+        self.recurrent = conf.recurrent
 
         self.t = 0
         self.session = sess
@@ -40,10 +43,16 @@ class ensemble_DQN(agents.Agent):
         optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
         arch = archs.TwoHiddenLayerQNet(conf)
 
+        # [fixme] improve modularity
+        if self.recurrent:
+            qfunc = DRQNNet.DRQNNet
+        else:
+            qfunc = DQNNet.DQNNet
+
         self.nets = []
         for i in range(conf.num_nets):
             self.nets.append(
-                DQNNet.DQNNet(
+                qfunc(
                     env.spaces(),
                     arch,
                     optimizer,
@@ -58,11 +67,15 @@ class ensemble_DQN(agents.Agent):
 
         self._current_policy = np.random.randint(0, len(self.nets)-1)
 
+        # [fixme] kinda ugly..?
+        if self.recurrent:
+            for net in self.nets:
+                net.reset()
+
     def select_action(self):
         """ requests greedy action from network """
 
-        # [fixme] too naive:
-        # current q values are just randomly picked from the network
+        # pick action from current policy (picked at start of episode)
         q_values = self.nets[self._current_policy].Qvalues(self.latest_obs)
 
         self.latest_action = q_values.argmax()

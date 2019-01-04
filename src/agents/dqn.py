@@ -7,10 +7,12 @@ import agents.agent as agents
 import networks.replay_buffer as rb
 import networks.architectures as archs
 import networks.DQNNet as DQNNet
+import networks.DRQNNet as DRQNNet
 
 from utils import tf_wrapper
 from utils import misc
 
+# [fixme] rename to agent
 class DQN(agents.Agent):
     """ DQN implementation"""
 
@@ -24,6 +26,7 @@ class DQN(agents.Agent):
         self.target_update_freq = conf.q_target_update_freq
         self.batch_size = conf.batch_size
         self.train_freq = conf.train_frequency
+        self.recurrent = conf.recurrent
 
         # inits
         self.t = 0
@@ -35,20 +38,33 @@ class DQN(agents.Agent):
             conf.observation_len, True)
 
         optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
-        arch = archs.TwoHiddenLayerQNet(conf)
 
-        self.dqn_net = DQNNet.DQNNet(
-            env.spaces(),
-            arch,
-            optimizer,
-            conf,
-            sess,
-            name + '_net')
+        # [fixme] better modularity here
+        if self.recurrent:
+            self.dqn_net = DRQNNet.DRQNNet(
+                env.spaces(),
+                archs.TwoHiddenLayerRecQNet(conf),
+                optimizer,
+                conf,
+                sess,
+                name + '_net')
+        else:
+            self.dqn_net = DQNNet.DQNNet(
+                env.spaces(),
+                archs.TwoHiddenLayerQNet(conf),
+                optimizer,
+                conf,
+                sess,
+                name + '_net')
 
     def reset(self, obs):
         """ resets to finish episode """
         self.replay_index = self.replay_buffer.store_frame(obs)
         self.latest_obs = self.replay_buffer.encode_recent_observation()
+
+        # [fixme] ugly..?
+        if self.recurrent:
+            self.dqn_net.reset()
 
     def select_action(self):
         """ requests greedy action from network """

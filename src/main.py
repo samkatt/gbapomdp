@@ -137,56 +137,70 @@ def parse_arguments():
     parser.add_argument(
         "--clipping",
         action='store_true',
-        help="whether or not to use clipping in computing loss")
+        help="whether or not to use clipping in computing loss"
+    )
 
     parser.add_argument(
         "--domain_size",
         type=int,
         default=0,
-        help="size of domain (gridworld is size of grid)")
+        help="size of domain (gridworld is size of grid)"
+    )
+
+    parser.add_argument(
+        "--recurrent",
+        action='store_true',
+        help="whether to use recurrent networks"
+    )
 
     parser.add_argument(
         "--network_size",
         required=True,
         help='the size of the q-network',
-        choices=["small", "med", "large"])
+        choices=["small", "med", "large"]
+    )
 
     parser.add_argument(
         "--observation_len",
         default=1,
         type=int,
-        help="number of past observations to provide to the policy")
+        help="number of past observations to provide to the policy"
+    )
 
     parser.add_argument(
         "--num_nets",
         default=1,
         type=int,
         help='number of nets to use in ensemble methods'
-        )
+    )
 
     parser.add_argument(
         "--replay_buffer_size", "--rb_size",
         default=1000000,
         type=int,
-        help="size of replay buffer")
+        help="size of replay buffer"
+    )
 
     parser.add_argument(
         "--batch_size",
         default=32,
         type=int,
-        help="size of learning batch")
+        help="size of learning batch"
+    )
 
     parser.add_argument(
         "--q_target_update_freq",
         default=256,
         type=int,
-        help="how often the target network should be updated (every # time steps)")
+        help="how often the target network should be updated (every # time steps)"
+    )
 
     parser.add_argument(
         "--train_frequency",
         default=4,
         type=int,
-        help="how often the agent performs a batch update (every # time steps)")
+        help="how often the agent performs a batch update (every # time steps)"
+    )
 
     return parser.parse_args()
 

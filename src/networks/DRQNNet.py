@@ -1,25 +1,26 @@
-""" DQN network implementation """
+""" DRQN network implementation """
 
 import tensorflow as tf
 
-class DQNNet:
-    """ a network based on DQN that can return q values and update """
+class DRQNNet:
+    """ a network based on DRQN that can return q values and update """
 
-    def __init__(self, env_spaces, arch, optimizer, conf, sess, scope):
+    def __init__(self, env_spaces, rec_arch, optimizer, conf, sess, scope):
         """
         in:
 
         env_spaces: dict{'O','A'} with observation and action space
-        arch: a QNet
+        rec_arch: a **Recurrent** QNet
         optimizer: a tf.Optimzer
         conf: configurations (contains observation len,  gamma and loss option)
         sess: the tf session
         scope: name space
         """
 
-        assert not arch.is_recursive()
+        assert rec_arch.is_recursive()
 
         self.session = sess
+        self.rnn_state = None
 
         input_shape = (conf.observation_len, *env_spaces["O"].shape)
 
@@ -31,18 +32,18 @@ class DQNNet:
         self.done_mask_ph = tf.placeholder(tf.float32, [None])
 
         # training operation q values and targets
-        self.qvalues = arch(
+        self.qvalues_op, self.rec_state_op = rec_arch(
             self.obs_t_ph,
             env_spaces["A"].n,
             scope=scope + '_net')
 
-        target_qvalues = arch(
+        target_qvalues, _ = rec_arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
             scope=scope + '_target')
 
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
-        q_values = tf.gather_nd(self.qvalues, action_indices)
+        q_values = tf.gather_nd(self.qvalues_op, action_indices)
         targets = tf.reduce_max(target_qvalues, axis=-1)
 
         targets = tf.where(
@@ -81,12 +82,24 @@ class DQNNet:
         self.session.run(tf.global_variables_initializer())
 
 
+    def reset(self):
+        """ resets the net """
+        self.rnn_state = None
+
     def Qvalues(self, observation):
         """ returns the q values associated with the observations """
 
-        return self.session.run(
-            self.qvalues,
-            feed_dict={self.obs_t_ph: observation[None]})
+        feed_dict = {self.obs_t_ph: observation[None]}
+
+        if self.rnn_state is not None:
+            feed_dict[rec_arch.rec_state] = self.rnn_state
+
+        qvals, self.rec_state = self.session.run(
+            [self.qvalues_op, self.rec_state_op],
+            feed_dict=feed_dict
+        )
+
+        return qvals
 
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update """
