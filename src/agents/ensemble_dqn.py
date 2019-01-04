@@ -14,14 +14,14 @@ from utils import misc
 class ensemble_DQN(agents.Agent):
     """ DQN implementation"""
 
-    def __init__(self, env, conf, sess, exploration=None, name='ensemble-dqn-agent'):
+    # the policy from which to act e-greedy on right now
+    _current_policy = 0
+
+    def __init__(self, env, conf, sess, name='ensemble-dqn-agent'):
         """ initialize network """
 
         if conf.num_nets == 1:
             raise ValueError("no number of networks specified (--num_nets)")
-
-        self.exploration = exploration if exploration is not None else \
-                misc.PiecewiseSchedule([(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05)
 
         # confs
         self.target_update_freq = conf.q_target_update_freq
@@ -51,25 +51,21 @@ class ensemble_DQN(agents.Agent):
                     sess,
                     name + '_net_' + str(i)))
 
-        self.file = open('./dbg', 'w+')
-
-    def __del__(self):
-        self.file.close()
-
     def reset(self, obs):
         """ resets to finish episode """
         self.replay_index = self.replay_buffer.store_frame(obs)
         self.latest_obs = self.replay_buffer.encode_recent_observation()
+
+        self._current_policy = np.random.randint(0, len(self.nets)-1)
 
     def select_action(self):
         """ requests greedy action from network """
 
         # [fixme] too naive:
         # current q values are just randomly picked from the network
-        q_values = np.random.choice(self.nets).Qvalues(self.latest_obs)
-        epsilon = self.exploration.value(self.t)
+        q_values = self.nets[self._current_policy].Qvalues(self.latest_obs)
 
-        self.latest_action = misc.epsilon_greedy(q_values, epsilon, self.action_space)
+        self.latest_action = q_values.argmax()
 
         return self.latest_action
 

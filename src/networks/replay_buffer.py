@@ -119,7 +119,7 @@ is acceptable. """
         # this checks if we are using low-dimensional observations, such as RAM
         # state, in which case we just directly return the latest RAM.
         if self.history_len == 1:
-            return self.obs[idx]
+            return np.array([self.obs[idx]])
 
         end_idx = idx + 1 # make noninclusive
         start_idx = end_idx - self.history_len

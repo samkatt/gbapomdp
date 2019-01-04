@@ -19,8 +19,7 @@ class DQNNet:
 
         self.session = sess
 
-        input_shape = env_spaces["O"].shape if conf.observation_len == 1 \
-                else (conf.observation_len, *env_spaces["O"].shape)
+        input_shape = (conf.observation_len, *env_spaces["O"].shape)
 
         # training operation place holders
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
