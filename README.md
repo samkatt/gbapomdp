@@ -7,3 +7,6 @@ Open AI gym:
 
 OpenCV python
 `pip instal opencv-python`
+
+ffmpeg encoding
+`sudo apt install ffmpeg`
