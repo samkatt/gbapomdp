@@ -66,7 +66,7 @@ class ensemble_DQN(agents.Agent):
         self.last_ob = obs
         self.replay_index = self.replay_buffer.store_frame(self.last_ob)
 
-        self._current_policy = np.random.randint(0, len(self.nets)-1)
+        self._current_policy = self.nets[np.random.randint(0, len(self.nets)-1)]
 
         # [fixme] kinda ugly..?
         if self.recurrent:
@@ -76,10 +76,10 @@ class ensemble_DQN(agents.Agent):
     def select_action(self):
         """ requests greedy action from network """
 
-        q_in = np.array([self.last_ob]) if self.recurrent else self.replay_buffer.encode_recent_observation()
+        q_in = np.array([self.last_ob]) if self.recurrent \
+                else self.replay_buffer.encode_recent_observation()
 
-        # pick action from current policy (picked at start of episode)
-        q_values = self.nets[self._current_policy].Qvalues(q_in)
+        q_values = self._current_policy.Qvalues(q_in)
 
         self.latest_action = q_values.argmax()
 

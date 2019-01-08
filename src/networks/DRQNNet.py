@@ -34,15 +34,15 @@ class DRQNNet:
         self.done_mask_ph = tf.placeholder(tf.float32, [None])
 
         # training operation q values and targets
-        target_qvalues, _ = self.rec_arch(
-            self.obs_tp1_ph,
-            env_spaces["A"].n,
-            scope=self.name + '_target')
-
         self.qvalues_op, self.rec_state_op = self.rec_arch(
             self.obs_t_ph,
             env_spaces["A"].n,
             scope=self.name + '_net')
+
+        target_qvalues, _ = self.rec_arch(
+            self.obs_tp1_ph,
+            env_spaces["A"].n,
+            scope=self.name + '_target')
 
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         q_values = tf.gather_nd(self.qvalues_op, action_indices)
