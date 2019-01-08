@@ -41,13 +41,14 @@ class ensemble_DQN(agents.Agent):
             conf.observation_len, True)
 
         optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
-        arch = archs.TwoHiddenLayerQNet(conf)
 
         # [fixme] improve modularity
         if self.recurrent:
             qfunc = DRQNNet.DRQNNet
+            arch = archs.TwoHiddenLayerRecQNet(conf)
         else:
             qfunc = DQNNet.DQNNet
+            arch = archs.TwoHiddenLayerQNet(conf)
 
         self.nets = []
         for i in range(conf.num_nets):
@@ -62,8 +63,8 @@ class ensemble_DQN(agents.Agent):
 
     def reset(self, obs):
         """ resets to finish episode """
-        self.replay_index = self.replay_buffer.store_frame(obs)
-        self.latest_obs = self.replay_buffer.encode_recent_observation()
+        self.last_ob = obs
+        self.replay_index = self.replay_buffer.store_frame(self.last_ob)
 
         self._current_policy = np.random.randint(0, len(self.nets)-1)
 
@@ -75,8 +76,10 @@ class ensemble_DQN(agents.Agent):
     def select_action(self):
         """ requests greedy action from network """
 
+        q_in = np.array([self.last_ob]) if self.recurrent else self.replay_buffer.encode_recent_observation()
+
         # pick action from current policy (picked at start of episode)
-        q_values = self.nets[self._current_policy].Qvalues(self.latest_obs)
+        q_values = self.nets[self._current_policy].Qvalues(q_in)
 
         self.latest_action = q_values.argmax()
 
@@ -92,8 +95,8 @@ class ensemble_DQN(agents.Agent):
             reward,
             terminal)
 
-        self.replay_index = self.replay_buffer.store_frame(obs)
-        self.latest_obs = self.replay_buffer.encode_recent_observation()
+        self.last_ob = obs
+        self.replay_index = self.replay_buffer.store_frame(self.last_ob)
 
         # batch update all networks
         if self.replay_buffer.can_sample(self.batch_size) and self.t % self.train_freq == 0:

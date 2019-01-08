@@ -59,8 +59,8 @@ class DQN(agents.Agent):
 
     def reset(self, obs):
         """ resets to finish episode """
-        self.replay_index = self.replay_buffer.store_frame(obs)
-        self.latest_obs = self.replay_buffer.encode_recent_observation()
+        self.last_ob = obs
+        self.replay_index = self.replay_buffer.store_frame(self.last_ob)
 
         # [fixme] ugly..?
         if self.recurrent:
@@ -69,9 +69,10 @@ class DQN(agents.Agent):
     def select_action(self):
         """ requests greedy action from network """
 
-        q_values = self.dqn_net.Qvalues(self.latest_obs)
-        epsilon = self.exploration.value(self.t)
+        q_in = np.array([self.last_ob]) if self.recurrent else self.replay_buffer.encode_recent_observation()
+        q_values = self.dqn_net.Qvalues(q_in)
 
+        epsilon = self.exploration.value(self.t)
         self.latest_action = misc.epsilon_greedy(q_values, epsilon, self.action_space)
 
         return self.latest_action
@@ -86,8 +87,8 @@ class DQN(agents.Agent):
             reward,
             terminal)
 
-        self.replay_index = self.replay_buffer.store_frame(obs)
-        self.latest_obs = self.replay_buffer.encode_recent_observation()
+        self.last_ob = obs
+        self.replay_index = self.replay_buffer.store_frame(self.last_ob)
 
         # batch update
         if self.replay_buffer.can_sample(self.batch_size) and self.t % self.train_freq == 0:

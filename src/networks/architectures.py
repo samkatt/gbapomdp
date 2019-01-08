@@ -42,7 +42,7 @@ class TwoHiddenLayerQNet(Architecture):
 
 
 class TwoHiddenLayerRecQNet(Architecture):
-    """ Regular Q network with 2 hidden layers """
+    """ Recurrent Q network with 2 hidden layers """
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
 
@@ -71,6 +71,8 @@ class TwoHiddenLayerRecQNet(Architecture):
             hidden = dense(hidden, units=self.n_units, activation=tf.nn.tanh)
 
             rnn_cell = tf.nn.rnn_cell.LSTMCell(self.n_units)
+
+            # can be initialized with a feed dict if you want to set this to a previous state
             self.rec_state = rnn_cell.zero_state(batch_size, tf.float32)
 
             # will automatically handle the history len of each batch as a single sequence

@@ -21,8 +21,9 @@ class DRQNNet:
 
         self.session = sess
         self.rnn_state = None
+        self.rec_arch = rec_arch
 
-        input_shape = (conf.observation_len, *env_spaces["O"].shape)
+        input_shape = (None, *env_spaces["O"].shape)
 
         # training operation place holders
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
@@ -32,15 +33,15 @@ class DRQNNet:
         self.done_mask_ph = tf.placeholder(tf.float32, [None])
 
         # training operation q values and targets
-        self.qvalues_op, self.rec_state_op = rec_arch(
-            self.obs_t_ph,
-            env_spaces["A"].n,
-            scope=scope + '_net')
-
-        target_qvalues, _ = rec_arch(
+        target_qvalues, _ = self.rec_arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
             scope=scope + '_target')
+
+        self.qvalues_op, self.rec_state_op = self.rec_arch(
+            self.obs_t_ph,
+            env_spaces["A"].n,
+            scope=scope + '_net')
 
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         q_values = tf.gather_nd(self.qvalues_op, action_indices)
@@ -92,9 +93,9 @@ class DRQNNet:
         feed_dict = {self.obs_t_ph: observation[None]}
 
         if self.rnn_state is not None:
-            feed_dict[rec_arch.rec_state] = self.rnn_state
+            feed_dict[self.rec_arch.rec_state] = self.rnn_state
 
-        qvals, self.rec_state = self.session.run(
+        qvals, self.rnn_state = self.session.run(
             [self.qvalues_op, self.rec_state_op],
             feed_dict=feed_dict
         )
