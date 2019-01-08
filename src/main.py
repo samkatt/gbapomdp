@@ -81,6 +81,7 @@ def parse_arguments():
         action='store_true',
         help="whether to output verbose messages")
 
+    # [fixme] ensemble or not (flag)
     parser.add_argument(
         "--method",
         help="which learning method to use",

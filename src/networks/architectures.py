@@ -45,6 +45,7 @@ class TwoHiddenLayerRecQNet(Architecture):
     """ Recurrent Q network with 2 hidden layers """
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
+    rec_state = {} # recurrent state for each scope
 
     def __init__(self, conf):
         """ conf.network_size is in {'small', 'med', 'large'} """
@@ -73,13 +74,13 @@ class TwoHiddenLayerRecQNet(Architecture):
             rnn_cell = tf.nn.rnn_cell.LSTMCell(self.n_units)
 
             # can be initialized with a feed dict if you want to set this to a previous state
-            self.rec_state = rnn_cell.zero_state(batch_size, tf.float32)
+            self.rec_state[scope] = rnn_cell.zero_state(batch_size, tf.float32)
 
             # will automatically handle the history len of each batch as a single sequence
             hidden, new_rec_state = tf.nn.dynamic_rnn(
                 rnn_cell,
                 inputs=hidden,
-                initial_state=self.rec_state
+                initial_state=self.rec_state[scope]
             )
 
             qvalues = dense(hidden[:, -1], units=n_actions, activation=None)

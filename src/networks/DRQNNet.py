@@ -22,6 +22,7 @@ class DRQNNet:
         self.session = sess
         self.rnn_state = None
         self.rec_arch = rec_arch
+        self.name = scope
 
         input_shape = (None, *env_spaces["O"].shape)
 
@@ -36,12 +37,12 @@ class DRQNNet:
         target_qvalues, _ = self.rec_arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
-            scope=scope + '_target')
+            scope=self.name + '_target')
 
         self.qvalues_op, self.rec_state_op = self.rec_arch(
             self.obs_t_ph,
             env_spaces["A"].n,
-            scope=scope + '_net')
+            scope=self.name + '_net')
 
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         q_values = tf.gather_nd(self.qvalues_op, action_indices)
@@ -59,7 +60,7 @@ class DRQNNet:
         else:
             raise ValueError('Entered unknown value for loss ' + conf.loss)
 
-        net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope+'_net')
+        net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name+'_net')
         gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=net_vars))
 
         if conf.clipping:
@@ -71,7 +72,7 @@ class DRQNNet:
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=scope+'_target')
+            scope=self.name+'_target')
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
                                    sorted(target_vars, key=lambda v: v.name)):
@@ -81,7 +82,6 @@ class DRQNNet:
         self.update_target_op = tf.group(*update_target_op)
 
         self.session.run(tf.global_variables_initializer())
-
 
     def reset(self):
         """ resets the net """
@@ -93,7 +93,7 @@ class DRQNNet:
         feed_dict = {self.obs_t_ph: observation[None]}
 
         if self.rnn_state is not None:
-            feed_dict[self.rec_arch.rec_state] = self.rnn_state
+            feed_dict[self.rec_arch.rec_state[self.name + "_net"]] = self.rnn_state
 
         qvals, self.rnn_state = self.session.run(
             [self.qvalues_op, self.rec_state_op],

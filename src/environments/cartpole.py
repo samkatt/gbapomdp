@@ -26,6 +26,7 @@ class Cartpole(Environment):
         """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
+            print('showing recording..')
             return True
 
         return False
