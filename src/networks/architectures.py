@@ -34,9 +34,25 @@ class TwoHiddenLayerQNet(Architecture):
         hidden = flatten(net_input) # concat all inputs but keep batch dimension
 
         with tf.variable_scope(scope):
-            hidden = dense(hidden, units=self.n_units, activation=tf.nn.tanh)
-            hidden = dense(hidden, units=self.n_units, activation=tf.nn.tanh)
-            qvalues = dense(hidden, units=n_actions, activation=None)
+            hidden = dense(
+                hidden,
+                units=self.n_units,
+                activation=tf.nn.tanh,
+                kernel_initializer=tf.glorot_normal_initializer()
+            )
+            hidden = dense(
+                hidden,
+                units=self.n_units,
+                activation=tf.nn.tanh,
+                kernel_initializer=tf.glorot_normal_initializer()
+            )
+
+            qvalues = dense(
+                hidden,
+                units=n_actions,
+                activation=None,
+                kernel_initializer=tf.glorot_normal_initializer()
+            )
 
         return qvalues
 
@@ -68,10 +84,23 @@ class TwoHiddenLayerRecQNet(Architecture):
         )
 
         with tf.variable_scope(scope):
-            hidden = dense(hidden, units=self.n_units, activation=tf.nn.tanh)
-            hidden = dense(hidden, units=self.n_units, activation=tf.nn.tanh)
+            hidden = dense(
+                hidden,
+                units=self.n_units,
+                activation=tf.nn.tanh,
+                kernel_initializer=tf.glorot_normal_initializer()
+            )
+            hidden = dense(
+                hidden,
+                units=self.n_units,
+                activation=tf.nn.tanh,
+                kernel_initializer=tf.glorot_normal_initializer()
+            )
 
-            rnn_cell = tf.nn.rnn_cell.LSTMCell(self.n_units)
+            rnn_cell = tf.nn.rnn_cell.LSTMCell(
+                self.n_units,
+                initializer=tf.glorot_normal_initializer()
+            )
 
             # can be initialized with a feed dict if you want to set this to a previous state
             self.rec_state[scope] = rnn_cell.zero_state(batch_size, tf.float32)
@@ -83,6 +112,11 @@ class TwoHiddenLayerRecQNet(Architecture):
                 initial_state=self.rec_state[scope]
             )
 
-            qvalues = dense(hidden[:, -1], units=n_actions, activation=None)
+            qvalues = dense(
+                hidden[:, -1],
+                units=n_actions,
+                activation=None,
+                kernel_initializer=tf.glorot_normal_initializer()
+            )
 
         return qvalues, new_rec_state

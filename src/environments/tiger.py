@@ -67,7 +67,7 @@ class Tiger(Environment):
             self._recording = False
 
         # record episodes every so often
-        if self._verbose and time.time() - self._last_recording_time > 15:
+        if self._verbose and time.time() - self._last_recording_time > 5:
             self._last_recording_time = time.time()
             self._history = [copy.deepcopy(self.state)]
             self._recording = True

@@ -1,6 +1,5 @@
 """ run Neural RL methods on partially observable environments """
-from argparse import ArgumentParser
-from argparse import ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import time
 from math import sqrt
 import numpy as np
@@ -130,7 +129,7 @@ def parse_arguments():
 
     parser.add_argument(
         "--loss",
-        default="rmse",
+        default="huber",
         help="type of loss to consider",
         choices={"rmse", "huber"})
 
