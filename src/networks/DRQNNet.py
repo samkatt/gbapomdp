@@ -1,11 +1,14 @@
 """ DRQN network implementation """
 
 import tensorflow as tf
+import utils.tf_wrapper as tf_wrapper
 
-class DRQNNet:
+from networks.QNetInterface import QNetInterface
+
+class DRQNNet(QNetInterface):
     """ a network based on DRQN that can return q values and update """
 
-    def __init__(self, env_spaces, rec_arch, optimizer, conf, sess, scope):
+    def __init__(self, env_spaces, rec_arch, optimizer, conf, scope):
         """
         in:
 
@@ -13,13 +16,11 @@ class DRQNNet:
         rec_arch: a **Recurrent** QNet
         optimizer: a tf.Optimzer
         conf: configurations (contains observation len,  gamma and loss option)
-        sess: the tf session
         scope: name space
         """
 
-        assert rec_arch.is_recursive()
+        assert rec_arch.is_recurrent()
 
-        self.session = sess
         self.rnn_state = None
         self.rec_arch = rec_arch
         self.name = scope
@@ -81,13 +82,16 @@ class DRQNNet:
 
         self.update_target_op = tf.group(*update_target_op)
 
-        self.session.run(tf.global_variables_initializer())
+        tf_wrapper.get_session().run(tf.global_variables_initializer())
+
+    def is_recurrent(self):
+        return True
 
     def reset(self):
         """ resets the net """
         self.rnn_state = None
 
-    def Qvalues(self, observation):
+    def qvalues(self, observation):
         """ returns the q values associated with the observations """
 
         feed_dict = {self.obs_t_ph: observation[None]}
@@ -95,7 +99,7 @@ class DRQNNet:
         if self.rnn_state is not None:
             feed_dict[self.rec_arch.rec_state[self.name + "_net"]] = self.rnn_state
 
-        qvals, self.rnn_state = self.session.run(
+        qvals, self.rnn_state = tf_wrapper.get_session().run(
             [self.qvalues_op, self.rec_state_op],
             feed_dict=feed_dict
         )
@@ -105,7 +109,7 @@ class DRQNNet:
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update """
 
-        self.session.run(self.train_op, feed_dict={
+        tf_wrapper.get_session().run(self.train_op, feed_dict={
             self.obs_t_ph: obs,
             self.act_t_ph: actions,
             self.rew_t_ph: rewards,
@@ -114,4 +118,4 @@ class DRQNNet:
 
     def update_target(self):
         """ updates the target network """
-        self.session.run(self.update_target_op)
+        tf_wrapper.get_session().run(self.update_target_op)

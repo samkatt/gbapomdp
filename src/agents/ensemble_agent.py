@@ -1,4 +1,4 @@
-""" ensemble of dqns """
+""" ensemble of q-nets """
 
 import numpy as np
 import tensorflow as tf
@@ -12,14 +12,18 @@ import networks.DRQNNet as DRQNNet
 from utils import tf_wrapper
 from utils import misc
 
-# [fixme] rename to ensemble_agent
-class ensemble_DQN(agents.Agent):
-    """ DQN implementation"""
+class EnsembleAgent(agents.Agent):
+    """ ensemble agent """
 
     # the policy from which to act e-greedy on right now
     _current_policy = 0
 
-    def __init__(self, env, conf, sess, name='ensemble-dqn-agent'):
+    def __init__(self,
+                 qnet_constructor,
+                 arch,
+                 env,
+                 conf,
+                 name='ensemble-agent'):
         """ initialize network """
 
         if conf.num_nets == 1:
@@ -29,10 +33,8 @@ class ensemble_DQN(agents.Agent):
         self.target_update_freq = conf.q_target_update_freq
         self.batch_size = conf.batch_size
         self.train_freq = conf.train_frequency
-        self.recurrent = conf.recurrent
 
         self.t = 0
-        self.session = sess
         self.action_space = env.spaces()["A"]
 
         # construct the replay buffer
@@ -42,23 +44,14 @@ class ensemble_DQN(agents.Agent):
 
         optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
 
-        # [fixme] improve modularity
-        if self.recurrent:
-            qfunc = DRQNNet.DRQNNet
-            arch = archs.TwoHiddenLayerRecQNet(conf)
-        else:
-            qfunc = DQNNet.DQNNet
-            arch = archs.TwoHiddenLayerQNet(conf)
-
         self.nets = []
         for i in range(conf.num_nets):
             self.nets.append(
-                qfunc(
+                qnet_constructor(
                     env.spaces(),
                     arch,
                     optimizer,
                     conf,
-                    sess,
                     name + '_net_' + str(i)))
 
     def reset(self, obs):
@@ -68,18 +61,16 @@ class ensemble_DQN(agents.Agent):
 
         self._current_policy = self.nets[np.random.randint(0, len(self.nets)-1)]
 
-        # [fixme] kinda ugly..?
-        if self.recurrent:
-            for net in self.nets:
-                net.reset()
+        for net in self.nets:
+            net.reset()
 
     def select_action(self):
         """ requests greedy action from network """
 
-        q_in = np.array([self.last_ob]) if self.recurrent \
+        q_in = np.array([self.last_ob]) if self._current_policy.is_recurrent() \
                 else self.replay_buffer.encode_recent_observation()
 
-        q_values = self._current_policy.Qvalues(q_in)
+        q_values = self._current_policy.qvalues(q_in)
 
         self.latest_action = q_values.argmax()
 

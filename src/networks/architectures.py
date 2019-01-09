@@ -14,7 +14,7 @@ class Architecture(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def is_recursive(self):
+    def is_recurrent(self):
         """ returns whether it contains recurrent state """
         pass
 
@@ -27,7 +27,7 @@ class TwoHiddenLayerQNet(Architecture):
         """ conf.network_size is in {'small', 'med', 'large'} """
         self.n_units = self._sizes[conf.network_size]
 
-    def is_recursive(self):
+    def is_recurrent(self):
         return False
 
     def __call__(self, net_input, n_actions, scope):
@@ -51,7 +51,7 @@ class TwoHiddenLayerRecQNet(Architecture):
         """ conf.network_size is in {'small', 'med', 'large'} """
         self.n_units = self._sizes[conf.network_size]
 
-    def is_recursive(self):
+    def is_recurrent(self):
         return True
 
     def __call__(self, net_input, n_actions, scope):

@@ -14,12 +14,19 @@ from environments import cartpole
 from environments import gridworld
 from environments import collision_avoidance
 
-from agents.dqn import DQN
-from agents.ensemble_dqn import ensemble_DQN
+from agents.baseline_agent import BaselineAgent
+from agents.ensemble_agent import EnsembleAgent
+
+import networks.DQNNet as DQNNet
+import networks.DRQNNet as DRQNNet
+
+import networks.architectures as archs
 
 
 def main():
     """ start of program """
+
+    tf_wrapper.init()
 
     conf = parse_arguments()
 
@@ -29,47 +36,46 @@ def main():
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
 
-    with tf_wrapper.get_session() as sess:
-        for run in range(conf.runs):
+    for run in range(conf.runs):
 
-            print(time.ctime(), "starting run", run)
+        print(time.ctime(), "starting run", run)
 
-            agent = get_agent(conf, env, sess, 'agent-' + str(run))
-            tmp_res = np.zeros(conf.episodes)
+        agent = get_agent(conf, env, name='agent-' + str(run))
+        tmp_res = np.zeros(conf.episodes)
 
-            for episode in range(conf.episodes):
+        for episode in range(conf.episodes):
 
-                tmp_res[episode] = run_episode(env, agent, conf)
+            tmp_res[episode] = run_episode(env, agent, conf)
 
-                if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
+            if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
 
-                    print(time.ctime(),
-                          "run", run, "episode", episode,
-                          ": avg return",
-                          np.mean(tmp_res[max(0, episode-100):episode]))
+                print(time.ctime(),
+                      "run", run, "episode", episode,
+                      ": avg return",
+                      np.mean(tmp_res[max(0, episode-100):episode]))
 
-                    cur_time = time.time()
+                cur_time = time.time()
 
-            # update mean and variance
-            delta = tmp_res - result_mean
-            result_mean += delta / (run+1)
-            delta_2 = tmp_res - result_mean
-            result_var += delta * delta_2
+        # update mean and variance
+        delta = tmp_res - result_mean
+        result_mean += delta / (run+1)
+        delta_2 = tmp_res - result_mean
+        result_var += delta * delta_2
 
-            # process results into rows of for each episode
-            # return avg, return var, return #, return stder
-            summary = np.transpose([
-                result_mean,
-                result_var,
-                [run+1] * conf.episodes,
-                result_var / sqrt(conf.runs)
-                ])
+        # process results into rows of for each episode
+        # return avg, return var, return #, return stder
+        summary = np.transpose([
+            result_mean,
+            result_var,
+            [run+1] * conf.episodes,
+            result_var / sqrt(conf.runs)
+            ])
 
-            np.savetxt(
-                conf.file,
-                summary,
-                delimiter=', ',
-                header="version 1:\nreturn mean, return var, return count, return stder")
+        np.savetxt(
+            conf.file,
+            summary,
+            delimiter=', ',
+            header="version 1:\nreturn mean, return var, return count, return stder")
 
 
 def parse_arguments():
@@ -80,13 +86,6 @@ def parse_arguments():
         "--verbose", "-v",
         action='store_true',
         help="whether to output verbose messages")
-
-    # [fixme] ensemble or not (flag)
-    parser.add_argument(
-        "--method",
-        help="which learning method to use",
-        choices={"dqn", "ensemble_dqn"},
-        required=True)
 
     parser.add_argument(
         "--domain", "-D",
@@ -149,6 +148,13 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--num_nets",
+        default=1,
+        type=int,
+        help='number of nets to use in ensemble methods (assumes ensemble)'
+    )
+
+    parser.add_argument(
         "--recurrent",
         action='store_true',
         help="whether to use recurrent networks"
@@ -166,13 +172,6 @@ def parse_arguments():
         default=1,
         type=int,
         help="number of past observations to provide to the policy"
-    )
-
-    parser.add_argument(
-        "--num_nets",
-        default=1,
-        type=int,
-        help='number of nets to use in ensemble methods'
     )
 
     parser.add_argument(
@@ -216,12 +215,21 @@ def get_environment(conf):
     if conf.domain == "collision_avoidance":
         return collision_avoidance.CollisionAvoidance(conf)
 
-def get_agent(conf, env, sess, name):
+def get_agent(conf, env, name):
     """ returns agent given configurations and environment """
-    if conf.method == "dqn":
-        return DQN(env, conf, sess, name=name)
-    if conf.method == "ensemble_dqn":
-        return ensemble_DQN(env, conf, sess, name=name)
+    # construct Q function
+
+    if conf.recurrent:
+        qfunc = DRQNNet.DRQNNet
+        arch = archs.TwoHiddenLayerRecQNet(conf)
+    else:
+        qfunc = DQNNet.DQNNet
+        arch = archs.TwoHiddenLayerQNet(conf)
+
+    if conf.num_nets == 1:
+        return BaselineAgent(qfunc, arch, env, conf, name=name)
+    else:
+        return EnsembleAgent(qfunc, arch, env, conf, name=name)
 
 if __name__ == '__main__':
     main()

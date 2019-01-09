@@ -1,11 +1,21 @@
 """ DQN network implementation """
 
 import tensorflow as tf
+import utils.tf_wrapper as tf_wrapper
 
-class DQNNet:
+from networks.QNetInterface import QNetInterface
+
+class DQNNet(QNetInterface):
     """ a network based on DQN that can return q values and update """
 
-    def __init__(self, env_spaces, arch, optimizer, conf, sess, scope):
+    def reset(self):
+        """ no internal state """
+        pass
+
+    def is_recurrent(self):
+        return False
+
+    def __init__(self, env_spaces, arch, optimizer, conf, scope):
         """
         in:
 
@@ -13,13 +23,10 @@ class DQNNet:
         arch: a QNet
         optimizer: a tf.Optimzer
         conf: configurations (contains observation len,  gamma and loss option)
-        sess: the tf session
         scope: name space
         """
 
-        assert not arch.is_recursive()
-
-        self.session = sess
+        assert not arch.is_recurrent()
 
         input_shape = (conf.observation_len, *env_spaces["O"].shape)
 
@@ -31,19 +38,19 @@ class DQNNet:
         self.done_mask_ph = tf.placeholder(tf.float32, [None])
 
         # training operation q values and targets
-        self.qvalues = arch(
+        self.qvalues_op = arch(
             self.obs_t_ph,
             env_spaces["A"].n,
             scope=scope + '_net')
 
-        target_qvalues = arch(
+        target_qvalues_op = arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
             scope=scope + '_target')
 
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
-        q_values = tf.gather_nd(self.qvalues, action_indices)
-        targets = tf.reduce_max(target_qvalues, axis=-1)
+        q_values = tf.gather_nd(self.qvalues_op, action_indices)
+        targets = tf.reduce_max(target_qvalues_op, axis=-1)
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
@@ -78,20 +85,21 @@ class DQNNet:
 
         self.update_target_op = tf.group(*update_target_op)
 
-        self.session.run(tf.global_variables_initializer())
+        tf_wrapper.get_session().run(tf.global_variables_initializer())
 
 
-    def Qvalues(self, observation):
+    def qvalues(self, observation):
         """ returns the q values associated with the observations """
 
-        return self.session.run(
-            self.qvalues,
-            feed_dict={self.obs_t_ph: observation[None]})
+        return tf_wrapper.get_session().run(
+            self.qvalues_op,
+            feed_dict={self.obs_t_ph: observation[None]}
+        )
 
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update """
 
-        self.session.run(self.train_op, feed_dict={
+        tf_wrapper.get_session().run(self.train_op, feed_dict={
             self.obs_t_ph: obs,
             self.act_t_ph: actions,
             self.rew_t_ph: rewards,
@@ -100,4 +108,4 @@ class DQNNet:
 
     def update_target(self):
         """ updates the target network """
-        self.session.run(self.update_target_op)
+        tf_wrapper.get_session().run(self.update_target_op)
