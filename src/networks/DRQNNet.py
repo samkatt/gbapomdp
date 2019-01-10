@@ -50,7 +50,6 @@ class DRQNNet(QNetInterface):
 
         if not conf.double_q:
             targets = tf.reduce_max(target_qvalues_op, axis=-1)
-
         else: # double_q
             double_q_target_qvalues, _ = self.rec_arch(
                 self.obs_tp1_ph,

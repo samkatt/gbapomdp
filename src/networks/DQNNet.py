@@ -51,7 +51,7 @@ class DQNNet(QNetInterface):
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         q_values = tf.gather_nd(self.qvalues_op, action_indices)
 
-        if conf.double_q:
+        if not conf.double_q:
             targets = tf.reduce_max(target_qvalues_op, axis=-1)
         else: # double_q
             double_q_target_qvalues = arch(
