@@ -25,15 +25,15 @@ import networks.architectures as archs
 def main():
     """ start of program """
 
-    tf_wrapper.init()
-
     conf = parse_arguments()
-
-    env = get_environment(conf)
 
     cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
+
+    tf_wrapper.init()
+
+    env = get_environment(conf)
 
     for run in range(conf.runs):
 
@@ -157,6 +157,12 @@ def parse_arguments():
         "--recurrent",
         action='store_true',
         help="whether to use recurrent networks"
+    )
+
+    parser.add_argument(
+        "--double_q",
+        action='store_true',
+        help="whether to use doubleQ technique"
     )
 
     parser.add_argument(

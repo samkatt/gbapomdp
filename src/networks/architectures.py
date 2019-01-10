@@ -33,7 +33,10 @@ class TwoHiddenLayerQNet(Architecture):
     def __call__(self, net_input, n_actions, scope):
         hidden = flatten(net_input) # concat all inputs but keep batch dimension
 
-        with tf.variable_scope(scope):
+        # [fixme] programmed without really understanding what is happening
+        # it should be possible to call this multiple times
+        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+            print('Using network in scope', scope)
             hidden = dense(
                 hidden,
                 units=self.n_units,
@@ -83,7 +86,10 @@ class TwoHiddenLayerRecQNet(Architecture):
             [batch_size, history_len, observation_num]
         )
 
-        with tf.variable_scope(scope):
+        # [fixme] programmed without really understanding what is happening
+        # it should be possible to call this multiple times
+        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+            print('Using network in scope', scope)
             hidden = dense(
                 hidden,
                 units=self.n_units,

@@ -50,7 +50,20 @@ class DQNNet(QNetInterface):
 
         action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         q_values = tf.gather_nd(self.qvalues_op, action_indices)
-        targets = tf.reduce_max(target_qvalues_op, axis=-1)
+
+        if conf.double_q:
+            targets = tf.reduce_max(target_qvalues_op, axis=-1)
+        else: # double_q
+            double_q_target_qvalues = arch(
+                self.obs_tp1_ph,
+                env_spaces["A"].n,
+                scope=scope + '_net'
+                )
+
+            best_action = tf.argmax(double_q_target_qvalues, axis=1, output_type=tf.int32)
+            best_action_indices = tf.stack([tf.range(tf.size(best_action)), best_action], axis=-1)
+            targets = tf.gather_nd(target_qvalues_op, best_action_indices)
+
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
