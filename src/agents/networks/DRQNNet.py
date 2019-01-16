@@ -3,7 +3,7 @@
 import tensorflow as tf
 import utils.tf_wrapper as tf_wrapper
 
-from networks.QNetInterface import QNetInterface
+from agents.networks.QNetInterface import QNetInterface
 
 class DRQNNet(QNetInterface):
     """ a network based on DRQN that can return q values and update """

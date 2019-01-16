@@ -4,10 +4,10 @@ import numpy as np
 import tensorflow as tf
 
 import agents.agent as agents
-import networks.replay_buffer as rb
-import networks.architectures as archs
-import networks.DQNNet as DQNNet
-import networks.DRQNNet as DRQNNet
+import agents.networks.replay_buffer as rb
+import agents.networks.architectures as archs
+import agents.networks.DQNNet as DQNNet
+import agents.networks.DRQNNet as DRQNNet
 
 from utils import tf_wrapper
 from utils import misc

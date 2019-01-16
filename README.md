@@ -13,5 +13,5 @@ ffmpeg encoding
 
 # arbitrary decisions
 
-* usage of huber loss (over RMSE, unless specifief otherwise with --loss rmse)
+* usage of huber loss (over RMSE, unless specified otherwise with --loss rmse)
 * usage of Glorot normal initialization for all layers

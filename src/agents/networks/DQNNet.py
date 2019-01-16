@@ -3,7 +3,7 @@
 import tensorflow as tf
 import utils.tf_wrapper as tf_wrapper
 
-from networks.QNetInterface import QNetInterface
+from agents.networks.QNetInterface import QNetInterface
 
 class DQNNet(QNetInterface):
     """ a network based on DQN that can return q values and update """
@@ -63,7 +63,6 @@ class DQNNet(QNetInterface):
             best_action = tf.argmax(double_q_target_qvalues, axis=1, output_type=tf.int32)
             best_action_indices = tf.stack([tf.range(tf.size(best_action)), best_action], axis=-1)
             targets = tf.gather_nd(target_qvalues_op, best_action_indices)
-
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),

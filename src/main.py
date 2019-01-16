@@ -16,10 +16,10 @@ from environments import collision_avoidance
 from agents.baseline_agent import BaselineAgent
 from agents.ensemble_agent import EnsembleAgent
 
-import networks.DQNNet as DQNNet
-import networks.DRQNNet as DRQNNet
+import agents.networks.DQNNet as DQNNet
+import agents.networks.DRQNNet as DRQNNet
 
-import networks.architectures as archs
+import agents.networks.architectures as archs
 
 
 def main():
