@@ -6,6 +6,7 @@ import tensorflow as tf
 import utils.tf_wrapper as tf_wrapper
 
 import agents.networks.loss_functions as loss_functions
+import agents.networks.architectures as archs
 
 class DRQNNet(QNetInterface):
     """ a network based on DRQN that can return q values and update """
@@ -53,12 +54,34 @@ class DRQNNet(QNetInterface):
             scope=scope + '_net'
             )
 
+        qvalues_fn = tf.identity(self.qvalues_fn)
+
+        if conf.random_priors: # add random function to our estimates
+
+            prior = archs.TwoHiddenLayerRecQNet(conf)
+
+            prior_vals, _ = prior(
+                self.obs_t_ph,
+                env_spaces["A"].n,
+                scope=scope + '_prior'
+            )
+            next_prior_vals, _ = prior(
+                self.obs_tp1_ph,
+                env_spaces["A"].n,
+                scope=scope + '_prior'
+            )
+
+            qvalues_fn = tf.add(qvalues_fn, prior_vals)
+            next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
+
+        # define loss
         action_onehot = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
-        q_values = tf.gather_nd(self.qvalues_fn, action_onehot)
+        q_values = tf.gather_nd(qvalues_fn, action_onehot)
 
         return_estimate = loss_functions.return_estimate(
             next_targets_fn,
-            next_qvalues_fn, conf
+            next_qvalues_fn,
+            conf
         )
 
         targets = tf.where(

@@ -41,12 +41,14 @@ class TwoHiddenLayerQNet(Architecture):
                 hidden,
                 units=self.n_units,
                 activation=tf.nn.tanh,
+                bias_initializer=tf.glorot_normal_initializer(),
                 kernel_initializer=tf.glorot_normal_initializer()
             )
             hidden = dense(
                 hidden,
                 units=self.n_units,
                 activation=tf.nn.tanh,
+                bias_initializer=tf.glorot_normal_initializer(),
                 kernel_initializer=tf.glorot_normal_initializer()
             )
 
@@ -54,6 +56,7 @@ class TwoHiddenLayerQNet(Architecture):
                 hidden,
                 units=n_actions,
                 activation=None,
+                bias_initializer=tf.glorot_normal_initializer(),
                 kernel_initializer=tf.glorot_normal_initializer()
             )
 
@@ -94,12 +97,14 @@ class TwoHiddenLayerRecQNet(Architecture):
                 hidden,
                 units=self.n_units,
                 activation=tf.nn.tanh,
+                bias_initializer=tf.glorot_normal_initializer(),
                 kernel_initializer=tf.glorot_normal_initializer()
             )
             hidden = dense(
                 hidden,
                 units=self.n_units,
                 activation=tf.nn.tanh,
+                bias_initializer=tf.glorot_normal_initializer(),
                 kernel_initializer=tf.glorot_normal_initializer()
             )
 
@@ -122,6 +127,7 @@ class TwoHiddenLayerRecQNet(Architecture):
                 hidden[:, -1],
                 units=n_actions,
                 activation=None,
+                bias_initializer=tf.glorot_normal_initializer(),
                 kernel_initializer=tf.glorot_normal_initializer()
             )
 

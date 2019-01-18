@@ -18,12 +18,10 @@ def return_estimate(next_q, next_target, conf):
         best_action_indices = tf.stack([tf.range(tf.size(best_action)), best_action], axis=-1)
         return tf.gather_nd(next_target, best_action_indices)
 
-
 def loss(q_values, targets, conf):
     """ returns the loss over qval versus targets given configurations
 
-    relies on conf.loss being: rmse or huber
-
+    Assumes: conf.loss being rmse or huber
     """
 
     # training operation loss

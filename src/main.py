@@ -46,7 +46,7 @@ def main():
 
             tmp_res[episode] = run_episode(env, agent, conf)
 
-            if  episode > 0 and conf.verbose and time.time() - cur_time > 5:
+            if  episode > 0 and time.time() - cur_time > 5:
 
                 print(time.ctime(),
                       "run", run, "episode", episode,
@@ -151,6 +151,12 @@ def parse_arguments():
         default=1,
         type=int,
         help='number of nets to use in ensemble methods (assumes ensemble)'
+    )
+
+    parser.add_argument(
+        "--random_priors",
+        action='store_true',
+        help="will incorporate random prior in loss function"
     )
 
     parser.add_argument(
