@@ -1,9 +1,11 @@
 """ DRQN network implementation """
 
+from agents.networks.qnets.QNetInterface import QNetInterface
+
 import tensorflow as tf
 import utils.tf_wrapper as tf_wrapper
 
-from agents.networks.QNetInterface import QNetInterface
+import agents.networks.loss_functions as loss_functions
 
 class DRQNNet(QNetInterface):
     """ a network based on DRQN that can return q values and update """
@@ -35,43 +37,35 @@ class DRQNNet(QNetInterface):
         self.done_mask_ph = tf.placeholder(tf.float32, [None])
 
         # training operation q values and targets
-        self.qvalues_op, self.rec_state_op = self.rec_arch(
+        self.qvalues_fn, self.rec_state_fn = self.rec_arch(
             self.obs_t_ph,
             env_spaces["A"].n,
             scope=self.name + '_net')
 
-        target_qvalues_op, _ = self.rec_arch(
+        next_targets_fn, _ = self.rec_arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
             scope=self.name + '_target')
 
-        action_indices = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
-        q_values = tf.gather_nd(self.qvalues_op, action_indices)
+        next_qvalues_fn, _ = self.rec_arch(
+            self.obs_tp1_ph,
+            env_spaces["A"].n,
+            scope=scope + '_net'
+            )
 
-        if not conf.double_q:
-            targets = tf.reduce_max(target_qvalues_op, axis=-1)
-        else: # double_q
-            double_q_target_qvalues, _ = self.rec_arch(
-                self.obs_tp1_ph,
-                env_spaces["A"].n,
-                scope=scope + '_net'
-                )
+        action_onehot = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
+        q_values = tf.gather_nd(self.qvalues_fn, action_onehot)
 
-            best_action = tf.argmax(double_q_target_qvalues, axis=1, output_type=tf.int32)
-            best_action_indices = tf.stack([tf.range(tf.size(best_action)), best_action], axis=-1)
-            targets = tf.gather_nd(target_qvalues_op, best_action_indices)
+        return_estimate = loss_functions.return_estimate(
+            next_targets_fn,
+            next_qvalues_fn, conf
+        )
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
-            x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * targets))
+            x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * return_estimate))
 
-        # training operation loss
-        if conf.loss == "rmse":
-            loss = tf.losses.mean_squared_error(targets, q_values)
-        elif conf.loss == "huber":
-            loss = tf.losses.huber_loss(targets, q_values, delta=10.0)
-        else:
-            raise ValueError('Entered unknown value for loss ' + conf.loss)
+        loss = loss_functions.loss(q_values, targets, conf)
 
         net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name+'_net')
         gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=net_vars))
@@ -112,7 +106,7 @@ class DRQNNet(QNetInterface):
             feed_dict[self.rec_arch.rec_state[self.name + "_net"]] = self.rnn_state
 
         qvals, self.rnn_state = tf_wrapper.get_session().run(
-            [self.qvalues_op, self.rec_state_op],
+            [self.qvalues_fn, self.rec_state_fn],
             feed_dict=feed_dict
         )
 

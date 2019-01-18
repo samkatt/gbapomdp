@@ -6,8 +6,8 @@ import tensorflow as tf
 import agents.agent as agents
 import agents.networks.replay_buffer as rb
 import agents.networks.architectures as archs
-import agents.networks.DQNNet as DQNNet
-import agents.networks.DRQNNet as DRQNNet
+import agents.networks.qnets.DQNNet as DQNNet
+import agents.networks.qnets.DRQNNet as DRQNNet
 
 from utils import tf_wrapper
 from utils import misc

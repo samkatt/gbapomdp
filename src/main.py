@@ -16,8 +16,8 @@ from environments import collision_avoidance
 from agents.baseline_agent import BaselineAgent
 from agents.ensemble_agent import EnsembleAgent
 
-import agents.networks.DQNNet as DQNNet
-import agents.networks.DRQNNet as DRQNNet
+import agents.networks.qnets.DQNNet as DQNNet
+import agents.networks.qnets.DRQNNet as DRQNNet
 
 import agents.networks.architectures as archs
 

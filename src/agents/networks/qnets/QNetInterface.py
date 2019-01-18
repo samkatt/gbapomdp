@@ -3,7 +3,7 @@
 import abc
 
 class QNetInterface(abc.ABC):
-    """ interface to all environments """
+    """ interface to all Q networks """
 
     @abc.abstractmethod
     def reset(self):
