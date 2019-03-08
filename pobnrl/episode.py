@@ -1,7 +1,15 @@
 """ implements running an episode """
 
-def run_episode(env, agent, conf):
-    """ runs a single episode """
+
+def run_episode(env, agent, conf) -> float:
+    """run_episode runs a single episode
+
+    :param env: the environment to run in bla `pobnrl.environments.environment.Environment`
+    :param agent: the agent that learns and takes decisions
+    :param conf: configurations
+
+    :rtype: float discounted return
+    """
 
     terminal = False
     discounted_return = 0

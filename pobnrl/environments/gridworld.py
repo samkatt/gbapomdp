@@ -25,7 +25,8 @@ class GridWorld(Environment):
     state = np.zeros(2)
     _slow_cells = set()
 
-    # move helpers
+    ##
+    # @brief hot-encoding of the actions
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
 
     # verbosity helpers
@@ -36,6 +37,7 @@ class GridWorld(Environment):
     _recording = False
     _history = []
 
+    # FIXME: should accept specific arguments instead of conf
     def __init__(self, conf):
 
         assert conf.domain_size > 0
@@ -45,12 +47,12 @@ class GridWorld(Environment):
         self._verbose = conf.verbose
         self._size = conf.domain_size
 
-        self.goal_state = np.array([self._size-1, self._size-1])
+        self.goal_state = np.array([self._size - 1, self._size - 1])
 
         self._spaces = {
-            "A": math_space.DiscreteSpace([4]),
-            "O": math_space.DiscreteSpace(np.ones((self._size, self._size)).tolist())
-        }
+            "A": math_space.DiscreteSpace(
+                [4]), "O": math_space.DiscreteSpace(
+                    np.ones((self._size, self._size)).tolist())}
 
         # generate multinomial probabilities for the observation function (1-D)
         _obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -67,7 +69,7 @@ class GridWorld(Environment):
         self._obs_mult = np.array(_obs_mult)
 
         # generate slow locations
-        edge = self._size-1
+        edge = self._size - 1
 
         # bottom left side for larger domains
         if self._size > 5:
@@ -76,23 +78,25 @@ class GridWorld(Environment):
         if self._size == 3:
             self._slow_cells.add((1, 1))
         elif self._size < 7:
-            self._slow_cells.add((edge-1, edge-2))
-            self._slow_cells.add((edge-2, edge-1))
+            self._slow_cells.add((edge - 1, edge - 2))
+            self._slow_cells.add((edge - 2, edge - 1))
         else:
-            self._slow_cells.add((edge-1, edge-3))
-            self._slow_cells.add((edge-3, edge-1))
-            self._slow_cells.add((edge-2, edge-2))
+            self._slow_cells.add((edge - 1, edge - 3))
+            self._slow_cells.add((edge - 3, edge - 1))
+            self._slow_cells.add((edge - 2, edge - 2))
 
     def bound_in_grid(self, state_or_obs):
         """ makes sure input state or observation is bounded within <0,size> """
-        return np.maximum(0, np.minimum(state_or_obs, self._size-1)) 
+        return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
     def generate_observation(self, state):
         """ samples an observation, an displacement from the current state """
         # [fixme] test gridworld.generate_observation
 
-        # state + displacement (where displacement is centered through - self._size)
-        unbounded_obs = state + (np.random.multinomial(1, self._obs_mult, size=2)==1).argmax(1) - (self._size - 1)
+        # state + displacement (where displacement is centered through -
+        # self._size)
+        unbounded_obs = state + \
+            (np.random.multinomial(1, self._obs_mult, size=2) == 1).argmax(1) - (self._size - 1)
         bounded_obs = self.bound_in_grid(unbounded_obs).astype(int)
 
         # 2-D hot encoding
@@ -128,7 +132,8 @@ class GridWorld(Environment):
             move_prob = self.SLOW_MOVE_SUCCESS_PROB
 
         if np.random.uniform() < move_prob:
-            self.state = self.bound_in_grid(self.state + self.action_to_vec[int(action)])
+            self.state = self.bound_in_grid(
+                self.state + self.action_to_vec[int(action)])
 
         obs = self.generate_observation(self.state)
         terminal = (self.state == self.goal_state).all()
@@ -143,7 +148,6 @@ class GridWorld(Environment):
 
         return obs, reward, terminal
 
-
     def spaces(self):
         """ A: 4, O: S """
         return self._spaces
@@ -157,7 +161,7 @@ class GridWorld(Environment):
 
         descr = "[0,0] "
         for step in self._history[1:]:
-            descr += self.action_to_string[int(step["action"])] + " " + \
-                    str(step["state"]) + " (" + self.obs_to_string(step["obs"]) + ") "
+            descr += self.action_to_string[int(step["action"])] + " " + str(
+                step["state"]) + " (" + self.obs_to_string(step["obs"]) + ") "
 
         print(descr)

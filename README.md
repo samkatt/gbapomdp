@@ -1,11 +1,18 @@
 # Partially Observable Neural Reinforcement Learning
 
-# Use
+A code base to run (Model-based Bayesian Neural) Reinforcement Learning
+experiments on partially observable domains. This project is meant for
+reinforcement learning researchers to compare different methods. It contains
+various different environments to test the methods on. Note that this project
+has mostly been written for personal use, research, and thus may lack the
+documentation that one would typically expect from open source projects.
 
-## Installation
+## Use
+
+### Installation
 Install the required python packages and dependencies
 
-### Known dependencies
+#### Known dependencies
 
 Open AI gym:
 `pip install gym`
@@ -16,35 +23,33 @@ OpenCV python
 ffmpeg encoding
 `sudo apt install ffmpeg`
 
-## Run the program
+### Run the program
 ``` main.py ``` is located in ``` src ```
 
 ```console
 python main.py -D cartpole -v --network_size med
+python -h
 ```
 
+## Development
 
-# Development
+* documentation: Run ``` ./make_documentation.sh ``` in root and find
+  documentation in ``` doc/pobnrl ``` folder
+* formatting: Run ``` ./check_formatting.sh ``` in root and check whether the
+  code is formatted correctly
 
-## Documentation
-
-Run ``` doxygen .doxygen.config ``` in root and find documentation in ``` doc
-``` folder
-
-## TODO
+#### TODO
 * update documentation
 * come up with good way of styling / indenting the code base
 * cleanup code
 * add tests
 
-## conventions
-
+### Conventions
 * use ```python FIXME ``` to identify fixes
 * use ```python TODO ``` to identify TODOS
 * use Pydoc style comments / docstrings
 
-## arbitrary decisions
-
+### Arbitrary decisions
 * usage of huber loss (over RMSE, unless specified otherwise with --loss rmse)
 * usage of Glorot normal initialization for all layers
 

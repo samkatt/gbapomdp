@@ -1,95 +1,89 @@
-""" DQN network implementation """
-
-from agents.networks.qnets.QNetInterface import QNetInterface
+""" DRQN network implementation """
 
 import tensorflow as tf
+
+from agents.networks.qnets.QNetInterface import QNetInterface
+import agents.networks.architectures as archs
+import agents.networks.loss_functions as loss_functions
 import utils.tf_wrapper as tf_wrapper
 
-import agents.networks.loss_functions as loss_functions
-import agents.networks.architectures as archs
 
-class DQNNet(QNetInterface):
-    """ a network based on DQN that can return q values and update """
+class DRQNNet(QNetInterface):
+    """ a network based on DRQN that can return q values and update """
 
-    def reset(self):
-        """ no internal state """
-        pass
-
-    def is_recurrent(self):
-        return False
-
-    def __init__(self, env_spaces, arch, optimizer, conf, scope):
+    # FIXME: take specific arguments instead of conf
+    def __init__(self, env_spaces, rec_arch, optimizer, conf, scope):
         """
         in:
 
         env_spaces: dict{'O','A'} with observation and action space
-        arch: a QNet
+        rec_arch: a **Recurrent** QNet
         optimizer: a tf.Optimzer
         conf: configurations (contains observation len,  gamma and loss option)
         scope: name space
         """
 
-        assert not arch.is_recurrent()
+        assert rec_arch.is_recurrent()
 
-        input_shape = (conf.observation_len, *env_spaces["O"].shape)
+        self.rnn_state = None
+        self.rec_arch = rec_arch
+        self.name = scope
+
+        input_shape = (None, *env_spaces["O"].shape)
 
         # training operation place holders
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
         self.act_t_ph = tf.placeholder(tf.int32, [None])
         self.rew_t_ph = tf.placeholder(tf.float32, [None])
-        self.obs_tp1_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
+        self.obs_tp1_ph = tf.placeholder(
+            tf.float32, [None] + list(input_shape))
         self.done_mask_ph = tf.placeholder(tf.float32, [None])
 
-        # define operations to retrieve q and target values
-        self.qvalues_fn = arch(
+        # training operation q values and targets
+        self.qvalues_fn, self.rec_state_fn = self.rec_arch(
             self.obs_t_ph,
             env_spaces["A"].n,
-            scope=scope + '_net'
-        )
+            scope=self.name + '_net')
 
-        next_qvalues_fn = arch(
+        next_targets_fn, _ = self.rec_arch(
+            self.obs_tp1_ph,
+            env_spaces["A"].n,
+            scope=self.name + '_target')
+
+        next_qvalues_fn, _ = self.rec_arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
             scope=scope + '_net'
         )
 
-        next_targets_fn = arch(
-            self.obs_tp1_ph,
-            env_spaces["A"].n,
-            scope=scope + '_target'
-        )
+        qvalues_fn = tf.identity(self.qvalues_fn)
 
-        qvalues_fn = self.qvalues_fn
+        if conf.random_priors:  # add random function to our estimates
 
-        if conf.random_priors: # add random function to our estimates
-            prior = archs.TwoHiddenLayerQNet(conf)
-            prior_vals = prior(
+            prior = archs.TwoHiddenLayerRecQNet(conf)
+
+            prior_vals, _ = prior(
                 self.obs_t_ph,
                 env_spaces["A"].n,
                 scope=scope + '_prior'
             )
-
-            next_prior_vals = prior(
+            next_prior_vals, _ = prior(
                 self.obs_tp1_ph,
                 env_spaces["A"].n,
                 scope=scope + '_prior'
             )
 
-            qvalues_fn = tf.Print(qvalues_fn, [qvalues_fn], message='before: ')
-
             qvalues_fn = tf.add(qvalues_fn, prior_vals)
-
-            qvalues_fn = tf.Print(qvalues_fn, [qvalues_fn], message='after: ')
-
             next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
 
         # define loss
-        action_onehot = tf.stack([tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
+        action_onehot = tf.stack(
+            [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
         q_values = tf.gather_nd(qvalues_fn, action_onehot)
 
         return_estimate = loss_functions.return_estimate(
-            next_qvalues_fn,
             next_targets_fn,
+            next_qvalues_fn,
             conf
         )
 
@@ -99,8 +93,11 @@ class DQNNet(QNetInterface):
 
         loss = loss_functions.loss(q_values, targets, conf)
 
-        net_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope+'_net')
-        gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=net_vars))
+        net_vars = tf.get_collection(
+            tf.GraphKeys.GLOBAL_VARIABLES,
+            scope=self.name + '_net')
+        gradients, variables = zip(
+            *optimizer.compute_gradients(loss, var_list=net_vars))
 
         if conf.clipping:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
@@ -111,25 +108,39 @@ class DQNNet(QNetInterface):
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=scope+'_target')
+            scope=self.name + '_target')
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
                                    sorted(target_vars, key=lambda v: v.name)):
             update_target_op.append(var_target.assign(var))
 
-
         self.update_target_op = tf.group(*update_target_op)
 
         tf_wrapper.get_session().run(tf.global_variables_initializer())
 
+    def is_recurrent(self):
+        return True
+
+    def reset(self):
+        """ resets the net """
+        self.rnn_state = None
 
     def qvalues(self, observation):
         """ returns the q values associated with the observations """
 
-        return tf_wrapper.get_session().run(
-            self.qvalues_fn,
-            feed_dict={self.obs_t_ph: observation[None]}
+        feed_dict = {self.obs_t_ph: observation[None]}
+
+        if self.rnn_state is not None:
+            feed_dict[
+                self.rec_arch.rec_state[self.name + "_net"]
+            ] = self.rnn_state
+
+        qvals, self.rnn_state = tf_wrapper.get_session().run(
+            [self.qvalues_fn, self.rec_state_fn],
+            feed_dict=feed_dict
         )
+
+        return qvals
 
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update """

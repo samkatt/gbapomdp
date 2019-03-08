@@ -3,10 +3,10 @@
 from numpy import random
 import numpy as np
 
-from utils.sample import sample_n_unique
 from utils.sample import sample_n
 
-class ReplayBuffer(object):
+
+class ReplayBuffer():
     """This is a memory efficient implementation of the replay buffer.
 
 The sepecific memory optimizations use here are:
@@ -51,7 +51,8 @@ is acceptable. """
         return batch_size + 1 <= self.num_in_buffer
 
     def _encode_sample(self, idxes):
-        obs_batch = np.concatenate([self._encode_observation(idx)[None] for idx in idxes], 0)
+        obs_batch = np.concatenate(
+            [self._encode_observation(idx)[None] for idx in idxes], 0)
         act_batch = self.action[idxes]
         rew_batch = self.reward[idxes]
         next_obs_batch = np.concatenate(
@@ -98,7 +99,11 @@ is acceptable. """
             Array of shape (batch_size,) and dtype np.float32
         """
         assert self.can_sample(batch_size)
-        idxes = sample_n(lambda: random.randint(0, self.num_in_buffer - 2), batch_size)
+        idxes = sample_n(
+            lambda: random.randint(
+                0,
+                self.num_in_buffer - 2),
+            batch_size)
         return self._encode_sample(idxes)
 
     def encode_recent_observation(self):
@@ -121,7 +126,7 @@ is acceptable. """
         if self.history_len == 1:
             return np.array([self.obs[idx]])
 
-        end_idx = idx + 1 # make noninclusive
+        end_idx = idx + 1  # make noninclusive
         start_idx = end_idx - self.history_len
         # if there weren't enough frames ever in the buffer for context
         if start_idx < 0 and self.num_in_buffer != self.size:
@@ -134,12 +139,14 @@ is acceptable. """
         # if zero padding is needed for missing context
         # or we are on the boundry of the buffer
         if start_idx < 0 or missing_context > 0:
-            frames = [np.zeros_like(self.obs[0]) for _ in range(missing_context)]
+            frames = [np.zeros_like(self.obs[0])
+                      for _ in range(missing_context)]
             for idx in range(start_idx, end_idx):
                 frames.append(self.obs[idx % self.size])
             return np.array(frames)
-        else:
-            return self.obs[start_idx:end_idx]
+
+        # else:
+        return self.obs[start_idx:end_idx]
 
     def store_frame(self, frame):
         """Store a single frame in the buffer at the next available index, overwriting
@@ -157,7 +164,8 @@ is acceptable. """
             Index at which the frame is stored. To be used for `store_effect` later.
         """
         if self.obs is None:
-            self.obs = np.empty([self.size] + list(frame.shape), dtype=self.obs_dtype)
+            self.obs = np.empty([self.size] +
+                                list(frame.shape), dtype=self.obs_dtype)
             self.action = np.empty([self.size], dtype=np.int32)
             self.reward = np.empty([self.size], dtype=np.float32)
             self.done = np.empty([self.size], dtype=np.bool)

@@ -1,12 +1,13 @@
 """ tiger environment """
 
-import copy
 import time
 
+import copy
 import numpy as np
-from environments.environment import Environment
 
+from environments.environment import Environment
 from utils import math_space
+
 
 class Tiger(Environment):
     """ the tiger environment """
@@ -25,6 +26,7 @@ class Tiger(Environment):
     _recording = False
     _history = []
 
+    # FIXME: accept verbose instead of conf
     def __init__(self, conf):
 
         # verbosity settings
@@ -40,7 +42,7 @@ class Tiger(Environment):
     # pylint: disable=R0201
     def sample_start_state(self):
         """ returns a random state (tiger left or right) """
-        return np.random.randint(0,2)
+        return np.random.randint(0, 2)
 
     def sample_observation(self, listening):
         """ samples an observation, listening is true if agent is performing that action """
@@ -82,13 +84,14 @@ class Tiger(Environment):
             terminal = True
             reward = self.GOOD_DOOR_REWARD if action == self.state else self.BAD_DOOR_REWARD
 
-        else: # not opening door
+        else:  # not opening door
             obs = self.sample_observation(True)
             terminal = False
             reward = self.LISTEN_REWARD
 
         if self._recording:
-            self._history.append({'action': action, 'obs': obs, 'reward': reward})
+            self._history.append(
+                {'action': action, 'obs': obs, 'reward': reward})
 
         return obs, reward, terminal
 

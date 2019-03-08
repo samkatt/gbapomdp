@@ -1,6 +1,7 @@
 """ agent interface """
 import abc
 
+
 class Agent(abc.ABC):
     """ agent interface """
 
@@ -16,5 +17,10 @@ class Agent(abc.ABC):
 
     @abc.abstractmethod
     def update(self, _observation, _reward, _terminal):
-        """ informs agent of observed transition """
+        """update informs agent of observed transition
+
+        :param _observation: the observation from the last step
+        :param _reward: the reward of the last step
+        :param _terminal: whether the last step was terminal
+        """
         pass

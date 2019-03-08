@@ -1,14 +1,15 @@
 """ cartpole environment """
 
 import time
+import gym
 
 from environments.environment import Environment
 
-import gym
 
 class Cartpole(Environment):
     """ cartpole environment """
 
+    # FIXME: should accept specific arguments instead of conf
     def __init__(self, conf):
 
         self._cur_time = 0
@@ -31,7 +32,6 @@ class Cartpole(Environment):
 
         return False
 
-
     def __del__(self):
         self.cartpole.close()
 
@@ -46,4 +46,5 @@ class Cartpole(Environment):
 
     def spaces(self):
         """ returns spaces from cartpole gym env """
-        return {"A": self.cartpole.action_space, "O": self.cartpole.observation_space}
+        return {"A": self.cartpole.action_space,
+                "O": self.cartpole.observation_space}

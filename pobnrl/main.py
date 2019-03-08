@@ -1,25 +1,23 @@
 """ run Neural RL methods on partially observable environments """
+
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import time
 from math import sqrt
 import numpy as np
 
-from utils import tf_wrapper
-
-from episode import run_episode
-
-from environments import tiger
-from environments import cartpole
-from environments import gridworld
-from environments import collision_avoidance
-
+from agents import agent
 from agents.baseline_agent import BaselineAgent
 from agents.ensemble_agent import EnsembleAgent
-
-import agents.networks.qnets.DQNNet as DQNNet
-import agents.networks.qnets.DRQNNet as DRQNNet
-
-import agents.networks.architectures as archs
+from agents.networks import architectures as archs
+from agents.networks.qnets import DQNNet
+from agents.networks.qnets import DRQNNet
+from environments import cartpole
+from environments import collision_avoidance
+from environments import environment
+from environments import gridworld
+from environments import tiger
+from episode import run_episode
+from utils import tf_wrapper
 
 
 def main():
@@ -39,25 +37,25 @@ def main():
 
         print(time.ctime(), "starting run", run)
 
-        agent = get_agent(conf, env, name='agent-' + str(run))
+        agent = get_agent(conf, env, name='run-' + str(run))
         tmp_res = np.zeros(conf.episodes)
 
         for episode in range(conf.episodes):
 
             tmp_res[episode] = run_episode(env, agent, conf)
 
-            if  episode > 0 and time.time() - cur_time > 5:
+            if episode > 0 and time.time() - cur_time > 5:
 
                 print(time.ctime(),
                       "run", run, "episode", episode,
                       ": avg return",
-                      np.mean(tmp_res[max(0, episode-100):episode]))
+                      np.mean(tmp_res[max(0, episode - 100):episode]))
 
                 cur_time = time.time()
 
         # update mean and variance
         delta = tmp_res - result_mean
-        result_mean += delta / (run+1)
+        result_mean += delta / (run + 1)
         delta_2 = tmp_res - result_mean
         result_var += delta * delta_2
 
@@ -66,9 +64,9 @@ def main():
         summary = np.transpose([
             result_mean,
             result_var,
-            [run+1] * conf.episodes,
+            [run + 1] * conf.episodes,
             result_var / sqrt(conf.runs)
-            ])
+        ])
 
         np.savetxt(
             conf.file,
@@ -203,8 +201,7 @@ def parse_arguments():
         "--q_target_update_freq",
         default=256,
         type=int,
-        help="how often the target network should be updated (every # time steps)"
-    )
+        help="how often the target network should be updated (every # time steps)")
 
     parser.add_argument(
         "--train_frequency",
@@ -215,8 +212,17 @@ def parse_arguments():
 
     return parser.parse_args()
 
-def get_environment(conf):
-    """ returns environments as indicated in conf """
+
+def get_environment(conf) -> environment.Environment:
+    """get_environment returns environments as indicated in conf
+
+    FIXME: raise exception if not correct domain
+
+    :param conf: the conigurations given to program call parser.parse_arguments()
+    :rtype: environment.Environment
+
+    """
+
     if conf.domain == "tiger":
         return tiger.Tiger(conf)
     if conf.domain == "cartpole":
@@ -226,10 +232,18 @@ def get_environment(conf):
     if conf.domain == "collision_avoidance":
         return collision_avoidance.CollisionAvoidance(conf)
 
-def get_agent(conf, env, name):
-    """ returns agent given configurations and environment """
-    # construct Q function
 
+def get_agent(conf, env, name) -> agent.Agent:
+    """get_agent returns agent given configurations and environment
+
+    :param conf: configuration object from parser.parse_args()
+    :param env: environment, used for info such as the observation space
+    :param name: name of the agent
+
+    :rtype: agent.Agent
+    """
+
+    # construct Q function
     if conf.recurrent:
         qfunc = DRQNNet.DRQNNet
         arch = archs.TwoHiddenLayerRecQNet(conf)
@@ -239,8 +253,9 @@ def get_agent(conf, env, name):
 
     if conf.num_nets == 1:
         return BaselineAgent(qfunc, arch, env, conf, name=name)
-    else:
-        return EnsembleAgent(qfunc, arch, env, conf, name=name)
+
+    return EnsembleAgent(qfunc, arch, env, conf, name=name)
+
 
 if __name__ == '__main__':
     main()

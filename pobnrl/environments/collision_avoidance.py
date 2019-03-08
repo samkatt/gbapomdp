@@ -1,12 +1,13 @@
 """ collision avoidance environment """
 
-import copy
 import time
 
+import copy
 import numpy as np
-from environments.environment import Environment
 
+from environments.environment import Environment
 from utils import math_space
+
 
 class CollisionAvoidance(Environment):
     """ the tiger environment """
@@ -26,6 +27,7 @@ class CollisionAvoidance(Environment):
     _recording = False
     _history = []
 
+    # FIXME: should accept specific parameters instead of conf
     def __init__(self, conf):
 
         assert conf.domain_size > 0
@@ -37,7 +39,7 @@ class CollisionAvoidance(Environment):
         self._mid = int(self._size / 2)
 
         self.init_state = {
-            'agent': np.array((self._size-1, self._mid)),
+            'agent': np.array((self._size - 1, self._mid)),
             'obstacle': self._mid}
 
         self.state = copy.deepcopy(self.init_state)
@@ -49,7 +51,7 @@ class CollisionAvoidance(Environment):
 
     def bound_in_grid(self, y_pos):
         """ makes sure input state or observation is bounded within <0,size> """
-        return max(0, min(self._size-1, y_pos))
+        return max(0, min(self._size - 1, y_pos))
 
     def generate_observation(self, obstacle_pos):
         """ samples an observation, an displacement from the current state """
@@ -83,7 +85,7 @@ class CollisionAvoidance(Environment):
         self.state['agent'][0] -= 1
         self.state['agent'][1] = self.bound_in_grid(
             self.state['agent'][1] + self._action_to_move[int(action)]
-            )
+        )
 
         # move obstacle
         if np.random.random() < self._BLOCK_MOVE_PROB:
@@ -127,9 +129,9 @@ class CollisionAvoidance(Environment):
 
         for step in self._history[1:]:
             descr += " " + \
-                    self.action_to_string[int(step['action'])] + " --> " + \
-                    str(step['state']['agent'][1]) + " vs " + \
-                    str(step['state']['obstacle']) + "(" + \
-                    str(step['obs'].argmax()) + ")"
+                self.action_to_string[int(step['action'])] + " --> " + \
+                str(step['state']['agent'][1]) + " vs " + \
+                str(step['state']['obstacle']) + "(" + \
+                str(step['obs'].argmax()) + ")"
 
         print(descr)

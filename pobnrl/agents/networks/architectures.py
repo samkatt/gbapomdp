@@ -1,9 +1,11 @@
 """ various architectures for NNs """
 
 import abc
-import tensorflow as tf
+
 from tensorflow.python.layers.layers import dense
 from tensorflow.python.layers.layers import flatten
+import tensorflow as tf
+
 
 class Architecture(abc.ABC):
     """ implementation a q-function """
@@ -11,18 +13,18 @@ class Architecture(abc.ABC):
     @abc.abstractmethod
     def __call__(self, net_input, n_actions, scope):
         """ returns qvalues """
-        pass
 
     @abc.abstractmethod
     def is_recurrent(self):
         """ returns whether it contains recurrent state """
-        pass
+
 
 class TwoHiddenLayerQNet(Architecture):
     """ Regular Q network with 2 hidden layers """
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
 
+    # FIXME: take specific arguments instead of conf
     def __init__(self, conf):
         """ conf.network_size is in {'small', 'med', 'large'} """
         self.n_units = self._sizes[conf.network_size]
@@ -31,7 +33,8 @@ class TwoHiddenLayerQNet(Architecture):
         return False
 
     def __call__(self, net_input, n_actions, scope):
-        hidden = flatten(net_input) # concat all inputs but keep batch dimension
+        # concat all inputs but keep batch dimension
+        hidden = flatten(net_input)
 
         # [fixme] programmed without really understanding what is happening
         # it should be possible to call this multiple times
@@ -67,7 +70,7 @@ class TwoHiddenLayerRecQNet(Architecture):
     """ Recurrent Q network with 2 hidden layers """
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
-    rec_state = {} # recurrent state for each scope
+    rec_state = {}  # recurrent state for each scope
 
     def __init__(self, conf):
         """ conf.network_size is in {'small', 'med', 'large'} """
@@ -84,7 +87,7 @@ class TwoHiddenLayerRecQNet(Architecture):
         history_len = tf.shape(net_input)[1]
         observation_num = net_input.shape[2:].num_elements()
 
-        hidden = tf.reshape( # flatten input but keep batch size and history len
+        hidden = tf.reshape(  # flatten input but keep batch size and history len
             net_input,
             [batch_size, history_len, observation_num]
         )
@@ -113,10 +116,12 @@ class TwoHiddenLayerRecQNet(Architecture):
                 initializer=tf.glorot_normal_initializer()
             )
 
-            # can be initialized with a feed dict if you want to set this to a previous state
+            # can be initialized with a feed dict if you want to set this to a
+            # previous state
             self.rec_state[scope] = rnn_cell.zero_state(batch_size, tf.float32)
 
-            # will automatically handle the history len of each batch as a single sequence
+            # will automatically handle the history len of each batch as a
+            # single sequence
             hidden, new_rec_state = tf.nn.dynamic_rnn(
                 rnn_cell,
                 inputs=hidden,
