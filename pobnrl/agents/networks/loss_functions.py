@@ -3,19 +3,21 @@
 import tensorflow as tf
 
 
-def return_estimate(next_q, next_target, conf):
-    #
+def return_estimate(next_q, next_target, use_double_q: bool):
     """ expected next return
 
-    FIXME: take specific arguments instead of conf
-
     Either returns the max of the target network
-    or the double-q estimate
+    or the double-q estimate (depending on use_double_q)
 
-    Assumes: conf.double_q is a bool
+    Assumes: use_double_q is a bool
+
+    :param next_q:
+    :param next_target:
+    :param use_double_q:
+    :type use_double_q: bool whether to use double q or not
     """
 
-    if not conf.double_q:
+    if not use_double_q:
         return tf.reduce_max(next_target, axis=-1)
 
     # double_q
@@ -26,17 +28,20 @@ def return_estimate(next_q, next_target, conf):
     return tf.gather_nd(next_target, best_action_indices)
 
 
-def loss(q_values, targets, conf):
+def loss(q_values, targets, loss_type: str):
     """ returns the loss over qval versus targets given configurations
 
-    FIXME: take specific arguments instead of conf
-    Assumes: conf.loss being rmse or huber
+    Assumes: conf.loss being "rmse" or "huber"
+
+    :param q_values:
+    :param targets:
+    :param loss_type: str which type of loss to use ()
     """
 
     # training operation loss
-    if conf.loss == "rmse":
+    if loss_type == "rmse":
         return tf.losses.mean_squared_error(targets, q_values)
-    if conf.loss == "huber":
+    if loss_type == "huber":
         return tf.losses.huber_loss(targets, q_values, delta=10.0)
 
-    raise ValueError('Entered unknown value for loss ' + conf.loss)
+    raise ValueError('Entered unknown value for loss ' + loss_type)

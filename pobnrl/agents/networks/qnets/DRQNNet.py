@@ -60,7 +60,7 @@ class DRQNNet(QNetInterface):
 
         if conf.random_priors:  # add random function to our estimates
 
-            prior = archs.TwoHiddenLayerRecQNet(conf)
+            prior = archs.TwoHiddenLayerRecQNet(conf.network_size)
 
             prior_vals, _ = prior(
                 self.obs_t_ph,
@@ -84,14 +84,14 @@ class DRQNNet(QNetInterface):
         return_estimate = loss_functions.return_estimate(
             next_targets_fn,
             next_qvalues_fn,
-            conf
+            conf.double_q
         )
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
             x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * return_estimate))
 
-        loss = loss_functions.loss(q_values, targets, conf)
+        loss = loss_functions.loss(q_values, targets, conf.loss)
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,

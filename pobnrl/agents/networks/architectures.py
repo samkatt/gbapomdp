@@ -24,10 +24,9 @@ class TwoHiddenLayerQNet(Architecture):
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
 
-    # FIXME: take specific arguments instead of conf
-    def __init__(self, conf):
-        """ conf.network_size is in {'small', 'med', 'large'} """
-        self.n_units = self._sizes[conf.network_size]
+    def __init__(self, network_size):
+        """ network_size is in {'small', 'med', 'large'} """
+        self.n_units = self._sizes[network_size]
 
     def is_recurrent(self):
         return False
@@ -72,9 +71,9 @@ class TwoHiddenLayerRecQNet(Architecture):
     _sizes = {'small': 16, 'med': 64, 'large': 512}
     rec_state = {}  # recurrent state for each scope
 
-    def __init__(self, conf):
-        """ conf.network_size is in {'small', 'med', 'large'} """
-        self.n_units = self._sizes[conf.network_size]
+    def __init__(self, network_size):
+        """ network_size is in {'small', 'med', 'large'} """
+        self.n_units = self._sizes[network_size]
 
     def is_recurrent(self):
         return True

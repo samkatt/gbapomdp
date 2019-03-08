@@ -224,13 +224,15 @@ def get_environment(conf) -> environment.Environment:
     """
 
     if conf.domain == "tiger":
-        return tiger.Tiger(conf)
+        return tiger.Tiger(conf.verbose)
     if conf.domain == "cartpole":
-        return cartpole.Cartpole(conf)
+        return cartpole.Cartpole(conf.verbose)
     if conf.domain == "gridworld":
-        return gridworld.GridWorld(conf)
+        return gridworld.GridWorld(conf.domain_size, conf.verbose)
     if conf.domain == "collision_avoidance":
-        return collision_avoidance.CollisionAvoidance(conf)
+        return collision_avoidance.CollisionAvoidance(conf.domain_size, conf.verbose)
+
+    raise ValueError('unknown domain ' + conf.domain)
 
 
 def get_agent(conf, env, name) -> agent.Agent:
@@ -246,10 +248,10 @@ def get_agent(conf, env, name) -> agent.Agent:
     # construct Q function
     if conf.recurrent:
         qfunc = DRQNNet.DRQNNet
-        arch = archs.TwoHiddenLayerRecQNet(conf)
+        arch = archs.TwoHiddenLayerRecQNet(conf.network_size)
     else:
         qfunc = DQNNet.DQNNet
-        arch = archs.TwoHiddenLayerQNet(conf)
+        arch = archs.TwoHiddenLayerQNet(conf.network_size)
 
     if conf.num_nets == 1:
         return BaselineAgent(qfunc, arch, env, conf, name=name)

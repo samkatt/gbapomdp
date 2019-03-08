@@ -37,15 +37,21 @@ class GridWorld(Environment):
     _recording = False
     _history = []
 
-    # FIXME: should accept specific arguments instead of conf
-    def __init__(self, conf):
+    def __init__(self, domain_size: int, verbose: bool):
+        """ creates a gridworld of provided size and verbosity
 
-        assert conf.domain_size > 0
-        assert conf.domain_size % 2 == 1
+        :param domain_size: the size (assumed odd) of the grid
+        :type domain_size: int
+        :param verbose: whether to be verbose
+        :type verbose: bool
+        """
+
+        assert domain_size > 0
+        assert domain_size % 2 == 1
 
         # confs
-        self._verbose = conf.verbose
-        self._size = conf.domain_size
+        self._verbose = verbose
+        self._size = domain_size
 
         self.goal_state = np.array([self._size - 1, self._size - 1])
 

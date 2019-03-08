@@ -14,7 +14,7 @@ class DiscreteSpace():
         assert isinstance(dim, list)
 
         self.dim = np.array(dim)
-        self.num_elements = np.prod(self.dim)
+        self.n = np.prod(self.dim)
         self.shape = self.dim.shape
 
     def dimensions(self) -> np.array:

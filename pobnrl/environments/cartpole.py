@@ -9,12 +9,16 @@ from environments.environment import Environment
 class Cartpole(Environment):
     """ cartpole environment """
 
-    # FIXME: should accept specific arguments instead of conf
-    def __init__(self, conf):
+    def __init__(self, verbose: bool):
+        """ initiates cartpole with optionally graphical representation
+
+        :param verbose: whether to be (graphically) verbose
+        :type verbose: bool
+        """
 
         self._cur_time = 0
 
-        recording_policy = self._show_recording if conf.verbose else False
+        recording_policy = self._show_recording if verbose else False
 
         self.cartpole = gym.make('CartPole-v0')
         self.cartpole = gym.wrappers.Monitor(

@@ -27,15 +27,21 @@ class CollisionAvoidance(Environment):
     _recording = False
     _history = []
 
-    # FIXME: should accept specific parameters instead of conf
-    def __init__(self, conf):
+    def __init__(self, domain_size: int, verbose: bool):
+        """ constructs a Collision Avoidance domain of specified size
 
-        assert conf.domain_size > 0
-        assert conf.domain_size % 2 == 1
+        :param domain_size: the size of the grid
+        :type domain_size: int
+        :param verbose: whether to be verbose or not
+        :type verbose: bool
+        """
+
+        assert domain_size > 0
+        assert domain_size % 2 == 1
 
         # verbosity settings
-        self._verbose = conf.verbose
-        self._size = conf.domain_size
+        self._verbose = verbose
+        self._size = domain_size
         self._mid = int(self._size / 2)
 
         self.init_state = {

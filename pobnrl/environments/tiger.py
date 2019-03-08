@@ -26,11 +26,15 @@ class Tiger(Environment):
     _recording = False
     _history = []
 
-    # FIXME: accept verbose instead of conf
-    def __init__(self, conf):
+    def __init__(self, verbose: bool):
+        """
+
+        :param verbose: whether to be verbose or not
+        :type verbose: bool
+        """
 
         # verbosity settings
-        self._verbose = conf.verbose
+        self._verbose = verbose
 
         self.state = self.sample_start_state()
 
