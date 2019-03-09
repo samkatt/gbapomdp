@@ -6,10 +6,12 @@ import numpy as np
 class DiscreteSpace():
     """ DiscreteSpace discrete uninterupted space of some shape """
 
-    def __init__(self, dim):
-        """__init__ initiates a discrete space of size dim
+    def __init__(self, dim: list[int]):
+        """ initiates a discrete space of size dim
 
-        :param dim: is a list of dimensions
+        Args:
+             dim: (`list[int]`): is a list of dimensions
+
         """
         assert isinstance(dim, list)
 
@@ -18,15 +20,17 @@ class DiscreteSpace():
         self.shape = self.dim.shape
 
     def dimensions(self) -> np.array:
-        """dimensions dimensions returns the range of each dimension
+        """ returns the range of each dimension
 
-        :rtype: np.array
+        RETURNS (`np.array`): array where each member indicates the size of its dimension
+
         """
         return self.dim
 
-    def sample(self) -> int:
-        """sample returns a sample from the space at random
+    def sample(self) -> np.array:
+        """ returns a sample from the space at random
 
-        :rtype: int
+        RETURNS (`np.array`): a sample in the space of this
+
         """
         return (np.random.random(self.shape) * self.dim).astype(int)

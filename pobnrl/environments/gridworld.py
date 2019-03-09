@@ -40,10 +40,10 @@ class GridWorld(Environment):
     def __init__(self, domain_size: int, verbose: bool):
         """ creates a gridworld of provided size and verbosity
 
-        :param domain_size: the size (assumed odd) of the grid
-        :type domain_size: int
-        :param verbose: whether to be verbose
-        :type verbose: bool
+        Args:
+             domain_size: (`int`): the size (assumed odd) of the grid
+             verbose: (`bool`): whether to be verbose
+
         """
 
         assert domain_size > 0
@@ -91,13 +91,29 @@ class GridWorld(Environment):
             self._slow_cells.add((edge - 3, edge - 1))
             self._slow_cells.add((edge - 2, edge - 2))
 
-    def bound_in_grid(self, state_or_obs):
-        """ makes sure input state or observation is bounded within <0,size> """
+    def bound_in_grid(self, state_or_obs: np.array) -> np.array:
+        """ returns bounded state or obs s.t. it is within the grid
+
+        simpy returns state_or_obs if it is in the grid size, otherwise returns the edge value
+
+        Args:
+             state_or_obs: (`np.array`): some (x,y) position on the grid
+
+        RETURNS (`np.array`): the bounded value state_or_obs
+
+        """
         return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
-    def generate_observation(self, state):
-        """ samples an observation, an displacement from the current state """
-        # [fixme] test gridworld.generate_observation
+    def generate_observation(self, state: np.array) -> np.array:
+        """ generates a noisy observation of the state
+
+        Args:
+             state: (`np.array`): a state
+
+        RETURNS (`np.array`):
+
+        """
+        # FIXME: test gridworld.generate_observation
 
         # state + displacement (where displacement is centered through -
         # self._size)
@@ -129,8 +145,8 @@ class GridWorld(Environment):
 
         return self.generate_observation(self.state)
 
-    def step(self, action):
-        """ update state wrt action (listen or open) """
+    def step(self, action: int) -> list:
+        """ update state wrt action """
 
         if tuple(self.state) not in self._slow_cells:
             move_prob = self.MOVE_SUCCESS_PROB
@@ -154,12 +170,25 @@ class GridWorld(Environment):
 
         return obs, reward, terminal
 
-    def spaces(self):
-        """ A: 4, O: S """
+    def spaces(self) -> dict:
+        """ return the action and observation space
+
+        Args:
+
+        RETURNS (`dict`): {'O', 'A'} of spaces (A: 4, O: S)
+
+        """
         return self._spaces
 
-    def obs_to_string(self, obs):
-        """ translate hot-encoding of obs to string """
+    def obs_to_string(self, obs: np.array) -> str: # pylint: disable=no-self-use
+        """ translates an  observation to string
+
+        Args:
+             obs: (`np.array`): observation of the agent's state
+
+        RETURNS (`str`): string representation of the observation
+
+        """
         return str(np.unravel_index(obs.argmax(), obs.shape))
 
     def display_history(self):

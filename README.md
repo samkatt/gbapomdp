@@ -39,8 +39,7 @@ python -h
   code is formatted correctly
 
 #### TODO
-* update documentation
-* come up with good way of styling / indenting the code base
+* implement static analysing mechanism
 * cleanup code
 * add tests
 

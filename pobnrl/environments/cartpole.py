@@ -10,10 +10,11 @@ class Cartpole(Environment):
     """ cartpole environment """
 
     def __init__(self, verbose: bool):
-        """ initiates cartpole with optionally graphical representation
+        """ constructs cartpole with optionally graphical representation
 
-        :param verbose: whether to be (graphically) verbose
-        :type verbose: bool
+        Args:
+             verbose: (`bool`): whether to be (graphically) verbose
+
         """
 
         self._cur_time = 0
@@ -28,7 +29,7 @@ class Cartpole(Environment):
             video_callable=recording_policy)
 
     def _show_recording(self, _):
-        """ returns whether a recording should be shown """
+        """ returns whether a recording should be shown to the gym environment """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
             print('showing recording..')
@@ -43,12 +44,28 @@ class Cartpole(Environment):
         """ resets the cartpole gym environment """
         return self.cartpole.reset()
 
-    def step(self, action):
-        """ performs a step in the cartpole env """
+    def step(self, action) -> list:
+        """ update state as a result of action
+
+        Uses gym.cartpole for the actual transition
+
+        Args:
+             action: agent's taken action
+
+        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+
+        """
+
         obs, reward, terminal, _ = self.cartpole.step(action)
         return obs, reward, terminal
 
-    def spaces(self):
-        """ returns spaces from cartpole gym env """
+    def spaces(self) -> dict:
+        """ returns size of domain space {'O', 'A'}
+
+        returns aciton and observation space of the gym.carpole environment
+
+        RETURNS (`dict`): {'O', 'A'} of spaces to sample from
+
+        """
         return {"A": self.cartpole.action_space,
                 "O": self.cartpole.observation_space}

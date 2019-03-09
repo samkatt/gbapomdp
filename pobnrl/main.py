@@ -5,7 +5,7 @@ import time
 from math import sqrt
 import numpy as np
 
-from agents import agent
+import agents
 from agents.baseline_agent import BaselineAgent
 from agents.ensemble_agent import EnsembleAgent
 from agents.networks import architectures as archs
@@ -13,7 +13,7 @@ from agents.networks.qnets import DQNNet
 from agents.networks.qnets import DRQNNet
 from environments import cartpole
 from environments import collision_avoidance
-from environments import environment
+import environments
 from environments import gridworld
 from environments import tiger
 from episode import run_episode
@@ -21,17 +21,17 @@ from utils import tf_wrapper
 
 
 def main():
-    """ start of program """
+    """ main: tests the performance of an agent in an environment """
+
+    # only called once at start of program
+    tf_wrapper.init()
+    cur_time = time.time()
 
     conf = parse_arguments()
+    env = get_environment(conf.domain, conf.domain_size, conf.verbose)
 
-    cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
-
-    tf_wrapper.init()
-
-    env = get_environment(conf)
 
     for run in range(conf.runs):
 
@@ -76,7 +76,7 @@ def main():
 
 
 def parse_arguments():
-    """ parse command line arguments, returns a namespace with all variables"""
+    """ in control of converting command line arguments in a configuration object """
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
@@ -213,36 +213,47 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_environment(conf) -> environment.Environment:
-    """get_environment returns environments as indicated in conf
+def get_environment(
+        domain_name: str,
+        domain_size: int,
+        verbose: bool) -> environments.environment.Environment:
+    """ the factory function to construct environments
 
-    FIXME: raise exception if not correct domain
+    Args:
+         domain_name: (`str`): determines which domain is created (see program input -h)
+         domain_size: (`int`): the size of the domain (domain dependent)
+         verbose: (`bool`): whether or not to be verbose
 
-    :param conf: the conigurations given to program call parser.parse_arguments()
-    :rtype: environment.Environment
+    RETURNS (`pobnrl.environments.environment.Environment`)
 
     """
 
-    if conf.domain == "tiger":
-        return tiger.Tiger(conf.verbose)
-    if conf.domain == "cartpole":
-        return cartpole.Cartpole(conf.verbose)
-    if conf.domain == "gridworld":
-        return gridworld.GridWorld(conf.domain_size, conf.verbose)
-    if conf.domain == "collision_avoidance":
-        return collision_avoidance.CollisionAvoidance(conf.domain_size, conf.verbose)
+    if domain_name == "tiger":
+        return tiger.Tiger(verbose)
+    if domain_name == "cartpole":
+        return cartpole.Cartpole(verbose)
+    if domain_name == "gridworld":
+        return gridworld.GridWorld(domain_size, verbose)
+    if domain_name == "collision_avoidance":
+        return collision_avoidance.CollisionAvoidance(
+            domain_size, verbose)
 
-    raise ValueError('unknown domain ' + conf.domain)
+    raise ValueError('unknown domain ' + domain_name)
 
 
-def get_agent(conf, env, name) -> agent.Agent:
-    """get_agent returns agent given configurations and environment
+def get_agent(
+        conf,
+        env: environments.environment.Environment,
+        name: str) -> agents.agent.Agent:
+    """ factory function to construct agents
 
-    :param conf: configuration object from parser.parse_args()
-    :param env: environment, used for info such as the observation space
-    :param name: name of the agent
+    Args:
+         conf: configuration file (see program input -h)
+         env: (`pobnrl.environments.environment.Environment`): real environment
+         name: (`str`): used to provide scope for tensorflow
 
-    :rtype: agent.Agent
+    RETURNS (`agents.agent.Agent`)
+
     """
 
     # construct Q function

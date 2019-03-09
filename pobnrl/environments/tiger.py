@@ -27,10 +27,11 @@ class Tiger(Environment):
     _history = []
 
     def __init__(self, verbose: bool):
-        """
+        """ construct the tiger environment
 
-        :param verbose: whether to be verbose or not
-        :type verbose: bool
+        Args:
+             verbose: (`bool`): whether to be verbose or not (print to stdout)
+
         """
 
         # verbosity settings
@@ -44,17 +45,30 @@ class Tiger(Environment):
         }
 
     # pylint: disable=R0201
-    def sample_start_state(self):
-        """ returns a random state (tiger left or right) """
+    def sample_start_state(self) -> int:
+        """ samples a random state (tiger left or right)
+
+        RETURNS (`int`): an initial state (in [0,1])
+
+        """
         return np.random.randint(0, 2)
 
-    def sample_observation(self, listening):
-        """ samples an observation, listening is true if agent is performing that action """
+    def sample_observation(self, listening: bool) -> np.array:
+        """ samples an observation, listening is true means agent is performing that action
+
+        Args:
+             listening: (`bool`): whether the agent is listening
+
+        RETURNS (`np.array`): the observation (hot-encoded)
+
+        """
         obs = np.zeros(self._spaces["O"].shape)
 
+        # not listening means [0,0] observation (basically a 'null')
         if not listening:
             return obs
 
+        # 1-hot-encoding
         if np.random.random() < self.CORRECT_OBSERVATION_PROB:
             obs[self.state] = 1
         else:
@@ -63,7 +77,12 @@ class Tiger(Environment):
         return obs
 
     def reset(self):
-        """ resets state """
+        """ resets internal state and return first observation
+
+        resets the intenral state randomly (0 or 1)
+        returns [0,0] as a 'null' initial observation
+
+        """
 
         self.state = self.sample_start_state()
 
@@ -80,8 +99,17 @@ class Tiger(Environment):
 
         return np.zeros(2)
 
-    def step(self, action):
-        """ update state wrt action (listen or open) """
+    def step(self, action: int) -> list:
+        """ performs a step in the tiger environment given action
+
+        Will terminate episode when action is to open door, otherwise return an observation.
+
+        Args:
+             action: (`int`): 0 is open left, 1 is open right or 2 is listen
+
+        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+
+        """
 
         if action != self.LISTEN:
             obs = self.sample_observation(False)
@@ -99,15 +127,26 @@ class Tiger(Environment):
 
         return obs, reward, terminal
 
-    def spaces(self):
-        """ A: 3, O: 2 """
+    def spaces(self) -> dict:
+        """ returns size of domain space {'O', 'A'}
+
+        RETURNS (`dict`): {'O', 'A'} of spaces to sample from
+
+        """
         return self._spaces
 
     def display_history(self):
         """ prints out transitions """
 
-        def to_string(element):
-            """ return string rep of the element (action, state, or obs element) """
+        def to_string(element: int) -> str:
+            """ action, state or observation to string
+
+            Args:
+                 element: (`int`): action, string or observation
+
+            RETURNS (`str`): string representation of element
+
+            """
             return "L" if int(element) == self.LEFT else "R"
 
         descr = "Tiger (" + to_string(self._history[0]) + ") and heard: "

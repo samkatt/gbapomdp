@@ -4,17 +4,16 @@ import tensorflow as tf
 
 
 def return_estimate(next_q, next_target, use_double_q: bool):
-    """ expected next return
+    """ compute estimated return
 
     Either returns the max of the target network
     or the double-q estimate (depending on use_double_q)
 
-    Assumes: use_double_q is a bool
+    Args:
+         next_q: the next q-values
+         next_target: the target q-values
+         use_double_q: (`bool`): whether to use 'double-q' technique
 
-    :param next_q:
-    :param next_target:
-    :param use_double_q:
-    :type use_double_q: bool whether to use double q or not
     """
 
     if not use_double_q:
@@ -29,13 +28,16 @@ def return_estimate(next_q, next_target, use_double_q: bool):
 
 
 def loss(q_values, targets, loss_type: str):
-    """ returns the loss over qval versus targets given configurations
+    """ computes the loss over qval versus targets given configurations
 
-    Assumes: conf.loss being "rmse" or "huber"
+    Given some input, a Q-net can estimate the Q-values and some target q-values.
+    This function returns the loss over the estimated q-values, given the type of loss
 
-    :param q_values:
-    :param targets:
-    :param loss_type: str which type of loss to use ()
+    Args:
+         q_values: q-value estimates
+         targets: target q-value estimates
+         loss_type: (`str`): is "rmse" or "huber" to indicate type of loss to use
+
     """
 
     # training operation loss

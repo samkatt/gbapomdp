@@ -12,15 +12,19 @@ class Environment(abc.ABC):
 
     @abc.abstractmethod
     def step(self, action) -> list:
-        """step update state wrt action
+        """ update state as a result of action
 
-        :param action: which action was taken by the agent
-        :rtype: list [observation, reward (float), terminal (bool)]
+        Args:
+             action: agent's taken action
+
+        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+
         """
 
     @abc.abstractmethod
     def spaces(self) -> dict:
-        """spaces returns size of domain space {'O', 'A'}
+        """ returns size of domain space {'O', 'A'}
 
-        :rtype: dict {'O', 'A'} of spaces to sample from
+        RETURNS (`dict`): {'O', 'A'} of spaces to sample from
+
         """

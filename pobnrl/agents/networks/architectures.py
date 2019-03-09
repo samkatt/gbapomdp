@@ -11,12 +11,27 @@ class Architecture(abc.ABC):
     """ implementation a q-function """
 
     @abc.abstractmethod
-    def __call__(self, net_input, n_actions, scope):
-        """ returns qvalues """
+    def __call__(self, net_input, n_actions: int, scope: str):
+        """ computes the q values given the net input
+
+        Returns n_actions q values
+
+        Args:
+             net_input: the input to the network
+             n_actions: (`int`): the number of actions (outputs)
+             scope: (`str`): the scope of the network (used by tensorflow)
+
+        """
 
     @abc.abstractmethod
-    def is_recurrent(self):
-        """ returns whether it contains recurrent state """
+    def is_recurrent(self) -> bool:
+        """ used to check whether the network is recurrent
+
+        Can be useful in determining e.g. whether there is some internal state
+
+        RETURNS (`bool`): whether the network is recurrent
+
+        """
 
 
 class TwoHiddenLayerQNet(Architecture):
@@ -24,18 +39,43 @@ class TwoHiddenLayerQNet(Architecture):
 
     _sizes = {'small': 16, 'med': 64, 'large': 512}
 
-    def __init__(self, network_size):
-        """ network_size is in {'small', 'med', 'large'} """
+    def __init__(self, network_size: str):
+        """ construct the TwoHiddenLayerQNet of the specified size
+
+        Translates 'small' to 16, 'med' to 64 and 'large' to 512 hidden notes
+
+        Args:
+             network_size: (`str`): is in {'small', 'med', 'large'}
+
+        """
         self.n_units = self._sizes[network_size]
 
-    def is_recurrent(self):
+    def is_recurrent(self) -> bool:
+        """ returns false since this network is not recurrent
+
+        RETURNS (`bool`): false (TwoHiddenLayerQNet is not recurrent)
+
+        """
         return False
 
-    def __call__(self, net_input, n_actions, scope):
+    def __call__(self, net_input, n_actions: int, scope: str):
+        """ returns n_actions Q-values given the network input
+
+        scope must be unique to this network to ensure this works fine (tensorflow). This is the
+        main functionality of any network
+
+        Assumes size of input is [batch size, history len, net_input...]
+
+        Args:
+             net_input: (tensor) input to the network
+             n_actions: (`int`): number of outputs (actions)
+             scope: (`str`): the (unique) scope of the network used by tensorflow
+
+        """
         # concat all inputs but keep batch dimension
         hidden = flatten(net_input)
 
-        # [fixme] programmed without really understanding what is happening
+        # FIXME: programmed without really understanding what is happening
         # it should be possible to call this multiple times
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             print('Using network in scope', scope)
@@ -71,15 +111,41 @@ class TwoHiddenLayerRecQNet(Architecture):
     _sizes = {'small': 16, 'med': 64, 'large': 512}
     rec_state = {}  # recurrent state for each scope
 
-    def __init__(self, network_size):
-        """ network_size is in {'small', 'med', 'large'} """
+    def __init__(self, network_size: int):
+        """ construct this of the specified size
+
+        Translates 'small' to 16, 'med' to 64 and 'large' to 512 hidden notes
+
+        Args:
+             network_size: (`str`): is in {'small', 'med', 'large'}
+
+        """
         self.n_units = self._sizes[network_size]
 
-    def is_recurrent(self):
+    def is_recurrent(self) -> bool:
+        """ returns true
+
+        interface implementation of Architecture
+
+        RETURNS (`bool`): true, as this is recurrent
+
+        """
         return True
 
-    def __call__(self, net_input, n_actions, scope):
-        # assume size of input is [batch size, history len, net_input...]
+    def __call__(self, net_input, n_actions: int, scope: str):
+        """ returns n_actions Q-values given the network input
+
+        This is the main functionality of any network
+        scope must be unique to this network to ensure this works fine (tensorflow).
+
+        Assumes size of input is [batch size, history len, net_input...]
+
+        Args:
+             net_input: (tensor) input to the network
+             n_actions: (`int`): number of outputs (actions)
+             scope: (`str`): the (unique) scope of the network used by tensorflow
+
+        """
         assert len(net_input.shape) > 2
 
         batch_size = tf.shape(net_input)[0]
@@ -91,7 +157,7 @@ class TwoHiddenLayerRecQNet(Architecture):
             [batch_size, history_len, observation_num]
         )
 
-        # [fixme] programmed without really understanding what is happening
+        # FIXME: programmed without really understanding what is happening
         # it should be possible to call this multiple times
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             print('Using network in scope', scope)

@@ -3,25 +3,38 @@
 import numpy as np
 
 
-def epsilon_greedy(q_values, epsilon, action_space) -> int:
-    """epsilon_greedy returns epsilon greedy action
+def epsilon_greedy(q_values, epsilon: float, action_space) -> int:
+    """ returns epsilon greedy action
 
-    :param q_values: a list of q values, one for each action
-    :param epsilon: the chances of picking a random action
-    :param action_space: a space of actions to sample from
-    :rtype: int the action to pick (assumes to be discrete)
+    Args:
+         q_values: a list of q values, one for each action
+         epsilon: (`float`): the probability of picking a random action
+         action_space: a space of actions to sample from
+
+    RETURNS (`int`): an action (assuming discrete environments)
 
     """
-    return np.argmax(q_values) if np.random.random(
-    ) > epsilon else action_space.sample()
+    if np.random.random() > epsilon:
+        return np.argmax(q_values)
+
+    return action_space.sample()
 
 
-def linear_interpolation(left, right, alpha):
-    """ linear interpolation between l and r with alpha """
+def linear_interpolation(left: float, right: float, alpha: float) -> float:
+    """ linear interpolation between l and r with alpha
+
+    Args:
+         left: (`float`):
+         right: (`float`):
+         alpha: (`float`):
+
+    RETURNS (`float`):
+
+    """
     return left + alpha * (right - left)
 
 
-class PiecewiseSchedule(object):
+class PiecewiseSchedule():
     """ scheduler advancing piecewise """
 
     def __init__(

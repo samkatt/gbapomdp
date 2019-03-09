@@ -63,7 +63,14 @@ class BaselineAgent(agents.Agent):
             name + '_net')
 
     def reset(self, obs):
-        """ resets to finish episode """
+        """ prepares for next episode
+
+        stores the observation and resets its Q-network
+
+        Args:
+             obs: the observation at the start of the episode
+
+        """
         self.last_ob = obs
         self.replay_index = self.replay_buffer.store_frame(self.last_ob)
 
@@ -72,8 +79,11 @@ class BaselineAgent(agents.Agent):
     def select_action(self):
         """ requests greedy action from network """
 
-        q_in = np.array([self.last_ob]) if self.q_net.is_recurrent() \
-            else self.replay_buffer.encode_recent_observation()
+        if self.q_net.is_recurrent():
+            q_in = np.array([self.last_ob])
+        else:
+            q_in = self.replay_buffer.encode_recent_observation()
+
         q_values = self.q_net.qvalues(q_in)
 
         epsilon = self.exploration.value(self.t)
@@ -82,21 +92,20 @@ class BaselineAgent(agents.Agent):
 
         return self.latest_action
 
-    def update(self, obs, reward, terminal):
-        """update informs agent of observed transition
+    def update(self, obs, reward: float, terminal: bool):
+        """ stores the transition and potentially updates models
 
-        Stores the experience (together with stored action) into the buffer
-        with some probability
+        Stores the experience (together with stored action) into the buffer with some probability
 
-        May perform a batch update (every so often, see
-        parameters/configuration)
+        May perform a batch update (every so often, see parameters/configuration)
 
-        May update the target network (every so often, see
-        parameters/configuration)
+        May update the target network (every so often, see parameters/configuration)
 
-        :param _observation: the observation from the last step
-        :param _reward: the reward of the last step
-        :param _terminal: whether the last step was terminal
+        Args:
+             obs: the observation from the last step
+             reward: (`float`): the reward of the last step
+             terminal: (`bool`): whether the last step was terminal
+
         """
 
         # store experience

@@ -13,6 +13,7 @@ class EnsembleAgent(agents.Agent):
     t = 0
     last_ob = 0
     _storing_rbs = 0
+    latest_action = 0
 
     # the policy from which to act e-greedy on right now
     _current_policy = 0
@@ -59,7 +60,14 @@ class EnsembleAgent(agents.Agent):
         ]
 
     def reset(self, obs):
-        """ resets to finish episode """
+        """ prepares for next episode
+
+        stores the observation and resets its Q-network and resets its models
+
+        Args:
+             obs: the observation at the start of the episode
+
+        """
 
         self.last_ob = obs
 
@@ -77,7 +85,7 @@ class EnsembleAgent(agents.Agent):
             rb['index'] = rb['buffer'].store_frame(self.last_ob)
 
     def select_action(self):
-        """ requests greedy action from network """
+        """ returns greedy action from current active policy """
 
         q_in = np.array([self.last_ob]) if self.nets[self._current_policy].is_recurrent(
         ) else self.replay_buffers[self._current_policy]['buffer'].encode_recent_observation()
@@ -88,24 +96,20 @@ class EnsembleAgent(agents.Agent):
 
         return self.latest_action
 
-    def update(self, obs, reward, terminal):
-        """update informs agent of observed transition
+    def update(self, obs, reward: float, terminal: bool):
+        """ stores the transition and potentially updates models
 
-        For each network:
+        For each network, does
 
-            Stores the experience (together with stored action) into the buffer
-            with some probability
+        * Stores the experience (together with stored action) into the buffer with some probability
+        * May perform a batch update (every so often, see parameters/configuration)
+        * May update the target network (every so often, see parameters/configuration)
 
-            May perform a batch update (every so often, see
-            parameters/configuration)
+        Args:
+             obs: the observation from the last step
+             reward: (`float`): the reward of the last step
+             terminal: (`bool`): whether the last step was terminal
 
-            May update the target network (every so often, see
-            parameters/configuration)
-
-
-        :param _observation: the observation from the last step
-        :param _reward: the reward of the last step
-        :param _terminal: whether the last step was terminal
         """
 
         # store experience

@@ -1,14 +1,22 @@
 """ implements running an episode """
 
+import agents.agent
+import environments.environment
 
-def run_episode(env, agent, conf) -> float:
-    """run_episode runs a single episode
 
-    :param env: the environment to run in bla `pobnrl.environments.environment.Environment`
-    :param agent: the agent that learns and takes decisions
-    :param conf: configurations
+def run_episode(
+        env: environments.environment.Environment,
+        agent: agents.agent.Agent,
+        conf) -> float:
+    """ runs a single episode of the agent in the environmnet
 
-    :rtype: float discounted return
+    Args:
+         env: (`pobnrl.environments.environment.Environment`):
+         agent: (`pobnrl.agents.agent.Agent`):
+         conf: configurations
+
+    RETURNS (`float`): discounted return
+
     """
 
     terminal = False

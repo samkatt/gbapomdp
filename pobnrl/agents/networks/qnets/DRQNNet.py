@@ -3,7 +3,7 @@
 import tensorflow as tf
 
 from agents.networks.qnets.QNetInterface import QNetInterface
-import agents.networks.architectures as archs
+import agents.networks.architectures
 import agents.networks.loss_functions as loss_functions
 import utils.tf_wrapper as tf_wrapper
 
@@ -12,15 +12,24 @@ class DRQNNet(QNetInterface):
     """ a network based on DRQN that can return q values and update """
 
     # FIXME: take specific arguments instead of conf
-    def __init__(self, env_spaces, rec_arch, optimizer, conf, scope):
-        """
-        in:
+    def __init__(
+            self,
+            env_spaces: dict,
+            rec_arch: agents.networks.architectures.Architecture,
+            optimizer,
+            conf,
+            scope: str):
+        """ construct the DRQNNet
 
-        env_spaces: dict{'O','A'} with observation and action space
-        rec_arch: a **Recurrent** QNet
-        optimizer: a tf.Optimzer
-        conf: configurations (contains observation len,  gamma and loss option)
-        scope: name space
+        Assumes the input architecture rec_arch is recurrent
+
+        Args:
+             env_spaces: (`dict`): {'O','A'} with observation and action space
+             rec_arch: (`pobnrl.agents.networks.architectures.Architecture`): the architecture
+             optimizer: the type of optimizer to use for learning (tf.optimizer)
+             conf: configuration file
+             scope: (`str`): name space of the network
+
         """
 
         assert rec_arch.is_recurrent()
@@ -60,7 +69,7 @@ class DRQNNet(QNetInterface):
 
         if conf.random_priors:  # add random function to our estimates
 
-            prior = archs.TwoHiddenLayerRecQNet(conf.network_size)
+            prior = agents.networks.architectures.TwoHiddenLayerRecQNet(conf.network_size)
 
             prior_vals, _ = prior(
                 self.obs_t_ph,
@@ -118,15 +127,27 @@ class DRQNNet(QNetInterface):
 
         tf_wrapper.get_session().run(tf.global_variables_initializer())
 
-    def is_recurrent(self):
+    def is_recurrent(self) -> bool:  # pylint: disable=no-self-use
+        """ True: the DRQNNet is recurrent
+
+        RETURNS (`bool`): True
+
+        """
         return True
 
     def reset(self):
-        """ resets the net """
+        """ resets the net internal state """
         self.rnn_state = None
 
     def qvalues(self, observation):
-        """ returns the q values associated with the observations """
+        """ returns the Q-values associated with the observation (net input)
+
+        Updates the internal state of the RNN
+
+        Args:
+             observation: the input to the network
+
+        """
 
         feed_dict = {self.obs_t_ph: observation[None]}
 
@@ -143,7 +164,20 @@ class DRQNNet(QNetInterface):
         return qvals
 
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
-        """ performs a batch update """
+        """ performs a batch update on the network on the provided input
+
+        Basically the stochastic gradient descent step where, for any i,
+        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are respectively the
+        observation, actions, reward, next observation and terminality of some step i
+
+        Args:
+             obs: the observations or input to the network
+             actions: the chosen action
+             rewards: the rewards associated with each obs-action pair
+             next_obs: the next observation after taking action and seeing obs
+             done_mask: a boolean for each transition showing whether the transition was terminal
+
+        """
 
         tf_wrapper.get_session().run(self.train_op, feed_dict={
             self.obs_t_ph: obs,

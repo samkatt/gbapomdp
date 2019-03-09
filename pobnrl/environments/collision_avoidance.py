@@ -30,10 +30,10 @@ class CollisionAvoidance(Environment):
     def __init__(self, domain_size: int, verbose: bool):
         """ constructs a Collision Avoidance domain of specified size
 
-        :param domain_size: the size of the grid
-        :type domain_size: int
-        :param verbose: whether to be verbose or not
-        :type verbose: bool
+        Args:
+             domain_size: (`int`): the size of the grid
+             verbose: (`bool`): whether to be verbose (print experiences to stdout)
+
         """
 
         assert domain_size > 0
@@ -55,19 +55,35 @@ class CollisionAvoidance(Environment):
             "O": math_space.DiscreteSpace(np.ones(self._size).tolist())
         }
 
-    def bound_in_grid(self, y_pos):
-        """ makes sure input state or observation is bounded within <0,size> """
+    def bound_in_grid(self, y_pos: int) -> int:
+        """ returns bounded y_pos s.t. it is within the grid
+
+        simpy returns y_pos if it is in the grid size, otherwise returns the edge value
+
+        Args:
+             y_pos: (`int`): some y position on the grid
+
+        RETURNS (`int`): the bounded value of y
+
+        """
         return max(0, min(self._size - 1, y_pos))
 
-    def generate_observation(self, obstacle_pos):
-        """ samples an observation, an displacement from the current state """
+    def generate_observation(self, obstacle_pos: int) -> np.array:
+        """ samples a possibly noisy observation of the obstacle
+
+        Args:
+             obstacle_pos: (`int`): a 'real' position of the obstacle
+
+        RETURNS (`np.array`): a 1-hot-encoded observation of the position
+
+        """
         obs = np.zeros(self._size)
         obs[self.bound_in_grid(round(obstacle_pos + np.random.normal()))] = 1
 
         return obs
 
     def reset(self):
-        """ resets state """
+        """ resets state and potentially records the episode"""
 
         self.state = copy.deepcopy(self.init_state)
 
@@ -76,7 +92,7 @@ class CollisionAvoidance(Environment):
             self.display_history()
             self._recording = False
 
-        # record episodes every so often
+        # record episodes every so often if verbose
         if self._verbose and time.time() - self._last_recording_time > 15:
             self._last_recording_time = time.time()
             self._history = [copy.deepcopy(self.state)]
@@ -84,8 +100,20 @@ class CollisionAvoidance(Environment):
 
         return self.generate_observation(self._mid)
 
-    def step(self, action):
-        """ update state wrt action (listen or open) """
+    def step(self, action: int) -> list:
+        """ updates the state and return observed transitions
+
+        Will move the agent 1 cell to the left, and (depending on the action) up to 1
+        cell vertically. Stochastically move the obstacle, generating an observation in the process
+
+        Is terminal when the agent reached the last column
+
+        Args:
+             action: (`int`): 0 is go down, 1 is stay or 2 is go up
+
+        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+
+        """
 
         # move agent
         self.state['agent'][0] -= 1
@@ -124,8 +152,12 @@ class CollisionAvoidance(Environment):
 
         return obs, reward, terminal
 
-    def spaces(self):
-        """ A: 3, O: block's Y position """
+    def spaces(self) -> dict:
+        """ spaces
+
+        RETURNS (`dict`): {'O', 'A'} of spaces to sample from |O| = size, |A| = 3
+
+        """
         return self._spaces
 
     def display_history(self):
@@ -133,11 +165,10 @@ class CollisionAvoidance(Environment):
 
         descr = str(self._mid)
 
+        # FIXME: improve description: (x,y) position of the agent and return
         for step in self._history[1:]:
             descr += " " + \
-                self.action_to_string[int(step['action'])] + " --> " + \
-                str(step['state']['agent'][1]) + " vs " + \
-                str(step['state']['obstacle']) + "(" + \
-                str(step['obs'].argmax()) + ")"
+                f"{self.action_to_string[int(step['action'])]} --> {step['state']['agent'][1]} "\
+                f"vs {step['state']['obstacle']} ({step['obs'].argmax()})"
 
         print(descr)
