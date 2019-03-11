@@ -6,7 +6,7 @@ import time
 import numpy as np
 from environments.environment import Environment
 
-from utils import math_space
+from misc import DiscreteSpace
 
 
 class GridWorld(Environment):
@@ -56,9 +56,10 @@ class GridWorld(Environment):
         self.goal_state = np.array([self._size - 1, self._size - 1])
 
         self._spaces = {
-            "A": math_space.DiscreteSpace(
-                [4]), "O": math_space.DiscreteSpace(
-                    np.ones((self._size, self._size)).tolist())}
+            "A": DiscreteSpace(
+                [4]), "O": DiscreteSpace(
+                    np.ones(
+                        (self._size, self._size)).tolist())}
 
         # generate multinomial probabilities for the observation function (1-D)
         _obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -180,7 +181,7 @@ class GridWorld(Environment):
         """
         return self._spaces
 
-    def obs_to_string(self, obs: np.array) -> str: # pylint: disable=no-self-use
+    def obs_to_string(self, obs: np.array) -> str:  # pylint: disable=no-self-use
         """ translates an  observation to string
 
         Args:

@@ -6,7 +6,7 @@ import copy
 import numpy as np
 
 from environments.environment import Environment
-from utils import math_space
+from misc import DiscreteSpace
 
 
 class CollisionAvoidance(Environment):
@@ -51,8 +51,8 @@ class CollisionAvoidance(Environment):
         self.state = copy.deepcopy(self.init_state)
 
         self._spaces = {
-            "A": math_space.DiscreteSpace([3]),
-            "O": math_space.DiscreteSpace(np.ones(self._size).tolist())
+            "A": DiscreteSpace([3]),
+            "O": DiscreteSpace(np.ones(self._size).tolist())
         }
 
     def bound_in_grid(self, y_pos: int) -> int:

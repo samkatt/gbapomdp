@@ -1,30 +1,24 @@
 """ run Neural RL methods on partially observable environments """
 
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import time
+
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
 import numpy as np
 
-import agents
-from agents.baseline_agent import BaselineAgent
-from agents.ensemble_agent import EnsembleAgent
-from agents.networks import architectures as archs
-from agents.networks.qnets import DQNNet
-from agents.networks.qnets import DRQNNet
-from environments import cartpole
-from environments import collision_avoidance
-import environments
-from environments import gridworld
-from environments import tiger
+from agents import agent
+from agents.networks import neural_network_misc
+from agents.networks.q_functions import DQNNet, DRQNNet
+from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from utils import tf_wrapper
+from misc import tf_init
 
 
 def main():
     """ main: tests the performance of an agent in an environment """
 
     # only called once at start of program
-    tf_wrapper.init()
+    tf_init()
     cur_time = time.time()
 
     conf = parse_arguments()
@@ -72,11 +66,11 @@ def main():
             conf.file,
             summary,
             delimiter=', ',
-            header="version 1:\nreturn mean, return var, return count, return stder")
+            header="return mean, return var, return count, return stder")
 
 
 def parse_arguments():
-    """ in control of converting command line arguments in a configuration object """
+    """ in control of converting command line arguments to configurationis """
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
@@ -201,7 +195,7 @@ def parse_arguments():
         "--q_target_update_freq",
         default=256,
         type=int,
-        help="how often the target network should be updated (every # time steps)")
+        help="how often the target network is updated (every # time steps)")
 
     parser.add_argument(
         "--train_frequency",
@@ -216,11 +210,11 @@ def parse_arguments():
 def get_environment(
         domain_name: str,
         domain_size: int,
-        verbose: bool) -> environments.environment.Environment:
+        verbose: bool) -> environment.Environment:
     """ the factory function to construct environments
 
     Args:
-         domain_name: (`str`): determines which domain is created (see program input -h)
+         domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
          verbose: (`bool`): whether or not to be verbose
 
@@ -243,8 +237,8 @@ def get_environment(
 
 def get_agent(
         conf,
-        env: environments.environment.Environment,
-        name: str) -> agents.agent.Agent:
+        env: environment.Environment,
+        name: str) -> agent.Agent:
     """ factory function to construct agents
 
     Args:
@@ -258,16 +252,20 @@ def get_agent(
 
     # construct Q function
     if conf.recurrent:
-        qfunc = DRQNNet.DRQNNet
-        arch = archs.TwoHiddenLayerRecQNet(conf.network_size)
+        qfunc = DRQNNet
+        arch = neural_network_misc.TwoHiddenLayerRecQNet(
+            conf.network_size)
     else:
-        qfunc = DQNNet.DQNNet
-        arch = archs.TwoHiddenLayerQNet(conf.network_size)
+        qfunc = DQNNet
+        arch = neural_network_misc.TwoHiddenLayerQNet(
+            conf.network_size)
 
     if conf.num_nets == 1:
-        return BaselineAgent(qfunc, arch, env, conf, name=name)
+        return agent.BaselineAgent(
+            qfunc, arch, env, conf, name=name)
 
-    return EnsembleAgent(qfunc, arch, env, conf, name=name)
+    return agent.EnsembleAgent(
+        qfunc, arch, env, conf, name=name)
 
 
 if __name__ == '__main__':

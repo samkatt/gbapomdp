@@ -6,7 +6,7 @@ import copy
 import numpy as np
 
 from environments.environment import Environment
-from utils import math_space
+from misc import DiscreteSpace
 
 
 class Tiger(Environment):
@@ -34,18 +34,15 @@ class Tiger(Environment):
 
         """
 
-        # verbosity settings
         self._verbose = verbose
-
         self.state = self.sample_start_state()
 
         self._spaces = {
-            "A": math_space.DiscreteSpace([3]),
-            "O": math_space.DiscreteSpace([1, 1])
+            "A": DiscreteSpace([3]),
+            "O": DiscreteSpace([1, 1])
         }
 
-    # pylint: disable=R0201
-    def sample_start_state(self) -> int:
+    def sample_start_state(self) -> int:  # pylint: disable=no-self-use
         """ samples a random state (tiger left or right)
 
         RETURNS (`int`): an initial state (in [0,1])
