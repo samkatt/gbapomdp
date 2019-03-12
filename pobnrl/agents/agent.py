@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from agents.networks.neural_network_misc import ReplayBuffer, Architecture
 from agents.networks.q_functions import QNetInterface
-from misc import PiecewiseSchedule, epsilon_greedy, DiscreteSpace
+from misc import epsilon_greedy, DiscreteSpace
 from environments.environment import Environment
 
 
@@ -123,12 +123,7 @@ class BaselineAgent(Agent):
         """
 
         # determines the e-greedy parameter over time
-        if conf['exploration']:
-            self.exploration = conf['exploration']
-        else:
-            self.exploration = PiecewiseSchedule(
-                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
-            )
+        self.exploration = conf['exploration']
 
         # how often the target network is being updated (every nth step)
         self.target_update_freq = conf['q_target_update_freq']
@@ -156,7 +151,7 @@ class BaselineAgent(Agent):
             env.spaces(),
             arch,
             optimizer,
-            conf,
+            **conf,
             scope=conf['name'] + '_net')
 
     def reset(self, obs):
@@ -289,7 +284,7 @@ class EnsembleAgent(Agent):
                 env.spaces(),
                 arch,
                 optimizer,
-                conf,
+                **conf,
                 scope=conf['name'] + '_net_' + str(i))
             for i in range(conf['num_nets'])
         ]

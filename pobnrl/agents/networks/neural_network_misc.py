@@ -54,6 +54,8 @@ class TwoHiddenLayerQNet(Architecture):
              network_size: (`str`): is in {'small', 'med', 'large'}
 
         """
+        assert network_size in ["small", "med", "large"], \
+            "network size input invalid"
         self.n_units = self._sizes[network_size]
 
     def is_recurrent(self) -> bool:
@@ -126,6 +128,8 @@ class TwoHiddenLayerRecQNet(Architecture):
              network_size: (`str`): is in {'small', 'med', 'large'}
 
         """
+        assert network_size in ["small", "med", "large"], \
+            "network size input invalid"
         self.n_units = self._sizes[network_size]
 
     def is_recurrent(self) -> bool:

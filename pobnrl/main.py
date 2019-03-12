@@ -11,7 +11,7 @@ from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from misc import tf_init
+from misc import tf_init, PiecewiseSchedule
 
 
 def main():
@@ -267,9 +267,24 @@ def get_agent(
         arch = neural_network_misc.TwoHiddenLayerQNet(conf.network_size)
 
     if conf.num_nets == 1:
-        return agent.BaselineAgent(qfunc, arch, env, conf.vars(), name=name)
+        return agent.BaselineAgent(
+            qfunc,
+            arch,
+            env,
+            **vars(conf),
+            exploration=PiecewiseSchedule(
+                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
+            ),
+            name=name
+        )
 
-    return agent.EnsembleAgent(qfunc, arch, env, conf.vars(), name=name)
+    return agent.EnsembleAgent(
+        qfunc,
+        arch,
+        env,
+        **vars(conf),
+        name=name
+    )
 
 
 if __name__ == '__main__':

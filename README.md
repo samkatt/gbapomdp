@@ -39,6 +39,7 @@ python -h
   code is formatted correctly
 
 #### TODO
+* fix: ``` python  main.py -D tiger --domain_size 4 --runs 4 --episodes 100 --horizon 100 -v --network_size med ```
 * move contents of agent to root
 * implement static analysing mechanism
 * cleanup code
