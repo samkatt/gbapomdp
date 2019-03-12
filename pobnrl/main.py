@@ -42,9 +42,8 @@ def main():
             if episode > 0 and time.time() - cur_time > 5:
 
                 print(time.ctime(),
-                      "run", run, "episode", episode,
-                      ": avg return",
-                      np.mean(tmp_res[max(0, episode - 100):episode]))
+                      f"run {run}, episode {episode}: avg return:",
+                      str(np.mean(tmp_res[max(0, episode - 100):episode])))
 
                 cur_time = time.time()
 
@@ -56,12 +55,10 @@ def main():
 
         # process results into rows of for each episode
         # return avg, return var, return #, return stder
-        summary = np.transpose([
-            result_mean,
-            result_var,
-            [run + 1] * conf.episodes,
-            result_var / sqrt(conf.runs)
-        ])
+        summary = np.transpose([result_mean,
+                                result_var / run,
+                                [run + 1] * conf.episodes,
+                                np.sqrt(result_var / run) / sqrt(run)])
 
         np.savetxt(
             conf.file,
