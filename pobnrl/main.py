@@ -261,19 +261,15 @@ def get_agent(
     # construct Q function
     if conf.recurrent:
         qfunc = DRQNNet
-        arch = neural_network_misc.TwoHiddenLayerRecQNet(
-            conf.network_size)
+        arch = neural_network_misc.TwoHiddenLayerRecQNet(conf.network_size)
     else:
         qfunc = DQNNet
-        arch = neural_network_misc.TwoHiddenLayerQNet(
-            conf.network_size)
+        arch = neural_network_misc.TwoHiddenLayerQNet(conf.network_size)
 
     if conf.num_nets == 1:
-        return agent.BaselineAgent(
-            qfunc, arch, env, conf, name=name)
+        return agent.BaselineAgent(qfunc, arch, env, conf.vars(), name=name)
 
-    return agent.EnsembleAgent(
-        qfunc, arch, env, conf, name=name)
+    return agent.EnsembleAgent(qfunc, arch, env, conf.vars(), name=name)
 
 
 if __name__ == '__main__':

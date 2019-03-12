@@ -4,8 +4,10 @@ import abc
 import numpy as np
 import tensorflow as tf
 
-from agents.networks.neural_network_misc import ReplayBuffer
+from agents.networks.neural_network_misc import ReplayBuffer, Architecture
+from agents.networks.q_functions import QNetInterface
 from misc import PiecewiseSchedule, epsilon_greedy, DiscreteSpace
+from environments.environment import Environment
 
 
 class Agent(abc.ABC):
@@ -47,7 +49,7 @@ class RandomAgent(Agent):
     """ Acts randomly """
 
     def __init__(self, action_space: DiscreteSpace):
-        """ constructs an agent that will randomly output one of the posisble actions
+        """ constructs an agent that will act randomly
 
         Args:
              num_actions: (`pobnrl.misc.DiscreteSpace`): the action space
@@ -88,6 +90,7 @@ class RandomAgent(Agent):
         """
 
 
+# pylint: disable=too-many-instance-attributes
 class BaselineAgent(Agent):
     """ default single q-net agent implementation"""
 
@@ -95,51 +98,66 @@ class BaselineAgent(Agent):
     replay_index = 0
     latest_action = 0
 
-    # FIXME: take specific arguments instead of conf
     def __init__(self,
-                 qnet_constructor,
-                 arch,
-                 env,
-                 conf,
-                 exploration=None,
-                 name='baseline-agent'):
-        """ initialize network
+                 qnet_constructor: QNetInterface,
+                 arch: Architecture,
+                 env: Environment,
+                 **conf):
+        """ initializes network
 
+        Assumes conf contains:
+            * `float` exploration (epsilon of e-greedy)
+            * `int` q_target_update_freq
+            * `int` batch_size
+            * `int` train_frequency
+            * `int` replay_buffer_size
+            * `int` observation len
+            * `float` learning rate (alpha)
+
+        Args:
+             qnet_constructor: (`QNetInterface`): Q-net to use
+             arch: (`Architecture`): architecture to use
+             env: (`Environment`): for domain knowledge
+             **conf:
 
         """
 
         # determines the e-greedy parameter over time
-        self.exploration = exploration if exploration is not None else PiecewiseSchedule(
-            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05)
+        if conf['exploration']:
+            self.exploration = conf['exploration']
+        else:
+            self.exploration = PiecewiseSchedule(
+                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
+            )
 
         # how often the target network is being updated (every nth step)
-        self.target_update_freq = conf.q_target_update_freq
+        self.target_update_freq = conf['q_target_update_freq']
 
         # the size of a batch update
-        self.batch_size = conf.batch_size
+        self.batch_size = conf['batch_size']
 
         # how often the agent trains its network (every nth step)
-        self.train_freq = conf.train_frequency
+        self.train_freq = conf['train_frequency']
 
         # number of steps agent has taken
-        self.t = 0
+        self.t = 0  # pylint: disable=invalid-name
 
         # the entire action space, used to randomly pick actions
         self.action_space = env.spaces()["A"]
 
         # stores history of the agent
         self.replay_buffer = ReplayBuffer(
-            conf.replay_buffer_size, conf.observation_len, True)
+            conf['replay_buffer_size'], conf['observation_len'], True)
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
 
         # the q-function of the agent (estimation of the value of each action)
         self.q_net = qnet_constructor(
             env.spaces(),
             arch,
             optimizer,
-            conf.vars(),
-            scope=name + '_net')
+            conf,
+            scope=conf['name'] + '_net')
 
     def reset(self, obs):
         """ prepares for next episode
@@ -174,11 +192,11 @@ class BaselineAgent(Agent):
     def update(self, obs, reward: float, terminal: bool):
         """ stores the transition and potentially updates models
 
-        Stores the experience (together with stored action) into the buffer with some probability
+        Stores the experience into the buffers with some probability
 
-        May perform a batch update (every so often, see parameters/configuration)
+        May perform a batch update (frequency: see parameters/configuration)
 
-        May update the target network (every so often, see parameters/configuration)
+        May update the target network (frequency: see parameters/configuration)
 
         Args:
              obs: the observation from the last step
@@ -200,8 +218,8 @@ class BaselineAgent(Agent):
         # batch update
         if self.replay_buffer.can_sample(
                 self.batch_size) and self.t % self.train_freq == 0:
-            obs, actions, rewards, next_obs, done_mask = self.replay_buffer.sample(
-                self.batch_size)
+            obs, actions, rewards, next_obs, done_mask =\
+                self.replay_buffer.sample(self.batch_size)
             self.q_net.batch_update(obs, actions, rewards, next_obs, done_mask)
 
         # update target network occasionally
@@ -222,32 +240,48 @@ class EnsembleAgent(Agent):
     # the policy from which to act e-greedy on right now
     _current_policy = 0
 
-    # FIXME: take specific arguments instead of conf
     def __init__(self,
-                 qnet_constructor,
-                 arch,
-                 env,
-                 conf,
-                 name='ensemble-agent'):
-        """ initialize network """
+                 qnet_constructor: QNetInterface,
+                 arch: Architecture,
+                 env: Environment,
+                 **conf):
+        """ initialize network
 
-        if conf.num_nets == 1:
+        Assumes conf contains:
+            * `int` num_nets (> 1)
+            * `float` exploration (epsilon of e-greedy)
+            * `int` q_target_update_freq
+            * `int` batch_size
+            * `int` train_frequency
+            * `int` replay_buffer_size
+            * `int` observation len
+            * `float` learning rate (alpha)
+
+        Args:
+             qnet_constructor: (`QNetInterface`): Q-net to use
+             arch: (`Architecture`): architecture to use
+             env: (`Environment`): for domain knowledge
+             **conf:
+
+        """
+
+        if conf['num_nets'] == 1:
             raise ValueError("no number of networks specified (--num_nets)")
 
         # consts
-        optimizer = tf.train.AdamOptimizer(learning_rate=conf.learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
 
         # confs
-        self.target_update_freq = conf.q_target_update_freq
-        self.batch_size = conf.batch_size
-        self.train_freq = conf.train_frequency
+        self.target_update_freq = conf['q_target_update_freq']
+        self.batch_size = conf['batch_size']
+        self.train_freq = conf['train_frequency']
 
         # construct the replay buffer
         self.replay_buffers = np.array([
             {'index': 0, 'buffer': ReplayBuffer(
-                conf.replay_buffer_size,
-                conf.observation_len, True)}
-            for _ in range(conf.num_nets)
+                conf['replay_buffer_size'],
+                conf['observation_len'], True)}
+            for _ in range(conf['num_nets'])
         ])
 
         self.nets = [
@@ -255,9 +289,9 @@ class EnsembleAgent(Agent):
                 env.spaces(),
                 arch,
                 optimizer,
-                conf.vars(),
-                scope=name + '_net_' + str(i))
-            for i in range(conf.num_nets)
+                conf,
+                scope=conf['name'] + '_net_' + str(i))
+            for i in range(conf['num_nets'])
         ]
 
     def reset(self, obs):
@@ -282,8 +316,9 @@ class EnsembleAgent(Agent):
         # make sure current is tracking
         self._storing_rbs[self._current_policy] = True
 
-        for rb in self.replay_buffers[self._storing_rbs]:
-            rb['index'] = rb['buffer'].store_frame(self.last_ob)
+        for replay_buffer in self.replay_buffers[self._storing_rbs]:
+            replay_buffer['index'] = replay_buffer['buffer'].store_frame(
+                self.last_ob)
 
     def select_action(self):
         """ returns greedy action from current active policy """
@@ -291,8 +326,8 @@ class EnsembleAgent(Agent):
         if self.nets[self._current_policy].is_recurrent():
             q_in = np.array([self.last_ob])
         else:
-            q_in = self.replay_buffers[self._current_policy]['buffer'].encode_recent_observation(
-            )
+            q_in = self.replay_buffers[self._current_policy]['buffer']\
+                .encode_recent_observation()
 
         q_values = self.nets[self._current_policy].qvalues(q_in)
 
@@ -305,9 +340,9 @@ class EnsembleAgent(Agent):
 
         For each network, does
 
-        * Stores the experience (together with stored action) into the buffer with some probability
-        * May perform a batch update (every so often, see parameters/configuration)
-        * May update the target network (every so often, see parameters/configuration)
+        * Stores the experience  into the buffer with some probability
+        * May perform a batch update (frequency: see parameters/configuration)
+        * May update target network (frequency see parameters/configuration)
 
         Args:
              obs: the observation from the last step
@@ -317,9 +352,9 @@ class EnsembleAgent(Agent):
         """
 
         # store experience
-        for rb in self.replay_buffers[self._storing_rbs]:
-            rb['buffer'].store_effect(
-                rb['index'],
+        for replay_buffer in self.replay_buffers[self._storing_rbs]:
+            replay_buffer['buffer'].store_effect(
+                replay_buffer['index'],
                 self.latest_action,
                 reward,
                 terminal
@@ -328,16 +363,17 @@ class EnsembleAgent(Agent):
         self.last_ob = obs
 
         # store experience
-        for rb in self.replay_buffers[self._storing_rbs]:
-            rb['index'] = rb['buffer'].store_frame(self.last_ob)
+        for replay_buffer in self.replay_buffers[self._storing_rbs]:
+            replay_buffer['index'] = \
+                replay_buffer['buffer'].store_frame(self.last_ob)
 
         # batch update all networks using there respective replay buffer
-        for net, rb in zip(self.nets, self.replay_buffers):
-            if rb['buffer'].can_sample(
+        for net, rbuff in zip(self.nets, self.replay_buffers):
+            if rbuff['buffer'].can_sample(
                     self.batch_size) and self.t % self.train_freq == 0:
 
                 obs, actions, rewards, next_obs, done_mask = \
-                    rb['buffer'].sample(self.batch_size)
+                    rbuff['buffer'].sample(self.batch_size)
 
                 net.batch_update(obs, actions, rewards, next_obs, done_mask)
 
@@ -346,4 +382,5 @@ class EnsembleAgent(Agent):
             for net in self.nets:
                 net.update_target()
 
+        # pylint: disable=invalid-name
         self.t = self.t + 1
