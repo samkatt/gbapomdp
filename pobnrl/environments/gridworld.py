@@ -3,9 +3,11 @@
 import copy
 import time
 
-import numpy as np
-from environments.environment import Environment
+from typed import Tuple
 
+import numpy as np
+
+from environments.environment import Environment
 from misc import DiscreteSpace
 
 
@@ -22,11 +24,7 @@ class GridWorld(Environment):
     MOVE_SUCCESS_PROB = .95
     SLOW_MOVE_SUCCESS_PROB = .15
 
-    state = np.zeros(2)
-    _slow_cells = set()
-
-    ##
-    # @brief hot-encoding of the actions
+    # hot-encoding of the actions
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
 
     # verbosity helpers
@@ -36,6 +34,11 @@ class GridWorld(Environment):
     _last_recording_time = 0
     _recording = False
     _history = []
+
+    # actual state and dynamics
+    state = np.zeros(2)
+    _slow_cells = set()
+    _goal_cells = []
 
     def __init__(self, domain_size: int, verbose: bool):
         """ creates a gridworld of provided size and verbosity
@@ -47,19 +50,10 @@ class GridWorld(Environment):
         """
 
         assert domain_size > 0
-        assert domain_size % 2 == 1
 
         # confs
         self._verbose = verbose
         self._size = domain_size
-
-        self.goal_state = np.array([self._size - 1, self._size - 1])
-
-        self._spaces = {
-            "A": DiscreteSpace(
-                [4]), "O": DiscreteSpace(
-                    np.ones(
-                        (self._size, self._size)).tolist())}
 
         # generate multinomial probabilities for the observation function (1-D)
         _obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -78,8 +72,7 @@ class GridWorld(Environment):
         # generate slow locations
         edge = self._size - 1
 
-        # bottom left side for larger domains
-        if self._size > 5:
+        if self._size > 5:  # bottom left side for larger domains
             self._slow_cells.add((1, 1))
 
         if self._size == 3:
@@ -92,10 +85,36 @@ class GridWorld(Environment):
             self._slow_cells.add((edge - 3, edge - 1))
             self._slow_cells.add((edge - 2, edge - 2))
 
+        # generate goal locations
+        goal_edge_start = self._size - 2 if self._size < 5 \
+            else self._size - 3 if self._size < 7 else self._size - 4
+
+        for pos in range(goal_edge_start, self._size):
+            self._goal_cells.append((pos, edge))  # fill top side
+            self._goal_cells.append((edge, pos))  # fill right side
+
+        self._goal_cells.append((edge, edge))  # top right corner
+
+        if self._size > 3:
+            self._goal_cells.append((edge - 1, edge - 1))
+
+        if self._size > 6:
+            self._goal_cells.append((edge - 2, edge - 1))
+            self._goal_cells.append((edge - 1, edge - 2))
+
+        self._spaces = {
+            "A": DiscreteSpace([4]),
+            "O": DiscreteSpace(
+                [self._size, self._size]
+                + np.ones(len(self._goal_cells)).tolist()
+            )
+        }
+
     def bound_in_grid(self, state_or_obs: np.array) -> np.array:
         """ returns bounded state or obs s.t. it is within the grid
 
-        simpy returns state_or_obs if it is in the grid size, otherwise returns the edge value
+        simpy returns state_or_obs if it is in the grid size,
+        otherwise returns the edge value
 
         Args:
              state_or_obs: (`np.array`): some (x,y) position on the grid
@@ -105,33 +124,52 @@ class GridWorld(Environment):
         """
         return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
-    def generate_observation(self, state: np.array) -> np.array:
+    def sample_goal(self) -> Tuple[int]:
+        """ samples a goal position
+
+        RETURNS (`Tuple[int]`): the goal state (x,y)
+
+        """
+        return np.random.choice(self._goal_cells)
+
+    # FIXME: broken right now because state is not what it is
+    def generate_observation(
+            self,
+            agent_pos: np.array,
+            goal_pos: Tuple[int]) -> np.array:
         """ generates a noisy observation of the state
 
         Args:
-             state: (`np.array`): a state
+             agent_pos: (`np.array`): [x,y] position of the agent
+             goal_pos: (`Tuple[int]`): (x,y) position of the goal
 
-        RETURNS (`np.array`):
+        RETURNS (`np.array`): [x,y,... hot-encodign-goal-pos....]
 
         """
         # FIXME: test gridworld.generate_observation
 
-        # state + displacement (where displacement is centered through -
-        # self._size)
-        unbounded_obs = state + \
-            (np.random.multinomial(1, self._obs_mult, size=2) == 1).argmax(1) - (self._size - 1)
+        # state + displacement
+        # where displacement is centered through - size
+        # FIXME: probably wrong
+        unbounded_obs = agent_pos + \
+            (
+                np.random.multinomial(1, self._obs_mult, size=2)
+                ==
+                1
+            ) - (self._size - 1)
+
         bounded_obs = self.bound_in_grid(unbounded_obs).astype(int)
 
-        # 2-D hot encoding
-        obs = np.zeros((self._size, self._size))
-        obs[bounded_obs[0], bounded_obs[1]] = 1
+        # 1-hot-encoding goal
+        goal_observation = np.zeros(len(self._goal_cells))
+        goal_observation[self._goal_cells.index(goal_pos)] = 1
 
-        return obs
+        return np.hstack([bounded_obs, goal_observation])
 
     def reset(self):
         """ resets state """
 
-        self.state = np.zeros(2)
+        self.state = [np.zeros(2), self.sample_goal()]
 
         # if we were recording, output the history and stop
         if self._recording:
@@ -144,22 +182,27 @@ class GridWorld(Environment):
             self._history = [copy.deepcopy(self.state)]
             self._recording = True
 
-        return self.generate_observation(self.state)
+        return self.generate_observation(*self.state)
 
     def step(self, action: int) -> list:
         """ update state wrt action """
 
-        if tuple(self.state) not in self._slow_cells:
+        agent_pos, goal_pos = self.state
+
+        # episode terminates when we have arrived in the goal state previously
+        terminal = (agent_pos == goal_pos).all()
+
+        if tuple(agent_pos) not in self._slow_cells:
             move_prob = self.MOVE_SUCCESS_PROB
         else:
             move_prob = self.SLOW_MOVE_SUCCESS_PROB
 
         if np.random.uniform() < move_prob:
-            self.state = self.bound_in_grid(
-                self.state + self.action_to_vec[int(action)])
+            agent_pos = self.bound_in_grid(
+                agent_pos + self.action_to_vec[int(action)])
 
-        obs = self.generate_observation(self.state)
-        terminal = (self.state == self.goal_state).all()
+        # TODO: test whether self.state is modified due to modifying agent_pos
+        obs = self.generate_observation(*self.state)
         reward = 1 if terminal else 0
 
         if self._recording:
@@ -176,12 +219,13 @@ class GridWorld(Environment):
 
         Args:
 
-        RETURNS (`dict`): {'O', 'A'} of spaces (A: 4, O: S)
+        RETURNS (`dict`): {'O', 'A'} of spaces (A: 4, O: S*num_goals^2)
 
         """
         return self._spaces
 
-    def obs_to_string(self, obs: np.array) -> str:  # pylint: disable=no-self-use
+    # pylint: disable=no-self-use
+    def obs_to_string(self, obs: np.array) -> str:
         """ translates an  observation to string
 
         Args:
@@ -190,6 +234,7 @@ class GridWorld(Environment):
         RETURNS (`str`): string representation of the observation
 
         """
+        # FIXME: not working right now
         return str(np.unravel_index(obs.argmax(), obs.shape))
 
     def display_history(self):
@@ -198,6 +243,7 @@ class GridWorld(Environment):
         descr = "[0,0] "
         for step in self._history[1:]:
             descr += self.action_to_string[int(step["action"])] + " " + str(
+                # FIXME: not working, probably
                 step["state"]) + " (" + self.obs_to_string(step["obs"]) + ") "
 
         print(descr)
