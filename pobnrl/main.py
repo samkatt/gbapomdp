@@ -56,9 +56,11 @@ def main():
         # process results into rows of for each episode
         # return avg, return var, return #, return stder
         summary = np.transpose([result_mean,
-                                result_var / run,
+                                result_var / (run + 1),
                                 [run + 1] * conf.episodes,
-                                np.sqrt(result_var / run) / sqrt(run)])
+                                np.sqrt(
+                                    result_var / (run + 1))
+                                / sqrt(run + 1)])
 
         np.savetxt(
             conf.file,
@@ -107,7 +109,7 @@ def parse_arguments():
 
     parser.add_argument(
         "--gamma",
-        default=0.99,
+        default=0.95,
         type=float,
         help="discount factor to be used")
 
@@ -163,7 +165,6 @@ def parse_arguments():
 
     parser.add_argument(
         "--network_size",
-        required=True,
         help='the size of the q-network',
         choices=["small", "med", "large"]
     )

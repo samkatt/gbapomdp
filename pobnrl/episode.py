@@ -21,7 +21,7 @@ def run_episode(
 
     terminal = False
     discounted_return = 0
-    discount = conf.gamma
+    discount = 1  # discount accumulates by mulitplying with conf.gamma
 
     obs = env.reset()
     agent.reset(obs)
