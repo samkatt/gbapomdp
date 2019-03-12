@@ -17,15 +17,16 @@ from misc import tf_init
 def main():
     """ main: tests the performance of an agent in an environment """
 
-    # only called once at start of program
-    tf_init()
+    conf = parse_arguments()
+
     cur_time = time.time()
 
-    conf = parse_arguments()
-    env = get_environment(conf.domain, conf.domain_size, conf.verbose)
+    tf_init()
 
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
+
+    env = get_environment(conf.domain, conf.domain_size, conf.verbose)
 
     for run in range(conf.runs):
 
@@ -204,6 +205,12 @@ def parse_arguments():
         help="how often the agent performs a batch update (every # time steps)"
     )
 
+    parser.add_argument(
+        "--random_policy",
+        action='store_true',
+        help="use this flag to pick the random agent controller"
+    )
+
     return parser.parse_args()
 
 
@@ -249,6 +256,9 @@ def get_agent(
     RETURNS (`agents.agent.Agent`)
 
     """
+
+    if conf.random_policy:
+        return agent.RandomAgent(env.spaces()["A"])
 
     # construct Q function
     if conf.recurrent:

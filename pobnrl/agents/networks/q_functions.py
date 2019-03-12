@@ -5,6 +5,7 @@ import tensorflow as tf
 from agents.networks import neural_network_misc
 from misc import tf_get_session
 
+
 class QNetInterface(abc.ABC):
     """ interface to all Q networks """
 
@@ -36,8 +37,9 @@ class QNetInterface(abc.ABC):
         """ performs a batch update on the network on the provided input
 
         Basically the stochastic gradient descent step where, for any i,
-        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are respectively the
-        observation, actions, reward, next observation and terminality of some step i
+        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are
+        respectively the observation, actions, reward, next observation and
+        terminality of some step i
 
         Args:
              obs: the observations or input to the network

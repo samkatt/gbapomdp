@@ -108,7 +108,7 @@ def sample_n_unique(sampling_f: callable, num: int) -> list:
     """ samples n **unique** instances using
 
     Args:
-         sampling_f: (`callable`): the sampling function (sampling_f() is called to sample)
+         sampling_f: (`callable`): the sampling function (is called to sample)
          num: (`int`): number of **unique** samples
 
     RETURNS (`list`): a list of samples
@@ -126,7 +126,7 @@ def sample_n_unique(sampling_f: callable, num: int) -> list:
 def sample_n(sampling_f: callable, num: int) -> list:
     """ samples n **non-unique** instances
 
-    Assumes: sampling_f is a function that can be called and returns comparable objects
+    Assumes: sampling_f() can be called and returns comparable objects
     Note: can return duplicates
 
     Args:
@@ -198,7 +198,7 @@ class DiscreteSpace():
     def dimensions(self) -> np.array:
         """ returns the range of each dimension
 
-        RETURNS (`np.array`): array where each member indicates the size of its dimension
+        RETURNS (`np.array`): each member is the size of its dimension
 
         """
         return self.dim

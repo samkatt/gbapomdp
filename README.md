@@ -15,13 +15,13 @@ Install the required python packages and dependencies
 #### Known dependencies
 
 Open AI gym:
-`pip install gym`
+```pip install gym``
 
 OpenCV python
-`pip instal opencv-python`
+```pip instal opencv-python```
 
 ffmpeg encoding
-`sudo apt install ffmpeg`
+```sudo apt install ffmpeg```
 
 ### Run the program
 ``` main.py ``` is located in ``` src ```
