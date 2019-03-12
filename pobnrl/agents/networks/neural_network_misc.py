@@ -1,6 +1,15 @@
-""" Contains miscelaneous functionality for neural networks """
+""" Contains miscelaneous functionality for neural networks
 
-# TODO: properly document what is included here
+Architecture: various network configurations
+
+ReplayBuffer: stores interactions
+
+Misc functions:
+
+    * loss
+    * return_estimate
+
+"""
 
 import abc
 

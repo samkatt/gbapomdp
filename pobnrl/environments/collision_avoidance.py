@@ -37,7 +37,7 @@ class CollisionAvoidance(Environment):
 
         """
 
-        assert domain_size > 0
+        assert domain_size > 0, "Domain size must be > 0"
         assert domain_size % 2 == 1
 
         # verbosity settings
@@ -166,13 +166,12 @@ class CollisionAvoidance(Environment):
     def display_history(self):
         """ prints out transitions """
 
-        descr = str(self._mid)
+        descr = f"[{self._size-1}, {self._mid}]"
 
-        # FIXME: improve description: (x,y) position of the agent and return
         for step in self._history[1:]:
             descr += " " + \
                 f"{self.action_to_string[int(step['action'])]} --> "\
-                f"{step['state']['agent'][1]} "\
-                f"vs {step['state']['obstacle']} ({step['obs']})"
+                f"{step['state']['agent']} "\
+                f"vs {step['state']['obstacle']} ({step['obs'][0]})"
 
         print(descr)
