@@ -1,17 +1,16 @@
 """ miscellaneous functions
 
-sample functionality
+Contains:
+    * sampling operations
+    * mathematical spaces or sets
+    * wrapper functions for interaction with tensorflow:
+        - a 'init' and 'getter' function to initiate and return sessions
+    * (exploration) schedulars
+    * e-greedy methods
 
-mathematical spaces or sets
-
-wrapper functions for interaction with tensorflow:
-
-    Simply has a 'init' and 'getter' function to initiate and return sessions
 """
 
-# TODO fix documentation here in header
-
-from typing import List
+from typing import List, Callable
 
 import numpy as np
 import tensorflow as tf
@@ -48,14 +47,15 @@ def linear_interpolation(left: float, right: float, alpha: float) -> float:
     return left + alpha * (right - left)
 
 
+# pylint: disable=too-few-public-methods
 class PiecewiseSchedule():
     """ scheduler advancing piecewise """
 
     def __init__(
             self,
             endpoints: List[tuple],
-            interpolation=linear_interpolation,  # FIXME: add type annotation
-            outside_value=None):  # FIXME: add type annotation
+            interpolation: Callable[[float, float, float], float] = linear_interpolation,
+            outside_value: float = None):
         """ Piecewise Schedule
 
         Args:
@@ -192,7 +192,7 @@ class DiscreteSpace():
         assert isinstance(dim, list)
 
         self.dim = np.array(dim)
-        self.n = np.prod(self.dim)
+        self.n = np.prod(self.dim)  # pylint: disable=invalid-name
         self.shape = self.dim.shape
 
     def dimensions(self) -> np.array:
