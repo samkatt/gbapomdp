@@ -51,7 +51,7 @@ class Tiger(Environment):
         return np.random.randint(0, 2)
 
     def sample_observation(self, listening: bool) -> np.array:
-        """ samples an observation, listening is true means agent is performing that action
+        """ samples an observation, listening stores whether agent is listening
 
         Args:
              listening: (`bool`): whether the agent is listening
@@ -99,7 +99,8 @@ class Tiger(Environment):
     def step(self, action: int) -> list:
         """ performs a step in the tiger environment given action
 
-        Will terminate episode when action is to open door, otherwise return an observation.
+        Will terminate episode when action is to open door,
+        otherwise return an observation.
 
         Args:
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
@@ -111,7 +112,8 @@ class Tiger(Environment):
         if action != self.LISTEN:
             obs = self.sample_observation(False)
             terminal = True
-            reward = self.GOOD_DOOR_REWARD if action == self.state else self.BAD_DOOR_REWARD
+            reward = self.GOOD_DOOR_REWARD if action == self.state \
+                else self.BAD_DOOR_REWARD
 
         else:  # not opening door
             obs = self.sample_observation(True)

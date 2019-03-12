@@ -9,6 +9,7 @@ from environments.environment import Environment
 from misc import DiscreteSpace
 
 
+# pylint: disable=too-many-instance-attributes
 class CollisionAvoidance(Environment):
     """ the tiger environment """
 
@@ -32,7 +33,7 @@ class CollisionAvoidance(Environment):
 
         Args:
              domain_size: (`int`): the size of the grid
-             verbose: (`bool`): whether to be verbose (print experiences to stdout)
+             verbose: (`bool`): whether to print experiences to stdout
 
         """
 
@@ -52,13 +53,14 @@ class CollisionAvoidance(Environment):
 
         self._spaces = {
             "A": DiscreteSpace([3]),
-            "O": DiscreteSpace(np.ones(self._size).tolist())
+            "O": DiscreteSpace([self._size])
         }
 
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
 
-        simpy returns y_pos if it is in the grid size, otherwise returns the edge value
+        simpy returns y_pos if it is in the grid size,
+        otherwise returns the edge value
 
         Args:
              y_pos: (`int`): some y position on the grid
@@ -74,11 +76,11 @@ class CollisionAvoidance(Environment):
         Args:
              obstacle_pos: (`int`): a 'real' position of the obstacle
 
-        RETURNS (`np.array`): a 1-hot-encoded observation of the position
+        RETURNS (`np.array`): an observation of the position [y]
 
         """
-        obs = np.zeros(self._size)
-        obs[self.bound_in_grid(round(obstacle_pos + np.random.normal()))] = 1
+        obs = np.array(
+            [self.bound_in_grid(round(obstacle_pos + np.random.normal()))])
 
         return obs
 
@@ -103,8 +105,9 @@ class CollisionAvoidance(Environment):
     def step(self, action: int) -> list:
         """ updates the state and return observed transitions
 
-        Will move the agent 1 cell to the left, and (depending on the action) up to 1
-        cell vertically. Stochastically move the obstacle, generating an observation in the process
+        Will move the agent 1 cell to the left, and (depending on the action)
+        up to 1 cell vertically. Stochastically move the obstacle,
+        generating an observation in the process
 
         Is terminal when the agent reached the last column
 
@@ -155,7 +158,7 @@ class CollisionAvoidance(Environment):
     def spaces(self) -> dict:
         """ spaces
 
-        RETURNS (`dict`): {'O', 'A'} of spaces to sample from |O| = size, |A| = 3
+        RETURNS (`dict`): {'O', 'A'} of discrete spaces |O| = size, |A| = 3
 
         """
         return self._spaces
@@ -168,7 +171,8 @@ class CollisionAvoidance(Environment):
         # FIXME: improve description: (x,y) position of the agent and return
         for step in self._history[1:]:
             descr += " " + \
-                f"{self.action_to_string[int(step['action'])]} --> {step['state']['agent'][1]} "\
-                f"vs {step['state']['obstacle']} ({step['obs'].argmax()})"
+                f"{self.action_to_string[int(step['action'])]} --> "\
+                f"{step['state']['agent'][1]} "\
+                f"vs {step['state']['obstacle']} ({step['obs']})"
 
         print(descr)

@@ -3,14 +3,16 @@
 import copy
 import time
 
-from typed import Tuple
-
 import numpy as np
+
+# from typed import Tuple
+
 
 from environments.environment import Environment
 from misc import DiscreteSpace
 
 
+# pylint: disable=too-many-instance-attributes
 class GridWorld(Environment):
     """ the tiger environment """
 
@@ -124,7 +126,7 @@ class GridWorld(Environment):
         """
         return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
-    def sample_goal(self) -> Tuple[int]:
+    def sample_goal(self) -> tuple:
         """ samples a goal position
 
         RETURNS (`Tuple[int]`): the goal state (x,y)
@@ -136,7 +138,7 @@ class GridWorld(Environment):
     def generate_observation(
             self,
             agent_pos: np.array,
-            goal_pos: Tuple[int]) -> np.array:
+            goal_pos: tuple) -> np.array:
         """ generates a noisy observation of the state
 
         Args:
@@ -151,12 +153,9 @@ class GridWorld(Environment):
         # state + displacement
         # where displacement is centered through - size
         # FIXME: probably wrong
-        unbounded_obs = agent_pos + \
-            (
-                np.random.multinomial(1, self._obs_mult, size=2)
-                ==
-                1
-            ) - (self._size - 1)
+        unbounded_obs = agent_pos \
+            + (np.random.multinomial(1, self._obs_mult, size=2) == 1) \
+            - (self._size - 1)
 
         bounded_obs = self.bound_in_grid(unbounded_obs).astype(int)
 

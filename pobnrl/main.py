@@ -86,7 +86,7 @@ def parse_arguments():
 
     parser.add_argument(
         "--file", "-f",
-        default="output.npy",
+        default="results.npy",
         help="output file path")
 
     parser.add_argument(
@@ -97,13 +97,13 @@ def parse_arguments():
 
     parser.add_argument(
         "--horizon", "-H",
-        default=200,
+        default=50,
         type=int,
         help="length of the problem")
 
     parser.add_argument(
         "--episodes",
-        default=100000,
+        default=1000,
         type=int,
         help="number of episodes to run")
 

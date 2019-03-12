@@ -39,6 +39,7 @@ python -h
   code is formatted correctly
 
 #### TODO
+* move contents of agent to root
 * implement static analysing mechanism
 * cleanup code
 * add tests

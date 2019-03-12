@@ -1,3 +1,4 @@
 *.pyc
 doc/*
-pobnrl/output.npy
+*.out
+*.npy

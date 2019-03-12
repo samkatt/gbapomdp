@@ -33,6 +33,7 @@ class QNetInterface(abc.ABC):
         """
 
     @abc.abstractmethod
+    # pylint: disable=too-many-arguments
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update on the network on the provided input
 
@@ -46,7 +47,7 @@ class QNetInterface(abc.ABC):
              actions: the chosen action
              rewards: the rewards associated with each obs-action pair
              next_obs: the next observation after taking action and seeing obs
-             done_mask: a boolean for each transition showing whether the transition was terminal
+             done_mask: boolean for each transition true if terminal transition
 
         """
 
@@ -56,33 +57,41 @@ class QNetInterface(abc.ABC):
         """ updates the target network """
 
 
+# pylint: disable=too-many-instance-attributes
 class DQNNet(QNetInterface):
     """ a network based on DQN that can return q values and update """
 
-    # FIXME: take specific arguments instead of conf
+    # pylint: disable=too-many-locals
     def __init__(
             self,
             env_spaces: dict,
             arch: neural_network_misc.Architecture,
             optimizer,
-            conf,
-            scope: str):
+            **conf):
         """ construct the DRQNNet
 
         Assumes the input architecture arch is **not** recurrent
+        Assumes conf contains:
+            * `str` scope
+            * `int` observation_len
+            * `bool` random_priors
+            * `int` network_size
+            * `bool` double_q
+            * `float` gamma
+            * `str` loss description
+            * `bool` clipping
 
         Args:
              env_spaces: (`dict`): {'O','A'} with observation and action space
              rec_arch: (`pobnrl.agents.networks.neural_network_misc.Architecture`): the architecture
-             optimizer: the type of optimizer to use for learning (tf.optimizer)
-             conf: configuration file
-             scope: (`str`): name space of the network
+             optimizer: the tf.optimizer to use for learning
+             conf: configurations (assumptions above)
 
         """
 
         assert not arch.is_recurrent()
 
-        input_shape = (conf.observation_len, *env_spaces["O"].shape)
+        input_shape = (conf['observation_len'], *env_spaces["O"].shape)
 
         # training operation place holders
         self.obs_t_ph = tf.placeholder(tf.float32, [None] + list(input_shape))
@@ -96,33 +105,34 @@ class DQNNet(QNetInterface):
         self.qvalues_fn = arch(
             self.obs_t_ph,
             env_spaces["A"].n,
-            scope=scope + '_net'
+            scope=conf['scope'] + '_net'
         )
 
         next_qvalues_fn = arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
-            scope=scope + '_net'
+            scope=conf['scope'] + '_net'
         )
 
         next_targets_fn = arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
-            scope=scope + '_target'
+            scope=conf['scope'] + '_target'
         )
 
-        if conf.random_priors:  # add random function to our estimates
-            prior = neural_network_misc.TwoHiddenLayerQNet(conf.network_size)
+        if conf['random_priors']:  # add random function to our estimates
+            prior = neural_network_misc.TwoHiddenLayerQNet(
+                conf['network_size'])
             prior_vals = prior(
                 self.obs_t_ph,
                 env_spaces["A"].n,
-                scope=scope + '_prior'
+                scope=conf['scope'] + '_prior'
             )
 
             next_prior_vals = prior(
                 self.obs_tp1_ph,
                 env_spaces["A"].n,
-                scope=scope + '_prior'
+                scope=conf['scope'] + '_prior'
             )
 
             self.qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
@@ -137,22 +147,23 @@ class DQNNet(QNetInterface):
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
             next_targets_fn,
-            conf.double_q
+            conf['double_q']
         )
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
-            x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * return_estimate))
+            x=self.rew_t_ph,
+            y=self.rew_t_ph + (conf['gamma'] * return_estimate))
 
-        loss = neural_network_misc.loss(q_values, targets, conf.loss)
+        loss = neural_network_misc.loss(q_values, targets, conf['loss'])
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=scope + '_net')
+            scope=conf['scope'] + '_net')
         gradients, variables = zip(
             *optimizer.compute_gradients(loss, var_list=net_vars))
 
-        if conf.clipping:
+        if conf['clipping']:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))
@@ -161,7 +172,7 @@ class DQNNet(QNetInterface):
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=scope + '_target')
+            scope=conf['scope'] + '_target')
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
                                    sorted(target_vars, key=lambda v: v.name)):
@@ -197,19 +208,21 @@ class DQNNet(QNetInterface):
             feed_dict={self.obs_t_ph: observation[None]}
         )
 
+    # pylint: disable=too-many-arguments
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update on the network on the provided input
 
         Basically the stochastic gradient descent step where, for any i,
-        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are respectively the
-        observation, actions, reward, next observation and terminality of some step i
+        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are
+        respectively the observation, actions, reward, next observation and
+        terminality of some step i
 
         Args:
              obs: the observations or input to the network
              actions: the chosen action
              rewards: the rewards associated with each obs-action pair
              next_obs: the next observation after taking action and seeing obs
-             done_mask: a boolean for each transition showing whether the transition was terminal
+             done_mask: boolean for each transition, true when terminal
 
         """
 
@@ -228,24 +241,31 @@ class DQNNet(QNetInterface):
 class DRQNNet(QNetInterface):
     """ a network based on DRQN that can return q values and update """
 
-    # FIXME: take specific arguments instead of conf
+    # pylint: disable=too-many-locals
     def __init__(
             self,
             env_spaces: dict,
             rec_arch: neural_network_misc.Architecture,
             optimizer,
-            conf,
-            scope: str):
+            **conf):
         """ construct the DRQNNet
 
         Assumes the input architecture rec_arch is recurrent
+        Assumes conf contains:
+            * `str` scope
+            * `int` observation_len
+            * `bool` random_priors
+            * `int` network_size
+            * `bool` double_q
+            * `float` gamma
+            * `str` loss description
+            * `bool` clipping
 
         Args:
              env_spaces: (`dict`): {'O','A'} with observation and action space
              rec_arch: (`pobnrl.agents.networks.neural_network_misc.Architecture`): the architecture
-             optimizer: the type of optimizer to use for learning (tf.optimizer)
-             conf: configuration file
-             scope: (`str`): name space of the network
+             optimizer: the tf.optimizer optimizer to use for learning
+             conf: configurations
 
         """
 
@@ -253,7 +273,7 @@ class DRQNNet(QNetInterface):
 
         self.rnn_state = None
         self.rec_arch = rec_arch
-        self.name = scope
+        self.name = conf['scope']
 
         input_shape = (None, *env_spaces["O"].shape)
 
@@ -279,25 +299,26 @@ class DRQNNet(QNetInterface):
         next_qvalues_fn, _ = self.rec_arch(
             self.obs_tp1_ph,
             env_spaces["A"].n,
-            scope=scope + '_net'
+            scope=self.name + '_net'
         )
 
         qvalues_fn = tf.identity(self.qvalues_fn)
 
-        if conf.random_priors:  # add random function to our estimates
+        if conf['random_priors']:  # add random function to our estimates
 
             prior = neural_network_misc.TwoHiddenLayerRecQNet(
-                conf.network_size)
+                conf['network_size']
+            )
 
             prior_vals, _ = prior(
                 self.obs_t_ph,
                 env_spaces["A"].n,
-                scope=scope + '_prior'
+                scope=self.name + '_prior'
             )
             next_prior_vals, _ = prior(
                 self.obs_tp1_ph,
                 env_spaces["A"].n,
-                scope=scope + '_prior'
+                scope=self.name + '_prior'
             )
 
             qvalues_fn = tf.add(qvalues_fn, prior_vals)
@@ -311,14 +332,15 @@ class DRQNNet(QNetInterface):
         return_estimate = neural_network_misc.return_estimate(
             next_targets_fn,
             next_qvalues_fn,
-            conf.double_q
+            conf['double_q']
         )
 
         targets = tf.where(
             tf.cast(self.done_mask_ph, tf.bool),
-            x=self.rew_t_ph, y=self.rew_t_ph + (conf.gamma * return_estimate))
+            x=self.rew_t_ph,
+            y=self.rew_t_ph + (conf['gamma'] * return_estimate))
 
-        loss = neural_network_misc.loss(q_values, targets, conf.loss)
+        loss = neural_network_misc.loss(q_values, targets, conf['loss'])
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
@@ -326,7 +348,7 @@ class DRQNNet(QNetInterface):
         gradients, variables = zip(
             *optimizer.compute_gradients(loss, var_list=net_vars))
 
-        if conf.clipping:
+        if conf['clipping']:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))
@@ -381,19 +403,21 @@ class DRQNNet(QNetInterface):
 
         return qvals
 
+    # pylint: disable=too-many-arguments
     def batch_update(self, obs, actions, rewards, next_obs, done_mask):
         """ performs a batch update on the network on the provided input
 
         Basically the stochastic gradient descent step where, for any i,
-        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are respectively the
-        observation, actions, reward, next observation and terminality of some step i
+        obs[i], actions[i], rewards[i], next_obs[i] and done_mask[i] are
+        respectively the observation, actions, reward, next observation and
+        terminality of some step i
 
         Args:
              obs: the observations or input to the network
              actions: the chosen action
              rewards: the rewards associated with each obs-action pair
              next_obs: the next observation after taking action and seeing obs
-             done_mask: a boolean for each transition showing whether the transition was terminal
+             done_mask: boolean for each transition, true when terminal
 
         """
 
