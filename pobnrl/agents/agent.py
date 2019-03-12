@@ -138,8 +138,8 @@ class BaselineAgent(Agent):
             env.spaces(),
             arch,
             optimizer,
-            conf,
-            name + '_net')
+            conf.vars(),
+            scope=name + '_net')
 
     def reset(self, obs):
         """ prepares for next episode
@@ -255,8 +255,8 @@ class EnsembleAgent(Agent):
                 env.spaces(),
                 arch,
                 optimizer,
-                conf,
-                name + '_net_' + str(i))
+                conf.vars(),
+                scope=name + '_net_' + str(i))
             for i in range(conf.num_nets)
         ]
 

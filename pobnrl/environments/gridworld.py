@@ -1,12 +1,10 @@
 """ gridworld environment """
 
 import copy
+import random
 import time
 
 import numpy as np
-
-# from typed import Tuple
-
 
 from environments.environment import Environment
 from misc import DiscreteSpace
@@ -132,7 +130,7 @@ class GridWorld(Environment):
         RETURNS (`Tuple[int]`): the goal state (x,y)
 
         """
-        return np.random.choice(self._goal_cells)
+        return random.choice(self._goal_cells)
 
     # FIXME: broken right now because state is not what it is
     def generate_observation(
