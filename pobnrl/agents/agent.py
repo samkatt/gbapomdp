@@ -94,7 +94,6 @@ class RandomAgent(Agent):
 class BaselineAgent(Agent):
     """ default single q-net agent implementation"""
 
-    last_ob = 0
     replay_index = 0
     latest_action = 0
 
@@ -163,20 +162,15 @@ class BaselineAgent(Agent):
              obs: the observation at the start of the episode
 
         """
-        self.last_ob = obs
-        self.replay_index = self.replay_buffer.store_frame(self.last_ob)
-
+        self.replay_index = self.replay_buffer.store_frame(obs)
         self.q_net.reset()
 
     def select_action(self):
         """ requests greedy action from network """
 
-        if self.q_net.is_recurrent():
-            q_in = np.array([self.last_ob])
-        else:
-            q_in = self.replay_buffer.encode_recent_observation()
-
-        q_values = self.q_net.qvalues(q_in)
+        q_values = self.q_net.qvalues(
+            self.replay_buffer.encode_recent_observation()
+        )
 
         epsilon = self.exploration.value(self.t)
         self.latest_action = epsilon_greedy(
@@ -207,8 +201,8 @@ class BaselineAgent(Agent):
             reward,
             terminal)
 
-        self.last_ob = obs
-        self.replay_index = self.replay_buffer.store_frame(self.last_ob)
+        if not terminal:  # do not care about observations when episode ends
+            self.replay_index = self.replay_buffer.store_frame(obs)
 
         # batch update
         if self.replay_buffer.can_sample(
@@ -228,7 +222,6 @@ class EnsembleAgent(Agent):
     """ ensemble agent """
 
     t = 0
-    last_ob = 0
     _storing_rbs = 0
     latest_action = 0
 
@@ -260,8 +253,8 @@ class EnsembleAgent(Agent):
 
         """
 
-        if conf['num_nets'] == 1:
-            raise ValueError("no number of networks specified (--num_nets)")
+        assert conf['num_nets'] > 1, \
+            "no number of networks specified (--num_nets)"
 
         # consts
         optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
@@ -299,8 +292,6 @@ class EnsembleAgent(Agent):
 
         """
 
-        self.last_ob = obs
-
         for net in self.nets:
             net.reset()
 
@@ -312,19 +303,15 @@ class EnsembleAgent(Agent):
         self._storing_rbs[self._current_policy] = True
 
         for replay_buffer in self.replay_buffers[self._storing_rbs]:
-            replay_buffer['index'] = replay_buffer['buffer'].store_frame(
-                self.last_ob)
+            replay_buffer['index'] = replay_buffer['buffer'].store_frame(obs)
 
     def select_action(self):
         """ returns greedy action from current active policy """
 
-        if self.nets[self._current_policy].is_recurrent():
-            q_in = np.array([self.last_ob])
-        else:
-            q_in = self.replay_buffers[self._current_policy]['buffer']\
-                .encode_recent_observation()
-
-        q_values = self.nets[self._current_policy].qvalues(q_in)
+        q_values = self.nets[self._current_policy].qvalues(
+            self.replay_buffers[self._current_policy]['buffer']
+            .encode_recent_observation()
+        )
 
         self.latest_action = q_values.argmax()
 
@@ -355,12 +342,11 @@ class EnsembleAgent(Agent):
                 terminal
             )
 
-        self.last_ob = obs
-
-        # store experience
-        for replay_buffer in self.replay_buffers[self._storing_rbs]:
-            replay_buffer['index'] = \
-                replay_buffer['buffer'].store_frame(self.last_ob)
+        if not terminal:  # do not care about observations when episode ends
+            for replay_buffer in self.replay_buffers[self._storing_rbs]:
+                replay_buffer['index'] = replay_buffer['buffer'].store_frame(
+                    obs
+                )
 
         # batch update all networks using there respective replay buffer
         for net, rbuff in zip(self.nets, self.replay_buffers):

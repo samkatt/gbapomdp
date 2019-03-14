@@ -28,11 +28,13 @@ def main():
 
     env = get_environment(conf.domain, conf.domain_size, conf.verbose)
 
+    print(f"Running experiment on {env}")
+
     for run in range(conf.runs):
 
-        print(time.ctime(), "starting run", run)
-
         agent = get_agent(conf, env, name='run-' + str(run))
+        print(f"{time.ctime()}: Initiated agent {agent} for run {run}")
+
         tmp_res = np.zeros(conf.episodes)
 
         for episode in range(conf.episodes):

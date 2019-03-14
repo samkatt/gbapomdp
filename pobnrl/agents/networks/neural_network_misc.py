@@ -400,21 +400,23 @@ class ReplayBuffer():
         return ret
 
     def store_effect(self, idx, action, reward, done):
-        """Store effects of action taken after obeserving frame stored
+        """Store effects
+
+        Effects are those of action taken after obeserving frame stored
         at index idx. The reason `store_frame` and `store_effect` is broken
-        up into two functions is so that once can call `encode_recent_observation`
-        in between.
+        up into two functions is so that once can call
+        `encode_recent_observation` in between.
 
         Paramters
         ---------
         idx: int
-            Index in buffer of recently observed frame (returned by `store_frame`).
+            Index in buffer of prev observed frame (returned by `store_frame`)
         action: int
-            Action that was performed upon observing this frame.
+            Action that was performed upon observing this frame
         reward: float
-            Reward that was received when the actions was performed.
+            Reward that was received when the actions was performed
         done: bool
-            True if episode was finished after performing that action.
+            True if episode was finished after performing that action
         """
         self.action[idx] = action
         self.reward[idx] = reward
@@ -448,13 +450,12 @@ def return_estimate(next_q, next_target, use_double_q: bool):
 def loss(q_values, targets, loss_type: str):
     """ computes the loss over qval versus targets given configurations
 
-    Given some input, a Q-net can estimate the Q-values and some target q-values.
-    This function returns the loss over the estimated q-values, given the type of loss
+    Returns the loss over Q-values, given their target and type of loss
 
     Args:
          q_values: q-value estimates
          targets: target q-value estimates
-         loss_type: (`str`): is "rmse" or "huber" to indicate type of loss to use
+         loss_type: (`str`): is "rmse" or "huber" to what loss to use
 
     """
 

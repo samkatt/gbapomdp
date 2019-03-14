@@ -142,7 +142,10 @@ class DQNNet(QNetInterface):
         # define loss
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
-        q_values = tf.gather_nd(self.qvalues_fn, action_onehot)
+
+        q_values = tf.gather_nd(
+            self.qvalues_fn,
+            action_onehot)
 
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
@@ -231,7 +234,8 @@ class DQNNet(QNetInterface):
             self.act_t_ph: actions,
             self.rew_t_ph: rewards,
             self.obs_tp1_ph: next_obs,
-            self.done_mask_ph: done_mask})
+            self.done_mask_ph: done_mask}
+        )
 
     def update_target(self):
         """ updates the target network """
