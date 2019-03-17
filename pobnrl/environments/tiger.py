@@ -19,7 +19,7 @@ class Tiger(Environment):
     GOOD_DOOR_REWARD = 10
     BAD_DOOR_REWARD = -100
 
-    LISTEN_REWARD = -0.1
+    LISTEN_REWARD = -1
     CORRECT_OBSERVATION_PROB = .85
 
     _last_recording_time = 0
