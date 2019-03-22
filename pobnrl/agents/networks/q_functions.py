@@ -73,6 +73,12 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         TODO: move away from this approach (create arch on spot)
         Assumes the input architecture q_func is **not** a recurrent one
 
+        Args:
+             env_spaces: (`dict`): {'O','A'} with observation and action space
+             q_func: (`Callable`): the actual Q-function (non-recurrent)
+             optimizer: the tf.optimizer to use for learning
+             conf: configurations (assumptions above)
+
         Assumes conf contains:
             * `str` scope
             * `str` loss description
@@ -84,11 +90,6 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             * `bool` clipping
             * `float` gamma
 
-        Args:
-             env_spaces: (`dict`): {'O','A'} with observation and action space
-             q_func: (`Callable`): the actual Q-function (non-recurrent)
-             optimizer: the tf.optimizer to use for learning
-             conf: configurations (assumptions above)
 
         """
 
