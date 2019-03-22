@@ -47,8 +47,7 @@ def linear_interpolation(left: float, right: float, alpha: float) -> float:
     return left + alpha * (right - left)
 
 
-# pylint: disable=too-few-public-methods
-class PiecewiseSchedule():
+class PiecewiseSchedule():  # pylint: disable=too-few-public-methods
     """ scheduler advancing piecewise """
 
     def __init__(
@@ -104,8 +103,7 @@ class PiecewiseSchedule():
         return self._outside_value
 
 
-# please, for the love of everything good in this world, don't refer to
-# this directly
+# please, for the love of everything good in this world, don't refer to this
 ____SESS = None
 
 
@@ -159,8 +157,20 @@ class DiscreteSpace():
         assert isinstance(dim, list)
 
         self._dim = np.array(dim)
-        self.n = np.prod(self._dim)  # pylint: disable=invalid-name
+        self.num_elements = np.prod(self._dim)
         self._shape = self._dim.shape
+
+    @property
+    def n(self) -> int:  # pylint: disable=invalid-name
+        """ Number of elements in space
+
+        While the naming is pretty awful, it is consistent with the `Space`
+        class of open AI gym, which I prioritized here
+
+        RETURNS (`int`):
+
+        """
+        return self.num_elements
 
     @property
     def dimensions(self) -> np.array:

@@ -10,8 +10,7 @@ from environments.environment import Environment
 from misc import DiscreteSpace
 
 
-# pylint: disable=too-many-instance-attributes
-class GridWorld(Environment):
+class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
     """ the tiger environment """
 
     # consts

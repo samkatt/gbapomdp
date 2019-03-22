@@ -271,9 +271,6 @@ def get_agent(
             arch,
             env,
             **vars(conf),
-            exploration=PiecewiseSchedule(
-                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
-            ),
             name=name
         )
 

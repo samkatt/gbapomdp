@@ -10,7 +10,7 @@ import tensorflow as tf
 
 from agents.networks.q_functions import QNetInterface
 from environments.environment import Environment
-from misc import epsilon_greedy, DiscreteSpace
+from misc import PiecewiseSchedule, epsilon_greedy, DiscreteSpace
 
 
 class Agent(abc.ABC):
@@ -122,13 +122,11 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
             * `int` train_freq
             * `int` observation len
             * `float` learning rate (alpha)
-            * `float` exploration (epsilon of e-greedy)
             * whatever is necessary for the `q_func`
 
         """
 
         # params
-        self.exploration = conf['exploration']
         self.target_update_freq = conf['target_update_freq']
         self.train_freq = conf['train_freq']
 
@@ -137,6 +135,10 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.timestep = 0
         self.last_action = None
         self.last_obs = deque([], conf['history_len'])
+
+        self.exploration = PiecewiseSchedule(
+            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
+        )
 
         optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
 
@@ -327,5 +329,4 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
             for net in self.nets:
                 net.update_target()
 
-        # pylint: disable=invalid-name
         self.timestep += 1

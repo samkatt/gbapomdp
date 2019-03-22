@@ -24,16 +24,6 @@ class QNetInterface(abc.ABC):
         """ resets the internal state to prepare for a new episode """
 
     @abc.abstractmethod
-    def is_recurrent(self) -> bool:
-        """ returns whether this is recurrent
-
-        May be useful to know w.r.t. an internal state
-
-        RETURNS (`bool`):
-
-        """
-
-    @abc.abstractmethod
     def qvalues(self, obs: np.ndarray) -> np.array:
         """ returns the Q-values associated with the obs
 
@@ -55,26 +45,24 @@ class QNetInterface(abc.ABC):
     @abc.abstractmethod
     def record_transition(
             self,
-            ob: np.ndarray,
+            observation: np.ndarray,
             action: int,
             reward: float,
             terminal: bool):
         """ notifies this of provided transition
 
         Args:
-             ob: (`np.ndarray`): the observation (shape depends on env)
+             observation: (`np.ndarray`): shape depends on env
              action: (`int`): the taken action
              reward: (`float`): the resulting reward
              terminal: (`bool`): whether transition was terminal
         """
 
 
-# pylint: disable=too-many-instance-attributes
-class DQNNet(QNetInterface):
+class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
     """ a network based on DQN that can return q values and update """
 
-    # pylint: disable=too-many-locals
-    def __init__(
+    def __init__(  # pylint: disable=too-many-locals
             self,
             env_spaces: dict,
             q_func: Callable,  # Q-value network function
@@ -105,18 +93,12 @@ class DQNNet(QNetInterface):
         """
 
         self.name = conf['scope']
+        self.history_len = conf['history_len']
+        self.batch_size = conf['batch_size']
 
-        # stores history
         self.replay_buffer \
             = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
 
-        # the length of the sequences to consider as Q input
-        self.history_len = conf['history_len']
-
-        # size of batches when computing gradient
-        self.batch_size = conf['batch_size']
-
-        # input of the network is the sequence length x observation shape
         input_shape = (self.history_len, *env_spaces["O"].shape)
 
         # training operation place holders
@@ -228,18 +210,6 @@ class DQNNet(QNetInterface):
     def reset(self):
         """ no internal state so does nothing, interface requirement """
 
-    def is_recurrent(self) -> bool:  # pylint: disable=no-self-use
-        """ False: the DQNNet is not recurrent
-
-        TODO: see if I can abstract this away
-
-        interface requirement
-
-        RETURNS (`bool`): False
-
-        """
-        return False
-
     def qvalues(self, obs: np.ndarray) -> np.array:
         """ returns the Q-values associated with the obs
 
@@ -292,7 +262,7 @@ class DQNNet(QNetInterface):
 
     def record_transition(
             self,
-            ob: np.ndarray,
+            observation: np.ndarray,
             action: int,
             reward: float,
             terminal: bool):
@@ -301,26 +271,27 @@ class DQNNet(QNetInterface):
         Stores transition in replay buffer
 
         Args:
-             ob: (`np.ndarray`): the observation (shape depends on env)
+             observation: (`np.ndarray`): shape depends on env
              action: (`int`): the taken action
              reward: (`float`): the resulting reward
              terminal: (`bool`): whether transition was terminal
         """
 
-        self.replay_buffer.store(ob, action, reward, terminal)
+        self.replay_buffer.store(observation, action, reward, terminal)
 
 
-class DRQNNet(QNetInterface):
+class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
     """ a network based on DRQN that can return q values and update """
 
-    # pylint: disable=too-many-locals
-    def __init__(
+    def __init__(  # pylint: disable=too-many-locals
             self,
             env_spaces: dict,
             rec_q_func: Callable,
             optimizer,
             **conf):
         """ construct the DRQNNet
+
+        TODO: move away from this approach (create arch on spot)
 
         Assumes the rec_q_func provided is a recurrent Q function
 
@@ -484,16 +455,6 @@ class DRQNNet(QNetInterface):
 
         self.update_target_op = tf.group(*update_target_op)
 
-    def is_recurrent(self) -> bool:  # pylint: disable=no-self-use
-        """ True: the DRQNNet is recurrent
-
-        TODO: hopefully remove this function
-
-        RETURNS (`bool`): True
-
-        """
-        return True
-
     def reset(self):
         """ resets the net internal state """
         self.rnn_state = None
@@ -522,7 +483,6 @@ class DRQNNet(QNetInterface):
 
         return qvals
 
-    # pylint: disable=too-many-arguments
     def batch_update(self):
         """ performs a batch update """
 
@@ -556,7 +516,7 @@ class DRQNNet(QNetInterface):
 
     def record_transition(
             self,
-            ob: np.ndarray,
+            observation: np.ndarray,
             action: int,
             reward: float,
             terminal: bool):
@@ -565,9 +525,9 @@ class DRQNNet(QNetInterface):
         Stores transition in replay buffer
 
         Args:
-             ob: (`np.ndarray`): the observation (shape depends on env)
+             observation: (`np.ndarray`): shape depends on env
              action: (`int`): the taken action
              reward: (`float`): the resulting reward
              terminal: (`bool`): whether transition was terminal
         """
-        self.replay_buffer.store(ob, action, reward, terminal)
+        self.replay_buffer.store(observation, action, reward, terminal)

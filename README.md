@@ -43,6 +43,8 @@ python -h
 * refactoring
     - grep pylint and see if I can fix any of them
     - move contents of agent to root
+    - rename q_functions and the sort.. what are nets + replay buffers?
+    - refactor priors away elegantly
 * dev
     - implement logging framework
     - implement static analysing mechanism
