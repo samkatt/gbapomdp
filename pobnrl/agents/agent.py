@@ -1,24 +1,27 @@
-""" agents """
+""" agents
 
+"""
+
+from collections import deque
+from typing import Callable
 import abc
 import numpy as np
 import tensorflow as tf
 
-from agents.networks.neural_network_misc import ReplayBuffer, Architecture
 from agents.networks.q_functions import QNetInterface
-from misc import epsilon_greedy, DiscreteSpace
 from environments.environment import Environment
+from misc import epsilon_greedy, DiscreteSpace
 
 
 class Agent(abc.ABC):
     """ all agents must implement this interface """
 
     @abc.abstractmethod
-    def reset(self, obs):
+    def reset(self, observation: np.ndarray):
         """ called after each episode to prepare for the next
 
         Args:
-             obs: the observation of the start of the episode
+             observation: (`np.ndarray`): the initial episode observation
 
         """
 
@@ -31,16 +34,20 @@ class Agent(abc.ABC):
         """
 
     @abc.abstractmethod
-    def update(self, _observation, _reward: float, _terminal: bool):
+    def update(
+            self,
+            observation: np.ndarray,
+            reward: float,
+            terminal: bool):
         """ calls at the end of a real step to allow the agent to update
 
         The provided observation, reward and terminal are the result of a step
         in the real world given the last action
 
         Args:
-             _observation: the previous observation of the step
-             _reward: (`float`): the reward associated with the last step
-             _terminal: (`bool`): whether the last step was terminal
+             observation (`np.ndarray`): the observation
+             reward: (`float`): the reward associated with the last step
+             terminal: (`bool`): whether the last step was terminal
 
         """
 
@@ -57,13 +64,13 @@ class RandomAgent(Agent):
         """
         self._action_space = action_space
 
-    def reset(self, obs):
+    def reset(self, observation: np.ndarray):
         """ Will not do anything since there is no internal state to reset
 
         Part of the interface of `pobnrl.agents.agent.Agent`
 
         Args:
-             obs: ignored
+             observation: (`np.ndarray`): ignored
 
         """
 
@@ -77,108 +84,100 @@ class RandomAgent(Agent):
         """
         return self._action_space.sample()
 
-    def update(self, _observation, _reward: float, _terminal: bool):
+    def update(
+            self,
+            observation: np.ndarray,
+            reward: float,
+            terminal: bool):
         """ will not do anything since this has nothing to update
 
         Part of the interface of `pobnrl.agents.agent.Agent`
 
         Args:
-             _observation: ignored
-             _reward: (`float`): ignored
-             _terminal: (`bool`): ignored
+             observation (`np.ndarray`): ignored
+             reward: (`float`): ignored
+             terminal: (`bool`): ignored
 
         """
 
 
-# pylint: disable=too-many-instance-attributes
-class BaselineAgent(Agent):
+class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
     """ default single q-net agent implementation"""
-
-    replay_index = 0
-    latest_action = 0
 
     def __init__(self,
                  qnet_constructor: QNetInterface,
-                 arch: Architecture,
+                 q_func: Callable,
                  env: Environment,
                  **conf):
-        """ initializes network
-
-        Assumes conf contains:
-            * `float` exploration (epsilon of e-greedy)
-            * `int` q_target_update_freq
-            * `int` batch_size
-            * `int` train_frequency
-            * `int` replay_buffer_size
-            * `int` observation len
-            * `float` learning rate (alpha)
+        """ initializes a single network
 
         Args:
              qnet_constructor: (`QNetInterface`): Q-net to use
-             arch: (`Architecture`): architecture to use
+             q_func: (`Callable`): Q-function (network arch) to use
              env: (`Environment`): for domain knowledge
-             **conf:
+             **conf: set of configurations
+
+        Assumes conf contains:
+            * `int` target_update_freq
+            * `int` train_freq
+            * `int` observation len
+            * `float` learning rate (alpha)
+            * `float` exploration (epsilon of e-greedy)
+            * whatever is necessary for the `q_func`
 
         """
 
-        # determines the e-greedy parameter over time
+        # params
         self.exploration = conf['exploration']
+        self.target_update_freq = conf['target_update_freq']
+        self.train_freq = conf['train_freq']
 
-        # how often the target network is being updated (every nth step)
-        self.target_update_freq = conf['q_target_update_freq']
-
-        # the size of a batch update
-        self.batch_size = conf['batch_size']
-
-        # how often the agent trains its network (every nth step)
-        self.train_freq = conf['train_frequency']
-
-        # number of steps agent has taken
-        self.t = 0  # pylint: disable=invalid-name
-
-        # the entire action space, used to randomly pick actions
         self.action_space = env.spaces()["A"]
 
-        # stores history of the agent
-        self.replay_buffer = ReplayBuffer(
-            conf['replay_buffer_size'], conf['observation_len'], True)
+        self.timestep = 0
+        self.last_action = None
+        self.last_obs = deque([], conf['history_len'])
 
         optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
 
-        # the q-function of the agent (estimation of the value of each action)
         self.q_net = qnet_constructor(
             env.spaces(),
-            arch,
+            q_func,
             optimizer,
             **conf,
-            scope=conf['name'] + '_net')
+            scope=conf['name'] + '_net'
+        )
 
-    def reset(self, obs):
+    def reset(self, observation: np.ndarray):
         """ prepares for next episode
 
         stores the observation and resets its Q-network
 
         Args:
-             obs: the observation at the start of the episode
+             observation: (`np.ndarray`): stored and later given to QNet
 
         """
-        self.replay_index = self.replay_buffer.store_frame(obs)
+
+        self.last_obs.clear()
+        self.last_obs.append(observation)
+
         self.q_net.reset()
 
     def select_action(self):
         """ requests greedy action from network """
 
-        q_values = self.q_net.qvalues(
-            self.replay_buffer.encode_recent_observation()
-        )
+        q_values = self.q_net.qvalues(np.array(self.last_obs))
 
-        epsilon = self.exploration.value(self.t)
-        self.latest_action = epsilon_greedy(
-            q_values, epsilon, self.action_space)
+        epsilon = self.exploration.value(self.timestep)
+        self.last_action = epsilon_greedy(q_values, epsilon, self.action_space)
 
-        return self.latest_action
+        return self.last_action
 
-    def update(self, obs, reward: float, terminal: bool):
+    def update(
+            self,
+            observation: np.ndarray,
+            reward: float,
+            terminal: bool):
         """ stores the transition and potentially updates models
 
         Stores the experience into the buffers with some probability
@@ -187,137 +186,116 @@ class BaselineAgent(Agent):
 
         May update the target network (frequency: see parameters/configuration)
 
+
         Args:
-             obs: the observation from the last step
-             reward: (`float`): the reward of the last step
+             observation (`np.ndarray`): the observation
+             reward: (`float`): the reward associated with the last step
              terminal: (`bool`): whether the last step was terminal
 
         """
 
-        # store experience
-        self.replay_buffer.store_effect(
-            self.replay_index,
-            self.latest_action,
-            reward,
-            terminal)
+        self.q_net.record_transition(
+            self.last_obs[-1], self.last_action, reward, terminal
+        )
 
-        if not terminal:  # do not care about observations when episode ends
-            self.replay_index = self.replay_buffer.store_frame(obs)
+        self.last_obs.append(observation)
 
-        # batch update
-        if self.replay_buffer.can_sample(
-                self.batch_size) and self.t % self.train_freq == 0:
-            obs, actions, rewards, next_obs, done_mask =\
-                self.replay_buffer.sample(self.batch_size)
-            self.q_net.batch_update(obs, actions, rewards, next_obs, done_mask)
+        if self.timestep % self.train_freq:
+            self.q_net.batch_update()
 
-        # update target network occasionally
-        if self.t % self.target_update_freq == 0:
+        if self.timestep % self.target_update_freq == 0:
             self.q_net.update_target()
 
-        self.t = self.t + 1
+        self.timestep += 1
 
 
-class EnsembleAgent(Agent):
+class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
     """ ensemble agent """
-
-    t = 0
-    _storing_rbs = 0
-    latest_action = 0
-
-    # the policy from which to act e-greedy on right now
-    _current_policy = 0
 
     def __init__(self,
                  qnet_constructor: QNetInterface,
-                 arch: Architecture,
+                 q_func: Callable,
                  env: Environment,
                  **conf):
         """ initialize network
 
+        Args:
+             qnet_constructor: (`QNetInterface`): Q-net to use
+             q_func: (`Callable`): Q-function (network arch) to use
+             env: (`Environment`): for domain knowledge
+             **conf: set of configurations
+
         Assumes conf contains:
             * `int` num_nets (> 1)
-            * `float` exploration (epsilon of e-greedy)
-            * `int` q_target_update_freq
-            * `int` batch_size
-            * `int` train_frequency
-            * `int` replay_buffer_size
+            * `int` target_update_freq
+            * `int` train_freq
             * `int` observation len
             * `float` learning rate (alpha)
 
-        Args:
-             qnet_constructor: (`QNetInterface`): Q-net to use
-             arch: (`Architecture`): architecture to use
-             env: (`Environment`): for domain knowledge
-             **conf:
-
         """
 
-        assert conf['num_nets'] > 1, \
-            "no number of networks specified (--num_nets)"
+        assert conf['num_nets'] > 1
+        assert conf['target_update_freq'] > 0
+        assert conf['train_freq'] > 0
+        assert 1 > conf['learning_rate'] > 0
+        assert conf['history_len'] > 0
 
-        # consts
+        # params
+        self.target_update_freq = conf['target_update_freq']
+        self.train_freq = conf['train_freq']
+
+        self.timestep = 0
+        self.last_action = None
+        self.last_obs = deque([], conf['history_len'])
+
         optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
 
-        # confs
-        self.target_update_freq = conf['q_target_update_freq']
-        self.batch_size = conf['batch_size']
-        self.train_freq = conf['train_frequency']
-
-        # construct the replay buffer
-        self.replay_buffers = np.array([
-            {'index': 0, 'buffer': ReplayBuffer(
-                conf['replay_buffer_size'],
-                conf['observation_len'], True)}
-            for _ in range(conf['num_nets'])
-        ])
-
-        self.nets = [
+        self.nets = np.array([
             qnet_constructor(
                 env.spaces(),
-                arch,
+                q_func,
                 optimizer,
                 **conf,
                 scope=conf['name'] + '_net_' + str(i))
             for i in range(conf['num_nets'])
-        ]
+        ])
 
-    def reset(self, obs):
+        self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
+        self._current_policy = np.random.choice(self.nets)
+
+    def reset(self, observation: np.ndarray):
         """ prepares for next episode
 
         stores the observation and resets its Q-network and resets its models
 
         Args:
-             obs: the observation at the start of the episode
+             observation: (`np.ndarray`):  stored and later given to QNet
 
         """
+
+        self.last_obs.clear()
+        self.last_obs.append(observation)
+
+        self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
+        self._current_policy = np.random.choice(self.nets)
 
         for net in self.nets:
             net.reset()
 
-        self._current_policy = np.random.randint(0, len(self.nets) - 1)
-
-        # update which buffers are storing this episode
-        self._storing_rbs = np.random.rand(len(self.replay_buffers)) > .5
-        # make sure current is tracking
-        self._storing_rbs[self._current_policy] = True
-
-        for replay_buffer in self.replay_buffers[self._storing_rbs]:
-            replay_buffer['index'] = replay_buffer['buffer'].store_frame(obs)
-
     def select_action(self):
         """ returns greedy action from current active policy """
 
-        q_values = self.nets[self._current_policy].qvalues(
-            self.replay_buffers[self._current_policy]['buffer']
-            .encode_recent_observation()
-        )
+        self.last_action = self._current_policy.qvalues(
+            np.array(self.last_obs)
+        ).argmax()
 
-        self.latest_action = q_values.argmax()
+        return self.last_action
 
-        return self.latest_action
-
-    def update(self, obs, reward: float, terminal: bool):
+    def update(
+            self,
+            observation: np.ndarray,
+            reward: float,
+            terminal: bool):
         """ stores the transition and potentially updates models
 
         For each network, does
@@ -327,41 +305,27 @@ class EnsembleAgent(Agent):
         * May update target network (frequency see parameters/configuration)
 
         Args:
-             obs: the observation from the last step
-             reward: (`float`): the reward of the last step
+             observation (`np.ndarray`): the observation
+             reward: (`float`): the reward associated with the last step
              terminal: (`bool`): whether the last step was terminal
 
         """
 
-        # store experience
-        for replay_buffer in self.replay_buffers[self._storing_rbs]:
-            replay_buffer['buffer'].store_effect(
-                replay_buffer['index'],
-                self.latest_action,
-                reward,
-                terminal
+        # store experience for recording nets
+        for net in self._storing_nets:
+            net.record_transition(
+                self.last_obs[-1], self.last_action, reward, terminal
             )
 
-        if not terminal:  # do not care about observations when episode ends
-            for replay_buffer in self.replay_buffers[self._storing_rbs]:
-                replay_buffer['index'] = replay_buffer['buffer'].store_frame(
-                    obs
-                )
+        self.last_obs.append(observation)
 
-        # batch update all networks using there respective replay buffer
-        for net, rbuff in zip(self.nets, self.replay_buffers):
-            if rbuff['buffer'].can_sample(
-                    self.batch_size) and self.t % self.train_freq == 0:
+        if self.timestep % self.train_freq == 0:
+            for net in self.nets:
+                net.batch_update()
 
-                obs, actions, rewards, next_obs, done_mask = \
-                    rbuff['buffer'].sample(self.batch_size)
-
-                net.batch_update(obs, actions, rewards, next_obs, done_mask)
-
-        # update all target networks occasionally
-        if self.t % self.target_update_freq == 0:
+        if self.timestep % self.target_update_freq == 0:
             for net in self.nets:
                 net.update_target()
 
         # pylint: disable=invalid-name
-        self.t = self.t + 1
+        self.timestep += 1

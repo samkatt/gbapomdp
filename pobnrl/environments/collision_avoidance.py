@@ -14,19 +14,11 @@ class CollisionAvoidance(Environment):
     """ the tiger environment """
 
     # const
-    _BLOCK_MOVE_PROB = .5
-    _COLLISION_REWARD = -1000
+    BLOCK_MOVE_PROB = .5
+    COLLISION_REWARD = -1000
 
-    # move helper
-    _action_to_move = [1, 0, -1]
-
-    # verbosity helper
+    action_to_move = [1, 0, -1]
     action_to_string = ["UP", "STAY", "DOWN"]
-
-    # recording helpers
-    _last_recording_time = 0
-    _recording = False
-    _history = []
 
     def __init__(self, domain_size: int, verbose: bool):
         """ constructs a Collision Avoidance domain of specified size
@@ -40,14 +32,14 @@ class CollisionAvoidance(Environment):
         assert domain_size > 0, "Domain size must be > 0"
         assert domain_size % 2 == 1
 
-        # verbosity settings
         self._verbose = verbose
         self._size = domain_size
         self._mid = int(self._size / 2)
 
         self.init_state = {
             'agent': np.array((self._size - 1, self._mid)),
-            'obstacle': self._mid}
+            'obstacle': self._mid
+        }
 
         self.state = copy.deepcopy(self.init_state)
 
@@ -55,6 +47,10 @@ class CollisionAvoidance(Environment):
             "A": DiscreteSpace([3]),
             "O": DiscreteSpace([self._size])
         }
+
+        self._last_recording_time = 0
+        self._recording = False
+        self._history = []
 
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
@@ -121,11 +117,11 @@ class CollisionAvoidance(Environment):
         # move agent
         self.state['agent'][0] -= 1
         self.state['agent'][1] = self.bound_in_grid(
-            self.state['agent'][1] + self._action_to_move[int(action)]
+            self.state['agent'][1] + self.action_to_move[int(action)]
         )
 
         # move obstacle
-        if np.random.random() < self._BLOCK_MOVE_PROB:
+        if np.random.random() < self.BLOCK_MOVE_PROB:
             if np.random.random() < .5:
                 self.state['obstacle'] += 1
             else:
@@ -143,7 +139,7 @@ class CollisionAvoidance(Environment):
         if self.state['agent'][0] == 0:
             terminal = True
             if self.state['agent'][1] == self.state['obstacle']:
-                reward = self._COLLISION_REWARD
+                reward = self.COLLISION_REWARD
 
         # recording
         if self._recording:

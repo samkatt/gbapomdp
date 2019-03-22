@@ -22,10 +22,6 @@ class Tiger(Environment):
     LISTEN_REWARD = -1
     CORRECT_OBSERVATION_PROB = .85
 
-    _last_recording_time = 0
-    _recording = False
-    _history = []
-
     def __init__(self, verbose: bool):
         """ construct the tiger environment
 
@@ -41,6 +37,10 @@ class Tiger(Environment):
             "A": DiscreteSpace([3]),
             "O": DiscreteSpace([1, 1])
         }
+
+        self._last_recording_time = 0
+        self._recording = False
+        self._history = []
 
     def sample_start_state(self) -> int:  # pylint: disable=no-self-use
         """ samples a random state (tiger left or right)

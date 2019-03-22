@@ -37,16 +37,15 @@ python -h
   documentation in ``` doc/pobnrl ``` folder
 * formatting: Run ``` ./check_formatting.sh ``` in root and check whether the
   code is formatted correctly
+* testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
-#### TODO
-* better idea of the types that go around
-* testing framework
-* rewrite replay buffer
-* implement logging framework
-* move contents of agent to root
-* implement static analysing mechanism
-* cleanup code
-* add tests
+### TODO
+* refactoring
+    - grep pylint and see if I can fix any of them
+    - move contents of agent to root
+* dev
+    - implement logging framework
+    - implement static analysing mechanism
 
 ### Conventions
 * use ```python FIXME ``` to identify fixes
@@ -56,4 +55,3 @@ python -h
 ### Arbitrary decisions
 * usage of huber loss (over RMSE, unless specified otherwise with --loss rmse)
 * usage of Glorot normal initialization for all layers
-

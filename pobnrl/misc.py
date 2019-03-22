@@ -104,45 +104,6 @@ class PiecewiseSchedule():
         return self._outside_value
 
 
-def sample_n_unique(sampling_f: callable, num: int) -> list:
-    """ samples n **unique** instances using
-
-    Args:
-         sampling_f: (`callable`): the sampling function (is called to sample)
-         num: (`int`): number of **unique** samples
-
-    RETURNS (`list`): a list of samples
-
-    """
-
-    res = []
-    while len(res) < num:
-        candidate = sampling_f()
-        if candidate not in res:
-            res.append(candidate)
-    return res
-
-
-def sample_n(sampling_f: callable, num: int) -> list:
-    """ samples n **non-unique** instances
-
-    Assumes: sampling_f() can be called and returns comparable objects
-    Note: can return duplicates
-
-    Args:
-         sampling_f: (`callable`): the function to call to sample
-         num: (`int`): the amount of samples
-
-    RETURNS (`list`): list of samples
-
-    """
-
-    res = []
-    while len(res) < num:
-        res.append(sampling_f())
-    return res
-
-
 # please, for the love of everything good in this world, don't refer to
 # this directly
 ____SESS = None
@@ -157,19 +118,25 @@ def tf_init():
     global ____SESS  # pylint: disable=global-statement
     assert ____SESS is None, "Please initiate tf_wrapper only once"
 
+    print("initiating tensorflow session")
+
     tf.reset_default_graph()
 
     tf_config = tf.ConfigProto(
-        device_count={'GPU': 0},
         inter_op_parallelism_threads=1,
-        intra_op_parallelism_threads=1,
+        intra_op_parallelism_threads=1
     )
 
     ____SESS = tf.Session(config=tf_config)
 
 
+def tf_run(operations, **kwargs):
+    """ runs a tf session """
+    return tf_get_session().run(operations, **kwargs)
+
+
 def tf_get_session():
-    """ returns current session """
+    """ returns current session, please use sparingly and see `tf_run` """
 
     global ____SESS  # pylint: disable=global-statement
 
@@ -191,17 +158,29 @@ class DiscreteSpace():
         """
         assert isinstance(dim, list)
 
-        self.dim = np.array(dim)
-        self.n = np.prod(self.dim)  # pylint: disable=invalid-name
-        self.shape = self.dim.shape
+        self._dim = np.array(dim)
+        self.n = np.prod(self._dim)  # pylint: disable=invalid-name
+        self._shape = self._dim.shape
 
+    @property
     def dimensions(self) -> np.array:
         """ returns the range of each dimension
 
         RETURNS (`np.array`): each member is the size of its dimension
 
         """
-        return self.dim
+        return self._dim
+
+    @property
+    def shape(self) -> tuple:
+        """ returns the shape of the space
+
+        Args:
+
+        RETURNS (`tuple`): as like np.shape
+
+        """
+        return self._shape
 
     def sample(self) -> np.array:
         """ returns a sample from the space at random
@@ -209,4 +188,4 @@ class DiscreteSpace():
         RETURNS (`np.array`): a sample in the space of this
 
         """
-        return (np.random.random(self.shape) * self.dim).astype(int)
+        return (np.random.random(self.shape) * self._dim).astype(int)

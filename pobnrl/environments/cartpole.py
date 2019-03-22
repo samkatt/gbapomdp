@@ -19,7 +19,7 @@ class Cartpole(Environment):
 
         self._cur_time = 0
 
-        recording_policy = self._show_recording if verbose else False
+        recording_policy = self.show_recording if verbose else False
 
         self.cartpole = gym.make('CartPole-v0')
         self.cartpole = gym.wrappers.Monitor(
@@ -28,8 +28,8 @@ class Cartpole(Environment):
             force=True,
             video_callable=recording_policy)
 
-    def _show_recording(self, _):
-        """ returns whether a recording should be shown to the gym environment """
+    def show_recording(self, _):
+        """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
             print('showing recording..')

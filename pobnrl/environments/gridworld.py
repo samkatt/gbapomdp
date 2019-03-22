@@ -24,21 +24,8 @@ class GridWorld(Environment):
     MOVE_SUCCESS_PROB = .95
     SLOW_MOVE_SUCCESS_PROB = .15
 
-    # hot-encoding of the actions
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
-
-    # verbosity helpers
     action_to_string = ["^", ">", "v", "<"]
-
-    # recording helpers
-    _last_recording_time = 0
-    _recording = False
-    _history = []
-
-    # actual state and dynamics
-    state = np.zeros(2)
-    _slow_cells = set()
-    _goal_cells = []
 
     def __init__(self, domain_size: int, verbose: bool):
         """ creates a gridworld of provided size and verbosity
@@ -55,21 +42,27 @@ class GridWorld(Environment):
         self._verbose = verbose
         self._size = domain_size
 
+        self._last_recording_time = 0
+        self._recording = False
+        self._history = []
+
         # generate multinomial probabilities for the observation function (1-D)
-        _obs_mult = [self.CORRECT_OBSERVATION_PROB]
+        obs_mult = [self.CORRECT_OBSERVATION_PROB]
 
         left_over_p = 1 - self.CORRECT_OBSERVATION_PROB
         for _ in range(int(self._size - 2)):
             left_over_p *= .5
-            _obs_mult.append(left_over_p / 2)
-            _obs_mult.insert(0, left_over_p / 2)
+            obs_mult.append(left_over_p / 2)
+            obs_mult.insert(0, left_over_p / 2)
 
-        _obs_mult.append(left_over_p / 2)
-        _obs_mult.insert(0, left_over_p / 2)
+        obs_mult.append(left_over_p / 2)
+        obs_mult.insert(0, left_over_p / 2)
 
-        self._obs_mult = np.array(_obs_mult)
+        self.obs_mult = np.array(obs_mult)
 
         # generate slow locations
+        self._slow_cells = set()
+
         edge = self._size - 1
 
         if self._size > 5:  # bottom left side for larger domains
@@ -86,6 +79,8 @@ class GridWorld(Environment):
             self._slow_cells.add((edge - 2, edge - 2))
 
         # generate goal locations
+        self._goal_cells = []
+
         goal_edge_start = self._size - 2 if self._size < 5 \
             else self._size - 3 if self._size < 7 else self._size - 4
 
@@ -109,6 +104,8 @@ class GridWorld(Environment):
                 + np.ones(len(self._goal_cells)).tolist()
             )
         }
+
+        self.state = np.zeros(2)
 
     def bound_in_grid(self, state_or_obs: np.array) -> np.array:
         """ returns bounded state or obs s.t. it is within the grid
@@ -152,7 +149,7 @@ class GridWorld(Environment):
         # where displacement is centered through - size
         # FIXME: probably wrong
         unbounded_obs = agent_pos \
-            + (np.random.multinomial(1, self._obs_mult, size=2) == 1) \
+            + (np.random.multinomial(1, self.obs_mult, size=2) == 1) \
             - (self._size - 1)
 
         bounded_obs = self.bound_in_grid(unbounded_obs).astype(int)

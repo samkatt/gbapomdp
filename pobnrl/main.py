@@ -5,13 +5,14 @@ import time
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
 import numpy as np
+import tensorflow as tf
 
 from agents import agent
 from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from misc import tf_init, PiecewiseSchedule
+from misc import tf_init, PiecewiseSchedule, tf_run
 
 
 def main():
@@ -33,6 +34,8 @@ def main():
     for run in range(conf.runs):
 
         agent = get_agent(conf, env, name='run-' + str(run))
+        tf_run(tf.global_variables_initializer())
+
         print(f"{time.ctime()}: Initiated agent {agent} for run {run}")
 
         tmp_res = np.zeros(conf.episodes)
@@ -43,9 +46,10 @@ def main():
 
             if episode > 0 and time.time() - cur_time > 5:
 
-                print(time.ctime(),
-                      f"run {run}, episode {episode}: avg return:",
-                      str(np.mean(tmp_res[max(0, episode - 100):episode])))
+                print(
+                    f"{time.ctime()} run {run} episode {episode}: avg return:",
+                    str(np.mean(tmp_res[max(0, episode - 100):episode]))
+                )
 
                 cur_time = time.time()
 
@@ -172,17 +176,10 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--observation_len",
+        "--history_len",
         default=1,
         type=int,
         help="number of past observations to provide to the policy"
-    )
-
-    parser.add_argument(
-        "--replay_buffer_size", "--rb_size",
-        default=1000000,
-        type=int,
-        help="size of replay buffer"
     )
 
     parser.add_argument(
@@ -193,14 +190,14 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--q_target_update_freq",
-        default=256,
+        "--target_update_freq",
+        default=1024,
         type=int,
         help="how often the target network is updated (every # time steps)")
 
     parser.add_argument(
-        "--train_frequency",
-        default=4,
+        "--train_freq",
+        default=32,
         type=int,
         help="how often the agent performs a batch update (every # time steps)"
     )
@@ -263,10 +260,10 @@ def get_agent(
     # construct Q function
     if conf.recurrent:
         qfunc = DRQNNet
-        arch = neural_network_misc.TwoHiddenLayerRecQNet(conf.network_size)
+        arch = neural_network_misc.two_layer_rec_q_net
     else:
         qfunc = DQNNet
-        arch = neural_network_misc.TwoHiddenLayerQNet(conf.network_size)
+        arch = neural_network_misc.two_layer_q_net
 
     if conf.num_nets == 1:
         return agent.BaselineAgent(
