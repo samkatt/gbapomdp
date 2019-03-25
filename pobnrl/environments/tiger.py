@@ -31,16 +31,21 @@ class Tiger(Environment):
         """
 
         self._verbose = verbose
-        self.state = self.sample_start_state()
+        self._state = self.sample_start_state()
 
         self._spaces = {
             "A": DiscreteSpace([3]),
-            "O": DiscreteSpace([1, 1])
+            "O": DiscreteSpace([2, 2])
         }
 
         self._last_recording_time = 0
         self._recording = False
         self._history = []
+
+    @property
+    def state(self):
+        """ returns current state """
+        return self._state
 
     def sample_start_state(self) -> int:  # pylint: disable=no-self-use
         """ samples a random state (tiger left or right)
@@ -81,7 +86,7 @@ class Tiger(Environment):
 
         """
 
-        self.state = self.sample_start_state()
+        self._state = self.sample_start_state()
 
         # if we were recording, output the history and stop
         if self._recording:

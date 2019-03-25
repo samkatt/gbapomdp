@@ -1,4 +1,8 @@
-""" tests misc functionality related to neural networks """
+""" tests misc functionality related to neural networks
+
+TDOO: NYI
+
+"""
 
 import unittest
 
@@ -8,8 +12,6 @@ class TestReplayBuffer(unittest.TestCase):
 
     def test_basic(self):
         """ basic_test """
-
-        self.assertTrue(False)
 
 
 if __name__ == '__main__':

@@ -21,9 +21,16 @@ class Environment(abc.ABC):
 
         """
 
+    @property
+    @abc.abstractmethod
+    def state(self):
+        """ returns the current state """
+
     @abc.abstractmethod
     def spaces(self) -> dict:
         """ returns size of domain space {'O', 'A'}
+
+        TODO: make property? -> action_space and observation_space
 
         RETURNS (`dict`): {'O', 'A'} of spaces to sample from
 

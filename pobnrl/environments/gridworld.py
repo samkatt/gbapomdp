@@ -4,6 +4,7 @@ import copy
 import random
 import time
 
+from typing import List
 import numpy as np
 
 from environments.environment import Environment
@@ -11,7 +12,11 @@ from misc import DiscreteSpace
 
 
 class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
-    """ the tiger environment """
+    """ the gridworld environment
+
+    TODO: add documentation
+
+    """
 
     # consts
     NORTH = 0
@@ -24,7 +29,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
     SLOW_MOVE_SUCCESS_PROB = .15
 
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
-    action_to_string = ["^", ">", "v", "<"]
+    action_to_string = ["^^^", ">>>", "vvv", "<<<"]
 
     def __init__(self, domain_size: int, verbose: bool):
         """ creates a gridworld of provided size and verbosity
@@ -83,7 +88,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         goal_edge_start = self._size - 2 if self._size < 5 \
             else self._size - 3 if self._size < 7 else self._size - 4
 
-        for pos in range(goal_edge_start, self._size):
+        for pos in range(goal_edge_start, self._size - 1):
             self._goal_cells.append((pos, edge))  # fill top side
             self._goal_cells.append((edge, pos))  # fill right side
 
@@ -100,11 +105,54 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             "A": DiscreteSpace([4]),
             "O": DiscreteSpace(
                 [self._size, self._size]
-                + np.ones(len(self._goal_cells)).tolist()
+                + (2 * np.ones(len(self._goal_cells))).tolist()
             )
         }
 
-        self.state = np.zeros(2)
+        self._state = [np.zeros(2), self.sample_goal()]
+
+    @property
+    def state(self):
+        """ returns current state """
+        return self._state
+
+    @state.setter
+    def state(self, value: list):
+        """ set state of grid
+
+        Checks whether the state is valid through assertion error
+
+        Args:
+             value: (`list`): [np.array, (goal_x, goal_y)]
+
+        """
+
+        agent_pos, goal_pos = value
+        assert goal_pos in self.goals
+        assert agent_pos.shape == (2,)
+        assert 0 <= agent_pos[0] < self.size and 0 <= agent_pos[1] < self.size
+
+        self._state = [agent_pos, goal_pos]
+
+    @property
+    def size(self) -> int:
+        """ size of grid (square)
+
+        RETURNS (`int`):
+
+        """
+        return self._size
+
+    @property
+    def goals(self) -> List[int]:
+        """ returns the number of **possible** goals
+
+        Args:
+
+        RETURNS (`List[int]`):
+
+        """
+        return self._goal_cells
 
     def bound_in_grid(self, state_or_obs: np.array) -> np.array:
         """ returns bounded state or obs s.t. it is within the grid
@@ -128,7 +176,6 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         """
         return random.choice(self._goal_cells)
 
-    # FIXME: broken right now because state is not what it is
     def generate_observation(
             self,
             agent_pos: np.array,
@@ -142,13 +189,10 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         RETURNS (`np.array`): [x,y,... hot-encodign-goal-pos....]
 
         """
-        # FIXME: test gridworld.generate_observation
-
         # state + displacement
         # where displacement is centered through - size
-        # FIXME: probably wrong
         unbounded_obs = agent_pos \
-            + (np.random.multinomial(1, self.obs_mult, size=2) == 1) \
+            + np.random.choice(len(self.obs_mult), p=self.obs_mult, size=2) \
             - (self._size - 1)
 
         bounded_obs = self.bound_in_grid(unbounded_obs).astype(int)
@@ -162,7 +206,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
     def reset(self):
         """ resets state """
 
-        self.state = [np.zeros(2), self.sample_goal()]
+        self._state = [np.zeros(2), self.sample_goal()]
 
         # if we were recording, output the history and stop
         if self._recording:
@@ -194,7 +238,8 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             agent_pos = self.bound_in_grid(
                 agent_pos + self.action_to_vec[int(action)])
 
-        # TODO: test whether self.state is modified due to modifying agent_pos
+        self._state = [agent_pos, goal_pos]
+
         obs = self.generate_observation(*self.state)
         reward = 1 if terminal else 0
 
@@ -217,26 +262,14 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         """
         return self._spaces
 
-    # pylint: disable=no-self-use
-    def obs_to_string(self, obs: np.array) -> str:
-        """ translates an  observation to string
-
-        Args:
-             obs: (`np.array`): observation of the agent's state
-
-        RETURNS (`str`): string representation of the observation
+    def display_history(self):
+        """ prints out transitions
 
         """
-        # FIXME: not working right now
-        return str(np.unravel_index(obs.argmax(), obs.shape))
 
-    def display_history(self):
-        """ prints out transitions """
-
-        descr = "[0,0] "
+        descr = f"with goal {self._history[0][1]}:\n [0,0]"
         for step in self._history[1:]:
-            descr += self.action_to_string[int(step["action"])] + " " + str(
-                # FIXME: not working, probably
-                step["state"]) + " (" + self.obs_to_string(step["obs"]) + ") "
+            descr += f" and {self.action_to_string[int(step['action'])]} " \
+                + f"to:\n{step['state'][0]}({step['obs'][:2]})"
 
         print(descr)

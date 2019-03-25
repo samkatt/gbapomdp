@@ -52,6 +52,11 @@ class CollisionAvoidance(Environment):
         self._recording = False
         self._history = []
 
+    @property
+    def state(self):
+        """ returns current state TODO: nyi """
+        raise NotImplementedError
+
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
 

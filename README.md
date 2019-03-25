@@ -15,13 +15,16 @@ Install the required python packages and dependencies
 #### Known dependencies
 
 Open AI gym:
-```pip install gym``
+``` pip install gym ```
 
-OpenCV python
-```pip instal opencv-python```
+OpenCV python:
+``` pip instal opencv-python ```
 
 ffmpeg encoding
-```sudo apt install ffmpeg```
+``` sudo apt install ffmpeg ```
+
+tensorflow
+```pip install tensorflow ```
 
 ### Run the program
 ``` main.py ``` is located in ``` src ```
@@ -41,13 +44,16 @@ python -h
 
 ### TODO
 * refactoring
-    - grep pylint and see if I can fix any of them
-    - move contents of agent to root
     - rename q_functions and the sort.. what are nets + replay buffers?
     - refactor priors away elegantly
+    - create a 'batch' object
 * dev
     - implement logging framework
     - implement static analysing mechanism
+    - think of how to do checks (exceptions, asserts, none at all?)
+* test
+    - envs
+    - integration (does everything *run*)
 
 ### Conventions
 * use ```python FIXME ``` to identify fixes
