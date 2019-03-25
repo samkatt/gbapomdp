@@ -41,7 +41,7 @@ class TestTiger(unittest.TestCase):
 
         obs = []
         # tests effect of listening
-        for _ in range(0, 30):
+        for _ in range(0, 50):
             observation, rew, term = self.env.step(self.env.LISTEN)
             self.assertEqual(state, self.env.state)
             self.assertIn(observation.tolist(), [[0, 0], [0, 1], [1, 0]])
@@ -77,13 +77,14 @@ class TestTiger(unittest.TestCase):
 
     def test_space(self):
         """ tests the size of the spaces """
-        spaces = self.env.spaces()
+        action_space = self.env.action_space
+        observation_space = self.env.observation_space
 
-        self.assertListEqual(spaces['A'].dimensions.tolist(), [3])
-        self.assertListEqual(spaces['O'].dimensions.tolist(), [2, 2])
+        self.assertListEqual(action_space.dimensions.tolist(), [3])
+        self.assertListEqual(observation_space.dimensions.tolist(), [2, 2])
 
-        self.assertEqual(spaces['A'].n, 3)
-        self.assertEqual(spaces['O'].n, 4)
+        self.assertEqual(action_space.n, 3)
+        self.assertEqual(observation_space.n, 4)
 
 
 class TestGridWorld(unittest.TestCase):
@@ -102,11 +103,7 @@ class TestGridWorld(unittest.TestCase):
         ])
 
     def test_step(self):
-        """ Tests Gridworld.step()
-
-        TODO: nyi
-
-        """
+        """ Tests Gridworld.step() """
 
         env = gridworld.GridWorld(3, False)
         env.reset()
@@ -141,16 +138,23 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(rew, 0)
         self.assertEqual(env.state[1], goal)
 
+        env.state = [np.array([2, 2]), (2, 2)]
+        _, rew, term = env.step(np.random.randint(0, 4))
+
+        self.assertEqual(rew, 1)
+        self.assertTrue(term)
+
     def test_space(self):
-        """ Tests Gridworld.spaces() """
+        """ Tests Gridworld.spaces """
         env = gridworld.GridWorld(5, False)
-        spaces = env.spaces()
+        action_space = env.action_space
+        observation_space = env.observation_space
 
-        self.assertEqual(spaces['A'].n, 4)
-        self.assertTupleEqual(spaces['A'].shape, (1,))
+        self.assertEqual(action_space.n, 4)
+        self.assertTupleEqual(action_space.shape, (1,))
 
-        self.assertEqual(spaces['O'].n, 25 * pow(2, len(env.goals)))
-        self.assertTupleEqual(spaces['O'].shape, (2 + len(env.goals),))
+        self.assertEqual(observation_space.n, 25 * pow(2, len(env.goals)))
+        self.assertTupleEqual(observation_space.shape, (2 + len(env.goals),))
 
     def test_utils(self):
         """ Tests misc functionality in Gridworld
@@ -159,6 +163,8 @@ class TestGridWorld(unittest.TestCase):
         * Gridworld.bound_in_grid()
         * Gridworld.sample_goal()
         * Gridworld.goals
+        * Gridworld.space functionality
+        * Gridworld.size
 
         """
 

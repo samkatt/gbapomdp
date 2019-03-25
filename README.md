@@ -43,6 +43,7 @@ python -h
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
+* add interface for space and update env.action_space and env.observation_space
 * refactoring
     - rename q_functions and the sort.. what are nets + replay buffers?
     - refactor priors away elegantly

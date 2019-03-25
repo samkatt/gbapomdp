@@ -4,7 +4,6 @@ Contains:
     * sampling operations
     * mathematical spaces or sets
     * wrapper functions for interaction with tensorflow:
-        - a 'init' and 'getter' function to initiate and return sessions
     * (exploration) schedulars
     * e-greedy methods
 

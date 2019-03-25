@@ -156,13 +156,15 @@ class CollisionAvoidance(Environment):
 
         return obs, reward, terminal
 
-    def spaces(self) -> dict:
-        """ spaces
+    @property
+    def action_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([3]) space """
+        return self._spaces['A']
 
-        RETURNS (`dict`): {'O', 'A'} of discrete spaces |O| = size, |A| = 3
-
-        """
-        return self._spaces
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([grid_height]) space """
+        return self._spaces['O']
 
     def display_history(self):
         """ prints out transitions """

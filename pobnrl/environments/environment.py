@@ -2,6 +2,8 @@
 
 import abc
 
+from misc import DiscreteSpace
+
 
 class Environment(abc.ABC):
     """ interface to all environments """
@@ -26,12 +28,20 @@ class Environment(abc.ABC):
     def state(self):
         """ returns the current state """
 
+    @property
     @abc.abstractmethod
-    def spaces(self) -> dict:
-        """ returns size of domain space {'O', 'A'}
+    def action_space(self) -> DiscreteSpace:
+        """ returns size of domain action space
 
-        TODO: make property? -> action_space and observation_space
+        RETURNS (`pobnrl.misc.DiscreteSpace`): the action space
 
-        RETURNS (`dict`): {'O', 'A'} of spaces to sample from
+        """
+
+    @property
+    @abc.abstractmethod
+    def observation_space(self) -> DiscreteSpace:
+        """ returns size of domain observation space
+
+        RETURNS (`pobnrl.misc.DiscreteSpace`): the observation space
 
         """

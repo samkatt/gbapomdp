@@ -131,13 +131,15 @@ class Tiger(Environment):
 
         return obs, reward, terminal
 
-    def spaces(self) -> dict:
-        """ returns size of domain space {'O', 'A'}
+    @property
+    def action_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([3]) space """
+        return self._spaces['A']
 
-        RETURNS (`dict`): {'O', 'A'} of spaces to sample from
-
-        """
-        return self._spaces
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([1,1]) space """
+        return self._spaces['O']
 
     def display_history(self):
         """ prints out transitions """

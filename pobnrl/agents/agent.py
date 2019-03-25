@@ -130,7 +130,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.target_update_freq = conf['target_update_freq']
         self.train_freq = conf['train_freq']
 
-        self.action_space = env.spaces()["A"]
+        self.action_space = env.action_space
 
         self.timestep = 0
         self.last_action = None
@@ -143,7 +143,10 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
 
         self.q_net = qnet_constructor(
-            env.spaces(),
+            {
+                "A": env.action_space,
+                "O": env.observation_space
+            },
             q_func,
             optimizer,
             **conf,
@@ -254,7 +257,10 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
         self.nets = np.array([
             qnet_constructor(
-                env.spaces(),
+                {
+                    "A": env.action_space,
+                    "O": env.observation_space
+                },
                 q_func,
                 optimizer,
                 **conf,

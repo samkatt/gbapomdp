@@ -9,7 +9,7 @@ import numpy as np
 
 
 def plot_experiment(file_names: List[str]):
-    """ plot_experiment plots a single line given file
+    """ plot_experiment plots returns of experiment return files
 
     Args:
          file_name (`List[str]`): file paths

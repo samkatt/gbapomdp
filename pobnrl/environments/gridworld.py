@@ -14,7 +14,12 @@ from misc import DiscreteSpace
 class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
     """ the gridworld environment
 
-    TODO: add documentation
+    A 2-d grid world where the agent needs to go to a goal location (part of
+    the state space). The agent has 4 actions, a step in each direction, that
+    is carried out succesfully 95% of the time (and is a no-op otherwise),
+    except for some 'bad' cells, where the successrate drops to 15%. The
+    observation function is noisy, with some sort of gaussian probability
+    around the agent's real location (that accumulates around the edges).
 
     """
 
@@ -252,20 +257,18 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
 
         return obs, reward, terminal
 
-    def spaces(self) -> dict:
-        """ return the action and observation space
+    @property
+    def action_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([4]) space """
+        return self._spaces['A']
 
-        Args:
-
-        RETURNS (`dict`): {'O', 'A'} of spaces (A: 4, O: S*num_goals^2)
-
-        """
-        return self._spaces
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
+        return self._spaces['O']
 
     def display_history(self):
-        """ prints out transitions
-
-        """
+        """ prints out transitions """
 
         descr = f"with goal {self._history[0][1]}:\n [0,0]"
         for step in self._history[1:]:

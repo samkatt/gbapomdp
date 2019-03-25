@@ -4,6 +4,7 @@ import time
 import gym
 
 from environments.environment import Environment
+from misc import DiscreteSpace
 
 
 class Cartpole(Environment):
@@ -59,13 +60,12 @@ class Cartpole(Environment):
         obs, reward, terminal, _ = self.cartpole.step(action)
         return obs, reward, terminal
 
-    def spaces(self) -> dict:
-        """ returns size of domain space {'O', 'A'}
+    @property
+    def action_space(self) -> DiscreteSpace:
+        """ the underlying open ai gyme cartpole action space """
+        return self.cartpole.action_space
 
-        returns aciton and observation space of the gym.carpole environment
-
-        RETURNS (`dict`): {'O', 'A'} of spaces to sample from
-
-        """
-        return {"A": self.cartpole.action_space,
-                "O": self.cartpole.observation_space}
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ the underlying open ai gyme cartpole observation space """
+        return self.cartpole.observation_space

@@ -255,7 +255,7 @@ def get_agent(
     """
 
     if conf.random_policy:
-        return agent.RandomAgent(env.spaces()["A"])
+        return agent.RandomAgent(env.action_space)
 
     # construct Q function
     if conf.recurrent:
