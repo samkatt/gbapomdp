@@ -12,7 +12,7 @@ from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from misc import tf_init, PiecewiseSchedule, tf_run
+from misc import tf_init, tf_run
 
 
 def main():
@@ -127,7 +127,7 @@ def parse_arguments():
 
     parser.add_argument(
         "--loss",
-        default="huber",
+        default="rmse",
         help="type of loss to consider",
         choices={"rmse", "huber"})
 

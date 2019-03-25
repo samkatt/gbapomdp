@@ -2,25 +2,29 @@
 
 import sys
 
+from typing import List
 import matplotlib.pyplot as plt
 import more_itertools as mitt
 import numpy as np
 
 
-def plot_experiment(file_name: str):
+def plot_experiment(file_names: List[str]):
     """ plot_experiment plots a single line given file
 
     Args:
-         file_name (`str`): file path
+         file_name (`List[str]`): file paths
 
     """
-    returns = np.loadtxt(file_name, delimiter=',')[:, 0].tolist()
-    smooth_returns = np.mean(list(mitt.windowed(returns, 10)), axis=1)
-    print(smooth_returns)
 
-    plt.plot(smooth_returns)
+    for file_name in file_names:
+        returns = np.loadtxt(file_name, delimiter=',')[:, 0].tolist()
+        smooth_returns = np.mean(list(mitt.windowed(returns, 100)), axis=1)
+
+        plt.plot(smooth_returns, label=file_name)
+
+    plt.legend()
     plt.show()
 
 
 if __name__ == "__main__":
-    plot_experiment(sys.argv[1])
+    plot_experiment(sys.argv[1:])

@@ -121,6 +121,7 @@ def tf_init():
     tf.reset_default_graph()
 
     tf_config = tf.ConfigProto(
+        device_count={'GPU': 0},
         inter_op_parallelism_threads=1,
         intra_op_parallelism_threads=1
     )
