@@ -30,9 +30,9 @@ class TestTiger(unittest.TestCase):
         self.assertIn(0, states, 'there should be at least one of this state')
         self.assertIn(1, states, 'there should be at least one of this state')
 
-        obs = [self.env.reset().tolist() for _ in range(0, 10)]
+        obs = [self.env.reset() for _ in range(0, 10)]
         for observation in obs:
-            self.assertListEqual(observation, [0, 0])
+            np.testing.assert_array_equal(observation, [0, 0])
 
     def test_step(self):
         """ tests some basic dynamics """
@@ -61,7 +61,7 @@ class TestTiger(unittest.TestCase):
             open_correct_door = self.env.state  # implementation knowledge
             obs, rew, term = self.env.step(open_correct_door)
 
-            self.assertListEqual(obs.tolist(), [0, 0])
+            np.testing.assert_array_equal(obs, [0, 0])
             self.assertEqual(rew, 10)
             self.assertTrue(term)
 
@@ -71,7 +71,7 @@ class TestTiger(unittest.TestCase):
             open_wrong_door = 1 - self.env.state  # implementation knowledge
             obs, rew, term = self.env.step(open_wrong_door)
 
-            self.assertListEqual(obs.tolist(), [0, 0])
+            np.testing.assert_array_equal(obs, [0, 0])
             self.assertEqual(rew, -100)
             self.assertTrue(term)
 
@@ -80,8 +80,8 @@ class TestTiger(unittest.TestCase):
         action_space = self.env.action_space
         observation_space = self.env.observation_space
 
-        self.assertListEqual(action_space.dimensions.tolist(), [3])
-        self.assertListEqual(observation_space.dimensions.tolist(), [2, 2])
+        np.testing.assert_array_equal(action_space.dimensions, [3])
+        np.testing.assert_array_equal(observation_space.dimensions, [2, 2])
 
         self.assertEqual(action_space.n, 3)
         self.assertEqual(observation_space.n, 4)
@@ -95,7 +95,7 @@ class TestGridWorld(unittest.TestCase):
         env = gridworld.GridWorld(3, False)
         observation = env.reset()
 
-        self.assertListEqual(env.state[0].tolist(), [0, 0])
+        np.testing.assert_array_equal(env.state[0], [0, 0])
         self.assertIn(observation[2:].astype(int).tolist(), [
             [0, 0, 1],
             [0, 1, 0],
@@ -115,7 +115,7 @@ class TestGridWorld(unittest.TestCase):
         for _ in range(10):
             _, rew, term = env.step(np.random.choice(actions))
 
-            self.assertListEqual(env.state[0].tolist(), [0, 0])
+            np.testing.assert_array_equal(env.state[0], [0, 0])
             self.assertEqual(rew, 0)
             self.assertFalse(term)
             self.assertEqual(env.state[1], goal)
@@ -159,7 +159,7 @@ class TestGridWorld(unittest.TestCase):
     def test_utils(self):
         """ Tests misc functionality in Gridworld
 
-        * Gridworld.generateObservation()
+        * Gridworld.generate_observation()
         * Gridworld.bound_in_grid()
         * Gridworld.sample_goal()
         * Gridworld.goals
@@ -171,26 +171,20 @@ class TestGridWorld(unittest.TestCase):
         env = gridworld.GridWorld(3, False)
 
         # test bound_in_grid
-        self.assertListEqual(
-            env.bound_in_grid(np.array([2, 2])).tolist(),
-            [2, 2]
+        np.testing.assert_array_equal(
+            env.bound_in_grid(np.array([2, 2])), [2, 2]
         )
 
-        self.assertListEqual(
-            env.bound_in_grid(np.array([3, 2])).tolist(),
-            [2, 2]
+        np.testing.assert_array_equal(
+            env.bound_in_grid(np.array([3, 2])), [2, 2]
         )
 
-        self.assertListEqual(
-            env.bound_in_grid(np.array([-1, 3])).tolist(),
-            [0, 2]
+        np.testing.assert_array_equal(
+            env.bound_in_grid(np.array([-1, 3])), [0, 2]
         )
 
         # test sample_goal
         self.assertIn(env.sample_goal(), [(1, 2), (2, 1), (2, 2)])
-
-        # generate_observation
-        # TODO NYI
 
         # Gridworld.goals
         self.assertListEqual(env.goals, [(1, 2), (2, 1), (2, 2)])
@@ -212,6 +206,29 @@ class TestGridWorld(unittest.TestCase):
         # Gridworld.size
         self.assertEqual(env.size, 3)
         self.assertEqual(larger_env.size, 7)
+
+        # generate_observation
+        np.testing.assert_array_almost_equal(
+            env.obs_mult, [.05, .05, .8, .05, .05]
+        )
+        env.obs_mult = np.array([0, 0, 1, 0, 0])
+
+        observation = env.generate_observation([0, 0], (2, 2))
+        np.testing.assert_array_equal(observation[2:], [0, 0, 1])
+        np.testing.assert_array_equal(observation[:2], [0, 0])
+
+        observation = env.generate_observation([1, 1], (2, 1))
+        np.testing.assert_array_equal(observation[2:], [0, 1, 0])
+        np.testing.assert_array_equal(observation[:2], [1, 1])
+
+        env.obs_mult = np.array([0, .5, 0, .5, 0])
+        observation = env.generate_observation([0, 0], (2, 2))
+        self.assertIn(observation[0], [0, 1])
+        self.assertIn(observation[1], [0, 1])
+
+        observation = env.generate_observation([1, 1], (2, 2))
+        self.assertIn(observation[0], [0, 2])
+        self.assertIn(observation[1], [0, 2])
 
 
 if __name__ == '__main__':

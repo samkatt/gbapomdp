@@ -66,8 +66,6 @@ def loss(q_values, targets, loss_type: str):
 def two_layer_q_net(net_input, n_actions: int, n_units: int, scope: str):
     """ Returns Q-values of input using a two-hidden layer architecture
 
-    TODO: add actions here
-
     scope must be unique to this network to ensure this works fine
     (tensorflow).
 
@@ -113,8 +111,6 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
         n_units: int,
         scope: str):
     """ Returns Q-values of input using a two-hidden (rec) layer architecture
-
-    TODO: add actions here
 
     scope must be unique to this network to ensure this works fine
     (tensorflow).

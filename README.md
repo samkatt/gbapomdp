@@ -43,7 +43,6 @@ python -h
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
-* add interface for space and update env.action_space and env.observation_space
 * refactoring
     - rename q_functions and the sort.. what are nets + replay buffers?
     - refactor priors away elegantly
@@ -52,6 +51,7 @@ python -h
     - implement logging framework
     - implement static analysing mechanism
     - think of how to do checks (exceptions, asserts, none at all?)
+    - possibly allow actions to be part of input of nets
 * test
     - envs
     - integration (does everything *run*)

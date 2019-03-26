@@ -1,6 +1,7 @@
 """ Neural networks used as Q functions
 
 TODO: rename file
+TODO: rethink creation of these classes in terms of arguments and names
 
 """
 
@@ -70,7 +71,6 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             **conf):
         """ construct the DRQNNet
 
-        TODO: move away from this approach (create arch on spot)
         Assumes the input architecture q_func is **not** a recurrent one
 
         Args:
@@ -291,8 +291,6 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             optimizer,
             **conf):
         """ construct the DRQNNet
-
-        TODO: move away from this approach (create arch on spot)
 
         Assumes the rec_q_func provided is a recurrent Q function
 
