@@ -189,6 +189,6 @@ class CollisionAvoidance(Environment):
             descr += " " + \
                 f"{self.action_to_string[int(step['action'])]} --> "\
                 f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
-                f"vs {step['state']['obstacle']} ({step['obs'][0]})"
+                f"({step['state']['obstacle']}: {step['obs'][0]})"
 
         print(descr)

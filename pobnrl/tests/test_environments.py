@@ -300,7 +300,6 @@ class TestCollisionAvoidance(unittest.TestCase):
         * CollisionAvoidance.action_sace
         * CollisionAvoidance.observation_space
         * CollisionAvoidance.size
-        * CollisionAvoidance.state
 
         """
 
@@ -326,7 +325,15 @@ class TestCollisionAvoidance(unittest.TestCase):
         # size
         self.assertEqual(env.size, 7)
 
-        # TODO: generate_observation
+        obs = env.generate_observation()
+        np.testing.assert_array_equal(obs[:2], [6, 3])
+        self.assertIn(obs[2], list(range(6)))
+
+        obs = env.generate_observation(
+            {'agent_x': 2, 'agent_y': 4, 'obstacle': 3}
+        )
+        np.testing.assert_array_equal(obs[:2], [2, 4])
+        self.assertIn(obs[2], list(range(6)))
 
 
 if __name__ == '__main__':

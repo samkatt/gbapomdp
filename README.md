@@ -15,32 +15,32 @@ Install the required python packages and dependencies
 #### Known dependencies
 
 Open AI gym:
-``` pip install gym ```
+```bash pip install gym ```
 
 OpenCV python:
-``` pip instal opencv-python ```
+```bash pip instal opencv-python ```
 
 ffmpeg encoding
-``` sudo apt install ffmpeg ```
+```bash sudo apt install ffmpeg ```
 
 tensorflow
-```pip install tensorflow ```
+```bash pip install tensorflow ```
 
 ### Run the program
-``` main.py ``` is located in ``` src ```
+```bash  main.py ``` is located in ``` src ```
 
-```console
+```bash
 python main.py -D cartpole -v --network_size med
 python -h
 ```
 
 ## Development
 
-* documentation: Run ``` ./make_documentation.sh ``` in root and find
-  documentation in ``` doc/pobnrl ``` folder
-* formatting: Run ``` ./check_formatting.sh ``` in root and check whether the
+* documentation: Run ```bash ./make_documentation.sh ``` in root and find
+  documentation in ```bash doc/pobnrl ``` folder
+* formatting: Run ```bash ./check_formatting.sh ``` in root and check whether the
   code is formatted correctly
-* testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
+* testing: Run ```bash ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
 * refactoring
@@ -51,9 +51,7 @@ python -h
     - implement logging framework
     - implement static analysing mechanism
     - think of how to do checks (exceptions, asserts, none at all?)
-    - possibly allow actions to be part of input of nets
 * test
-    - envs
     - integration (does everything *run*)
 
 ### Conventions
