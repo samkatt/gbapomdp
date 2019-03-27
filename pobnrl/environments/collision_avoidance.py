@@ -11,13 +11,18 @@ from misc import DiscreteSpace
 
 # pylint: disable=too-many-instance-attributes
 class CollisionAvoidance(Environment):
-    """ the tiger environment """
+    """ the collision avoidance environment
+
+
+    TODO: doc
+
+    """
 
     # const
     BLOCK_MOVE_PROB = .5
     COLLISION_REWARD = -1000
 
-    action_to_move = [1, 0, -1]
+    action_to_move = [-1, 0, 1]
     action_to_string = ["UP", "STAY", "DOWN"]
 
     def __init__(self, domain_size: int, verbose: bool):
@@ -37,15 +42,16 @@ class CollisionAvoidance(Environment):
         self._mid = int(self._size / 2)
 
         self.init_state = {
-            'agent': np.array((self._size - 1, self._mid)),
+            'agent_x': self._size - 1,
+            'agent_y': self._mid,
             'obstacle': self._mid
         }
 
-        self.state = copy.deepcopy(self.init_state)
+        self._state = copy.deepcopy(self.init_state)
 
         self._spaces = {
             "A": DiscreteSpace([3]),
-            "O": DiscreteSpace([self._size])
+            "O": DiscreteSpace([self._size, self._size, self._size])
         }
 
         self._last_recording_time = 0
@@ -53,9 +59,14 @@ class CollisionAvoidance(Environment):
         self._history = []
 
     @property
-    def state(self):
-        """ returns current state TODO: nyi """
-        raise NotImplementedError
+    def size(self):
+        """ returns the size (of grid) of collision avoidance """
+        return self._size
+
+    @property
+    def state(self) -> dict:
+        """ {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` } """
+        return self._state
 
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
@@ -71,24 +82,27 @@ class CollisionAvoidance(Environment):
         """
         return max(0, min(self._size - 1, y_pos))
 
-    def generate_observation(self, obstacle_pos: int) -> np.array:
-        """ samples a possibly noisy observation of the obstacle
+    def generate_observation(self, state: dict = None) -> np.ndarray:
+        """ generates an observation of the state (noisy obstacle sensor)
 
         Args:
-             obstacle_pos: (`int`): a 'real' position of the obstacle
+             state: (`dict`): {'agent_x': int, 'agent_y': int, 'obstacle': int}
+                                If None, it will use the current state
 
-        RETURNS (`np.array`): an observation of the position [y]
+        RETURNS (`np.ndarray`): [agent_x, agent_y, obstacle_y]
 
         """
-        obs = np.array(
-            [self.bound_in_grid(round(obstacle_pos + np.random.normal()))])
+        if state is None:
+            state = self.state
 
-        return obs
+        obs = self.bound_in_grid(round(state['obstacle'] + np.random.normal()))
+
+        return np.array([state['agent_x'], state['agent_y'], obs])
 
     def reset(self):
         """ resets state and potentially records the episode"""
 
-        self.state = copy.deepcopy(self.init_state)
+        self._state = copy.deepcopy(self.init_state)
 
         # if we were recording, output the history and stop
         if self._recording:
@@ -101,7 +115,7 @@ class CollisionAvoidance(Environment):
             self._history = [copy.deepcopy(self.state)]
             self._recording = True
 
-        return self.generate_observation(self._mid)
+        return self.generate_observation()
 
     def step(self, action: int) -> list:
         """ updates the state and return observed transitions
@@ -120,9 +134,9 @@ class CollisionAvoidance(Environment):
         """
 
         # move agent
-        self.state['agent'][0] -= 1
-        self.state['agent'][1] = self.bound_in_grid(
-            self.state['agent'][1] + self.action_to_move[int(action)]
+        self.state['agent_x'] -= 1
+        self.state['agent_y'] = self.bound_in_grid(
+            self.state['agent_y'] + self.action_to_move[int(action)]
         )
 
         # move obstacle
@@ -135,15 +149,15 @@ class CollisionAvoidance(Environment):
             self.state['obstacle'] = self.bound_in_grid(self.state['obstacle'])
 
         # observation
-        obs = self.generate_observation(self.state['obstacle'])
+        obs = self.generate_observation()
 
         # reward and terminal
-        reward = 0
+        reward = 0 if action == 1 else -1
         terminal = False
 
-        if self.state['agent'][0] == 0:
+        if self.state['agent_x'] == 0:
             terminal = True
-            if self.state['agent'][1] == self.state['obstacle']:
+            if self.state['agent_y'] == self.state['obstacle']:
                 reward = self.COLLISION_REWARD
 
         # recording
@@ -174,7 +188,7 @@ class CollisionAvoidance(Environment):
         for step in self._history[1:]:
             descr += " " + \
                 f"{self.action_to_string[int(step['action'])]} --> "\
-                f"{step['state']['agent']} "\
+                f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
                 f"vs {step['state']['obstacle']} ({step['obs'][0]})"
 
         print(descr)
