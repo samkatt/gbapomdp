@@ -152,7 +152,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--random_priors",
+        "--prior_functions",
         action='store_true',
         help="will incorporate random prior in loss function"
     )

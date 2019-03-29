@@ -85,13 +85,18 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             * `str` network_size in {'small', 'med', 'large'}
             * `int` batch_size: size of batch learning
             * `int` history_len: length of history to consider
-            * `bool` random_priors
+            * `bool` prior_functions
             * `bool` double_q
             * `bool` clipping
             * `float` gamma
 
 
         """
+
+        assert conf['history_len'] > 0
+        assert conf['batch_size'] > 0
+        assert conf['network_size'] in ['small', 'med', 'large']
+        assert 1 >= conf['gamma'] > 0
 
         self.name = conf['scope']
         self.history_len = conf['history_len']
@@ -100,6 +105,9 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.replay_buffer \
             = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
 
+        # shape of network input: variable in first dimension because
+        # we sometimes provide complete sequences (for batch updates)
+        # and sometimes just the last observation
         input_shape = (self.history_len, *env_spaces["O"].shape)
 
         # training operation place holders
@@ -122,6 +130,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
         # define operations to retrieve q and target values
+
         self.qvalues_fn = q_func(
             self.obs_t_ph,
             env_spaces["A"].n,
@@ -143,7 +152,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             scope=self.name + '_target'
         )
 
-        if conf['random_priors']:  # add random function to our estimates
+        # define loss
+        if conf['prior_functions']:  # add random function to our estimates
             prior_vals = neural_network_misc.two_layer_q_net(
                 self.obs_t_ph,
                 env_spaces["A"].n,
@@ -158,18 +168,20 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            self.qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
-
+            qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
             next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
 
-        # define loss
+        else:  # no random prior to our loss function
+            qvalues_fn = self.qvalues_fn
+
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
 
         q_values = tf.gather_nd(
-            self.qvalues_fn,
+            qvalues_fn,
             action_onehot,
-            name=self.name + '_pick_Q')
+            name=self.name + '_pick_Q'
+        )
 
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
@@ -187,9 +199,11 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_net')
+            scope=self.name + '_net'
+        )
         gradients, variables = zip(
-            *optimizer.compute_gradients(loss, var_list=net_vars))
+            *optimizer.compute_gradients(loss, var_list=net_vars)
+        )
 
         if conf['clipping']:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
@@ -200,7 +214,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_target')
+            scope=self.name + '_target'
+        )
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
                                    sorted(target_vars, key=lambda v: v.name)):
@@ -306,7 +321,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             * `str` loss: description of how to compute the loss
             * `int` batch_size: size of batch learning
             * `int` history_len: length of history to consider
-            * `bool` random_priors: whether to use random prior in target
+            * `bool` prior_functions: whether to use random prior in target
             * `bool` double_q: whether to apply the double_q method
             * `bool` clipping: whether to apply clipping
             * `float` gamma: discount factor in target
@@ -318,12 +333,12 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         assert conf['network_size'] in ['small', 'med', 'large']
         assert 1 >= conf['gamma'] > 0
 
-        self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
-
         self.name = conf['scope']
         self.history_len = conf['history_len']
         self.batch_size = conf['batch_size']
+
+        self.replay_buffer \
+            = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
 
         self.rnn_state = None
 
@@ -342,14 +357,15 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.rew_t_ph = tf.placeholder(
             tf.float32, [None], name=self.name + '_rewards'
         )
+        self.done_mask_ph = tf.placeholder(
+            tf.float32, [None], name=self.name + '_terminals'
+        )
         self.obs_tp1_ph = tf.placeholder(
             tf.float32,
             [None] + list(input_shape),
             name=self.name + '_next_ob'
         )
-        self.done_mask_ph = tf.placeholder(
-            tf.float32, [None], name=self.name + '_terminals'
-        )
+
         self.rnn_state_ph = tf.placeholder(
             tf.float32, name=self.name + '_rnn_state'
         )
@@ -385,9 +401,9 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             scope=self.name + '_net'
         )
 
-        qvalues_fn = tf.identity(self.qvalues_fn)
+        # define loss
 
-        if conf['random_priors']:  # add random function to our estimates
+        if conf['prior_functions']:  # add random function to our estimates
 
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_t_ph,
@@ -406,10 +422,12 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            qvalues_fn = tf.add(qvalues_fn, prior_vals)
+            qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
             next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
 
-        # define loss
+        else:  # no random prior to our loss function
+            qvalues_fn = self.qvalues_fn
+
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1
         )
@@ -446,7 +464,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_target')
+            scope=self.name + '_target'
+        )
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
                                    sorted(target_vars, key=lambda v: v.name)):

@@ -14,7 +14,13 @@ class CollisionAvoidance(Environment):
     """ the collision avoidance environment
 
 
-    TODO: doc
+    the agent pilots a plane that flies from right to left (one cell at a time)
+    in a square grid. The agent can choose to stay level for no cost, or move
+    either one cell diagonally with a reward of −1. The episode ends when the
+    plane reaches the last column, where it must avoid collision with a
+    vertically moving obstacle (or face a reward of −1000). The obstacle
+    movement is stochastic, and the agent observes its own coordinates precisly
+    and the obstacles coordinate with some noise.
 
     """
 

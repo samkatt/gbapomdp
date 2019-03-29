@@ -27,7 +27,8 @@ class Cartpole(Environment):
             self.cartpole,
             'videos/',
             force=True,
-            video_callable=recording_policy)
+            video_callable=recording_policy
+        )
 
     def show_recording(self, _):
         """ returns whether a recording should be shown """
@@ -59,6 +60,11 @@ class Cartpole(Environment):
 
         obs, reward, terminal, _ = self.cartpole.step(action)
         return obs, reward, terminal
+
+    @property
+    def state(self):
+        """ returns current state """
+        raise NotImplementedError
 
     @property
     def action_space(self) -> DiscreteSpace:

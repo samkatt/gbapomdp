@@ -326,12 +326,14 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertEqual(env.size, 7)
 
         obs = env.generate_observation()
+        self.assertTupleEqual(obs.shape, (3,))
         np.testing.assert_array_equal(obs[:2], [6, 3])
         self.assertIn(obs[2], list(range(6)))
 
         obs = env.generate_observation(
             {'agent_x': 2, 'agent_y': 4, 'obstacle': 3}
         )
+        self.assertTupleEqual(obs.shape, (3,))
         np.testing.assert_array_equal(obs[:2], [2, 4])
         self.assertIn(obs[2], list(range(6)))
 

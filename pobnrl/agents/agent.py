@@ -126,6 +126,11 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
         """
 
+        assert conf['target_update_freq'] > 0
+        assert conf['train_freq'] > 0
+        assert 1 > conf['learning_rate'] > 0
+        assert conf['history_len'] > 0
+
         # params
         self.target_update_freq = conf['target_update_freq']
         self.train_freq = conf['train_freq']
