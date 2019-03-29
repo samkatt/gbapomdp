@@ -22,6 +22,10 @@ class QNetInterface(abc.ABC):
 
     @abc.abstractmethod
     def reset(self):
+        """ resets to initial state """
+
+    @abc.abstractmethod
+    def episode_reset(self):
         """ resets the internal state to prepare for a new episode """
 
     @abc.abstractmethod
@@ -224,6 +228,10 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.update_target_op = tf.group(*update_target_op)
 
     def reset(self):
+        """ empties replay buffer """
+        self.replay_buffer.clear()
+
+    def episode_reset(self):
         """ no internal state so does nothing, interface requirement """
 
     def qvalues(self, obs: np.ndarray) -> np.array:
@@ -474,6 +482,12 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.update_target_op = tf.group(*update_target_op)
 
     def reset(self):
+        """ resets the net internal state and replay buffer """
+
+        self.replay_buffer.clear()
+        self.rnn_state = None
+
+    def episode_reset(self):
         """ resets the net internal state """
         self.rnn_state = None
 

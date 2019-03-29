@@ -379,3 +379,18 @@ class ReplayBuffer():
         ) + 1
 
         return np.arange(first_index, end_index + 1) % self.SIZE  # incl.
+
+    def clear(self):
+        """ clears out all experiences and sets total to 0 """
+
+        self._total = 0
+
+        self._obs[:] = float('nan')
+        self._actions[:] = -1
+        self._rewards[:] = float('nan')
+
+        # during sample, we do not wish to return sequences that wrap around to
+        # the back of the buffer until there is valid data, so we avoid this
+        # sampling by setting the last step terminal
+        self._terminals[:] = True
+        self._terminals[-1] = False

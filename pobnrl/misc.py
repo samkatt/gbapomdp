@@ -117,8 +117,6 @@ def tf_init():
 
     print("initiating tensorflow session")
 
-    tf.reset_default_graph()
-
     tf_config = tf.ConfigProto(
         device_count={'GPU': 0},
         inter_op_parallelism_threads=1,
@@ -126,6 +124,22 @@ def tf_init():
     )
 
     ____SESS = tf.Session(config=tf_config)
+
+
+def tf_close():
+    """" closes the tf session
+
+    Hopefully only called at the end of the program
+
+
+    """
+
+    global ____SESS  # pylint: disable=global-statement
+    assert ____SESS is not None, "Cannot close session before initiating it"
+
+    print("closing tensorflow session")
+
+    ____SESS.close()
 
 
 def tf_run(operations, **kwargs):

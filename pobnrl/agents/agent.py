@@ -17,7 +17,11 @@ class Agent(abc.ABC):
     """ all agents must implement this interface """
 
     @abc.abstractmethod
-    def reset(self, observation: np.ndarray):
+    def reset(self):
+        """ resets agent to initial state """
+
+    @abc.abstractmethod
+    def episode_reset(self, observation: np.ndarray):
         """ called after each episode to prepare for the next
 
         Args:
@@ -64,7 +68,10 @@ class RandomAgent(Agent):
         """
         self._action_space = action_space
 
-    def reset(self, observation: np.ndarray):
+    def reset(self):
+        """ stateless and thus ignored """
+
+    def episode_reset(self, observation: np.ndarray):
         """ Will not do anything since there is no internal state to reset
 
         Part of the interface of `pobnrl.agents.agent.Agent`
@@ -158,7 +165,18 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
             scope=conf['name'] + '_net'
         )
 
-    def reset(self, observation: np.ndarray):
+    def reset(self):
+        """ re-initializes members
+
+        e.g.  empties replay buffer and sets timestep to 0, resets net
+        """
+
+        self.timestep = 0
+        self.last_action = None
+        self.last_obs.clear()
+        self.q_net.reset()
+
+    def episode_reset(self, observation: np.ndarray):
         """ prepares for next episode
 
         stores the observation and resets its Q-network
@@ -171,7 +189,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.last_obs.clear()
         self.last_obs.append(observation)
 
-        self.q_net.reset()
+        self.q_net.episode_reset()
 
     def select_action(self):
         """ requests greedy action from network """
@@ -276,7 +294,23 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
         self._current_policy = np.random.choice(self.nets)
 
-    def reset(self, observation: np.ndarray):
+    def reset(self):
+        """ re-initializes members
+
+        e.g.  empties replay buffer and sets timestep to 0, resets nets
+        """
+
+        self.timestep = 0
+        self.last_action = None
+        self.last_obs.clear()
+
+        self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
+        self._current_policy = np.random.choice(self.nets)
+
+        for net in self.nets:
+            net.reset()
+
+    def episode_reset(self, observation: np.ndarray):
         """ prepares for next episode
 
         stores the observation and resets its Q-network and resets its models
@@ -293,7 +327,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self._current_policy = np.random.choice(self.nets)
 
         for net in self.nets:
-            net.reset()
+            net.episode_reset()
 
     def select_action(self):
         """ returns greedy action from current active policy """

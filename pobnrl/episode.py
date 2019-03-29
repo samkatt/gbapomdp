@@ -24,7 +24,7 @@ def run_episode(
     discount = 1  # discount accumulates by mulitplying with conf.gamma
 
     obs = env.reset()
-    agent.reset(obs)
+    agent.episode_reset(obs)
     time = 0
     while not terminal and time < conf.horizon:
 

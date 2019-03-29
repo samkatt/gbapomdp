@@ -12,7 +12,10 @@ from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from misc import tf_init, tf_run
+from misc import tf_init, tf_run, tf_close
+
+import objgraph  # TODO: remove after debugging
+import random  # TODO: remove after debugging
 
 
 def main():
@@ -21,25 +24,25 @@ def main():
     conf = parse_arguments()
 
     cur_time = time.time()
-
-    tf_init()
-
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
 
     env = get_environment(conf.domain, conf.domain_size, conf.verbose)
+    agent = get_agent(conf, env, name='agent')
+    init_op = tf.global_variables_initializer()
+
+    # TODO: rewrite as 'with' (context)
+    tf_init()
 
     print(f"Running experiment on {env}")
-
     for run in range(conf.runs):
 
-        agent = get_agent(conf, env, name='run-' + str(run))
-        tf_run(tf.global_variables_initializer())
-
-        print(f"{time.ctime()}: Initiated agent {agent} for run {run}")
+        tf_run(init_op)
+        agent.reset()
 
         tmp_res = np.zeros(conf.episodes)
 
+        print(f"{time.ctime()}: Starting run {run}")
         for episode in range(conf.episodes):
 
             tmp_res[episode] = run_episode(env, agent, conf)
@@ -73,6 +76,8 @@ def main():
             summary,
             delimiter=', ',
             header="return mean, return var, return count, return stder")
+
+    tf_close()
 
 
 def parse_arguments():
