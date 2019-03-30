@@ -7,6 +7,7 @@ TODO: rethink creation of these classes in terms of arguments and names
 
 from typing import Callable
 import abc
+import logging
 import numpy as np
 import tensorflow as tf
 
@@ -66,6 +67,8 @@ class QNetInterface(abc.ABC):
 
 class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
     """ a network based on DQN that can return q values and update """
+
+    logger = logging.getLogger(__name__)
 
     def __init__(  # pylint: disable=too-many-locals
             self,
@@ -228,7 +231,11 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.update_target_op = tf.group(*update_target_op)
 
     def reset(self):
-        """ empties replay buffer """
+        """ resets the replay buffer
+
+        Weights are controlled in tensorflow and reset outside of this scope
+
+        """
         self.replay_buffer.clear()
 
     def episode_reset(self):
@@ -262,7 +269,9 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            print(f"Network {self.name} cannot batch update due to small buf")
+            self.logger.debug(
+                "Network %s cannot batch update due to small buf", self.name
+            )
             return
 
         batch = self.replay_buffer.sample(
@@ -306,6 +315,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
 class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
     """ a network based on DRQN that can return q values and update """
+
+    logger = logging.getLogger(__name__)
 
     def __init__(  # pylint: disable=too-many-locals
             self,
@@ -482,7 +493,11 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.update_target_op = tf.group(*update_target_op)
 
     def reset(self):
-        """ resets the net internal state and replay buffer """
+        """ resets the net internal state and replay buffer
+
+        Weights are controlled in tensorflow and reset outside of this scope
+
+        """
 
         self.replay_buffer.clear()
         self.rnn_state = None
@@ -519,7 +534,9 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            print(f"Network {self.name} cannot batch update due to small buf")
+            self.logger.debug(
+                "Network % cannot batch update due to small buf", self.name
+            )
             return
 
         batch = self.replay_buffer.sample(

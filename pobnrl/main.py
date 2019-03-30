@@ -1,5 +1,6 @@
 """ run Neural RL methods on partially observable environments """
 
+import logging
 import time
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -12,16 +13,24 @@ from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from misc import tf_init, tf_run, tf_close
+from misc import tf_session, tf_run
 
-import objgraph  # TODO: remove after debugging
-import random  # TODO: remove after debugging
+VERBOSE_TO_LOGGING = {
+    0: logging.ERROR,
+    1: logging.INFO,
+    2: logging.DEBUG
+}
 
 
-def main():
-    """ main: tests the performance of an agent in an environment """
+def main(conf):
+    """ main: runs an agent in an environment given configurations
 
-    conf = parse_arguments()
+    Args:
+         conf: configurations as namespace from `parse_arguments`
+
+    """
+    logging.basicConfig(level=VERBOSE_TO_LOGGING[conf.verbose])
+    logger = logging.getLogger(__name__)
 
     cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
@@ -31,63 +40,69 @@ def main():
     agent = get_agent(conf, env, name='agent')
     init_op = tf.global_variables_initializer()
 
-    # TODO: rewrite as 'with' (context)
-    tf_init()
+    logger.info("Running experiment on %s", str(env))
 
-    print(f"Running experiment on {env}")
-    for run in range(conf.runs):
+    with tf_session():
+        for run in range(conf.runs):
 
-        tf_run(init_op)
-        agent.reset()
+            tf_run(init_op)
+            agent.reset()
 
-        tmp_res = np.zeros(conf.episodes)
+            tmp_res = np.zeros(conf.episodes)
 
-        print(f"{time.ctime()}: Starting run {run}")
-        for episode in range(conf.episodes):
+            logger.info("%s: Starting run %d", time.ctime(), run)
+            for episode in range(conf.episodes):
 
-            tmp_res[episode] = run_episode(env, agent, conf)
+                tmp_res[episode] = run_episode(env, agent, conf)
 
-            if episode > 0 and time.time() - cur_time > 5:
+                if episode > 0 and time.time() - cur_time > 5:
 
-                print(
-                    f"{time.ctime()} run {run} episode {episode}: avg return:",
-                    str(np.mean(tmp_res[max(0, episode - 100):episode]))
-                )
+                    logger.info(
+                        "%s run %d episode %d: avg return: %f",
+                        time.ctime(),
+                        run, episode,
+                        np.mean(tmp_res[max(0, episode - 100):episode])
+                    )
 
-                cur_time = time.time()
+                    cur_time = time.time()
 
-        # update mean and variance
-        delta = tmp_res - result_mean
-        result_mean += delta / (run + 1)
-        delta_2 = tmp_res - result_mean
-        result_var += delta * delta_2
+            # update mean and variance
+            delta = tmp_res - result_mean
+            result_mean += delta / (run + 1)
+            delta_2 = tmp_res - result_mean
+            result_var += delta * delta_2
 
-        # process results into rows of for each episode
-        # return avg, return var, return #, return stder
-        summary = np.transpose([result_mean,
-                                result_var / (run + 1),
-                                [run + 1] * conf.episodes,
-                                np.sqrt(
-                                    result_var / (run + 1))
-                                / sqrt(run + 1)])
+            # process results into rows of for each episode
+            # return avg, return var, return #, return stder
+            summary = np.transpose([result_mean,
+                                    result_var / (run + 1),
+                                    [run + 1] * conf.episodes,
+                                    np.sqrt(
+                                        result_var / (run + 1))
+                                    / sqrt(run + 1)])
 
-        np.savetxt(
-            conf.file,
-            summary,
-            delimiter=', ',
-            header="return mean, return var, return count, return stder")
-
-    tf_close()
+            np.savetxt(
+                conf.file,
+                summary,
+                delimiter=', ',
+                header="return mean, return var, return count, return stder")
 
 
-def parse_arguments():
-    """ in control of converting command line arguments to configurationis """
+def parse_arguments(args: str = None):
+    """ converges arguments from commandline (or string) to namespace
+
+    Args:
+         args: (`str`): a string of arguments, uses cmdline if None
+
+    """
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
         "--verbose", "-v",
-        action='store_true',
-        help="whether to output verbose messages")
+        choices=[0, 1, 2],
+        default=0,
+        type=int,
+        help="level of logging")
 
     parser.add_argument(
         "--domain", "-D",
@@ -108,7 +123,7 @@ def parse_arguments():
 
     parser.add_argument(
         "--horizon", "-H",
-        default=50,
+        default=1000,
         type=int,
         help="length of the problem")
 
@@ -177,6 +192,7 @@ def parse_arguments():
     parser.add_argument(
         "--network_size",
         help='the size of the q-network',
+        default='med',
         choices=["small", "med", "large"]
     )
 
@@ -213,23 +229,24 @@ def parse_arguments():
         help="use this flag to pick the random agent controller"
     )
 
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def get_environment(
         domain_name: str,
         domain_size: int,
-        verbose: bool) -> environment.Environment:
+        verbose: int) -> environment.Environment:
     """ the factory function to construct environments
 
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
-         verbose: (`bool`): whether or not to be verbose
+         verbose: (`int`): verbosity level
 
     RETURNS (`pobnrl.environments.environment.Environment`)
 
     """
+    verbose = verbose > 0
 
     if domain_name == "tiger":
         return tiger.Tiger(verbose)
@@ -289,4 +306,4 @@ def get_agent(
 
 
 if __name__ == '__main__':
-    main()
+    main(parse_arguments())

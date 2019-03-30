@@ -197,4 +197,4 @@ class CollisionAvoidance(Environment):
                 f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
                 f"({step['state']['obstacle']}: {step['obs'][0]})"
 
-        print(descr)
+        self.logger.info(descr)

@@ -48,9 +48,8 @@ python -h
     - refactor priors away elegantly
     - create a 'batch' class and use that instead of templates...?
 * dev
-    - implement logging framework
+    - improve logging syntax
     - implement static analysing mechanism
-    - think of how to do checks (exceptions, asserts, none at all?)
 * test
     - integration (does everything *run*)
 

@@ -1,5 +1,6 @@
 """ tiger environment """
 
+import logging
 import time
 
 import copy
@@ -11,6 +12,8 @@ from misc import DiscreteSpace
 
 class Tiger(Environment):
     """ the tiger environment """
+
+    logger = logging.getLogger(__name__)
 
     # consts
     LEFT = 0
@@ -47,7 +50,8 @@ class Tiger(Environment):
         """ returns current state """
         return self._state
 
-    def sample_start_state(self) -> int:  # pylint: disable=no-self-use
+    @staticmethod
+    def sample_start_state() -> int:
         """ samples a random state (tiger left or right)
 
         RETURNS (`int`): an initial state (in [0,1])
@@ -159,4 +163,6 @@ class Tiger(Environment):
         for step in self._history[1:-1]:
             descr = descr + to_string(step["obs"][1])
 
-        print(descr + ", opened " + to_string(self._history[-1]["action"]))
+        self.logger.info(
+            "%s, opened %s", descr, to_string(self._history[-1]["action"])
+        )

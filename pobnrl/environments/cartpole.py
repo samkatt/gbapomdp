@@ -1,6 +1,8 @@
 """ cartpole environment """
 
+import logging
 import time
+
 import gym
 
 from environments.environment import Environment
@@ -9,6 +11,8 @@ from misc import DiscreteSpace
 
 class Cartpole(Environment):
     """ cartpole environment """
+
+    logger = logging.getLogger(__name__)
 
     def __init__(self, verbose: bool):
         """ constructs cartpole with optionally graphical representation
@@ -23,6 +27,8 @@ class Cartpole(Environment):
         recording_policy = self.show_recording if verbose else False
 
         self.cartpole = gym.make('CartPole-v0')
+
+        # because of mysteries of python self.cartpole must be initiated first
         self.cartpole = gym.wrappers.Monitor(
             self.cartpole,
             'videos/',
@@ -34,13 +40,13 @@ class Cartpole(Environment):
         """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
-            print('showing recording..')
+            self.logger.info('showing recording..')
             return True
 
         return False
 
     def __del__(self):
-        self.cartpole.close()
+        self.cartpole.env.close()
 
     def reset(self):
         """ resets the cartpole gym environment """

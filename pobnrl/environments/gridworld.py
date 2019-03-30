@@ -1,6 +1,7 @@
 """ gridworld environment """
 
 import copy
+import logging
 import random
 import time
 
@@ -22,6 +23,8 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
     around the agent's real location (that accumulates around the edges).
 
     """
+
+    logger = logging.getLogger(__name__)
 
     # consts
     NORTH = 0
@@ -275,4 +278,4 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             descr += f" and {self.action_to_string[int(step['action'])]} " \
                 + f"to:\n{step['state'][0]}({step['obs'][:2]})"
 
-        print(descr)
+        self.logger.info(descr)

@@ -10,9 +10,14 @@ Contains:
 """
 
 from typing import List, Callable
+import os
+from contextlib import contextmanager
 
+import logging
 import numpy as np
 import tensorflow as tf
+
+logger = logging.getLogger(__name__)
 
 
 def epsilon_greedy(q_values, epsilon: float, action_space) -> int:
@@ -103,19 +108,26 @@ class PiecewiseSchedule():  # pylint: disable=too-few-public-methods
 
 
 # please, for the love of everything good in this world, don't refer to this
-____SESS = None
+_SESS = None
 
 
-def tf_init():
-    """init initiates the wrapper (called once)
+@contextmanager
+def tf_session():
+    """ used as context to run TF in
 
-    anything done with TF before calling this function is bogus
+    e.g.:
+    with tf_session():
+
+        ...
+        tf_run(...)
+
     """
 
-    global ____SESS  # pylint: disable=global-statement
-    assert ____SESS is None, "Please initiate tf_wrapper only once"
+    # __enter__
+    global _SESS  # pylint: disable=global-statement
+    assert _SESS is None, "Please initiate tf_wrapper only once"
 
-    print("initiating tensorflow session")
+    logger.info("initiating tensorflow session")
 
     tf_config = tf.ConfigProto(
         device_count={'GPU': 0},
@@ -123,39 +135,24 @@ def tf_init():
         intra_op_parallelism_threads=1
     )
 
-    ____SESS = tf.Session(config=tf_config)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # avoid print statements
+    _SESS = tf.Session(config=tf_config)
 
+    yield _SESS
 
-def tf_close():
-    """" closes the tf session
+    # __exit__()
 
-    Hopefully only called at the end of the program
+    logger.info("closing tensorflow session")
 
+    _SESS.close()
+    _SESS = None
 
-    """
-
-    global ____SESS  # pylint: disable=global-statement
-    assert ____SESS is not None, "Cannot close session before initiating it"
-
-    print("closing tensorflow session")
-
-    ____SESS.close()
+    tf.reset_default_graph()
 
 
 def tf_run(operations, **kwargs):
     """ runs a tf session """
-    return tf_get_session().run(operations, **kwargs)
-
-
-def tf_get_session():
-    """ returns current session, please use sparingly and see `tf_run` """
-
-    global ____SESS  # pylint: disable=global-statement
-
-    if ____SESS is None:
-        tf_init()
-
-    return ____SESS
+    return _SESS.run(operations, **kwargs)
 
 
 class DiscreteSpace():
