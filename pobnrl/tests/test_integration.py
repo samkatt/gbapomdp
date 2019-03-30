@@ -8,14 +8,70 @@ from main import main, parse_arguments
 class TestDefaults(unittest.TestCase):
     """ runs default experiment """
 
+    def run_experiment(self, args):
+        """ runs an experiment with args as configuration
+
+        Adds some default arguments to the experiment
+
+        Args:
+             args: ['--arg=val', ...] the argument to run
+
+        """
+
+        def_args = ['--episodes=3', '--runs=3']
+
+        # pylint: disable=too-many-function-args
+        main(parse_arguments(args + def_args))
+
     def test_environments(self):  # pylint: disable=no-self-use
         """ just the default arguments on some environments """
 
-        envs = ['tiger', 'cartpole', 'collision_avoidance', 'gridworld']
-        def_args = ['--domain_size=3', '--episodes=3', '--runs=3']
+        self.run_experiment(['-D=tiger'])
+        self.run_experiment(['--domain_size=3', '-D=cartpole'])
+        self.run_experiment(['--domain_size=3', '-D=gridworld'])
+        self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
 
-        for env in envs:
-            args = ['-D', env] + def_args
-            confs = parse_arguments(args)
+    def test_ensemble(self):
+        """ run the ensemble agent """
+        self.run_experiment(['-D=tiger', '--num_nets=5'])
+        self.run_experiment(['-D=tiger', '--num_nets=5', '--prior_functions'])
 
-            main(confs)  # pylint: disable=too-many-function-args
+    def test_recurrent(self):
+        """ tests whether recurrent network runs correctly """
+
+        # baseline agent
+        self.run_experiment(
+            ['-D=collision_avoidance',
+             '--domain_size=5',
+             '--recurrent',
+             '--history_len=3']
+        )
+
+        # ensemble agent
+        self.run_experiment(
+            ['-D=gridworld',
+             '--domain_size=5',
+             '--recurrent',
+             '--history_len=3',
+             '--num_nets=3']
+        )
+
+        def test_basic_features(self):
+            """ tests clipping, double_q, huber loss """
+
+            self.run_experiment(['-D=tiger', '--huber', '--num_nets=3'])
+
+            self.run_experiment(
+                ['--domain_size=3', '-D=cartpole', '--clipping']
+            )
+
+            self.run_experiment(
+                ['--domain_size=5',
+                 '-D=collision_avoidance',
+                 '--double_q',
+                 '--recurrent']
+            )
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -29,7 +29,13 @@ def main(conf):
          conf: configurations as namespace from `parse_arguments`
 
     """
-    logging.basicConfig(level=VERBOSE_TO_LOGGING[conf.verbose])
+
+    logging.basicConfig(
+        level=VERBOSE_TO_LOGGING[conf.verbose],
+        format="[%(asctime)s] %(levelname)s: %(message)s \t\t\t(%(name)s)",
+        datefmt='%H:%M:%S'
+    )
+
     logger = logging.getLogger(__name__)
 
     cur_time = time.time()
@@ -50,7 +56,7 @@ def main(conf):
 
             tmp_res = np.zeros(conf.episodes)
 
-            logger.info("%s: Starting run %d", time.ctime(), run)
+            logger.info("Starting run %d", run)
             for episode in range(conf.episodes):
 
                 tmp_res[episode] = run_episode(env, agent, conf)
@@ -58,8 +64,7 @@ def main(conf):
                 if episode > 0 and time.time() - cur_time > 5:
 
                     logger.info(
-                        "%s run %d episode %d: avg return: %f",
-                        time.ctime(),
+                        "run %d episode %d: avg return: %f",
                         run, episode,
                         np.mean(tmp_res[max(0, episode - 100):episode])
                     )

@@ -52,12 +52,3 @@ python -h
     - implement static analysing mechanism
 * test
     - integration (does everything *run*)
-
-### Conventions
-* use ```python FIXME ``` to identify fixes
-* use ```python TODO ``` to identify TODOS
-* use Pydoc style comments / docstrings
-
-### Arbitrary decisions
-* usage of huber loss (over RMSE, unless specified otherwise with --loss rmse)
-* usage of Glorot normal initialization for all layers
