@@ -1,5 +1,6 @@
 """ collision avoidance environment """
 
+import logging
 import time
 
 import copy
@@ -23,6 +24,8 @@ class CollisionAvoidance(Environment):
     and the obstacles coordinate with some noise.
 
     """
+
+    logger = logging.getLogger(__name__)
 
     # const
     BLOCK_MOVE_PROB = .5
