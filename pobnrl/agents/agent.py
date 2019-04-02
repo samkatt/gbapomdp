@@ -228,7 +228,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
         self.last_obs.append(observation)
 
-        if self.timestep % self.train_freq:
+        if self.timestep % self.train_freq == 0:
             self.q_net.batch_update()
 
         if self.timestep % self.target_update_freq == 0:
