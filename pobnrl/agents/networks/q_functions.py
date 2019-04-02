@@ -128,14 +128,13 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.rew_t_ph = tf.placeholder(
             tf.float32, [None], name=self.name + '_rewards'
         )
-        # FIXME: bool?
         self.done_mask_ph = tf.placeholder(
-            tf.float32, [None], name=self.name + '_terminals'
+            tf.bool, [None], name=self.name + '_terminals'
         )
         self.obs_tp1_ph = tf.placeholder(
             tf.float32,
             [None] + list(input_shape),
-            name=self.name + '_next_ob'  # FIXME: next_obs ?
+            name=self.name + '_next_obs'
         )
 
         # define operations to retrieve q and target values
@@ -200,7 +199,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
         targets = tf.where(
-            tf.cast(self.done_mask_ph, tf.bool),
+            self.done_mask_ph,
             x=self.rew_t_ph,
             y=self.rew_t_ph + (conf['gamma'] * return_estimate)
         )
@@ -380,12 +379,12 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             tf.float32, [None], name=self.name + '_rewards'
         )
         self.done_mask_ph = tf.placeholder(
-            tf.float32, [None], name=self.name + '_terminals'
+            tf.bool, [None], name=self.name + '_terminals'
         )
         self.obs_tp1_ph = tf.placeholder(
             tf.float32,
             [None] + list(input_shape),
-            name=self.name + '_next_ob'
+            name=self.name + '_next_obs'
         )
 
         rnn_cell = tf.nn.rnn_cell.LSTMCell(self.SIZES[conf['network_size']])
@@ -475,7 +474,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
         targets = tf.where(
-            tf.cast(self.done_mask_ph, tf.bool),
+            self.done_mask_ph,
             x=self.rew_t_ph,
             y=self.rew_t_ph + (conf['gamma'] * return_estimate)
         )

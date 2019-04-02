@@ -309,7 +309,7 @@ class ReplayBuffer():
         rewards = np.full(batch_shape, float('nan'))  # nan padding
         rewards[sample_mask] = self._rewards[trace_indices]
 
-        terminals = np.full(batch_shape, False)  # FIXME: False padding?
+        terminals = np.full(batch_shape, False)  # False padding
         terminals[sample_mask] = self._terminals[trace_indices]
 
         obs = np.zeros(batch_shape + self._obs_shape)  # 0 padding
