@@ -102,7 +102,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         assert conf['history_len'] > 0
         assert conf['batch_size'] > 0
-        assert conf['network_size'] in ['small', 'med', 'large']
+        assert conf['network_size'] in self.SIZES.keys()
         assert 1 >= conf['gamma'] > 0
 
         self.name = conf['scope']
@@ -118,6 +118,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         input_shape = (self.history_len, *env_spaces["O"].shape)
 
         # training operation place holders
+        # TODO: rename these
         self.obs_t_ph = tf.placeholder(
             tf.float32, [None] + list(input_shape), name=self.name + '_obs'
         )
@@ -127,13 +128,14 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.rew_t_ph = tf.placeholder(
             tf.float32, [None], name=self.name + '_rewards'
         )
+        # FIXME: bool?
         self.done_mask_ph = tf.placeholder(
             tf.float32, [None], name=self.name + '_terminals'
         )
         self.obs_tp1_ph = tf.placeholder(
             tf.float32,
             [None] + list(input_shape),
-            name=self.name + '_next_ob'
+            name=self.name + '_next_ob'  # FIXME: next_obs ?
         )
 
         # define operations to retrieve q and target values
@@ -182,7 +184,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             qvalues_fn = self.qvalues_fn
 
         action_onehot = tf.stack(
-            [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1)
+            [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1
+        )
 
         q_values = tf.gather_nd(
             qvalues_fn,
@@ -251,6 +254,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         RETURNS (`np.array`): q-value for each action
 
         """
+
         assert obs.ndim >= 2, "observation expected to be len x shape"
         assert obs.shape[0] <= self.history_len
 
@@ -349,7 +353,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         assert conf['history_len'] > 0
         assert conf['batch_size'] > 0
-        assert conf['network_size'] in ['small', 'med', 'large']
+        assert conf['network_size'] in self.SIZES.keys()
         assert 1 >= conf['gamma'] > 0
 
         self.name = conf['scope']
@@ -358,7 +362,6 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         self.replay_buffer \
             = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
-
         self.rnn_state = None
 
         # shape of network input: variable in first dimension because
@@ -385,9 +388,13 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             name=self.name + '_next_ob'
         )
 
-        self.rnn_state_ph = tf.placeholder(
-            tf.float32, name=self.name + '_rnn_state'
+        rnn_cell = tf.nn.rnn_cell.LSTMCell(self.SIZES[conf['network_size']])
+        rnn_cell_t = tf.nn.rnn_cell.LSTMCell(self.SIZES[conf['network_size']])
+
+        self.rnn_state_ph = rnn_cell.zero_state(
+            tf.shape(self.obs_t_ph)[0], dtype=tf.float32
         )
+
         self.seq_lengths_ph = tf.placeholder(
             tf.int32, [None], name=self.name + '_seq_len'
         )
@@ -396,6 +403,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.qvalues_fn, self.rec_state_fn = rec_q_func(
             self.obs_t_ph,
             self.seq_lengths_ph,
+            rnn_cell,
             self.rnn_state_ph,
             env_spaces["A"].n,
             self.SIZES[conf['network_size']],
@@ -405,6 +413,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         next_targets_fn, _ = rec_q_func(
             self.obs_tp1_ph,
             self.seq_lengths_ph,
+            rnn_cell_t,
             self.rnn_state_ph,
             env_spaces["A"].n,
             self.SIZES[conf['network_size']],
@@ -414,6 +423,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         next_qvalues_fn, _ = rec_q_func(
             self.obs_tp1_ph,
             self.seq_lengths_ph,
+            rnn_cell,
             self.rnn_state_ph,
             env_spaces["A"].n,
             self.SIZES[conf['network_size']],
@@ -427,7 +437,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_t_ph,
                 self.seq_lengths_ph,
-                None,  # during training init state is None
+                rnn_cell,
+                self.rnn_state_ph,
                 env_spaces["A"].n,
                 4,
                 scope=self.name + '_prior'
@@ -435,7 +446,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             next_prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_tp1_ph,
                 self.seq_lengths_ph,
-                None,  # during training init state is None
+                self.rnn_state_ph,
                 env_spaces["A"].n,
                 4,
                 scope=self.name + '_prior'
@@ -450,7 +461,12 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_t_ph)), self.act_t_ph], axis=-1
         )
-        q_values = tf.gather_nd(qvalues_fn, action_onehot)
+
+        q_values = tf.gather_nd(
+            qvalues_fn,
+            action_onehot,
+            name=self.name + '_pick_Q'
+        )
 
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
@@ -519,13 +535,20 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         """
 
+        assert obs.ndim >= 2, "observation expected to be len x shape"
+        assert obs.shape[0] <= self.history_len
+
+        feed_dict = {
+            self.obs_t_ph: obs[-1, None, None],  # cast last ob to shape
+            self.seq_lengths_ph: np.array([1])  # just a single step 'seq'
+        }
+
+        if self.rnn_state is not None:
+            feed_dict[self.rnn_state_ph] = self.rnn_state
+
         qvals, self.rnn_state = tf_run(
             [self.qvalues_fn, self.rec_state_fn],
-            feed_dict={
-                self.obs_t_ph: obs[-1, None, None],  # cast last ob to shape
-                self.rnn_state_ph: self.rnn_state,
-                self.seq_lengths_ph: np.array([1])  # just a single step 'seq'
-            }
+            feed_dict=feed_dict
         )
 
         return qvals
@@ -549,7 +572,6 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         tf_run(
             self.train_op,
             feed_dict={
-                self.rnn_state_ph: None,
                 self.seq_lengths_ph: batch['seq_lengths'],
                 self.obs_t_ph: batch['obs'],
                 self.act_t_ph: batch['actions'][sampled_step_idx],

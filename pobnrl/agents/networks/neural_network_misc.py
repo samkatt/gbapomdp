@@ -63,6 +63,7 @@ def loss(q_values, targets, loss_type: str):
     raise ValueError('Entered unknown value for loss ' + loss_type)
 
 
+# TODO: clean up
 def two_layer_q_net(net_input, n_actions: int, n_units: int, scope: str):
     """ Returns Q-values of input using a two-hidden layer architecture
 
@@ -103,10 +104,12 @@ def two_layer_q_net(net_input, n_actions: int, n_units: int, scope: str):
     return qvalues
 
 
+# TODO: clean up
 def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
         net_input,
         seq_lengths,
-        state,
+        rnn_cell,
+        init_rnn_state,
         n_actions: int,
         n_units: int,
         scope: str):
@@ -120,7 +123,7 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
     Args:
          net_input: the input of the network (observation)
          seq_lengths: the length of each batch
-         state: state of the recurrent layer
+         init_rnn_state: state of the recurrent layer
          n_actions: (`int`): # of actions
          n_units: (`int`): # of units per layer
          scope: (`str`): scope (unique, for tensorflow)
@@ -151,15 +154,12 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
                 name=scope + '_hidden_' + str(layer)
             )
 
-        rnn_cell = tf.nn.rnn_cell.LSTMCell(n_units)
-        state = rnn_cell.zero_state(batch_size, tf.float32)
-
         # handlse the history len of each batch as a single sequence
         hidden, new_rec_state = tf.nn.dynamic_rnn(
             rnn_cell,
             sequence_length=seq_lengths,
             inputs=hidden,
-            initial_state=state,
+            initial_state=init_rnn_state,
             dtype=tf.float32,
             scope=scope + '_rnn'
         )
@@ -203,12 +203,7 @@ class ReplayBuffer():
         self._obs = np.full((self.SIZE, *self._obs_shape), 'nan', float)
         self._actions = np.full(self.SIZE, -1, int)
         self._rewards = np.full(self.SIZE, 'nan', float)
-        self._terminals = np.full(self.SIZE, None, bool)
-
-        # during sample, we do not wish to return sequences that wrap around to
-        # the back of the buffer until there is valid data, so we avoid this
-        # sampling by setting the last step terminal
-        self._terminals[-1] = True
+        self._terminals = np.full(self.SIZE, True, bool)
 
     @property
     def index(self) -> int:
@@ -290,13 +285,13 @@ class ReplayBuffer():
 
         if padding == 'left':
             def trace_mask(seq_len):
-                # [0,0,0,1,1,1]
+                # [0,0,0,t1,t2,t3]
                 return np.concatenate(
                     [np.zeros(history_len - seq_len), np.ones(seq_len)]
                 )
         else:
             def trace_mask(seq_len):
-                # [1,1,1,0,0,0]
+                # [t1,t2,t3,0,0,0]
                 return np.concatenate(
                     [np.ones(seq_len), np.zeros(history_len - seq_len)]
                 )
@@ -310,13 +305,14 @@ class ReplayBuffer():
         # construct results by first initializing them with default
         # values (acting as padding where necessary) and then fill in
         # the values with the traces
+
         rewards = np.full(batch_shape, float('nan'))  # nan padding
         rewards[sample_mask] = self._rewards[trace_indices]
 
-        terminals = np.full(batch_shape, False)  # False padding
+        terminals = np.full(batch_shape, False)  # FIXME: False padding?
         terminals[sample_mask] = self._terminals[trace_indices]
 
-        obs = np.full(batch_shape + self._obs_shape, .0)
+        obs = np.zeros(batch_shape + self._obs_shape)  # 0 padding
         obs[sample_mask] = self._obs[trace_indices]
 
         actions = np.full(batch_shape, -1)  # -1 padding
@@ -325,25 +321,18 @@ class ReplayBuffer():
         # construct next observation sequence
         next_ob = self._obs[(sample_indices + 1) % self.SIZE]
 
+        next_obs = np.concatenate(
+            (obs[:, 1:], np.zeros((batch_size, 1) + self._obs_shape)), axis=1
+        )
+
         if padding == 'left':
             # due to padding on the left side, we can simply append the *1*
             # next  observation to the original sequence and remove the first
-            next_obs = np.concatenate((obs[:, 1:], next_ob[:, None]), axis=1)
+            next_obs[:, -1] = next_ob
 
         else:
-            next_obs = np.zeros(obs.shape)
-            # when padding is left, we do not want to simply append the
-            # next observation at the end: if the sequence ended before the
-            # max len, then we must place the next observation where the
-            # sequence ended
-            complete_sequences = (trace_lengths == history_len)
-
-            next_obs[~complete_sequences] = obs[~complete_sequences]
-            next_obs[~complete_sequences, trace_lengths[~complete_sequences]] \
-                = next_ob[~complete_sequences]
-
-            next_obs[complete_sequences, :-1] = obs[complete_sequences, 1:]
-            next_obs[complete_sequences, -1] = next_ob[complete_sequences]
+            # next_obs are being appened where the sequence ended
+            next_obs[np.arange(batch_size), trace_lengths - 1] = next_ob
 
         return {
             'obs': obs,
@@ -393,4 +382,3 @@ class ReplayBuffer():
         # the back of the buffer until there is valid data, so we avoid this
         # sampling by setting the last step terminal
         self._terminals[:] = True
-        self._terminals[-1] = False
