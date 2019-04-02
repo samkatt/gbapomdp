@@ -63,8 +63,7 @@ def loss(q_values, targets, loss_type: str):
     raise ValueError('Entered unknown value for loss ' + loss_type)
 
 
-# TODO: clean up
-def two_layer_q_net(net_input, n_actions: int, n_units: int, scope: str):
+def two_layer_q_net(net_input, n_out: int, n_hidden: int, scope: str):
     """ Returns Q-values of input using a two-hidden layer architecture
 
     scope must be unique to this network to ensure this works fine
@@ -74,44 +73,41 @@ def two_layer_q_net(net_input, n_actions: int, n_units: int, scope: str):
 
     Args:
          net_input: the input of the network (observation)
-         n_actions: (`int`): # of actions
-         n_units: (`int`): # of units per layer
+         n_out: (`int`): # of actions
+         n_hidden: (`int`): # of units per layer
          scope: (`str`): scope (unique, for tensorflow)
 
     """
-    # concat all inputs but keep batch dimension
-    hidden = flatten(net_input)
 
-    # TODO: programmed without really understanding what is happening
+    hidden = flatten(net_input)  # concat all inputs but keep batch dimension
+
     # it should be possible to call this multiple times
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
 
         for layer in range(2):  # 2 hidden layers
             hidden = dense(
                 hidden,
-                units=n_units,
+                units=n_hidden,
                 activation=tf.nn.tanh,
                 name=scope + '_hidden_' + str(layer)
             )
 
         qvalues = dense(
             hidden,
-            units=n_actions,
-            activation=None,
+            units=n_out,
             name=scope + '_out'
         )
 
     return qvalues
 
 
-# TODO: clean up
 def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
         net_input,
         seq_lengths,
         rnn_cell,
         init_rnn_state,
-        n_actions: int,
-        n_units: int,
+        n_out: int,
+        n_hidden: int,
         scope: str):
     """ Returns Q-values of input using a two-hidden (rec) layer architecture
 
@@ -124,8 +120,8 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
          net_input: the input of the network (observation)
          seq_lengths: the length of each batch
          init_rnn_state: state of the recurrent layer
-         n_actions: (`int`): # of actions
-         n_units: (`int`): # of units per layer
+         n_out: (`int`): # of actions
+         n_hidden: (`int`): # of units per layer
          scope: (`str`): scope (unique, for tensorflow)
 
     """
@@ -142,14 +138,13 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
         [batch_size, history_len, observation_num]
     )
 
-    # TODO: programmed without really understanding what is happening
     # it should be possible to call this multiple times
     with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
 
         for layer in range(2):  # 2 hidden layers
             hidden = dense(
                 hidden,
-                units=n_units,
+                units=n_hidden,
                 activation=tf.nn.tanh,
                 name=scope + '_hidden_' + str(layer)
             )
@@ -171,8 +166,7 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
 
         qvalues = dense(
             tf.gather_nd(hidden, seq_q_mask),
-            units=n_actions,
-            activation=None,
+            units=n_out,
             name=scope + '_out'
         )
 
