@@ -36,6 +36,8 @@ def main(conf):
         datefmt='%H:%M:%S'
     )
 
+    logger = logging.getLogger(__name__)
+
     cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
@@ -44,7 +46,7 @@ def main(conf):
     agent = get_agent(conf, env, name='agent')
     init_op = tf.global_variables_initializer()
 
-    print(f"Running experiment on {env}")
+    logger.info("Running experiment on %s", str(env))
 
     with tf_session():
         for run in range(conf.runs):
@@ -54,16 +56,17 @@ def main(conf):
 
             tmp_res = np.zeros(conf.episodes)
 
-            print(f"Starting run {run}")
+            logger.info("Starting run %d", run)
             for episode in range(conf.episodes):
 
                 tmp_res[episode] = run_episode(env, agent, conf)
 
                 if episode > 0 and time.time() - cur_time > 5:
 
-                    print(
-                        f"run {run} episode {episode}: avg return:",
-                        np.mean(tmp_res[max(0, episode - 100):episode]),
+                    logger.info(
+                        "run %d episode %d: avg return: %f",
+                        run, episode,
+                        np.mean(tmp_res[max(0, episode - 100):episode])
                     )
 
                     cur_time = time.time()
