@@ -66,12 +66,22 @@ class ExplorationSchedule(abc.ABC):
 
 
 # pylint: disable=too-few-public-methods
-class NoExploration(ExplorationSchedule):
+class FixedExploration(ExplorationSchedule):
     """ always returns 0 probability for exploring """
+
+    def __init__(self, epsilon: float):
+        """ creates fixed exploration policy with epsilon
+
+        Args:
+             epsilon: (`float`): the e-greedy epsilon exploration chance
+
+        """
+
+        self._epsilon = epsilon
 
     def value(self, _time: int) -> float:
         """ returns epsilon for a given timestep """
-        return 0
+        return self._epsilon
 
 
 # pylint: disable=too-few-public-methods

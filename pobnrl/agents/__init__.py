@@ -1,6 +1,6 @@
 """ agents in POBNRL """
 
-from misc import PiecewiseSchedule, NoExploration, DiscreteSpace
+from misc import PiecewiseSchedule, FixedExploration, DiscreteSpace
 
 from .networks import create_qnet
 from .agent import Agent, RandomAgent, BaselineAgent, EnsembleAgent
@@ -24,7 +24,15 @@ def create_agent(
     if conf.random_policy:
         return RandomAgent(action_space)
 
+    if 1 >= conf.exploration >= 0:
+        exploration_schedule = FixedExploration(conf.exploration)
+    else:
+        exploration_schedule = PiecewiseSchedule(
+            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
+        )
+
     if conf.num_nets == 1:
+        # single-net agent
 
         return BaselineAgent(
             create_qnet(
@@ -34,11 +42,11 @@ def create_agent(
                 conf
             ),
             action_space,
-            PiecewiseSchedule(
-                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
-            ),
+            exploration_schedule,
             conf
         )
+
+    # num_nets > 1: ensemble agent
 
     def qnet_constructor(name: str):
         return create_qnet(
@@ -51,6 +59,6 @@ def create_agent(
     return EnsembleAgent(
         qnet_constructor,
         action_space,
-        NoExploration(),
+        exploration_schedule,
         conf,
     )

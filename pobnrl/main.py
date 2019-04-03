@@ -244,6 +244,13 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
+        "--exploration",
+        default=-1,
+        type=float,
+        help="the e-greedy exploration, will use anealling if **not** set"
+    )
+
+    parser.add_argument(
         "--random_policy",
         action='store_true',
         help="use this flag to pick the random agent controller"
