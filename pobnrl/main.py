@@ -223,7 +223,7 @@ def parse_arguments(args: str = None):
 
     parser.add_argument(
         "--train_freq",
-        default=32,
+        default=8,
         type=int,
         help="how often the agent performs a batch update (every # time steps)"
     )

@@ -46,7 +46,7 @@ python -h
 * refactoring
     - rename and reinvent q_functions
     - refactor priors away elegantly
-    - create a 'batch' class and use that instead of templates...?
+    - create a 'batch' class and use that instead of individual placeholders
 * dev
     - implement static analysing mechanism
     - add levels to verbosity (logging)
