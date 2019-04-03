@@ -44,7 +44,7 @@ python -h
 
 ### TODO
 * refactoring
-    - rename q_functions and the sort.. what are nets + replay buffers?
+    - rename and reinvent q_functions
     - refactor priors away elegantly
     - create a 'batch' class and use that instead of templates...?
 * dev

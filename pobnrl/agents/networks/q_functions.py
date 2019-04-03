@@ -1,9 +1,4 @@
-""" Neural networks used as Q functions
-
-TODO: rename file
-TODO: rethink creation of these classes in terms of arguments and names
-
-"""
+""" Neural networks used as Q functions """
 
 from typing import Callable
 import abc
