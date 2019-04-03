@@ -19,6 +19,8 @@ import tensorflow as tf
 
 logger = logging.getLogger(__name__)
 
+log_level = {"spam": 5, "debug": 10, "verbose": 15, "info": 20}
+
 
 def epsilon_greedy(q_values, epsilon: float, action_space) -> int:
     """ returns epsilon greedy action
@@ -127,7 +129,7 @@ def tf_session():
     global _SESS  # pylint: disable=global-statement
     assert _SESS is None, "Please initiate tf_wrapper only once"
 
-    logger.info("initiating tensorflow session")
+    logger.log(log_level['verbose'], "initiating tensorflow session")
 
     tf_config = tf.ConfigProto(
         device_count={'GPU': 0},
@@ -142,7 +144,7 @@ def tf_session():
 
     # __exit__()
 
-    logger.info("closing tensorflow session")
+    logger.log(log_level['verbose'], "closing tensorflow session")
 
     _SESS.close()
     _SESS = None

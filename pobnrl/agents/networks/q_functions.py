@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from agents.networks import neural_network_misc
-from misc import tf_run
+from misc import tf_run, log_level
 
 
 class QNetInterface(abc.ABC):
@@ -266,7 +266,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            self.logger.debug(
+            self.logger.log(
+                log_level['debug'],
                 "Network %s cannot batch update due to small buf", self.name
             )
             return
@@ -550,7 +551,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            self.logger.debug(
+            self.logger.log(
+                log_level['debug'],
                 "Network % cannot batch update due to small buf", self.name
             )
             return

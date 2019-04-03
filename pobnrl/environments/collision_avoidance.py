@@ -7,7 +7,7 @@ import copy
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace
+from misc import DiscreteSpace, log_level
 
 
 # pylint: disable=too-many-instance-attributes
@@ -200,4 +200,4 @@ class CollisionAvoidance(Environment):
                 f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
                 f"({step['state']['obstacle']}: {step['obs'][0]})"
 
-        self.logger.info(descr)
+        self.logger.log(log_level['verbose'], descr)

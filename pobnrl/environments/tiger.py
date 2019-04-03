@@ -7,7 +7,7 @@ import copy
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace
+from misc import DiscreteSpace, log_level
 
 
 class Tiger(Environment):
@@ -163,6 +163,7 @@ class Tiger(Environment):
         for step in self._history[1:-1]:
             descr = descr + to_string(step["obs"][1])
 
-        self.logger.info(
+        self.logger.log(
+            log_level['verbose'],
             "%s, opened %s", descr, to_string(self._history[-1]["action"])
         )

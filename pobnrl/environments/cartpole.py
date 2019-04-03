@@ -6,7 +6,7 @@ import time
 import gym
 
 from environments.environment import Environment
-from misc import DiscreteSpace
+from misc import DiscreteSpace, log_level
 
 
 class Cartpole(Environment):
@@ -40,7 +40,7 @@ class Cartpole(Environment):
         """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
-            self.logger.info('showing recording..')
+            self.logger.log(log_level['verbose'], 'showing recording..')
             return True
 
         return False

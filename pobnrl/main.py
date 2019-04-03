@@ -13,12 +13,13 @@ from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
-from misc import tf_session, tf_run
+from misc import tf_session, tf_run, log_level
 
 VERBOSE_TO_LOGGING = {
-    0: logging.ERROR,
-    1: logging.INFO,
-    2: logging.DEBUG
+    0: 20,  # info
+    1: 15,  # verbose
+    2: 10,  # debug
+    3: 5    # spam
 }
 
 
@@ -46,7 +47,7 @@ def main(conf):
     agent = get_agent(conf, env, name='agent')
     init_op = tf.global_variables_initializer()
 
-    logger.info("Running experiment on %s", str(env))
+    logger.log(log_level['info'], "Running experiment on %s", str(env))
 
     with tf_session():
         for run in range(conf.runs):
@@ -56,14 +57,15 @@ def main(conf):
 
             tmp_res = np.zeros(conf.episodes)
 
-            logger.info("Starting run %d", run)
+            logger.log(log_level['info'], "Starting run %d", run)
             for episode in range(conf.episodes):
 
                 tmp_res[episode] = run_episode(env, agent, conf)
 
                 if episode > 0 and time.time() - cur_time > 5:
 
-                    logger.info(
+                    logger.log(
+                        log_level['info'],
                         "run %d episode %d: avg return: %f",
                         run, episode,
                         np.mean(tmp_res[max(0, episode - 100):episode])

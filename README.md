@@ -48,8 +48,6 @@ python -h
     - refactor priors away elegantly
     - create a 'batch' class and use that instead of individual placeholders
 * dev
-    - print parameters at top of results file
     - implement static analysing mechanism
-    - add levels to verbosity (logging)
 * test
     - integration (does everything *run*)

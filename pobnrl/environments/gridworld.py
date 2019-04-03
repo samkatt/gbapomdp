@@ -9,7 +9,7 @@ from typing import List
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace
+from misc import DiscreteSpace, log_level
 
 
 class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
@@ -278,4 +278,4 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             descr += f" and {self.action_to_string[int(step['action'])]} " \
                 + f"to:\n{step['state'][0]}({step['obs'][:2]})"
 
-        self.logger.info(descr)
+        self.logger.log(log_level['verbose'], descr)
