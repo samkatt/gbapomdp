@@ -90,7 +90,9 @@ def main(conf):
                 conf.file,
                 summary,
                 delimiter=', ',
-                header="return mean, return var, return count, return stder")
+                header=str(conf)
+                + "\nreturn mean, return var, return count, return stder"
+            )
 
 
 def parse_arguments(args: str = None):
