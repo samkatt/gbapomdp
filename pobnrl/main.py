@@ -194,6 +194,7 @@ def parse_arguments(args: str = None):
         help="whether to use doubleQ technique"
     )
 
+    # TODO: change to num_nn_nodes
     parser.add_argument(
         "--network_size",
         help='the size of the q-network',
@@ -217,13 +218,13 @@ def parse_arguments(args: str = None):
 
     parser.add_argument(
         "--target_update_freq",
-        default=1024,
+        default=128,
         type=int,
         help="how often the target network is updated (every # time steps)")
 
     parser.add_argument(
         "--train_freq",
-        default=8,
+        default=1,
         type=int,
         help="how often the agent performs a batch update (every # time steps)"
     )
@@ -277,6 +278,12 @@ def get_agent(
          env: (`pobnrl.environments.environment.Environment`): real environment
          name: (`str`): used to provide scope for tensorflow
 
+    Assumes conf is a namespace that holds:
+        * (`int`) num_nets
+        * (`bool`) random_policy
+        * (`bool`) recurrent
+        * whatever agent needs
+
     RETURNS (`agents.agent.Agent`)
 
     """
@@ -284,13 +291,15 @@ def get_agent(
     if conf.random_policy:
         return agent.RandomAgent(env.action_space)
 
-    # construct Q function
+    # Q function depending on recurrent or not
     if conf.recurrent:
         qfunc = DRQNNet
         arch = neural_network_misc.two_layer_rec_q_net
     else:
         qfunc = DQNNet
         arch = neural_network_misc.two_layer_q_net
+
+    # TODO: exploration strategy
 
     if conf.num_nets == 1:
         return agent.BaselineAgent(
