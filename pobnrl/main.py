@@ -16,10 +16,11 @@ from episode import run_episode
 from misc import tf_session, tf_run, log_level
 
 VERBOSE_TO_LOGGING = {
-    0: 20,  # info
-    1: 15,  # verbose
-    2: 10,  # debug
-    3: 5    # spam
+    0: 30,  # warning
+    1: 20,  # info
+    2: 15,  # verbose
+    3: 10,  # debug
+    4: 5    # spam
 }
 
 
