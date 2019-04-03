@@ -8,7 +8,8 @@ from main import main, parse_arguments
 class TestDefaults(unittest.TestCase):
     """ runs default experiment """
 
-    def run_experiment(self, args):
+    @staticmethod
+    def run_experiment(args):
         """ runs an experiment with args as configuration
 
         Adds some default arguments to the experiment
@@ -18,7 +19,7 @@ class TestDefaults(unittest.TestCase):
 
         """
 
-        def_args = ['--episodes=3', '--runs=3']
+        def_args = ['--episodes=3', '--runs=2']
 
         # pylint: disable=too-many-function-args
         main(parse_arguments(args + def_args))
@@ -50,27 +51,27 @@ class TestDefaults(unittest.TestCase):
         # ensemble agent
         self.run_experiment(
             ['-D=gridworld',
-             '--domain_size=5',
+             '--domain_size=3',
              '--recurrent',
              '--history_len=3',
              '--num_nets=3']
         )
 
-        def test_basic_features(self):
-            """ tests clipping, double_q, huber loss """
+    def test_basic_features(self):
+        """ tests clipping, double_q, huber loss """
 
-            self.run_experiment(['-D=tiger', '--huber', '--num_nets=3'])
+        self.run_experiment(['-D=tiger', '--loss=huber', '--num_nets=3'])
 
-            self.run_experiment(
-                ['--domain_size=3', '-D=cartpole', '--clipping']
-            )
+        self.run_experiment(
+            ['-D=cartpole', '--clipping']
+        )
 
-            self.run_experiment(
-                ['--domain_size=5',
-                 '-D=collision_avoidance',
-                 '--double_q',
-                 '--recurrent']
-            )
+        self.run_experiment(
+            ['--domain_size=5',
+             '-D=collision_avoidance',
+             '--double_q',
+             '--recurrent']
+        )
 
 
 if __name__ == '__main__':

@@ -13,9 +13,6 @@ from misc import tf_run, log_level
 class QNetInterface(abc.ABC):
     """ interface to all Q networks """
 
-    # size of network
-    SIZES = {"small": 16, "med": 64, "large": 512}
-
     @abc.abstractmethod
     def reset(self):
         """ resets to initial state """
@@ -84,7 +81,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes conf contains:
             * `str` scope
             * `str` loss description
-            * `str` network_size in {'small', 'med', 'large'}
+            * `int` network_size
             * `int` batch_size: size of batch learning
             * `int` history_len: length of history to consider
             * `bool` prior_functions
@@ -97,7 +94,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         assert conf['history_len'] > 0
         assert conf['batch_size'] > 0
-        assert conf['network_size'] in self.SIZES.keys()
+        assert conf['network_size'] > 0
         assert 1 >= conf['gamma'] > 0
 
         self.name = conf['scope']
@@ -136,21 +133,21 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.qvalues_fn = q_func(
             self.obs_ph,
             env_spaces["A"].n,
-            self.SIZES[conf['network_size']],
+            conf['network_size'],
             scope=self.name + '_net'
         )
 
         next_qvalues_fn = q_func(
             self.next_obs_ph,
             env_spaces["A"].n,
-            self.SIZES[conf['network_size']],
+            conf['network_size'],
             scope=self.name + '_net'
         )
 
         next_targets_fn = q_func(
             self.next_obs_ph,
             env_spaces["A"].n,
-            self.SIZES[conf['network_size']],
+            conf['network_size'],
             scope=self.name + '_target'
         )
 
@@ -334,7 +331,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         Assumes conf contains:
             * `str` scope: the name / scope of this
-            * `str` network_size: in {'small', 'med', 'large'}
+            * `int` network_size: number of nodes in hidden layers
             * `str` loss: description of how to compute the loss
             * `int` batch_size: size of batch learning
             * `int` history_len: length of history to consider
@@ -347,7 +344,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         assert conf['history_len'] > 0
         assert conf['batch_size'] > 0
-        assert conf['network_size'] in self.SIZES.keys()
+        assert conf['network_size'] > 0
         assert 1 >= conf['gamma'] > 0
 
         self.name = conf['scope']
@@ -382,8 +379,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             name=self.name + '_next_obs'
         )
 
-        rnn_cell = tf.nn.rnn_cell.LSTMCell(self.SIZES[conf['network_size']])
-        rnn_cell_t = tf.nn.rnn_cell.LSTMCell(self.SIZES[conf['network_size']])
+        rnn_cell = tf.nn.rnn_cell.LSTMCell(conf['network_size'])
+        rnn_cell_t = tf.nn.rnn_cell.LSTMCell(conf['network_size'])
 
         self.rnn_state_ph = rnn_cell.zero_state(
             tf.shape(self.obs_ph)[0], dtype=tf.float32
@@ -400,7 +397,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             rnn_cell,
             self.rnn_state_ph,
             env_spaces["A"].n,
-            self.SIZES[conf['network_size']],
+            conf['network_size'],
             scope=self.name + '_net'
         )
 
@@ -410,7 +407,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             rnn_cell_t,
             self.rnn_state_ph,
             env_spaces["A"].n,
-            self.SIZES[conf['network_size']],
+            conf['network_size'],
             scope=self.name + '_target'
         )
 
@@ -420,7 +417,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             rnn_cell,
             self.rnn_state_ph,
             env_spaces["A"].n,
-            self.SIZES[conf['network_size']],
+            conf['network_size'],
             scope=self.name + '_net'
         )
 

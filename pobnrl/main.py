@@ -199,12 +199,11 @@ def parse_arguments(args: str = None):
         help="whether to use doubleQ technique"
     )
 
-    # TODO: change to num_nn_nodes
     parser.add_argument(
         "--network_size",
-        help='the size of the q-network',
-        default='med',
-        choices=["small", "med", "large"]
+        help='the number of hidden nodes in the q-network',
+        default=64,
+        type=int
     )
 
     parser.add_argument(
