@@ -70,7 +70,7 @@ class Cartpole(Environment):
     @property
     def state(self):
         """ returns current state """
-        raise NotImplementedError
+        return self.cartpole.env.unwrapped.state
 
     @property
     def action_space(self) -> DiscreteSpace:

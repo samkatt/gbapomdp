@@ -54,6 +54,9 @@ class Agent(abc.ABC):
 
         """
 
+    def __repr__(self):
+        return f"{self.__class__}"
+
 
 class RandomAgent(Agent):
     """ Acts randomly """
@@ -112,41 +115,34 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self,
                  qnet: QNetInterface,
-                 env: Environment,
+                 action_space: DiscreteSpace,
                  exploration: ExplorationSchedule,
-                 **conf):
+                 conf):
         """ initializes a single network
 
         Args:
              qnet: (`pobnrl.agents.networks.q_functions.QNetInterface`): \
                     Q-net to use
-             env: (`pobnrl.environments.environment.Environment`): \
-                    for domain knowledge
+             action_space: (`pobnrl.misc.DiscreteSpace`): of environment
              exploration: (`pobnrl.misc.ExplorationSchedule`): \
                     schedule for e-greedy
-             **conf: set of configurations
-
-        Assumes conf contains:
-            * `int` target_update_freq
-            * `int` train_freq
-            * `int` observation_len
-            * whatever is necessary for the `q_func`
+             conf: (`namespace`) set of configurations (see -h)
 
         """
 
-        assert conf['target_update_freq'] > 0
-        assert conf['train_freq'] > 0
-        assert conf['history_len'] > 0
+        assert conf.target_update_freq > 0
+        assert conf.train_freq > 0
+        assert conf.history_len > 0
 
         # params
-        self.target_update_freq = conf['target_update_freq']
-        self.train_freq = conf['train_freq']
+        self.target_update_freq = conf.target_update_freq
+        self.train_freq = conf.train_freq
 
-        self.action_space = env.action_space
+        self.action_space = action_space
 
         self.timestep = 0
         self.last_action = None
-        self.last_obs = deque([], conf['history_len'])
+        self.last_obs = deque([], conf.history_len)
 
         self.exploration = exploration
 
@@ -229,49 +225,40 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self,
                  qnet_constructor: Callable[[str], QNetInterface],
-                 env: Environment,
+                 action_space: DiscreteSpace,
                  exploration: ExplorationSchedule,
-                 **conf):
+                 conf):
         """ initialize network
-
-        TODO: add exploration
 
         Args:
             qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.networks.q_functions.QNetInterface`]): \
-                    Q-net constructor to use to create nets
-            env: (`pobnrl.environments.environment.Environment`): \
-                    for domain knowledge
+                    Q-net constructor to use to create nets (given scope)
+            action_space: (`pobnrl.misc.DiscreteSpace`): of environment
             exploration: (`pobnrl.misc.ExplorationSchedule`): \
                     exploration schedule
-             **conf: set of configurations
-
-        Assumes conf contains:
-            * `int` num_nets (> 1)
-            * `int` target_update_freq
-            * `int` train_freq
-            * `int` observation len
+            conf: (`namespace`): set of configurations
 
         """
 
-        assert conf['num_nets'] > 1
-        assert conf['target_update_freq'] > 0
-        assert conf['train_freq'] > 0
-        assert conf['history_len'] > 0
+        assert conf.num_nets > 1
+        assert conf.target_update_freq > 0
+        assert conf.train_freq > 0
+        assert conf.history_len > 0
 
         # params
-        self.target_update_freq = conf['target_update_freq']
-        self.train_freq = conf['train_freq']
+        self.target_update_freq = conf.target_update_freq
+        self.train_freq = conf.train_freq
 
-        self.action_space = env.action_space
+        self.action_space = action_space
         self.exploration = exploration
 
         self.timestep = 0
         self.last_action = None
-        self.last_obs = deque([], conf['history_len'])
+        self.last_obs = deque([], conf.history_len)
 
         self.nets = np.array(
-            [qnet_constructor(conf['name'] + '_net_' + str(i))
-             for i in range(conf['num_nets'])]
+            [qnet_constructor('ensemble_net_' + str(i))
+             for i in range(conf.num_nets)]
         )
 
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]

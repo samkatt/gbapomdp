@@ -45,3 +45,8 @@ class Environment(abc.ABC):
         RETURNS (`pobnrl.misc.DiscreteSpace`): the observation space
 
         """
+
+    def __repr__(self):
+        return (f"{self.__class__} with action space {self.action_space}, "
+                f"observation space {self.observation_space} and "
+                f"current state {self.state}")

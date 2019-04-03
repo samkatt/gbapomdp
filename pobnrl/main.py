@@ -8,13 +8,10 @@ from math import sqrt
 import numpy as np
 import tensorflow as tf
 
-from agents import agent as Agent
-from agents.networks import neural_network_misc
-from agents.networks.q_functions import DQNNet, DRQNNet
-from environments import cartpole, collision_avoidance, gridworld, tiger, environment
+from agents import create_agent
+from environments import create_environment
 from episode import run_episode
 from misc import tf_session, tf_run, log_level
-from misc import PiecewiseSchedule, NoExploration
 
 VERBOSE_TO_LOGGING = {
     0: 30,  # warning
@@ -45,8 +42,17 @@ def main(conf):
     result_mean = np.zeros(conf.episodes)
     result_var = np.zeros(conf.episodes)
 
-    env = get_environment(conf.domain, conf.domain_size, conf.verbose)
-    agent = get_agent(conf, env, name='agent')
+    env = create_environment(
+        conf.domain,
+        conf.domain_size,
+        conf.verbose
+    )
+    agent = create_agent(
+        env.action_space,
+        env.observation_space,
+        conf
+    )
+
     init_op = tf.global_variables_initializer()
 
     logger.log(
@@ -244,102 +250,6 @@ def parse_arguments(args: str = None):
     )
 
     return parser.parse_args(args)
-
-
-def get_environment(
-        domain_name: str,
-        domain_size: int,
-        verbose: int) -> environment.Environment:
-    """ the factory function to construct environments
-
-    TODO: move to environments.py?
-
-    Args:
-         domain_name: (`str`): determines which domain is created
-         domain_size: (`int`): the size of the domain (domain dependent)
-         verbose: (`int`): verbosity level
-
-    RETURNS (`pobnrl.environments.environment.Environment`)
-
-    """
-    verbose = verbose > 1
-
-    if domain_name == "tiger":
-        return tiger.Tiger(verbose)
-    if domain_name == "cartpole":
-        return cartpole.Cartpole(verbose)
-    if domain_name == "gridworld":
-        return gridworld.GridWorld(domain_size, verbose)
-    if domain_name == "collision_avoidance":
-        return collision_avoidance.CollisionAvoidance(
-            domain_size, verbose)
-
-    raise ValueError('unknown domain ' + domain_name)
-
-
-def get_agent(
-        conf,
-        env: environment.Environment,
-        name: str) -> Agent.Agent:
-    """ factory function to construct agents
-
-    TODO: move to agent.py?
-
-    Args:
-         conf: configuration file (see program input -h)
-         env: (`pobnrl.environments.environment.Environment`): real environment
-         name: (`str`): used to provide scope for tensorflow
-
-    Assumes conf is a namespace that holds:
-        * (`int`) num_nets
-        * (`bool`) random_policy
-        * (`bool`) recurrent
-        * whatever agent needs
-
-    RETURNS (`agents.agent.Agent`)
-
-    """
-
-    if conf.random_policy:
-        return Agent.RandomAgent(env.action_space)
-
-    # TODO: create factory of building this
-    def construct_qnet(name: str):
-        if conf.recurrent:
-            return DRQNNet(
-                {"A": env.action_space, "O": env.observation_space},
-                neural_network_misc.two_layer_rec_q_net,
-                tf.train.AdamOptimizer(learning_rate=conf.learning_rate),
-                **vars(conf),
-                scope=name
-            )
-
-        return DQNNet(
-            {"A": env.action_space, "O": env.observation_space},
-            neural_network_misc.two_layer_q_net,
-            tf.train.AdamOptimizer(learning_rate=conf.learning_rate),
-            **vars(conf),
-            scope=name
-        )
-
-    if conf.num_nets == 1:
-        return Agent.BaselineAgent(
-            construct_qnet(name + "_net"),
-            env,
-            PiecewiseSchedule(
-                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
-            ),
-            **vars(conf),
-            name=name
-        )
-
-    return Agent.EnsembleAgent(
-        construct_qnet,
-        env,
-        NoExploration(),
-        **vars(conf),
-        name=name
-    )
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from agents.networks import neural_network_misc
-from misc import tf_run, log_level
+from misc import tf_run, log_level, DiscreteSpace
 
 
 class QNetInterface(abc.ABC):
@@ -62,52 +62,44 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
     logger = logging.getLogger(__name__)
 
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            env_spaces: dict,
+            action_space: DiscreteSpace,
+            observation_space: DiscreteSpace,
             q_func: Callable,  # Q-value network function
             optimizer,
-            **conf):
+            name: str,
+            conf):
         """ construct the DRQNNet
 
         Assumes the input architecture q_func is **not** a recurrent one
 
         Args:
-             env_spaces: (`dict`): {'O','A'} with observation and action space
+             action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
              q_func: (`Callable`): the actual Q-function (non-recurrent)
              optimizer: the tf.optimizer to use for learning
-             conf: configurations (assumptions above)
-
-        Assumes conf contains:
-            * `str` scope
-            * `str` loss description
-            * `int` network_size
-            * `int` batch_size: size of batch learning
-            * `int` history_len: length of history to consider
-            * `bool` prior_functions
-            * `bool` double_q
-            * `bool` clipping
-            * `float` gamma
-
+             name: (`str`): name of the network (used for scoping)
+             conf: (`namespace`): configurations
 
         """
 
-        assert conf['history_len'] > 0
-        assert conf['batch_size'] > 0
-        assert conf['network_size'] > 0
-        assert 1 >= conf['gamma'] > 0
+        assert conf.history_len > 0
+        assert conf.batch_size > 0
+        assert conf.network_size > 0
+        assert 1 >= conf.gamma > 0
 
-        self.name = conf['scope']
-        self.history_len = conf['history_len']
-        self.batch_size = conf['batch_size']
+        self.name = name
+        self.history_len = conf.history_len
+        self.batch_size = conf.batch_size
 
         self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
+            = neural_network_misc.ReplayBuffer(observation_space.shape)
 
         # shape of network input: variable in first dimension because
         # we sometimes provide complete sequences (for batch updates)
         # and sometimes just the last observation
-        input_shape = (self.history_len, *env_spaces["O"].shape)
+        input_shape = (self.history_len, *observation_space.shape)
 
         # training operation place holders
         self.obs_ph = tf.placeholder(
@@ -132,37 +124,37 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         self.qvalues_fn = q_func(
             self.obs_ph,
-            env_spaces["A"].n,
-            conf['network_size'],
+            action_space.n,
+            conf.network_size,
             scope=self.name + '_net'
         )
 
         next_qvalues_fn = q_func(
             self.next_obs_ph,
-            env_spaces["A"].n,
-            conf['network_size'],
+            action_space.n,
+            conf.network_size,
             scope=self.name + '_net'
         )
 
         next_targets_fn = q_func(
             self.next_obs_ph,
-            env_spaces["A"].n,
-            conf['network_size'],
+            action_space.n,
+            conf.network_size,
             scope=self.name + '_target'
         )
 
         # define loss
-        if conf['prior_functions']:  # add random function to our estimates
+        if conf.prior_functions:  # add random function to our estimates
             prior_vals = neural_network_misc.two_layer_q_net(
                 self.obs_ph,
-                env_spaces["A"].n,
+                action_space.n,
                 4,
                 scope=self.name + '_prior'
             )
 
             next_prior_vals = neural_network_misc.two_layer_q_net(
                 self.next_obs_ph,
-                env_spaces["A"].n,
+                action_space.n,
                 4,
                 scope=self.name + '_prior'
             )
@@ -186,16 +178,16 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
             next_targets_fn,
-            conf['double_q']
+            conf.double_q
         )
 
         targets = tf.where(
             self.done_mask_ph,
             x=self.rew_ph,
-            y=self.rew_ph + (conf['gamma'] * return_estimate)
+            y=self.rew_ph + (conf.gamma * return_estimate)
         )
 
-        loss = neural_network_misc.loss(q_values, targets, conf['loss'])
+        loss = neural_network_misc.loss(q_values, targets, conf.loss)
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
@@ -205,7 +197,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             *optimizer.compute_gradients(loss, var_list=net_vars)
         )
 
-        if conf['clipping']:
+        if conf.clipping:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))
@@ -313,52 +305,45 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
     logger = logging.getLogger(__name__)
 
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            env_spaces: dict,
+            action_space: DiscreteSpace,
+            observation_space: DiscreteSpace,
             rec_q_func: Callable,
             optimizer,
-            **conf):
+            name,
+            conf):
         """ construct the DRQNNet
 
         Assumes the rec_q_func provided is a recurrent Q function
 
         Args:
-             env_spaces: (`dict`): {'O','A'} with observation and action space
+             action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
              rec_q_func: (`Callable`): the (recurrent) Q function
              optimizer: the tf.optimizer optimizer to use for learning
-             conf: configurations
-
-        Assumes conf contains:
-            * `str` scope: the name / scope of this
-            * `int` network_size: number of nodes in hidden layers
-            * `str` loss: description of how to compute the loss
-            * `int` batch_size: size of batch learning
-            * `int` history_len: length of history to consider
-            * `bool` prior_functions: whether to use random prior in target
-            * `bool` double_q: whether to apply the double_q method
-            * `bool` clipping: whether to apply clipping
-            * `float` gamma: discount factor in target
+             name: (`str`): name of the network (used for scoping)
+             conf: (`namespace`): configurations
 
         """
 
-        assert conf['history_len'] > 0
-        assert conf['batch_size'] > 0
-        assert conf['network_size'] > 0
-        assert 1 >= conf['gamma'] > 0
+        assert conf.history_len > 0
+        assert conf.batch_size > 0
+        assert conf.network_size > 0
+        assert 1 >= conf.gamma > 0
 
-        self.name = conf['scope']
-        self.history_len = conf['history_len']
-        self.batch_size = conf['batch_size']
+        self.name = name
+        self.history_len = conf.history_len
+        self.batch_size = conf.batch_size
 
         self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(env_spaces["O"].shape)
+            = neural_network_misc.ReplayBuffer(observation_space.shape)
         self.rnn_state = None
 
         # shape of network input: variable in first dimension because
         # we sometimes provide complete sequences (for batch updates)
         # and sometimes just the last observation
-        input_shape = (None, *env_spaces["O"].shape)
+        input_shape = (None, *observation_space.shape)
 
         # training operation place holders
         self.obs_ph = tf.placeholder(
@@ -379,8 +364,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             name=self.name + '_next_obs'
         )
 
-        rnn_cell = tf.nn.rnn_cell.LSTMCell(conf['network_size'])
-        rnn_cell_t = tf.nn.rnn_cell.LSTMCell(conf['network_size'])
+        rnn_cell = tf.nn.rnn_cell.LSTMCell(conf.network_size)
+        rnn_cell_t = tf.nn.rnn_cell.LSTMCell(conf.network_size)
 
         self.rnn_state_ph = rnn_cell.zero_state(
             tf.shape(self.obs_ph)[0], dtype=tf.float32
@@ -396,8 +381,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell,
             self.rnn_state_ph,
-            env_spaces["A"].n,
-            conf['network_size'],
+            action_space.n,
+            conf.network_size,
             scope=self.name + '_net'
         )
 
@@ -406,8 +391,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell_t,
             self.rnn_state_ph,
-            env_spaces["A"].n,
-            conf['network_size'],
+            action_space.n,
+            conf.network_size,
             scope=self.name + '_target'
         )
 
@@ -416,21 +401,21 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell,
             self.rnn_state_ph,
-            env_spaces["A"].n,
-            conf['network_size'],
+            action_space.n,
+            conf.network_size,
             scope=self.name + '_net'
         )
 
         # define loss
 
-        if conf['prior_functions']:  # add random function to our estimates
+        if conf.prior_functions:  # add random function to our estimates
 
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_ph,
                 self.seq_lengths_ph,
                 rnn_cell,
                 self.rnn_state_ph,
-                env_spaces["A"].n,
+                action_space.n,
                 4,
                 scope=self.name + '_prior'
             )
@@ -438,7 +423,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 self.next_obs_ph,
                 self.seq_lengths_ph,
                 self.rnn_state_ph,
-                env_spaces["A"].n,
+                action_space.n,
                 4,
                 scope=self.name + '_prior'
             )
@@ -462,16 +447,16 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
             next_targets_fn,
-            conf['double_q']
+            conf.double_q
         )
 
         targets = tf.where(
             self.done_mask_ph,
             x=self.rew_ph,
-            y=self.rew_ph + (conf['gamma'] * return_estimate)
+            y=self.rew_ph + (conf.gamma * return_estimate)
         )
 
-        loss = neural_network_misc.loss(q_values, targets, conf['loss'])
+        loss = neural_network_misc.loss(q_values, targets, conf.loss)
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
@@ -481,7 +466,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             *optimizer.compute_gradients(loss, var_list=net_vars)
         )
 
-        if conf['clipping']:
+        if conf.clipping:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))

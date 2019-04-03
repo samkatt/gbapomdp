@@ -235,3 +235,6 @@ class DiscreteSpace():
 
         """
         return (np.random.random(self.shape) * self._dim).astype(int)
+
+    def __repr__(self):
+        return f"DiscreteSpace of size {self.n} and shape {self.dimensions}"
