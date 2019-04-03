@@ -6,11 +6,10 @@ from collections import deque
 from typing import Callable
 import abc
 import numpy as np
-import tensorflow as tf
 
 from agents.networks.q_functions import QNetInterface
 from environments.environment import Environment
-from misc import PiecewiseSchedule, epsilon_greedy, DiscreteSpace
+from misc import epsilon_greedy, DiscreteSpace, ExplorationSchedule
 
 
 class Agent(abc.ABC):
@@ -112,30 +111,31 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
     """ default single q-net agent implementation"""
 
     def __init__(self,
-                 qnet_constructor: QNetInterface,
-                 q_func: Callable,
+                 qnet: QNetInterface,
                  env: Environment,
+                 exploration: ExplorationSchedule,
                  **conf):
         """ initializes a single network
 
         Args:
-             qnet_constructor: (`QNetInterface`): Q-net to use
-             q_func: (`Callable`): Q-function (network arch) to use
-             env: (`Environment`): for domain knowledge
+             qnet: (`pobnrl.agents.networks.q_functions.QNetInterface`): \
+                    Q-net to use
+             env: (`pobnrl.environments.environment.Environment`): \
+                    for domain knowledge
+             exploration: (`pobnrl.misc.ExplorationSchedule`): \
+                    schedule for e-greedy
              **conf: set of configurations
 
         Assumes conf contains:
             * `int` target_update_freq
             * `int` train_freq
-            * `int` observation len
-            * `float` learning rate (alpha)
+            * `int` observation_len
             * whatever is necessary for the `q_func`
 
         """
 
         assert conf['target_update_freq'] > 0
         assert conf['train_freq'] > 0
-        assert 1 > conf['learning_rate'] > 0
         assert conf['history_len'] > 0
 
         # params
@@ -148,22 +148,9 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.last_action = None
         self.last_obs = deque([], conf['history_len'])
 
-        self.exploration = PiecewiseSchedule(
-            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
-        )
+        self.exploration = exploration
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
-
-        self.q_net = qnet_constructor(
-            {
-                "A": env.action_space,
-                "O": env.observation_space
-            },
-            q_func,
-            optimizer,
-            **conf,
-            scope=conf['name'] + '_net'
-        )
+        self.q_net = qnet
 
     def reset(self):
         """ re-initializes members
@@ -241,16 +228,21 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
     """ ensemble agent """
 
     def __init__(self,
-                 qnet_constructor: QNetInterface,
-                 q_func: Callable,
+                 qnet_constructor: Callable[[str], QNetInterface],
                  env: Environment,
+                 exploration: ExplorationSchedule,
                  **conf):
         """ initialize network
 
+        TODO: add exploration
+
         Args:
-             qnet_constructor: (`QNetInterface`): Q-net to use
-             q_func: (`Callable`): Q-function (network arch) to use
-             env: (`Environment`): for domain knowledge
+            qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.networks.q_functions.QNetInterface`]): \
+                    Q-net constructor to use to create nets
+            env: (`pobnrl.environments.environment.Environment`): \
+                    for domain knowledge
+            exploration: (`pobnrl.misc.ExplorationSchedule`): \
+                    exploration schedule
              **conf: set of configurations
 
         Assumes conf contains:
@@ -258,38 +250,29 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
             * `int` target_update_freq
             * `int` train_freq
             * `int` observation len
-            * `float` learning rate (alpha)
 
         """
 
         assert conf['num_nets'] > 1
         assert conf['target_update_freq'] > 0
         assert conf['train_freq'] > 0
-        assert 1 > conf['learning_rate'] > 0
         assert conf['history_len'] > 0
 
         # params
         self.target_update_freq = conf['target_update_freq']
         self.train_freq = conf['train_freq']
 
+        self.action_space = env.action_space
+        self.exploration = exploration
+
         self.timestep = 0
         self.last_action = None
         self.last_obs = deque([], conf['history_len'])
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=conf['learning_rate'])
-
-        self.nets = np.array([
-            qnet_constructor(
-                {
-                    "A": env.action_space,
-                    "O": env.observation_space
-                },
-                q_func,
-                optimizer,
-                **conf,
-                scope=conf['name'] + '_net_' + str(i))
-            for i in range(conf['num_nets'])
-        ])
+        self.nets = np.array(
+            [qnet_constructor(conf['name'] + '_net_' + str(i))
+             for i in range(conf['num_nets'])]
+        )
 
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
         self._current_policy = np.random.choice(self.nets)
@@ -332,9 +315,14 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
     def select_action(self):
         """ returns greedy action from current active policy """
 
-        self.last_action = self._current_policy.qvalues(
+        q_values = self._current_policy.qvalues(
             np.array(self.last_obs)
-        ).argmax()
+        )
+
+        epsilon = self.exploration.value(self.timestep)
+        self.last_action = epsilon_greedy(q_values, epsilon, self.action_space)
+
+        self.last_action = q_values.argmax()
 
         return self.last_action
 
@@ -352,7 +340,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         * May update target network (frequency see parameters/configuration)
 
         Args:
-             observation (`np.ndarray`): the observation
+             observation: (`np.ndarray`): the observation
              reward: (`float`): the reward associated with the last step
              terminal: (`bool`): whether the last step was terminal
 

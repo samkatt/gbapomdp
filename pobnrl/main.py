@@ -8,12 +8,13 @@ from math import sqrt
 import numpy as np
 import tensorflow as tf
 
-from agents import agent
+from agents import agent as Agent
 from agents.networks import neural_network_misc
 from agents.networks.q_functions import DQNNet, DRQNNet
 from environments import cartpole, collision_avoidance, gridworld, tiger, environment
 from episode import run_episode
 from misc import tf_session, tf_run, log_level
+from misc import PiecewiseSchedule, NoExploration
 
 VERBOSE_TO_LOGGING = {
     0: 30,  # warning
@@ -48,7 +49,10 @@ def main(conf):
     agent = get_agent(conf, env, name='agent')
     init_op = tf.global_variables_initializer()
 
-    logger.log(log_level['info'], "Running experiment on %s", str(env))
+    logger.log(
+        log_level['info'],
+        "Running %s experiment on %s", str(agent), str(env)
+    )
 
     with tf_session():
         for run in range(conf.runs):
@@ -248,6 +252,8 @@ def get_environment(
         verbose: int) -> environment.Environment:
     """ the factory function to construct environments
 
+    TODO: move to environments.py?
+
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
@@ -256,7 +262,7 @@ def get_environment(
     RETURNS (`pobnrl.environments.environment.Environment`)
 
     """
-    verbose = verbose > 0
+    verbose = verbose > 1
 
     if domain_name == "tiger":
         return tiger.Tiger(verbose)
@@ -274,8 +280,10 @@ def get_environment(
 def get_agent(
         conf,
         env: environment.Environment,
-        name: str) -> agent.Agent:
+        name: str) -> Agent.Agent:
     """ factory function to construct agents
+
+    TODO: move to agent.py?
 
     Args:
          conf: configuration file (see program input -h)
@@ -293,31 +301,42 @@ def get_agent(
     """
 
     if conf.random_policy:
-        return agent.RandomAgent(env.action_space)
+        return Agent.RandomAgent(env.action_space)
 
-    # Q function depending on recurrent or not
-    if conf.recurrent:
-        qfunc = DRQNNet
-        arch = neural_network_misc.two_layer_rec_q_net
-    else:
-        qfunc = DQNNet
-        arch = neural_network_misc.two_layer_q_net
+    # TODO: create factory of building this
+    def construct_qnet(name: str):
+        if conf.recurrent:
+            return DRQNNet(
+                {"A": env.action_space, "O": env.observation_space},
+                neural_network_misc.two_layer_rec_q_net,
+                tf.train.AdamOptimizer(learning_rate=conf.learning_rate),
+                **vars(conf),
+                scope=name
+            )
 
-    # TODO: exploration strategy
+        return DQNNet(
+            {"A": env.action_space, "O": env.observation_space},
+            neural_network_misc.two_layer_q_net,
+            tf.train.AdamOptimizer(learning_rate=conf.learning_rate),
+            **vars(conf),
+            scope=name
+        )
 
     if conf.num_nets == 1:
-        return agent.BaselineAgent(
-            qfunc,
-            arch,
+        return Agent.BaselineAgent(
+            construct_qnet(name + "_net"),
             env,
+            PiecewiseSchedule(
+                [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
+            ),
             **vars(conf),
             name=name
         )
 
-    return agent.EnsembleAgent(
-        qfunc,
-        arch,
+    return Agent.EnsembleAgent(
+        construct_qnet,
         env,
+        NoExploration(),
         **vars(conf),
         name=name
     )

@@ -43,11 +43,14 @@ python -h
 * testing: Run ```bash ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
+* FIX
+    - figure out why check_formatting is not finding things
 * refactoring
     - rename and reinvent q_functions
     - refactor priors away elegantly
     - create a 'batch' class and use that instead of individual placeholders
+    - add _ infront of all class members (use property where applicable)
 * dev
     - implement static analysing mechanism
-* test
-    - integration (does everything *run*)
+* logging
+    - create __repr__ (or __str__?) for environments and agents

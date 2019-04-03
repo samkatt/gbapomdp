@@ -9,9 +9,10 @@ Contains:
 
 """
 
-from typing import List, Callable
-import os
 from contextlib import contextmanager
+from typing import List, Callable
+import abc
+import os
 
 import logging
 import numpy as np
@@ -22,17 +23,19 @@ logger = logging.getLogger(__name__)
 log_level = {"spam": 5, "debug": 10, "verbose": 15, "info": 20}
 
 
-def epsilon_greedy(q_values, epsilon: float, action_space) -> int:
+def epsilon_greedy(q_values: np.array, epsilon: float, action_space) -> int:
     """ returns epsilon greedy action
 
     Args:
-         q_values: a list of q values, one for each action
+         q_values: (`np.array'): a list of q values, one for each action
          epsilon: (`float`): the probability of picking a random action
          action_space: a space of actions to sample from
 
     RETURNS (`int`): an action (assuming discrete environments)
 
     """
+    assert 1 >= epsilon >= 0
+
     if np.random.random() > epsilon:
         return np.argmax(q_values)
 
@@ -53,13 +56,33 @@ def linear_interpolation(left: float, right: float, alpha: float) -> float:
     return left + alpha * (right - left)
 
 
-class PiecewiseSchedule():  # pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods
+class ExplorationSchedule(abc.ABC):
+    """ interface for e-greedy exploration schedule """
+
+    @abc.abstractmethod
+    def value(self, time: int) -> float:
+        """ returns epsilon for a given timestep """
+
+
+# pylint: disable=too-few-public-methods
+class NoExploration(ExplorationSchedule):
+    """ always returns 0 probability for exploring """
+
+    def value(self, _time: int) -> float:
+        """ returns epsilon for a given timestep """
+        return 0
+
+
+# pylint: disable=too-few-public-methods
+class PiecewiseSchedule(ExplorationSchedule):
     """ scheduler advancing piecewise """
 
     def __init__(
             self,
             endpoints: List[tuple],
-            interpolation: Callable[[float, float, float], float] = linear_interpolation,
+            interpolation: Callable[[float, float, float], float]
+            = linear_interpolation,
             outside_value: float = None):
         """ Piecewise Schedule
 
