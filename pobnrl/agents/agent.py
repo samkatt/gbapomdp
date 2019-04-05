@@ -8,7 +8,6 @@ import abc
 import numpy as np
 
 from agents.networks.q_functions import QNetInterface
-from environments.environment import Environment
 from misc import epsilon_greedy, DiscreteSpace, ExplorationSchedule
 
 
@@ -157,6 +156,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.timestep = 0
         self.last_action = None
         self.last_obs.clear()
+
         self.q_net.reset()
 
     def episode_reset(self, observation: np.ndarray):
@@ -302,9 +302,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
     def select_action(self):
         """ returns greedy action from current active policy """
 
-        q_values = self._current_policy.qvalues(
-            np.array(self.last_obs)
-        )
+        q_values = self._current_policy.qvalues(np.array(self.last_obs))
 
         epsilon = self.exploration.value(self.timestep)
         self.last_action = epsilon_greedy(q_values, epsilon, self.action_space)

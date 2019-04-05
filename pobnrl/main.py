@@ -119,7 +119,7 @@ def parse_arguments(args: str = None):
 
     parser.add_argument(
         "--verbose", "-v",
-        choices=[0, 1, 2],
+        choices=[0, 1, 2, 3, 4, 5],
         default=0,
         type=int,
         help="level of logging")

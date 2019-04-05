@@ -175,6 +175,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             name=self.name + '_pick_Q'
         )
 
+        # TODO: before the prior part?
         return_estimate = neural_network_misc.return_estimate(
             next_qvalues_fn,
             next_targets_fn,

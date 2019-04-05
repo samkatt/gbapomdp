@@ -34,8 +34,8 @@ class TestDefaults(unittest.TestCase):
 
     def test_ensemble(self):
         """ run the ensemble agent """
-        self.run_experiment(['-D=tiger', '--num_nets=5'])
-        self.run_experiment(['-D=tiger', '--num_nets=5', '--prior_functions'])
+        self.run_experiment(['-D=tiger', '--num_nets=3'])
+        self.run_experiment(['-D=tiger', '--num_nets=2', '--prior_functions'])
 
     def test_recurrent(self):
         """ tests whether recurrent network runs correctly """
@@ -54,7 +54,7 @@ class TestDefaults(unittest.TestCase):
              '--domain_size=3',
              '--recurrent',
              '--history_len=3',
-             '--num_nets=3']
+             '--num_nets=2']
         )
 
     def test_basic_features(self):
