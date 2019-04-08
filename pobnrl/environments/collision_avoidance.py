@@ -141,7 +141,6 @@ class CollisionAvoidance(Environment):
         RETURNS (`list`): [observation, reward (float), terminal (bool)]
 
         """
-        # TODO: make usre action is int
         assert 0 <= action < 3
 
         # move agent

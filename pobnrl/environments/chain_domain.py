@@ -14,7 +14,17 @@ from misc import DiscreteSpace, ActionSpace, log_level
 class ChainDomain(Environment):
     """ the chain environment
 
-    TODO: add doc
+    The environments are indexed by problem size N and actionimask W =
+    Ber(0.5)^NxN,with S={0,1}^NxN and A={0,1}. he agent begins each episode
+    inthe upper left-most state in the grid and deterministically falls one row
+    per time step. The state encodes the agent’s row and column as a one-hot
+    vectorst. The actions {0,1} move the agent left or right depending on the
+    action mask W at state s, which remains fixed. The agent incurs a cost of
+    0.01/N for moving right in all states except for the right-most, in which
+    the reward is 1. The reward for action left is always zero. An episode ends
+    after N time steps so that the optimal policy is to move right each step
+    and receive a total return of 0.99; all other policies receive zero or
+    negative return
 
     """
 
