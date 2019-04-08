@@ -307,8 +307,6 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         epsilon = self.exploration.value(self.timestep)
         self.last_action = epsilon_greedy(q_values, epsilon, self.action_space)
 
-        self.last_action = q_values.argmax()
-
         return self.last_action
 
     def update(
