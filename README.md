@@ -34,6 +34,10 @@ python main.py -D cartpole -v --network_size med
 python -h
 ```
 
+## Relevant literature
+* prior work:
+    + [Randomized Prior Functions for Deep Reinforcement Learning][1]
+
 ## Development
 
 * documentation: Run ```bash ./make_documentation.sh ``` in root and find
@@ -44,13 +48,16 @@ python -h
 
 ### TODO
 * FIX
-    - figure out why check_formatting is not finding things
+    - figure out why num_nets 2 takes *so much longer*
+    - speed up tests, or make way to separate quick and slow ones
 * refactoring
     - rename and reinvent q_functions
     - refactor priors away elegantly
+        + [maybe] refactor the whole creation of training operation..
     - create a 'batch' class and use that instead of individual placeholders
     - add _ infront of all class members (use property where applicable)
 * dev
     - implement static analysing mechanism
-* logging
     - create __repr__ (or __str__?) for environments and agents
+
+[1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf
