@@ -159,18 +159,15 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
+            self.qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
             next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
-
-        else:  # no random prior to our loss function
-            qvalues_fn = self.qvalues_fn
 
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
         )
 
         q_values = tf.gather_nd(
-            qvalues_fn,
+            self.qvalues_fn,
             action_onehot,
             name=self.name + '_pick_Q'
         )
@@ -429,18 +426,15 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
+            self.qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
             next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
-
-        else:  # no random prior to our loss function
-            qvalues_fn = self.qvalues_fn
 
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
         )
 
         q_values = tf.gather_nd(
-            qvalues_fn,
+            self.qvalues_fn,
             action_onehot,
             name=self.name + '_pick_Q'
         )
