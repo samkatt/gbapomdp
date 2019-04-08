@@ -7,7 +7,7 @@ from typing import List
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, ActionSpace, log_level
 
 
 # pylint: disable=too-many-instance-attributes
@@ -36,7 +36,7 @@ class ChainDomain(Environment):
 
         self._move_cost = .01 / self.size
 
-        self._action_space = DiscreteSpace([2])
+        self._action_space = ActionSpace(2)
         self._observation_space = DiscreteSpace(
             [[2] * (self.size), [2] * (self.size)]
         )

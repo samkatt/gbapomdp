@@ -9,7 +9,7 @@ from typing import List
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, ActionSpace, log_level
 
 
 class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
@@ -110,7 +110,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             self._goal_cells.append((edge - 1, edge - 2))
 
         self._spaces = {
-            "A": DiscreteSpace([4]),
+            "A": ActionSpace(4),
             "O": DiscreteSpace(
                 [self._size, self._size]
                 + (2 * np.ones(len(self._goal_cells))).tolist()

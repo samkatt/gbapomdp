@@ -7,7 +7,7 @@ import copy
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, ActionSpace, log_level
 
 
 # pylint: disable=too-many-instance-attributes
@@ -59,7 +59,7 @@ class CollisionAvoidance(Environment):
         self._state = copy.deepcopy(self.init_state)
 
         self._spaces = {
-            "A": DiscreteSpace([3]),
+            "A": ActionSpace(3),
             "O": DiscreteSpace([self._size, self._size, self._size])
         }
 
