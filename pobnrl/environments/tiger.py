@@ -7,7 +7,7 @@ import copy
 import numpy as np
 
 from environments.environment import Environment
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, ActionSpace, log_level
 
 
 class Tiger(Environment):
@@ -37,7 +37,7 @@ class Tiger(Environment):
         self._state = self.sample_start_state()
 
         self._spaces = {
-            "A": DiscreteSpace([3]),
+            "A": ActionSpace(3),
             "O": DiscreteSpace([2, 2])
         }
 

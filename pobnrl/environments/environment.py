@@ -13,11 +13,11 @@ class Environment(abc.ABC):
         """ resets internal state and return first observation """
 
     @abc.abstractmethod
-    def step(self, action) -> list:
+    def step(self, action: int) -> list:
         """ update state as a result of action
 
         Args:
-             action: agent's taken action
+             action: (`int`): agent's taken action
 
         RETURNS (`list`): [observation, reward (float), terminal (bool)]
 

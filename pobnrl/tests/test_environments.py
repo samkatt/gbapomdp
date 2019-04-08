@@ -2,9 +2,10 @@
 
 import unittest
 
+import math
 import numpy as np
 
-from environments import gridworld, tiger, collision_avoidance
+from environments import gridworld, tiger, collision_avoidance, chain_domain
 
 
 class TestTiger(unittest.TestCase):
@@ -336,6 +337,126 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertTupleEqual(obs.shape, (3,))
         np.testing.assert_array_equal(obs[:2], [2, 4])
         self.assertIn(obs[2], list(range(7)))
+
+
+class TestChainDomain(unittest.TestCase):
+    """ tests the chain domain """
+
+    def test_reset(self):  # pylint: disable=no-self-use
+        """ tests ChainDomain.reset """
+        domain = chain_domain.ChainDomain(size=4, verbose=False)
+
+        obs = domain.reset()
+        self.assertListEqual(domain.state, [0, 3])
+        np.testing.assert_array_equal(obs, [[1, 0, 0, 0], [0, 0, 0, 1]])
+
+        domain = chain_domain.ChainDomain(size=10, verbose=False)
+
+        obs = domain.reset()
+        self.assertListEqual(domain.state, [0, 9])
+        np.testing.assert_array_equal(obs, [[1] + [0] * 9, [0] * 9 + [1]])
+
+        domain.step(0)
+        obs = domain.reset()
+        self.assertListEqual(domain.state, [0, 9])
+        np.testing.assert_array_equal(obs, [[1] + [0] * 9, [0] * 9 + [1]])
+
+    def test_space(self):
+        """ tests ChainDomain.spaces """
+
+        domain = chain_domain.ChainDomain(size=6, verbose=False)
+
+        action_space = domain.action_space
+
+        self.assertEqual(action_space.n, 2)
+        self.assertTupleEqual(action_space.shape, (1,))
+        np.testing.assert_array_equal(action_space.dimensions, [2])
+
+        observation_space = domain.observation_space
+
+        self.assertEqual(observation_space.n, (2**6) ** 2)
+        self.assertTupleEqual(observation_space.shape, (2, 6))
+        np.testing.assert_array_equal(
+            observation_space.dimensions,
+            [[2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2]]
+        )
+
+    def test_state(self):
+        """ tests ChainDomain.state """
+
+        domain = chain_domain.ChainDomain(size=3, verbose=False)
+        domain.reset()
+
+        self.assertListEqual(domain.state, [0, 2])
+
+        domain.step(0)
+        self.assertEqual(domain.state[1], 1)
+        self.assertIn(domain.state[0], [0, 1])
+
+    def test_step(self):
+        """ tests ChainDomain.step """
+
+        domain = chain_domain.ChainDomain(size=3, verbose=False)
+
+        # test if all effects go right
+        # pylint: disable=protected-access
+        domain._move_effect = np.ones((3, 3, 2)).astype(int)
+
+        obs, rew, term = domain.step(np.random.randint(0, 2))
+        self.assertFalse(term)
+        self.assertAlmostEqual(rew, -.0033333333)
+        np.testing.assert_array_equal(obs, [[0, 1, 0], [0, 1, 0]])
+
+        obs, rew, term = domain.step(np.random.randint(0, 2))
+        self.assertTrue(term)
+        self.assertEqual(rew, 1)
+        np.testing.assert_array_equal(obs, [[0, 0, 1], [1, 0, 0]])
+
+        # test going left
+        domain = chain_domain.ChainDomain(size=3, verbose=False)
+
+        # test if all effects go right
+        # pylint: disable=protected-access
+        domain._move_effect = np.zeros((3, 3, 2)).astype(int)
+
+        obs, rew, term = domain.step(np.random.randint(0, 2))
+        self.assertFalse(term)
+        self.assertAlmostEqual(rew, 0)
+        np.testing.assert_array_equal(obs, [[1, 0, 0], [0, 1, 0]])
+
+        obs, rew, term = domain.step(np.random.randint(0, 2))
+        self.assertTrue(term)
+        self.assertAlmostEqual(rew, 0)
+        np.testing.assert_array_equal(obs, [[1, 0, 0], [1, 0, 0]])
+
+    def test_utils(self):
+        """ tests ChainDomain utility functions
+
+        ChainDomain.size
+        ChainDomain.state2observation
+
+        """
+
+        for size in 3, 9:
+            domain = chain_domain.ChainDomain(size=size, verbose=False)
+            self.assertEqual(domain.size, size)
+
+        domain = chain_domain.ChainDomain(size=4, verbose=False)
+
+        np.testing.assert_array_equal(
+            domain.state2observation([0, 0]),
+            [[1, 0, 0, 0], [1, 0, 0, 0]]
+        )
+
+        np.testing.assert_array_equal(
+            domain.state2observation([2, 0]),
+            [[0, 0, 1, 0], [1, 0, 0, 0]]
+        )
+
+        np.testing.assert_array_equal(
+            domain.state2observation([2, 3]),
+            [[0, 0, 1, 0], [0, 0, 0, 1]]
+        )
 
 
 if __name__ == '__main__':

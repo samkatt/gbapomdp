@@ -5,6 +5,7 @@ from .tiger import Tiger
 from .cartpole import Cartpole
 from .collision_avoidance import CollisionAvoidance
 from .gridworld import GridWorld
+from .chain_domain import ChainDomain
 
 
 def create_environment(
@@ -30,7 +31,8 @@ def create_environment(
     if domain_name == "gridworld":
         return GridWorld(domain_size, verbose)
     if domain_name == "collision_avoidance":
-        return CollisionAvoidance(
-            domain_size, verbose)
+        return CollisionAvoidance(domain_size, verbose)
+    if domain_name == "chain":
+        return ChainDomain(domain_size, verbose)
 
     raise ValueError('unknown domain ' + domain_name)
