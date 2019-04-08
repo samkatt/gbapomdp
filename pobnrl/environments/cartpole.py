@@ -52,17 +52,18 @@ class Cartpole(Environment):
         """ resets the cartpole gym environment """
         return self.cartpole.reset()
 
-    def step(self, action) -> list:
+    def step(self, action: int) -> list:
         """ update state as a result of action
 
         Uses gym.cartpole for the actual transition
 
         Args:
-             action: agent's taken action
+             action: (`int`): agent's taken action
 
         RETURNS (`list`): [observation, reward (float), terminal (bool)]
 
         """
+        # TODO: make sure action is int?
 
         obs, reward, terminal, _ = self.cartpole.step(action)
         return obs, reward, terminal

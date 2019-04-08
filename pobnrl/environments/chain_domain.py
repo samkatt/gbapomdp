@@ -29,6 +29,8 @@ class ChainDomain(Environment):
 
         """
 
+        assert size > 1, "Please enter domain size > 1"
+
         self._size = size
         self._verbose = verbose
 
@@ -113,6 +115,7 @@ class ChainDomain(Environment):
         # record episodes every so often
         if self._verbose and time.time() - self._last_recording_time > 5:
             self._last_recording_time = time.time()
+            self._history = []
             self._recording = True
 
         return self.state2observation()
@@ -126,20 +129,21 @@ class ChainDomain(Environment):
         x-axis)
 
         Args:
-             action: (`int`): 0 is action A, 1 action B.
+             action: (`int`): 0 is action A, 1 = action B
 
         RETURNS (`list`): [observation, reward (float), terminal (bool)]
 
         """
 
-        assert 2 >= action >= 0
+        assert 2 >= action >= 0, "expecting action A or B"
 
-        agent_x, agent_y = self._state
+        agent_x, agent_y = self.state
 
-        self._state[0] += self._move_effect[agent_x, agent_y, action]
+        # TODO: make sure action is int
+        self._state[0] += self._move_effect[agent_x, agent_y, int(action)]
         self._state[1] -= 1
 
-        agent_x, agent_y = self._state
+        agent_x, agent_y = self.state
 
         # either found the end or not
         if agent_x != self.size - 1:
@@ -171,6 +175,6 @@ class ChainDomain(Environment):
         descr = "0"
 
         for state in self._history:
-            descr += f"-> {state}"
+            descr += f"->{state}"
 
         self.logger.log(log_level['verbose'], "agent travelled %s", descr)

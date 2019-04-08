@@ -128,48 +128,58 @@ def parse_arguments(args: str = None):
         "--domain", "-D",
         help="which domain to use method on",
         required=True,
-        choices=["cartpole", "tiger", "gridworld", "collision_avoidance"])
+        choices=[
+            "cartpole", "tiger", "gridworld", "collision_avoidance", "chain"
+        ]
+    )
 
     parser.add_argument(
         "--file", "-f",
         default="results.npy",
-        help="output file path")
+        help="output file path"
+    )
 
     parser.add_argument(
         "--runs",
         default=1,
         type=int,
-        help="number of runs to average returns over")
+        help="number of runs to average returns over"
+    )
 
     parser.add_argument(
         "--horizon", "-H",
         default=1000,
         type=int,
-        help="length of the problem")
+        help="length of the problem"
+    )
 
     parser.add_argument(
         "--episodes",
         default=1000,
         type=int,
-        help="number of episodes to run")
+        help="number of episodes to run"
+    )
 
     parser.add_argument(
         "--gamma",
         default=0.95,
         type=float,
-        help="discount factor to be used")
+        help="discount factor to be used"
+    )
 
     parser.add_argument(
         "--learning_rate", "--alpha",
         default=1e-4,
         type=float,
-        help="learning rate of the policy gradient descent")
+        help="learning rate of the policy gradient descent"
+    )
 
     parser.add_argument(
         "--loss",
         default="rmse",
         help="type of loss to consider",
-        choices={"rmse", "huber"})
+        choices={"rmse", "huber"}
+    )
 
     parser.add_argument(
         "--clipping",

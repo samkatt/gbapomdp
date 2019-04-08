@@ -20,6 +20,7 @@ import tensorflow as tf
 
 logger = logging.getLogger(__name__)
 
+# TODO: change to log function that wraps logger
 log_level = {"spam": 5, "debug": 10, "verbose": 15, "info": 20}
 
 
@@ -39,6 +40,7 @@ def epsilon_greedy(q_values: np.array, epsilon: float, action_space) -> int:
     if np.random.random() > epsilon:
         return np.argmax(q_values)
 
+    # FIXME: np.array or int?
     return action_space.sample()
 
 
