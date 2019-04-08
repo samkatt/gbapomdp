@@ -63,7 +63,6 @@ class Cartpole(Environment):
         RETURNS (`list`): [observation, reward (float), terminal (bool)]
 
         """
-        # TODO: make sure action is int?
 
         obs, reward, terminal, _ = self.cartpole.step(action)
         return obs, reward, terminal
