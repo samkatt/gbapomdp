@@ -139,15 +139,16 @@ class ChainDomain(Environment):
 
         agent_x, agent_y = self.state
 
-        # TODO: make sure action is int
-        self._state[0] += self._move_effect[agent_x, agent_y, int(action)]
+        # left or right
+        step = self._move_effect[agent_x, agent_y, int(action)]
+        self._state[0] += step
         self._state[1] -= 1
 
         agent_x, agent_y = self.state
 
         # either found the end or not
         if agent_x != self.size - 1:
-            reward = - self._move_cost
+            reward = - self._move_cost if step == 1 else 0
             terminal = agent_y == 0
         else:
             assert agent_y == 0

@@ -421,12 +421,12 @@ class TestChainDomain(unittest.TestCase):
 
         obs, rew, term = domain.step(np.random.randint(0, 2))
         self.assertFalse(term)
-        self.assertAlmostEqual(rew, -.0033333333)
+        self.assertAlmostEqual(rew, 0)
         np.testing.assert_array_equal(obs, [[1, 0, 0], [0, 1, 0]])
 
         obs, rew, term = domain.step(np.random.randint(0, 2))
         self.assertTrue(term)
-        self.assertAlmostEqual(rew, -.0033333333)
+        self.assertAlmostEqual(rew, 0)
         np.testing.assert_array_equal(obs, [[1, 0, 0], [1, 0, 0]])
 
     def test_utils(self):
