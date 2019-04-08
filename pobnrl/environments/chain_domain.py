@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import List
+from typing import Dict
 
 import numpy as np
 
@@ -52,31 +52,22 @@ class ChainDomain(Environment):
         )
 
         # x, level (size-1...0)
-        self._init_state = [0, self.size - 1]
+        self._init_state = {'x': 0, 'y': self.size - 1}
         self._state = self._init_state.copy()
 
-        num_states = self.size * self.size
-        self._move_effect = np.ones((num_states, 2))  # default is 'right'
-        self._move_effect[
-            np.arange(num_states), np.random.randint(0, 2, num_states)
-        ] = -1  # randomly pick half to go left
-
-        # [x,y,a] is effect of action a in (x,y)
-        self._move_effect \
-            = self._move_effect.reshape((self.size, self.size, 2)).astype(int)
-        self._move_effect[0, self._move_effect[0] < 0] = 0  # bound in grid
+        self._action_mapping = np.random.binomial(1, .5, self.size)
 
         self._last_recording_time = 0
         self._recording = False
         self._history = []
 
     @property
-    def state(self) -> List[int]:
+    def state(self) -> Dict[str, int]:
         """ returns current state
 
         Args:
 
-        RETURNS (`List[int]`): [0] = x of agent, [1] = level of env
+        RETURNS (`Dict[str, int]`): {'x', 'y'} positions of agent
 
         """
         return self._state
@@ -86,13 +77,13 @@ class ChainDomain(Environment):
         """ returns size (length) of (square) grid """
         return self._size
 
-    def state2observation(self, state: List[int] = None):
+    def state2observation(self, state: Dict[str, int] = None):
         """ returns a 1-hot encoding of the state
 
         Will use self.state if provided state is not given
 
         Args:
-             state: (`List[int]`): the state ([x, level])
+             state: (`Dict[int]`): the state {'x', 'y'}
 
         """
 
@@ -100,10 +91,8 @@ class ChainDomain(Environment):
         if state is None:
             state = self.state
 
-        obs = np.zeros((2, self.size))
-
-        obs[0, state[0]] = 1
-        obs[1, state[1]] = 1
+        obs = np.zeros((self.size, self.size))
+        obs[state['x'], state['y']] = 1
 
         return obs
 
@@ -147,26 +136,24 @@ class ChainDomain(Environment):
 
         assert 2 >= action >= 0, "expecting action A or B"
 
-        agent_x, agent_y = self.state
-
-        # left or right
-        step = self._move_effect[agent_x, agent_y, int(action)]
-        self._state[0] += step
-        self._state[1] -= 1
-
-        agent_x, agent_y = self.state
-
-        # either found the end or not
-        if agent_x != self.size - 1:
-            reward = - self._move_cost if step == 1 else 0
-            terminal = agent_y == 0
+        # move horizontally
+        if action == self._action_mapping[self.state['x']]:
+            self._state['x'] += 1
+            reward = -self._move_cost
         else:
-            assert agent_y == 0
+            self._state['x'] = max(0, self.state['x'] - 1)  # bound on grid
+            reward = 0
+
+        # move vertically
+        self._state['y'] -= 1
+
+        terminal = self.state['y'] == 0
+
+        if terminal and self.state['x'] == self.size - 1:
             reward = 1
-            terminal = True
 
         if self._recording:
-            self._history.append(agent_x)
+            self._history.append(self.state['x'])
 
         return self.state2observation(), reward, terminal
 
@@ -185,7 +172,7 @@ class ChainDomain(Environment):
 
         descr = "0"
 
-        for state in self._history:
-            descr += f"->{state}"
+        for x in self._history:
+            descr += f"->{x}"
 
         self.logger.log(log_level['verbose'], "agent travelled %s", descr)
