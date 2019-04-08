@@ -202,9 +202,10 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
-        "--prior_functions",
-        action='store_true',
-        help="will incorporate random prior in loss function"
+        "--prior_scale",
+        default=0,
+        type=float,
+        help="The scaling factor for random prior in the loss function"
     )
 
     parser.add_argument(

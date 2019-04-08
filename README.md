@@ -35,8 +35,9 @@ python -h
 ```
 
 ## Relevant literature
-* prior work:
-    + [Randomized Prior Functions for Deep Reinforcement Learning][1]
+* [Osband, Ian, John Aslanides, and Albin Cassirer. "Randomized prior functions
+  for deep reinforcement learning." Advances in Neural Information Processing
+      Systems. 2018.][1]
 
 ## Development
 
@@ -56,8 +57,5 @@ python -h
         + [maybe] refactor the whole creation of training operation..
     - create a 'batch' class and use that instead of individual placeholders
     - add _ infront of all class members (use property where applicable)
-* dev
-    - implement static analysing mechanism
-    - create __repr__ (or __str__?) for environments and agents
 
 [1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf

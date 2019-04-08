@@ -144,7 +144,9 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
         # define loss
-        if conf.prior_functions:  # add random function to our estimates
+        if conf.prior_scale != 0:  # add random function to our estimates
+            assert conf.prior_scale > 0
+
             prior_vals = neural_network_misc.two_layer_q_net(
                 self.obs_ph,
                 action_space.n,
@@ -159,8 +161,13 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            self.qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
-            next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
+            scaled_prior = tf.scalar_mul(conf.prior_scale, prior_vals)
+            scaled_target_prior = tf.scalar_mul(
+                conf.prior_scale, next_prior_vals
+            )
+
+            self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
+            next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
 
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
@@ -406,7 +413,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         # define loss
 
-        if conf.prior_functions:  # add random function to our estimates
+        if conf.prior_scale != 0:  # add random function to our estimates
+            assert conf.prior_scale > 0
 
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_ph,
@@ -426,8 +434,13 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            self.qvalues_fn = tf.add(self.qvalues_fn, prior_vals)
-            next_targets_fn = tf.add(next_targets_fn, next_prior_vals)
+            scaled_prior = tf.scalar_mul(conf.prior_scale, prior_vals)
+            scaled_target_prior = tf.scalar_mul(
+                conf.prior_scale, next_prior_vals
+            )
+
+            self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
+            next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
 
         action_onehot = tf.stack(
             [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
