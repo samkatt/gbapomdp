@@ -144,7 +144,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
         # define loss
-        if conf.prior_scale != 0:  # add random function to our estimates
+        if conf.prior_scale != 0:
             assert conf.prior_scale > 0
 
             prior_vals = neural_network_misc.two_layer_q_net(
@@ -413,7 +413,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         # define loss
 
-        if conf.prior_scale != 0:  # add random function to our estimates
+        if conf.prior_scale != 0:
             assert conf.prior_scale > 0
 
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(

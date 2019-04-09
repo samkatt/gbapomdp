@@ -48,7 +48,7 @@ class ChainDomain(Environment):
 
         self._action_space = ActionSpace(2)
         self._observation_space = DiscreteSpace(
-            [[2] * (self.size), [2] * (self.size)]
+            [[2] * self.size for _ in range(self.size)]
         )
 
         # x, level (size-1...0)

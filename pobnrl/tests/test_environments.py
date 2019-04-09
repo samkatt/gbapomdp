@@ -367,7 +367,7 @@ class TestChainDomain(unittest.TestCase):
     def test_space(self):
         """ tests ChainDomain.spaces """
 
-        domain = chain_domain.ChainDomain(size=6, verbose=False)
+        domain = chain_domain.ChainDomain(size=3, verbose=False)
 
         action_space = domain.action_space
 
@@ -377,11 +377,11 @@ class TestChainDomain(unittest.TestCase):
 
         observation_space = domain.observation_space
 
-        self.assertEqual(observation_space.n, (2**6) ** 2)
-        self.assertTupleEqual(observation_space.shape, (2, 6))
+        self.assertEqual(observation_space.n, 2 ** 9)
+        self.assertTupleEqual(observation_space.shape, (3, 3))
         np.testing.assert_array_equal(
             observation_space.dimensions,
-            [[2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2]]
+            [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
         )
 
     def test_state(self):

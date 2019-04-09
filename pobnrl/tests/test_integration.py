@@ -31,6 +31,7 @@ class TestDefaults(unittest.TestCase):
         self.run_experiment(['--domain_size=3', '-D=cartpole'])
         self.run_experiment(['--domain_size=3', '-D=gridworld'])
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
+        self.run_experiment(['--domain_size=5', '-D=chain'])
 
     def test_ensemble(self):
         """ run the ensemble agent """
