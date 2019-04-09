@@ -3,7 +3,8 @@
 from misc import PiecewiseSchedule, FixedExploration, DiscreteSpace
 
 from .networks import create_qnet
-from .agent import Agent, RandomAgent, BaselineAgent, EnsembleAgent
+from .agent import Agent, RandomAgent
+from .model_free_agents import BaselineAgent, EnsembleAgent
 
 
 def create_agent(
