@@ -11,6 +11,8 @@ Misc functions:
 
 """
 
+from typing import Tuple
+
 from tensorflow.python.layers.layers import dense
 from tensorflow.python.layers.layers import flatten
 import tensorflow as tf
@@ -183,11 +185,11 @@ class ReplayBuffer():
 
     SIZE = 100000
 
-    def __init__(self, observation_shape: tuple):
+    def __init__(self, observation_shape: Tuple[int]):
         """ constructs the replay buffer for specified observation shape
 
         Args:
-             observation_shape: (`tuple`): the shape of an observation
+             observation_shape: (`Tuple[int]`): the shape of an observation
 
         """
 

@@ -50,7 +50,6 @@ python -h
 ### TODO
 * FIX
     - figure out why num_nets 2 takes *so much longer*
-    - speed up tests, or make way to separate quick and slow ones
 * refactoring
     - rename and reinvent q_functions
     - refactor priors away elegantly
