@@ -36,7 +36,9 @@ class TestDefaults(unittest.TestCase):
     def test_ensemble(self):
         """ run the ensemble agent """
         self.run_experiment(['-D=tiger', '--num_nets=3'])
-        self.run_experiment(['-D=tiger', '--num_nets=2', '--prior_scale=2'])
+        self.run_experiment(
+            ['-D=tiger', '--num_nets=2', '--prior_function_scale=2']
+        )
 
     def test_recurrent(self):
         """ tests whether recurrent network runs correctly """

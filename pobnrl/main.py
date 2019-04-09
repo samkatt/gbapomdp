@@ -202,7 +202,7 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
-        "--prior_scale",
+        "--prior_function_scale",
         default=0,
         type=float,
         help="The scaling factor for random prior in the loss function"

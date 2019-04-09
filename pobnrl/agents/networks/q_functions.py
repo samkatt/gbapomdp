@@ -144,8 +144,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
         # define loss
-        if conf.prior_scale != 0:
-            assert conf.prior_scale > 0
+        if conf.prior_function_scale != 0:
+            assert conf.prior_function_scale > 0
 
             prior_vals = neural_network_misc.two_layer_q_net(
                 self.obs_ph,
@@ -161,9 +161,9 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            scaled_prior = tf.scalar_mul(conf.prior_scale, prior_vals)
+            scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
             scaled_target_prior = tf.scalar_mul(
-                conf.prior_scale, next_prior_vals
+                conf.prior_function_scale, next_prior_vals
             )
 
             self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
@@ -413,8 +413,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         # define loss
 
-        if conf.prior_scale != 0:
-            assert conf.prior_scale > 0
+        if conf.prior_function_scale != 0:
+            assert conf.prior_function_scale > 0
 
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_ph,
@@ -434,9 +434,9 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 scope=self.name + '_prior'
             )
 
-            scaled_prior = tf.scalar_mul(conf.prior_scale, prior_vals)
+            scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
             scaled_target_prior = tf.scalar_mul(
-                conf.prior_scale, next_prior_vals
+                conf.prior_function_scale, next_prior_vals
             )
 
             self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
