@@ -4,7 +4,7 @@ from collections import deque
 from typing import Callable
 import numpy as np
 
-from misc import epsilon_greedy, DiscreteSpace, ExplorationSchedule
+from misc import epsilon_greedy, ActionSpace, ExplorationSchedule
 
 from .agent import Agent
 from .networks.q_functions import QNetInterface
@@ -15,7 +15,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self,
                  qnet: QNetInterface,
-                 action_space: DiscreteSpace,
+                 action_space: ActionSpace,
                  exploration: ExplorationSchedule,
                  conf):
         """ initializes a single network
@@ -23,7 +23,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
              qnet: (`pobnrl.agents.networks.q_functions.QNetInterface`): \
                     Q-net to use
-             action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             action_space: (`pobnrl.misc.ActionSpace`): of environment
              exploration: (`pobnrl.misc.ExplorationSchedule`): \
                     schedule for e-greedy
              conf: (`namespace`) set of configurations (see -h)
@@ -126,7 +126,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
     def __init__(self,
                  qnet_constructor: Callable[[str], QNetInterface],
-                 action_space: DiscreteSpace,
+                 action_space: ActionSpace,
                  exploration: ExplorationSchedule,
                  conf):
         """ initialize network
@@ -134,7 +134,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
             qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
-            action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+            action_space: (`pobnrl.misc.ActionSpace`): of environment
             exploration: (`pobnrl.misc.ExplorationSchedule`): \
                     exploration schedule
             conf: (`namespace`): set of configurations

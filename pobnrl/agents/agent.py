@@ -3,7 +3,7 @@
 import abc
 import numpy as np
 
-from misc import DiscreteSpace
+from misc import ActionSpace
 
 
 class Agent(abc.ABC):
@@ -55,12 +55,11 @@ class Agent(abc.ABC):
 class RandomAgent(Agent):
     """ Acts randomly """
 
-    # FIXME: should be ActionSpace
-    def __init__(self, action_space: DiscreteSpace):
+    def __init__(self, action_space: ActionSpace):
         """ constructs an agent that will act randomly
 
         Args:
-             num_actions: (`pobnrl.misc.DiscreteSpace`): the action space
+             num_actions: (`pobnrl.misc.ActionSpace`): the action space
 
         """
         self._action_space = action_space
