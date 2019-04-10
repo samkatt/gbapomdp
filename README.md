@@ -15,19 +15,19 @@ Install the required python packages and dependencies
 #### Known dependencies
 
 Open AI gym:
-```bash pip install gym ```
+``` pip install gym ```
 
 OpenCV python:
-```bash pip instal opencv-python ```
+``` pip instal opencv-python ```
 
 ffmpeg encoding
-```bash sudo apt install ffmpeg ```
+``` sudo apt install ffmpeg ```
 
 tensorflow
-```bash pip install tensorflow ```
+``` pip install tensorflow ```
 
 ### Run the program
-```bash  main.py ``` is located in ``` src ```
+```  main.py ``` is located in ``` src ```
 
 ```bash
 python main.py -D cartpole -v --network_size med
@@ -41,13 +41,19 @@ python -h
 
 ## Development
 
-* documentation: Run ```bash ./make_documentation.sh ``` in root and find
-  documentation in ```bash doc/pobnrl ``` folder
-* formatting: Run ```bash ./check_formatting.sh ``` in root and check whether the
+* documentation: Run ``` ./make_documentation.sh ``` in root and find
+  documentation in ``` doc/pobnrl ``` folder
+* formatting: Run ``` ./check_formatting.sh ``` in root and check whether the
   code is formatted correctly
-* testing: Run ```bash ./run_tests.sh ``` in root and check whether all pass
+* testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
+* implement model-based agent:
+    - implement belief
+        + interface
+        + flat, weighted
+    - implement PO-UCT
+    - test POMCP
 * FIX
     - figure out why num_nets 2 takes *so much longer*
 * refactoring
