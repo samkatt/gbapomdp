@@ -26,6 +26,8 @@ class Agent(abc.ABC):
     def select_action(self):
         """ asks the agent to select an action
 
+        TODO: add type of action
+
         RETURNS: action
 
         """

@@ -49,9 +49,6 @@ python -h
 
 ### TODO
 * implement model-based agent:
-    - implement belief
-        + interface
-        + flat, weighted
     - implement PO-UCT
     - test POMCP
 * FIX
