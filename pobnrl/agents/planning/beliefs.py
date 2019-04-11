@@ -126,7 +126,7 @@ class WeightedFilter(ParticleFilter):
         self._total_weight += particle.weight
         self._particles.append(particle)
 
-    def sample(self) -> Any:  # pylint: disable=inconsistent-return-statements
+    def sample(self) -> Any:
         """ randomly returns a particle
 
         Args:

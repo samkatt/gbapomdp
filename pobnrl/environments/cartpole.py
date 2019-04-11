@@ -5,7 +5,7 @@ import time
 
 import gym
 
-from environments.environment import Environment
+from environments.environment import Environment, EnvironmentInteraction
 from misc import DiscreteSpace, log_level
 
 
@@ -52,7 +52,7 @@ class Cartpole(Environment):
         """ resets the cartpole gym environment """
         return self.cartpole.reset()
 
-    def step(self, action: int) -> list:
+    def step(self, action: int) -> EnvironmentInteraction:
         """ update state as a result of action
 
         Uses gym.cartpole for the actual transition
@@ -60,12 +60,12 @@ class Cartpole(Environment):
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
 
         """
 
         obs, reward, terminal, _ = self.cartpole.step(action)
-        return obs, reward, terminal
+        return EnvironmentInteraction(obs, reward, terminal)
 
     @property
     def state(self):

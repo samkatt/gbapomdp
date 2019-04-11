@@ -6,7 +6,7 @@ import time
 import copy
 import numpy as np
 
-from environments.environment import Environment
+from environments.environment import Environment, EnvironmentInteraction
 from misc import DiscreteSpace, ActionSpace, log_level
 
 
@@ -105,7 +105,7 @@ class Tiger(Environment):
 
         return np.zeros(2)
 
-    def step(self, action: int) -> list:
+    def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the tiger environment given action
 
         Will terminate episode when action is to open door,
@@ -114,7 +114,7 @@ class Tiger(Environment):
         Args:
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
 
         """
 
@@ -133,7 +133,7 @@ class Tiger(Environment):
             self._history.append(
                 {'action': action, 'obs': obs, 'reward': reward})
 
-        return obs, reward, terminal
+        return EnvironmentInteraction(obs, reward, terminal)
 
     @property
     def action_space(self) -> DiscreteSpace:

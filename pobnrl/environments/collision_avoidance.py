@@ -6,7 +6,7 @@ import time
 import copy
 import numpy as np
 
-from environments.environment import Environment
+from environments.environment import Environment, EnvironmentInteraction
 from misc import DiscreteSpace, ActionSpace, log_level
 
 
@@ -126,7 +126,7 @@ class CollisionAvoidance(Environment):
 
         return self.generate_observation()
 
-    def step(self, action: int) -> list:
+    def step(self, action: int) -> EnvironmentInteraction:
         """ updates the state and return observed transitions
 
         Will move the agent 1 cell to the left, and (depending on the action)
@@ -138,7 +138,7 @@ class CollisionAvoidance(Environment):
         Args:
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
 
         """
         assert 0 <= action < 3
@@ -178,7 +178,7 @@ class CollisionAvoidance(Environment):
                 'reward': reward,
                 'state': copy.deepcopy(self.state)})
 
-        return obs, reward, terminal
+        return EnvironmentInteraction(obs, reward, terminal)
 
     @property
     def action_space(self) -> DiscreteSpace:

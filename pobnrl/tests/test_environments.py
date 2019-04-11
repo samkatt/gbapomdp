@@ -41,13 +41,13 @@ class TestTiger(unittest.TestCase):
         obs = []
         # tests effect of listening
         for _ in range(0, 50):
-            observation, rew, term = self.env.step(self.env.LISTEN)
+            step = self.env.step(self.env.LISTEN)
             self.assertEqual(state, self.env.state)
-            self.assertIn(observation.tolist(), [[0, 0], [0, 1], [1, 0]])
-            self.assertFalse(term)
-            self.assertEqual(rew, -1.0)
+            self.assertIn(step.observation.tolist(), [[0, 0], [0, 1], [1, 0]])
+            self.assertFalse(step.terminal)
+            self.assertEqual(step.reward, -1.0)
 
-            obs.append(observation.tolist())
+            obs.append(step.observation.tolist())
 
         # tests stochasticity of observations when listening
         self.assertNotIn([0, 0], obs)
@@ -58,21 +58,21 @@ class TestTiger(unittest.TestCase):
         for _ in range(0, 5):
             self.env.reset()
             open_correct_door = self.env.state  # implementation knowledge
-            obs, rew, term = self.env.step(open_correct_door)
+            step = self.env.step(open_correct_door)
 
-            np.testing.assert_array_equal(obs, [0, 0])
-            self.assertEqual(rew, 10)
-            self.assertTrue(term)
+            np.testing.assert_array_equal(step.observation, [0, 0])
+            self.assertEqual(step.reward, 10)
+            self.assertTrue(step.terminal)
 
         # test opening correct door
         for _ in range(0, 5):
             self.env.reset()
             open_wrong_door = 1 - self.env.state  # implementation knowledge
-            obs, rew, term = self.env.step(open_wrong_door)
+            step = self.env.step(open_wrong_door)
 
-            np.testing.assert_array_equal(obs, [0, 0])
-            self.assertEqual(rew, -100)
-            self.assertTrue(term)
+            np.testing.assert_array_equal(step.observation, [0, 0])
+            self.assertEqual(step.reward, -100)
+            self.assertTrue(step.terminal)
 
     def test_space(self):
         """ tests the size of the spaces """
@@ -112,36 +112,36 @@ class TestGridWorld(unittest.TestCase):
         # left and low keeps in place
         actions = [env.WEST, env.SOUTH]
         for _ in range(10):
-            _, rew, term = env.step(np.random.choice(actions))
+            step = env.step(np.random.choice(actions))
 
             np.testing.assert_array_equal(env.state[0], [0, 0])
-            self.assertEqual(rew, 0)
-            self.assertFalse(term)
+            self.assertEqual(step.reward, 0)
+            self.assertFalse(step.terminal)
             self.assertEqual(env.state[1], goal)
 
         # test step up
-        _, rew, term = env.step(env.NORTH)
+        step = env.step(env.NORTH)
 
         self.assertIn(env.state[0].tolist(), [[0, 0], [0, 1]])
-        self.assertFalse(term)
-        self.assertEqual(rew, 0)
+        self.assertFalse(step.terminal)
+        self.assertEqual(step.reward, 0)
         self.assertEqual(env.state[1], goal)
 
         # test step east
         env.reset()
         goal = env.state[1]
-        _, rew, term = env.step(env.EAST)
+        step = env.step(env.EAST)
 
         self.assertIn(env.state[0].tolist(), [[0, 0], [1, 0]])
-        self.assertFalse(term)
-        self.assertEqual(rew, 0)
+        self.assertFalse(step.terminal)
+        self.assertEqual(step.reward, 0)
         self.assertEqual(env.state[1], goal)
 
         env.state = [np.array([2, 2]), (2, 2)]
-        _, rew, term = env.step(np.random.randint(0, 4))
+        step = env.step(np.random.randint(0, 4))
 
-        self.assertEqual(rew, 1)
-        self.assertTrue(term)
+        self.assertEqual(step.reward, 1)
+        self.assertTrue(step.terminal)
 
     def test_space(self):
         """ Tests Gridworld.spaces """
@@ -254,43 +254,43 @@ class TestCollisionAvoidance(unittest.TestCase):
         env = collision_avoidance.CollisionAvoidance(7, False)
 
         env.reset()
-        _, rew, term = env.step(1)
+        step = env.step(1)
         self.assertEqual(env.state['agent_x'], 5)
         self.assertEqual(env.state['agent_y'], 3)
-        self.assertFalse(term)
-        self.assertEqual(rew, 0)
+        self.assertFalse(step.terminal)
+        self.assertEqual(step.reward, 0)
 
         env.reset()
-        _, rew, term = env.step(0)
+        step = env.step(0)
         self.assertEqual(env.state['agent_x'], 5)
         self.assertEqual(env.state['agent_y'], 2)
-        self.assertFalse(term)
-        self.assertEqual(rew, -1)
+        self.assertFalse(step.terminal)
+        self.assertEqual(step.reward, -1)
 
         env.reset()
-        _, rew, term = env.step(2)
+        step = env.step(2)
         self.assertEqual(env.state['agent_x'], 5)
         self.assertEqual(env.state['agent_y'], 4)
-        self.assertFalse(term)
-        self.assertEqual(rew, -1)
+        self.assertFalse(step.terminal)
+        self.assertEqual(step.reward, -1)
 
-        _, rew, term = env.step(2)
+        step = env.step(2)
         self.assertEqual(env.state['agent_x'], 4)
         self.assertEqual(env.state['agent_y'], 5)
-        self.assertFalse(term)
-        self.assertEqual(rew, -1)
+        self.assertFalse(step.terminal)
+        self.assertEqual(step.reward, -1)
 
         env.step(1)
         env.step(1)
         env.step(1)
-        _, rew, term = env.step(1)
+        step = env.step(1)
 
         self.assertEqual(env.state['agent_x'], 0)
         self.assertEqual(env.state['agent_y'], 5)
-        self.assertTrue(term)
+        self.assertTrue(step.terminal)
 
         should_be_rew = -1000 if env.state['obstacle'] == 5 else 0
-        self.assertEqual(rew, should_be_rew)
+        self.assertEqual(step.reward, should_be_rew)
 
     def test_utils(self):
         """ Tests misc functionality in Collision Avoidance
@@ -404,28 +404,36 @@ class TestChainDomain(unittest.TestCase):
         # test if all effects go right
         # pylint: disable=protected-access
 
-        obs, rew, term = domain.step(domain._action_mapping[0])
-        self.assertFalse(term)
-        self.assertAlmostEqual(rew, -.0033333333)
-        np.testing.assert_array_equal(obs, [[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+        step = domain.step(domain._action_mapping[0])
+        self.assertFalse(step.terminal)
+        self.assertAlmostEqual(step.reward, -.0033333333)
+        np.testing.assert_array_equal(
+            step.observation, [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+        )
 
-        obs, rew, term = domain.step((domain._action_mapping[1]))
-        self.assertTrue(term)
-        self.assertEqual(rew, 1)
-        np.testing.assert_array_equal(obs, [[0, 0, 0], [0, 0, 0], [1, 0, 0]])
+        step = domain.step((domain._action_mapping[1]))
+        self.assertTrue(step.terminal)
+        self.assertEqual(step.reward, 1)
+        np.testing.assert_array_equal(
+            step.observation, [[0, 0, 0], [0, 0, 0], [1, 0, 0]]
+        )
 
         domain.reset()
 
         # test going left
-        obs, rew, term = domain.step(not domain._action_mapping[0])
-        self.assertFalse(term)
-        self.assertAlmostEqual(rew, 0)
-        np.testing.assert_array_equal(obs, [[0, 1, 0], [0, 0, 0], [0, 0, 0]])
+        step = domain.step(not domain._action_mapping[0])
+        self.assertFalse(step.terminal)
+        self.assertAlmostEqual(step.reward, 0)
+        np.testing.assert_array_equal(
+            step.observation, [[0, 1, 0], [0, 0, 0], [0, 0, 0]]
+        )
 
-        obs, rew, term = domain.step(not domain._action_mapping[0])
-        self.assertTrue(term)
-        self.assertAlmostEqual(rew, 0)
-        np.testing.assert_array_equal(obs, [[1, 0, 0], [0, 0, 0], [0, 0, 0]])
+        step = domain.step(not domain._action_mapping[0])
+        self.assertTrue(step.terminal)
+        self.assertAlmostEqual(step.reward, 0)
+        np.testing.assert_array_equal(
+            step.observation, [[1, 0, 0], [0, 0, 0], [0, 0, 0]]
+        )
 
     def test_utils(self):
         """ tests ChainDomain utility functions

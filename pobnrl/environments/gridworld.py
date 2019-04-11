@@ -8,7 +8,7 @@ import time
 from typing import List
 import numpy as np
 
-from environments.environment import Environment
+from environments.environment import Environment, EnvironmentInteraction
 from misc import DiscreteSpace, ActionSpace, log_level
 
 
@@ -229,8 +229,19 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
 
         return self.generate_observation(*self.state)
 
-    def step(self, action: int) -> list:
-        """ update state wrt action """
+    def step(self, action: int) -> EnvironmentInteraction:
+        """ update state as a result of action
+
+        moves agent accross the grid depending on the direction it took
+
+        Args:
+             action: (`int`): agent's taken action
+
+        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+
+        """
+
+        assert 4 > action >= 0, "agent can only move in 4 directions"
 
         agent_pos, goal_pos = self.state
 
@@ -258,7 +269,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
                 'reward': reward,
                 'state': copy.deepcopy(self.state)})
 
-        return obs, reward, terminal
+        return EnvironmentInteraction(obs, reward, terminal)
 
     @property
     def action_space(self) -> DiscreteSpace:

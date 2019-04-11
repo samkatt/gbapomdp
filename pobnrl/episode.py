@@ -30,13 +30,14 @@ def run_episode(
 
         action = agent.select_action()
 
-        observation, reward, terminal = env.step(action)
+        step = env.step(action)
 
-        agent.update(observation, reward, terminal)
+        agent.update(step.observation, step.reward, step.terminal)
 
-        discounted_return += discount * reward
+        discounted_return += discount * step.reward
         discount *= conf.gamma
 
+        terminal = step.terminal
         time += 1
 
     return discounted_return

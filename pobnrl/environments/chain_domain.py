@@ -6,7 +6,7 @@ from typing import Dict
 
 import numpy as np
 
-from environments.environment import Environment
+from environments.environment import Environment, EnvironmentInteraction
 from misc import DiscreteSpace, ActionSpace, log_level
 
 
@@ -119,7 +119,7 @@ class ChainDomain(Environment):
 
         return self.state2observation()
 
-    def step(self, action: int) -> list:
+    def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the domain depending on action
 
         Dependin gon the state, action can either move the agent left or rigth
@@ -130,7 +130,7 @@ class ChainDomain(Environment):
         Args:
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`list`): [observation, reward (float), terminal (bool)]
+        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
 
         """
 
@@ -155,7 +155,9 @@ class ChainDomain(Environment):
         if self._recording:
             self._history.append(self.state['x'])
 
-        return self.state2observation(), reward, terminal
+        return EnvironmentInteraction(
+            self.state2observation(), reward, terminal
+        )
 
     @property
     def action_space(self) -> DiscreteSpace:
