@@ -159,6 +159,23 @@ class ChainDomain(Environment):
             self.state2observation(), reward, terminal
         )
 
+    def obs2index(self, observation: np.array) -> int:
+        """ projects the observation as an int
+
+        Args:
+             observation: (`np.array`): observation to project
+
+        RETURNS (`int`): int representation of observation
+
+        """
+
+        assert observation.shape == self.observation_space.shape, \
+            f"expecting {self.observation_space.shape} but got {observation.shape}"
+        assert np.all(self.size > observation) and np.all(observation >= 0)
+        assert np.sum(observation) == 1
+
+        return observation.argmax()
+
     @property
     def action_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace` space with 2 actions"""

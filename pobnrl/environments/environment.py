@@ -68,6 +68,17 @@ class Environment(abc.ABC):
 
         """
 
+    @abc.abstractmethod
+    def obs2index(self, observation: np.array) -> int:
+        """ projects the observation as an int
+
+        Args:
+             observation: (`np.array`): observation to project
+
+        RETURNS (`int`): int representation of observation
+
+        """
+
     def __repr__(self):
         return (f"{self.__class__} with action space {self.action_space}, "
                 f"observation space {self.observation_space} and "

@@ -246,7 +246,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         agent_pos, goal_pos = self.state
 
         # episode terminates when we have arrived in the goal state previously
-        terminal = (agent_pos == goal_pos).all()
+        terminal = np.all(agent_pos == goal_pos)
 
         if tuple(agent_pos) not in self._slow_cells:
             move_prob = self.MOVE_SUCCESS_PROB
@@ -270,6 +270,28 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
                 'state': copy.deepcopy(self.state)})
 
         return EnvironmentInteraction(obs, reward, terminal)
+
+    def obs2index(self, observation: np.array) -> int:
+        """ projects the observation as an int
+
+        Args:
+             observation: (`np.array`): observation to project
+
+        RETURNS (`int`): int representation of observation
+
+        """
+        assert observation.shape == self.observation_space.shape, \
+            f"expecting {self.observation_space.shape} but got {observation.shape}"
+        assert np.sum(observation[2:]) == 1, "only 1 goal may be true"
+        assert np.all(self.size > observation) and np.all(observation >= 0)
+
+        if observation[2] == 1:
+            return observation[0] + observation[1] * self.size
+
+        # increment by goal
+        return observation[0] \
+            + observation[1] * self.size \
+            + self.size * self.size * pow(2, np.argmax(observation[2:]) - 1)
 
     @property
     def action_space(self) -> DiscreteSpace:

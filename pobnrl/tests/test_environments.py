@@ -10,11 +10,10 @@ from environments import gridworld, tiger, collision_avoidance, chain_domain
 class TestTiger(unittest.TestCase):
     """ tests functionality of the tiger environment """
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         """ creates a tiger member """
-        cls.env = tiger.Tiger(False)
-        cls.env.reset()
+        self.env = tiger.Tiger(False)
+        self.env.reset()
 
     def test_reset(self):
         """ tests that start state is 0 or 1 """
@@ -84,6 +83,14 @@ class TestTiger(unittest.TestCase):
 
         self.assertEqual(action_space.n, 3)
         self.assertEqual(observation_space.n, 4)
+
+    def test_observation_projection(self):
+        """ tests tiger.obs2index """
+
+        self.assertEqual(self.env.obs2index(self.env.reset()), 2)
+
+        self.assertEqual(self.env.obs2index(np.array([1, 0])), self.env.LEFT)
+        self.assertEqual(self.env.obs2index(np.array([0, 1])), 1)
 
 
 class TestGridWorld(unittest.TestCase):
@@ -234,6 +241,35 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(observation[0], 0)
         self.assertEqual(observation[1], 0)
 
+    def test_observation_projection(self):
+        """ tests obs2index """
+
+        env = gridworld.GridWorld(3, False)
+
+        obs = np.array([0, 0, 1, 0, 0])
+
+        for i in range(3):
+            obs[0] = i
+            self.assertEqual(env.obs2index(obs), i)
+
+        obs[0] = 1
+        obs[1] = 1
+        self.assertEqual(env.obs2index(obs), 4)
+
+        # increase goal index
+        obs[2] = 0
+        obs[3] = 1
+        self.assertEqual(env.obs2index(obs), 13)
+
+        obs[1] = 2
+        self.assertEqual(env.obs2index(obs), 16)
+
+        obs[-1] = 1
+        self.assertRaises(AssertionError, env.obs2index, obs)
+
+        obs = np.array([1, 2, 0, 0, 1])
+        self.assertEqual(env.obs2index(obs), 25)
+
 
 class TestCollisionAvoidance(unittest.TestCase):
     """ Tests Collision Avoidance class """
@@ -336,6 +372,23 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertTupleEqual(obs.shape, (3,))
         np.testing.assert_array_equal(obs[:2], [2, 4])
         self.assertIn(obs[2], list(range(7)))
+
+    def test_observation_projection(self):
+        """ tests obs2index """
+
+        env = collision_avoidance.CollisionAvoidance(
+            domain_size=5, verbose=False)
+
+        self.assertEqual(env.obs2index(np.array([0, 0, 0])), 0)
+        self.assertEqual(env.obs2index(np.array([1, 0, 0])), 1)
+        self.assertEqual(env.obs2index(np.array([0, 1, 0])), 5)
+        self.assertEqual(env.obs2index(np.array([0, 0, 1])), 25)
+        self.assertEqual(env.obs2index(np.array([2, 0, 1])), 27)
+        self.assertEqual(env.obs2index(np.array([4, 4, 2])), 74)
+        self.assertEqual(env.obs2index(np.array([2, 3, 2])), 67)
+        self.assertEqual(env.obs2index(np.array([4, 4, 4])), 124)
+
+        self.assertRaises(AssertionError, env.obs2index, np.array([4, 4, 5]))
 
 
 class TestChainDomain(unittest.TestCase):
@@ -469,6 +522,28 @@ class TestChainDomain(unittest.TestCase):
             domain.state2observation({'x': 2, 'y': 3}),
             expected_obs
         )
+
+    def test_observation_projection(self):
+        """ tests obs2index """
+
+        env = chain_domain.ChainDomain(size=4, verbose=False)
+
+        def one_hot(obs):
+            encoding = np.zeros((4, 4))
+            encoding[obs[0], obs[1]] = 1
+
+            return encoding
+
+        self.assertEqual(env.obs2index(one_hot(np.array([0, 0]))), 0)
+        self.assertEqual(env.obs2index(one_hot(np.array([0, 1]))), 1)
+        self.assertEqual(env.obs2index(one_hot(np.array([1, 0]))), 4)
+        self.assertEqual(env.obs2index(one_hot(np.array([0, 2]))), 2)
+        self.assertEqual(env.obs2index(one_hot(np.array([2, 3]))), 11)
+        self.assertEqual(env.obs2index(one_hot(np.array([3, 2]))), 14)
+
+        obs = np.zeros((5, 5))
+        obs[4, 4] = 1
+        self.assertRaises(AssertionError, env.obs2index, obs)
 
 
 if __name__ == '__main__':

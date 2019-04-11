@@ -135,6 +135,26 @@ class Tiger(Environment):
 
         return EnvironmentInteraction(obs, reward, terminal)
 
+    # pylint: disable=no-self-use
+    def obs2index(self, observation: np.array) -> int:
+        """ projects the observation as an int
+
+        Args:
+             observation: (`np.array`): observation to project
+
+        RETURNS (`int`): int representation of observation
+
+        """
+        assert observation.shape == self.observation_space.shape, \
+            f"expecting {self.observation_space.shape} but got {observation.shape}"
+
+        assert np.sum(observation) in [0, 1], "wrong value for observation"
+
+        if observation[0] == 1:
+            return 0
+
+        return 2 - observation[1]  # 2 if observation[1] is **also** 0
+
     @property
     def action_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([3]) space """

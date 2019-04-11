@@ -67,6 +67,10 @@ class Cartpole(Environment):
         obs, reward, terminal, _ = self.cartpole.step(action)
         return EnvironmentInteraction(obs, reward, terminal)
 
+    def obs2index(self, _):
+        """ unmet interface requirement, will crash """
+        raise NotImplementedError
+
     @property
     def state(self):
         """ returns current state """

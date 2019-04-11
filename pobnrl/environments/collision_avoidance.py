@@ -180,6 +180,23 @@ class CollisionAvoidance(Environment):
 
         return EnvironmentInteraction(obs, reward, terminal)
 
+    def obs2index(self, observation: np.array) -> int:
+        """ projects the observation as an int
+
+        Args:
+             observation: (`np.array`): observation to project
+
+        RETURNS (`int`): int representation of observation
+
+        """
+        assert observation.shape == self.observation_space.shape, \
+            f"expecting {self.observation_space.shape} but got {observation.shape}"
+        assert np.all(self.size > observation) and np.all(observation >= 0)
+
+        return observation[0] \
+            + observation[1] * self.size \
+            + observation[2] * self.size * self.size
+
     @property
     def action_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([3]) space """
