@@ -50,14 +50,21 @@ python -h
 ### TODO
 * implement model-based agent:
     - implement PO-UCT
-    - test POMCP
+    - implement belief updates
+    - implement POMCP agent
+        + test on environments
+    - implement NNs as POMDP models
+    - implement simulator
 * FIX
     - figure out why num_nets 2 takes *so much longer*
 * refactoring
+    - variables with _ or not, then always properties, what's the deal?
+        + conf without _, rest with
+        + property for non-confs that need to be accessible
     - rename and reinvent q_functions
     - refactor priors away elegantly
         + [maybe] refactor the whole creation of training operation..
+        + improved general network and losses type of approach
     - create a 'batch' class and use that instead of individual placeholders
-    - add _ infront of all class members (use property where applicable)
 
 [1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf

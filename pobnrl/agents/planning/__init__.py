@@ -8,3 +8,4 @@ Planners pick actions given some belief over the state and simulator
 """
 
 from .beliefs import ParticleFilter, FlatFilter, WeightedFilter
+from .pouct import POUCT
