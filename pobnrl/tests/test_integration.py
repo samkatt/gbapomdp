@@ -22,7 +22,7 @@ class TestDefaults(unittest.TestCase):
         def_args = ['--episodes=3', '--runs=2']
 
         # pylint: disable=too-many-function-args
-        main(parse_arguments(args + def_args))
+        main(parse_arguments(def_args + args))
 
     def test_environments(self):  # pylint: disable=no-self-use
         """ just the default arguments on some environments """

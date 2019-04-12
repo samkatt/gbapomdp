@@ -267,7 +267,7 @@ def parse_arguments(args: str = None):
         help="use this flag to pick the random agent controller"
     )
 
-    return parser.parse_args(args)
+    return parser.parse_args(args)  # if args == None, will read cmdline
 
 
 if __name__ == '__main__':

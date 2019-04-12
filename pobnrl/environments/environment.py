@@ -2,29 +2,15 @@
 
 import abc
 import numpy as np
+from collections import namedtuple
 
 from misc import DiscreteSpace
 
 
-class EnvironmentInteraction:  # pylint: disable=too-few-public-methods
-    """ a step in an environment """
-
-    def __init__(
-            self,
-            observation: np.array,
-            reward: float,
-            terminal: bool):
-        """ __init__
-
-        Args:
-             observation: (`np.array`):
-             reward: (`float`):
-             terminal: (`bool`):
-
-        """
-        self.observation = observation
-        self.terminal = terminal
-        self.reward = reward
+EnvironmentInteraction = namedtuple(
+    'EnvironmentInteraction',
+    'observation reward terminal'
+)
 
 
 class Environment(abc.ABC):
