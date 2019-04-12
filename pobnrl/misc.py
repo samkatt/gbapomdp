@@ -148,7 +148,7 @@ _SESS = None
 
 
 @contextmanager
-def tf_session():
+def tf_session(use_gpu: bool):
     """ used as context to run TF in
 
     e.g.:
@@ -157,6 +157,9 @@ def tf_session():
         ...
         tf_run(...)
 
+
+    Args:
+         use_gpu: (`bool`): whether to use gpus
     """
 
     # __enter__
@@ -166,7 +169,7 @@ def tf_session():
     logger.log(log_level['verbose'], "initiating tensorflow session")
 
     tf_config = tf.ConfigProto(
-        device_count={'GPU': 0},
+        device_count={'GPU': int(use_gpu)},
         inter_op_parallelism_threads=1,
         intra_op_parallelism_threads=1
     )

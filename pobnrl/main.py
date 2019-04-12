@@ -60,7 +60,7 @@ def main(conf):
         "Running %s experiment on %s", str(agent), str(env)
     )
 
-    with tf_session():
+    with tf_session(conf.use_gpu):
         for run in range(conf.runs):
 
             tf_run(init_op)
@@ -265,6 +265,12 @@ def parse_arguments(args: str = None):
         "--random_policy",
         action='store_true',
         help="use this flag to pick the random agent controller"
+    )
+
+    parser.add_argument(
+        "--use_gpu",
+        action='store_true',
+        help='enables gpu usage'
     )
 
     return parser.parse_args(args)  # if args == None, will read cmdline
