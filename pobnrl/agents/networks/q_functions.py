@@ -416,11 +416,13 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         if conf.prior_function_scale != 0:
             assert conf.prior_function_scale > 0
 
+            rnn_prior_cell = tf.nn.rnn_cell.LSTMCell(4)
+
             prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.obs_ph,
                 self.seq_lengths_ph,
-                rnn_cell,
-                self.rnn_state_ph,
+                rnn_prior_cell,
+                None,
                 action_space.n,
                 4,
                 scope=self.name + '_prior'
@@ -428,7 +430,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             next_prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
                 self.next_obs_ph,
                 self.seq_lengths_ph,
-                self.rnn_state_ph,
+                rnn_prior_cell,
+                None,
                 action_space.n,
                 4,
                 scope=self.name + '_prior'

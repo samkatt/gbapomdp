@@ -19,7 +19,7 @@ class TestDefaults(unittest.TestCase):
 
         """
 
-        def_args = ['--episodes=3', '--runs=2']
+        def_args = ['--episodes=3', '--runs=2', '--horizon=10']
 
         # pylint: disable=too-many-function-args
         main(parse_arguments(def_args + args))
@@ -28,7 +28,8 @@ class TestDefaults(unittest.TestCase):
         """ just the default arguments on some environments """
 
         self.run_experiment(['-D=tiger'])
-        self.run_experiment(['--domain_size=3', '-D=cartpole'])
+        self.run_experiment(
+            ['--domain_size=3', '-D=cartpole', "--horizon=10000"])
         self.run_experiment(['--domain_size=3', '-D=gridworld'])
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
         self.run_experiment(['--domain_size=5', '-D=chain'])
@@ -38,6 +39,16 @@ class TestDefaults(unittest.TestCase):
         self.run_experiment(['-D=tiger', '--num_nets=3'])
         self.run_experiment(
             ['-D=tiger', '--num_nets=2', '--prior_function_scale=2']
+        )
+
+        self.run_experiment(
+            ["-D=gridworld", "--domain_size=3",
+             "--recurrent", "--prior_function_scale=1"]
+        )
+
+        self.run_experiment(
+            ["-D=collision_avoidance", "--domain_size=3",
+             "--recurrent", "--prior_function_scale=2.5", "--exploration=.1"]
         )
 
     def test_recurrent(self):
@@ -66,7 +77,7 @@ class TestDefaults(unittest.TestCase):
         self.run_experiment(['-D=tiger', '--loss=huber', '--num_nets=3'])
 
         self.run_experiment(
-            ['-D=cartpole', '--clipping']
+            ['-D=cartpole', '--clipping', "--horizon=10000"]
         )
 
         self.run_experiment(
