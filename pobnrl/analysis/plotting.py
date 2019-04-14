@@ -8,7 +8,7 @@ import more_itertools as mitt
 import numpy as np
 
 
-def plot_experiment(file_names: List[str]):
+def plot_experiment(file_names: List[str], smooth_amount: int = 25):
     """ plot_experiment plots returns of experiment return files
 
     Args:
@@ -18,13 +18,14 @@ def plot_experiment(file_names: List[str]):
 
     for file_name in file_names:
         returns = np.loadtxt(file_name, delimiter=',')[:, 0].tolist()
-        smooth_returns = np.mean(list(mitt.windowed(returns, 25)), axis=1)
 
-        plt.plot(smooth_returns, label=file_name)
+        returns = np.mean(list(mitt.windowed(returns, smooth_amount)), axis=1)
+
+        plt.plot(returns, label=file_name)
 
     plt.legend()
     plt.show()
 
 
 if __name__ == "__main__":
-    plot_experiment(sys.argv[1:])
+    plot_experiment(sys.argv[2:], smooth_amount=int(sys.argv[1]))
