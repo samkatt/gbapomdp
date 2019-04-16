@@ -50,6 +50,20 @@ class Tiger(Environment):
         """ returns current state """
         return self._state
 
+    @state.setter
+    def state(self, state: int):
+        """ sets state
+
+        Args:
+             state: (`int`):
+
+        """
+
+        assert 2 > state >= 0
+        assert not self._recording
+
+        self._state = state
+
     @staticmethod
     def sample_start_state() -> int:
         """ samples a random state (tiger left or right)
@@ -133,7 +147,7 @@ class Tiger(Environment):
             self._history.append(
                 {'action': action, 'obs': obs, 'reward': reward})
 
-        return EnvironmentInteraction(obs, reward, terminal)
+        return EnvironmentInteraction(self.state, obs, reward, terminal)
 
     # pylint: disable=no-self-use
     def obs2index(self, observation: np.array) -> int:

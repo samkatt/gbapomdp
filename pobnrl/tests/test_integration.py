@@ -2,11 +2,12 @@
 
 import unittest
 
-from main import main, parse_arguments
+from model_free import main as mf_main, parse_arguments as mf_parse_arguments
+from pomcp import main as pomcp_main, parse_arguments as pomcp_parse_arguments
 
 
-class TestDefaults(unittest.TestCase):
-    """ runs default experiment """
+class TestModelFreeAgents(unittest.TestCase):
+    """ runs default model free experiments """
 
     @staticmethod
     def run_experiment(args):
@@ -22,10 +23,10 @@ class TestDefaults(unittest.TestCase):
         def_args = ['--episodes=3', '--runs=2', '--horizon=10']
 
         # pylint: disable=too-many-function-args
-        main(parse_arguments(def_args + args))
+        mf_main(mf_parse_arguments(def_args + args))
 
     def test_environments(self):  # pylint: disable=no-self-use
-        """ just the default arguments on some environments """
+        """ just the default arguments on all environments """
 
         self.run_experiment(['-D=tiger'])
         self.run_experiment(
@@ -86,6 +87,34 @@ class TestDefaults(unittest.TestCase):
              '--double_q',
              '--recurrent']
         )
+
+
+class TestPOMCPAgents(unittest.TestCase):
+    """ runs default PO-UCT with belief experiments """
+
+    @staticmethod
+    def run_experiment(args):
+        """ runs an experiment with args as configuration
+
+        Adds some default arguments to the experiment
+
+        Args:
+             args: ['--arg=val', ...] the argument to run
+
+        """
+
+        def_args = ['--runs=2', '--horizon=5']
+
+        # pylint: disable=too-many-function-args
+        pomcp_main(pomcp_parse_arguments(def_args + args))
+
+    def test_environments(self):  # pylint: disable=no-self-use
+        """ just the default arguments on all discrete environments """
+
+        self.run_experiment(['-D=tiger'])
+        self.run_experiment(['--domain_size=3', '-D=gridworld'])
+        self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
+        self.run_experiment(['--domain_size=5', '-D=chain'])
 
 
 if __name__ == '__main__':

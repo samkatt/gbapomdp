@@ -23,12 +23,10 @@ class Agent(abc.ABC):
         """
 
     @abc.abstractmethod
-    def select_action(self):
+    def select_action(self) -> int:
         """ asks the agent to select an action
 
-        TODO: add type of action
-
-        RETURNS: action
+        RETURNS (`int`):
 
         """
 
@@ -79,12 +77,12 @@ class RandomAgent(Agent):
 
         """
 
-    def select_action(self):
+    def select_action(self) -> int:
         """ returns a random action
 
         Part of the interface of `pobnrl.agents.agent.Agent`
 
-        RETURNS: the random action
+        RETURNS (`int`):
 
         """
         return self._action_space.sample()

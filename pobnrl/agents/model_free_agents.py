@@ -4,9 +4,11 @@ from collections import deque
 from typing import Callable
 import numpy as np
 
-from misc import epsilon_greedy, ActionSpace, ExplorationSchedule
+from misc import ActionSpace, epsilon_greedy, ExplorationSchedule
+from misc import PiecewiseSchedule, FixedExploration, DiscreteSpace
 
 from .agent import Agent
+from .networks import create_qnet
 from .networks.q_functions import QNetInterface
 
 
@@ -75,8 +77,12 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
         self.q_net.episode_reset()
 
-    def select_action(self):
-        """ requests greedy action from network """
+    def select_action(self) -> int:
+        """ requests greedy action from network 
+
+        RETURNS (`int`):
+
+        """
 
         q_values = self.q_net.qvalues(np.array(self.last_obs))
 
@@ -200,8 +206,12 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         for net in self.nets:
             net.episode_reset()
 
-    def select_action(self):
-        """ returns greedy action from current active policy """
+    def select_action(self) -> int:
+        """ returns greedy action from current active policy 
+
+        RETURNS (`int`):
+
+        """
 
         q_values = self._current_policy.qvalues(np.array(self.last_obs))
 
@@ -247,3 +257,58 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
                 net.update_target()
 
         self.timestep += 1
+
+
+def create_agent(
+        action_space: DiscreteSpace,
+        observation_space: DiscreteSpace,
+        conf) -> Agent:
+    """ factory function to construct model-free learning agents
+
+    Args:
+         action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+         observation_space: (`pobnrl.misc.DiscreteSpace`) of environment
+         conf: (`namespace`) configurations
+
+    RETURNS (`pobnrl.agents.agent.Agent`)
+
+    """
+
+    if 1 >= conf.exploration >= 0:
+        exploration_schedule = FixedExploration(conf.exploration)
+    else:
+        exploration_schedule = PiecewiseSchedule(
+            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
+        )
+
+    if conf.num_nets == 1:
+        # single-net agent
+
+        return BaselineAgent(
+            create_qnet(
+                action_space,
+                observation_space,
+                'q_net',
+                conf
+            ),
+            action_space,
+            exploration_schedule,
+            conf
+        )
+
+    # num_nets > 1: ensemble agent
+
+    def qnet_constructor(name: str):
+        return create_qnet(
+            action_space,
+            observation_space,
+            name,
+            conf
+        )
+
+    return EnsembleAgent(
+        qnet_constructor,
+        action_space,
+        exploration_schedule,
+        conf,
+    )

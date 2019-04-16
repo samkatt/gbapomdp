@@ -1,62 +1,174 @@
 """ agents that act by learning a model of the environment """
 
+from typing import Any
 import numpy as np
 
-from agents import Agent
+from agents.agent import Agent
+from environments.environment import Environment, EnvironmentInteraction
+
+from .planning.beliefs import BeliefManager, rejection_sampling
+from .planning.beliefs import WeightedFilter, FlatFilter
+from .planning.pouct import POUCT
 
 
 class PrototypeAgent(Agent):
     """ default model-based agent """
 
-    def reset(self):
-        """ resets agent to initial state
+    def __init__(
+            self,
+            planner: POUCT,
+            belief_manager: BeliefManager
+    ):
+        """ creates this agent with planner and belief manager
 
-        TODO: add doc
-        TODO: implement
+        Args:
+             planner: (`pobnrl.agents.planning.pouct.POUCT`):
+             BeliefManager: (`pobnrl.agents.planning.beliefs.BeliefManager`):
 
         """
-        raise NotImplementedError
+        self._planner = planner
+        self._belief_manager = belief_manager
 
-    def episode_reset(self, observation: np.ndarray):
-        """ called after each episode to prepare for the next
+        self._last_action = None
 
-        TODO: add doc
-        TODO: implement
+    def reset(self):
+        """ resets belief """
+
+        self._belief_manager.reset()
+
+    def episode_reset(self, _observation: np.ndarray):
+        """ resets belief
+
+        Ignores observation for now
 
         Args:
              observation: (`np.ndarray`): the initial episode observation
 
         """
-        raise NotImplementedError
+
+        self._belief_manager.reset()
 
     def select_action(self) -> int:
-        """ asks the agent to select an action
+        """  runs PO-UCT on current belief
 
-        TODO: add doc
-        TODO: implement
-
-        RETURNS: action
+        RETURNS (`int`): action
 
         """
-        raise NotImplementedError
+
+        self._last_action \
+            = self._planner.select_action(self._belief_manager.belief)
+
+        return self._last_action
 
     def update(
             self,
             observation: np.ndarray,
-            reward: float,
-            terminal: bool):
+            _reward: float,
+            _terminal: bool):
         """ calls at the end of a real step to allow the agent to update
 
-        The provided observation, reward and terminal are the result of a step
-        in the real world given the last action
-
-        TODO: add doc
-        TODO: implement
+        Will update the belief given the observation (and last action)
 
         Args:
              observation (`np.ndarray`): the observation
-             reward: (`float`): the reward associated with the last step
-             terminal: (`bool`): whether the last step was terminal
+             reward: (`float`): ignored
+             terminal: (`bool`): ignored
 
         """
-        raise NotImplementedError
+
+        self._belief_manager.update(self._last_action, observation)
+
+
+def belief_rejection_sampling(
+        particle_filter: FlatFilter,
+        env: Environment,
+        action: int,
+        observation: np.ndarray):
+    """ TODO """
+
+    def env_step(state: Any):
+        """ TODO """
+        print(f"stepping from state {state} with action {action}")
+        env.state = state
+        return env.step(action)
+
+    def observation_equals(interaction: EnvironmentInteraction):
+        """ TODO """
+        print(f"comparing {observation} with {interaction}")
+        return np.all(interaction.observation == observation)
+
+    return rejection_sampling(
+        particle_filter,
+        env_step,
+        observation_equals,
+        lambda interaction: interaction.state
+    )
+
+
+def belief_importance_sampling(
+        particle_filter: FlatFilter,
+        env: Environment,
+        action: int,
+        observation: np.ndarray):
+    """ TODO """
+
+    raise NotImplementedError(
+        "missing P(o|s,a) from environments to do importance sampling"
+    )
+
+
+def create_agent(env: Environment, conf) -> PrototypeAgent:
+    """ factory function to construct planning agents
+
+    Args:
+         env: (`pobnrl.environments.environment.Environment`) of environment
+         conf: (`namespace`) configurations
+
+    RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
+
+    """
+
+    if conf.belief == 'rejection_sampling':
+
+        belief_type = FlatFilter
+
+        def update_belief_f(
+                belief: FlatFilter,
+                action: int,
+                observation: np.ndarray):
+            return belief_rejection_sampling(belief, env, action, observation)
+
+    elif conf.belief == 'importance_sampling':
+
+        belief_type = WeightedFilter
+
+        def update_belief_f(
+                belief: WeightedFilter,
+                action: int,
+                observation: np.ndarray):
+            return belief_importance_sampling(belief, env, action, observation)
+
+    else:
+        raise ValueError(
+            'belief must be either rejection or importance sampling'
+        )
+
+    belief_manager = BeliefManager(
+        env.sample_start_state,
+        belief_type,
+        update_belief_f,
+        conf
+    )
+
+    planner = POUCT(
+        env,
+        conf.num_sims,
+        conf.exploration,
+        conf.horizon,
+        conf.gamma
+    )
+
+    return PrototypeAgent(
+        planner,
+        belief_manager
+    )

@@ -72,6 +72,32 @@ class ChainDomain(Environment):
         """
         return self._state
 
+    @state.setter
+    def state(self, state: Dict[str, int]):
+        """ sets state
+
+        Args:
+             state: (`Dict[str, int]`):{'x', 'y'}
+
+        """
+        assert not self._recording
+        assert self.size > state['x'] >= 0
+        assert self.size > state['y'] > 0
+        assert state['x'] <= (self.size - state['y'])
+
+        self._state = state
+
+    def sample_start_state(self) -> Dict[str, int]:
+        """ samples the (deterministic) start state
+
+        Args:
+
+        RETURNS (`Dict[str, int]`):{'x', 'y'}
+
+        """
+
+        return self._init_state.copy()
+
     @property
     def size(self):
         """ returns size (length) of (square) grid """
@@ -156,7 +182,7 @@ class ChainDomain(Environment):
             self._history.append(self.state['x'])
 
         return EnvironmentInteraction(
-            self.state2observation(), reward, terminal
+            self.state, self.state2observation(), reward, terminal
         )
 
     def obs2index(self, observation: np.array) -> int:

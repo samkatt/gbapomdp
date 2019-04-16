@@ -19,13 +19,14 @@ def run_episode(
 
     """
 
-    terminal = False
-    discounted_return = 0
-    discount = 1  # discount accumulates by mulitplying with conf.gamma
-
     obs = env.reset()
     agent.episode_reset(obs)
+
+    discounted_return = 0
+    discount = 1  # discount accumulates by multiplying with conf.gamma
     time = 0
+    terminal = False
+
     while not terminal and time < conf.horizon:
 
         action = agent.select_action()

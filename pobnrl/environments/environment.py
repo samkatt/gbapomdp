@@ -1,15 +1,18 @@
 """ environment interface """
 
+from collections import namedtuple
+from typing import Any
+
 import abc
 import numpy as np
-from collections import namedtuple
 
 from misc import DiscreteSpace
 
 
+# TODO: cannot parse source with `./make_documentation`
 EnvironmentInteraction = namedtuple(
     'EnvironmentInteraction',
-    'observation reward terminal'
+    'state observation reward terminal'
 )
 
 
@@ -36,6 +39,11 @@ class Environment(abc.ABC):
     def state(self):
         """ returns the current state """
 
+    @state.setter
+    @abc.abstractmethod
+    def state(self, state: Any):
+        """ sets state """
+
     @property
     @abc.abstractmethod
     def action_space(self) -> DiscreteSpace:
@@ -53,6 +61,10 @@ class Environment(abc.ABC):
         RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space
 
         """
+
+    @abc.abstractmethod
+    def sample_start_state(self) -> Any:
+        """ returns a potential start state """
 
     @abc.abstractmethod
     def obs2index(self, observation: np.array) -> int:

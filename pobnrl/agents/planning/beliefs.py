@@ -1,5 +1,7 @@
 """ beliefs are distributions over states
 
+TODO: rename to particle filters
+
 Contains
 * flat filter
 * weighted filter
@@ -10,6 +12,8 @@ from typing import Any, Callable
 import abc
 import copy
 import random
+
+import numpy as np
 
 
 class ParticleFilter(abc.ABC):
@@ -205,19 +209,16 @@ class WeightedFilter(ParticleFilter):
 
 def rejection_sampling(
         particle_filter: ParticleFilter,
-        update_f: Callable[[Any], Any],
-        accept_f: Callable[[Any], bool]) -> ParticleFilter:
+        process_sample_f: Callable[[Any], Any],
+        accept_f: Callable[[Any], bool],
+        extract_particle_f: Callable[[Any], Any] = lambda x: x
+) -> ParticleFilter:
     """ applies rejection sampling on particle_filter
 
     will continuously update and filter samples until a new particle filter of
     the same size is created
 
-    Args:
-         particle_filter: (`pobnrl.agents.planning.beliefs.ParticleFilter`): input belief
-         update_f: (`Callable[[Any], Any]`): function to update a sample
-         accept_f: (`Callable[[Any], bool]`): function to accept/reject sample
-
-    RETURNS (`pobnrl.agents.planning.beliefs.ParticleFilter`): updated belief
+    TODO: doc
 
     """
 
@@ -226,35 +227,93 @@ def rejection_sampling(
     while new_pf.size < particle_filter.size:
 
         sample = copy.deepcopy(particle_filter.sample())
-        updated_sample = update_f(sample)
+        result = process_sample_f(sample)
 
-        if accept_f(updated_sample):
-            new_pf.add_particle(updated_sample)
+        if accept_f(result):
+            new_pf.add_particle(extract_particle_f(result))
 
     return new_pf
 
 
 def importance_sampling(
         particle_filter: WeightedFilter,
-        update_f: Callable[[Any], Any],
-        weight_f: Callable[[Any], float]) -> WeightedFilter:
+        process_sample_f: Callable[[Any], Any],
+        weight_f: Callable[[Any], float],
+        extract_particle_f: Callable[[Any], Any] = lambda x: x
+) -> WeightedFilter:
     """ returns a updated weighted filter according to provided functions
 
     updates **all** samples in particle_filter and saves them with an
     associated weight into a particle fitler
 
-    Args:
-         particle_filter: (`pobnrl.agents.planning.beliefs.WeightedFilter`): initial particle filter
-         update_f: (`Callable[[Any], Any]`):
-         weight_f: (`Callable[[Any], float]`):
-
-    RETURNS (`pobnrl.agents.planning.beliefs.WeightedFilter`):
+    TODO: doc
 
     """
 
     for sample in particle_filter:
 
-        sample.value = update_f(sample.value)
-        sample.weight *= weight_f(sample.value)
+        result = process_sample_f(sample.value)
+
+        sample.weight *= weight_f(result)
+        sample.value = extract_particle_f(result)
 
     return particle_filter
+
+
+class BeliefManager():
+    """ manages a belief """
+
+    def __init__(
+            self,
+            sample_particle_f: Callable[[], Any],
+            belief_type,  # class of particle filter to use
+            update_belief_f: Callable[[ParticleFilter, int, int], ParticleFilter],
+            conf):
+        """ initiatlizes the belief manager
+
+        Manages belief by initializing, updating, and returning it.
+
+        Assumes the belief is over POMDP states.
+
+        TODO: doc
+
+        """
+
+        self._size = conf.num_particles
+        self._belief_type = belief_type
+
+        self._sample_particle_f = sample_particle_f
+        self._update = update_belief_f
+
+        self._belief = None
+
+    def reset(self):
+        """ resets by sampling new belief """
+
+        self._belief = self._belief_type()
+
+        # simply sample new states
+        for _ in range(self._size):
+            self._belief.add_particle(self._sample_particle_f())
+
+    def update(self, action: int, observation: np.ndarray):
+        """ updates belief given action and observation
+
+        Args:
+             action: (`int`):
+             observation: (`np.ndarray`):
+
+        """
+
+        self._belief = self._update(self._belief, action, observation)
+
+    @property
+    def belief(self) -> ParticleFilter:
+        """ returns the belief
+
+        Args:
+
+        RETURNS (`ParticleFilter`):
+
+        """
+        return self._belief

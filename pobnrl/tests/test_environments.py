@@ -6,6 +6,8 @@ import numpy as np
 
 from environments import gridworld, tiger, collision_avoidance, chain_domain
 
+# TODO: test all sample_start_state()
+
 
 class TestTiger(unittest.TestCase):
     """ tests functionality of the tiger environment """

@@ -1,12 +1,12 @@
 """ Particle Observable UCT """
 
-from typing import Any
 import copy
 import random
+from typing import Tuple
 
 import numpy as np
 
-from agents.planning import ParticleFilter
+from agents.planning.beliefs import ParticleFilter
 from environments.environment import Environment
 
 
@@ -29,6 +29,17 @@ class TreeNode():
         # statistics
         self.avg_values = np.zeros(num_children)
         self.children_visits = np.zeros(num_children).astype(int)
+
+    @property
+    def num_visits(self) -> int:
+        """ returns number of visits of this
+
+        Args:
+
+        RETURNS (`int`):
+
+        """
+        return self.children_visits.sum()
 
     @property
     def num_children(self) -> int:
@@ -84,11 +95,20 @@ class POUCT():
             exploration_constant: float = 1.,
             planning_horizon: int = 10,
             discount: float = .95):
-        """ TODO """
+        """ Creates the PO-UCT planner
+
+        Args:
+             num_sims: (`int`): number of iterations
+             exploration_constant: (`float`): UCB exploration constant
+             planning_horizon: (`int`): the horizon to plan agains
+             discount: (`float`): the discount factor of the env
+
+        """
 
         self.num_sims = num_sims
         self.planning_horizon = planning_horizon
         self.discount = discount
+        self.simulator = simulator
 
         tot_visits = action_visits = np.arange(self.num_sims).reshape(1, -1)
 
@@ -104,13 +124,16 @@ class POUCT():
             self._ucb_table = exploration_constant \
                 * np.sqrt(np.log(tot_visits + 1).T / action_visits)
 
-        self.simulator = simulator
-
-    def select_action(self, belief: ParticleFilter):
-        """ select_action
+    def select_action(
+            self,
+            belief: ParticleFilter) -> int:
+        """ selects an action given belief and environment
 
         Args:
              belief: (`pobnrl.agents.planning.beliefs.ParticleFilter`): the belief at the root to plan from
+             simulator: (`pobnrl.environments.environment.Environment`): generates interactions during simulations
+
+        RETURNS (`int`):
 
         """
 
@@ -125,39 +148,64 @@ class POUCT():
         return np.argmax(root.avg_values)
 
     def _traverse_tree(self, node: TreeNode) -> float:
-        """ TODO """
+        """ Travels down the tree
+
+        Picks actions according to UCB, generates transitions according to
+        simulator
+
+        Args:
+             node: (`TreeNode`): the current node of the tree
+
+        RETURNS (`float`): return of this traversal
+
+        """
 
         if node.depth == self.planning_horizon:
             return 0
 
         if node.num_visits == 0:
-            ret = self._rollout(self.planning_horizon - node.depth)
-        else:
+            action, ret = self._rollout(self.planning_horizon - node.depth)
 
-            # UCB
+        else:  # UCB
+
             ucbs = POUCT.ucb(
                 node.avg_values, node.children_visits, self._ucb_table
             )
             action = random.choice(np.argwhere(ucbs == ucbs.max()).flatten())
 
             step = self.simulator.step(action)
-            ret = step.reward + self.discount * self._traverse_tree(
-                node.child(action, self.simulator.obs2index(step.observation))
-            )
+
+            if not step.terminal:
+                ret = step.reward + self.discount * self._traverse_tree(
+                    node.child(
+                        action, self.simulator.obs2index(step.observation)
+                    )
+                )
+            else:
+                ret = step.reward
 
         node.update_value(action, ret)
 
         return ret
 
-    def _rollout(self, hor: int) -> float:
-        """ TODO """
+    def _rollout(self, hor: int) -> Tuple[int, float]:
+        """ A random interaction with the environment
+
+        Args:
+             hor: (`int`): the length of the rollout
+
+        RETURNS (`Tuple[int, float]`): the (discounted) return of the rollout
+
+        """
 
         ret = 0
         discount = 1
 
+        first_action = self.simulator.action_space.sample()
+
+        action = first_action
         for _ in range(hor):
 
-            action = self.simulator.action_space.sample()
             step = self.simulator.step(action)
 
             ret += discount * step.reward
@@ -167,14 +215,23 @@ class POUCT():
             if step.terminal:
                 break
 
-        return ret
+            action = self.simulator.action_space.sample()
+
+        return (first_action, ret)
 
     @staticmethod
     def ucb(
             action_values: np.array,  # of type floats
             action_visits: np.array,  # of type int
             ucb_table: np.ndarray) -> np.array:  # of type floats
-        """ TODO """
+        """ Returns the UCB value given Qs, visits and ucb table
+
+        Args:
+             action_values: (`np.array`): list of q values (foreach action)
+             action_visits: (`np.array`):  list of number of visits
+             ucb_table: (`np.array`): [tot_visits, act_visits] list
+
+        """
 
         assert action_values.shape == action_visits.shape,\
             "expect the same number of values and # visits"

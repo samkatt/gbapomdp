@@ -4,7 +4,6 @@ import logging
 import time
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from math import sqrt
 import numpy as np
 import tensorflow as tf
 
@@ -13,6 +12,7 @@ from environments import create_environment
 from episode import run_episode
 from misc import tf_session, tf_run, log_level
 
+# TODO: refactor
 VERBOSE_TO_LOGGING = {
     0: 30,  # warning
     1: 20,  # info
@@ -47,11 +47,9 @@ def main(conf):
         conf.domain_size,
         conf.verbose
     )
-    agent = create_agent(
-        env.action_space,
-        env.observation_space,
-        conf
-    )
+
+    conf.agent_type = "model-free"
+    agent = create_agent(env, conf)
 
     init_op = tf.global_variables_initializer()
 
@@ -97,7 +95,7 @@ def main(conf):
                                     [run + 1] * conf.episodes,
                                     np.sqrt(
                                         result_var / (run + 1))
-                                    / sqrt(run + 1)])
+                                    / np.sqrt(run + 1)])
 
             np.savetxt(
                 conf.file,

@@ -6,8 +6,7 @@ import unittest
 
 import numpy as np
 
-from agents.planning import POUCT
-from agents.planning.pouct import TreeNode
+from agents.planning.pouct import POUCT, TreeNode
 from environments import Tiger
 
 

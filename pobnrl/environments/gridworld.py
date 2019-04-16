@@ -139,8 +139,19 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         assert goal_pos in self.goals
         assert agent_pos.shape == (2,)
         assert 0 <= agent_pos[0] < self.size and 0 <= agent_pos[1] < self.size
+        assert not self._recording
 
         self._state = [agent_pos, goal_pos]
+
+    def sample_start_state(self) -> list:
+        """ sample_start_state
+
+        Args:
+
+        RETURNS (`list`): [np.array, (goal_x, goal_y)]
+
+        """
+        return [np.zeros(2), self.sample_goal()]
 
     @property
     def size(self) -> int:
@@ -214,7 +225,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
     def reset(self):
         """ resets state """
 
-        self._state = [np.zeros(2), self.sample_goal()]
+        self._state = self.sample_start_state()
 
         # if we were recording, output the history and stop
         if self._recording:
@@ -269,7 +280,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
                 'reward': reward,
                 'state': copy.deepcopy(self.state)})
 
-        return EnvironmentInteraction(obs, reward, terminal)
+        return EnvironmentInteraction(self.state, obs, reward, terminal)
 
     def obs2index(self, observation: np.array) -> int:
         """ projects the observation as an int

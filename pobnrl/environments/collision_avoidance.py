@@ -77,6 +77,32 @@ class CollisionAvoidance(Environment):
         """ {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` } """
         return self._state
 
+    @state.setter
+    def state(self, state: dict):
+        """ sets state
+
+        Args:
+             dict: {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` }
+
+        """
+
+        assert self._size > state['agent_x'] > 0
+        assert self._size > state['agent_y'] >= 0
+        assert self._size > state['obstacle'] >= 0
+        assert not self._recording
+
+        self._state = state
+
+    def sample_start_state(self) -> dict:
+        """ returns the (deterministic) start state
+
+        Args:
+
+        RETURNS (`dict`): {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` }
+
+        """
+        return copy.deepcopy(self.init_state)
+
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
 
@@ -178,7 +204,7 @@ class CollisionAvoidance(Environment):
                 'reward': reward,
                 'state': copy.deepcopy(self.state)})
 
-        return EnvironmentInteraction(obs, reward, terminal)
+        return EnvironmentInteraction(self.state, obs, reward, terminal)
 
     def obs2index(self, observation: np.array) -> int:
         """ projects the observation as an int
@@ -190,8 +216,9 @@ class CollisionAvoidance(Environment):
 
         """
         assert observation.shape == self.observation_space.shape, \
-            f"expecting {self.observation_space.shape} but got {observation.shape}"
-        assert np.all(self.size > observation) and np.all(observation >= 0)
+            f"expecting {self.observation_space.shape} not {observation.shape}"
+        assert np.all(self.size > observation) and np.all(observation >= 0), \
+            f"expecting all observation to be more than 0, {observation}"
 
         return observation[0] \
             + observation[1] * self.size \

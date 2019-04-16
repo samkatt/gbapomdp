@@ -49,15 +49,15 @@ python -h
 
 ### TODO
 * implement model-based agent:
-    - implement PO-UCT
-    - implement belief updates
     - implement POMCP agent
-        + test on environments
+        + belief... manager??
+        + test on environments + all types beliefs
     - implement NNs as POMDP models
     - implement simulator
 * FIX
     - figure out why num_nets 2 takes *so much longer*
 * refactoring
+    - create logger and inherit to most base classes
     - variables with _ or not, then always properties, what's the deal?
         + conf without _, rest with
         + property for non-confs that need to be accessible

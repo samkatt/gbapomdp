@@ -1,21 +1,21 @@
 """ agents in POBNRL """
 
-from misc import PiecewiseSchedule, FixedExploration, DiscreteSpace
+import copy
 
-from .networks import create_qnet
+from environments.environment import Environment
+
 from .agent import Agent, RandomAgent
-from .model_free_agents import BaselineAgent, EnsembleAgent
+from .model_free_agents import create_agent as create_mf_agent
+from .model_based_agents import create_agent as create_mb_agent
 
 
 def create_agent(
-        action_space: DiscreteSpace,
-        observation_space: DiscreteSpace,
+        env: Environment,
         conf) -> Agent:
     """ factory function to construct agents
 
     Args:
-         action_space: (`pobnrl.misc.DiscreteSpace`): of environment
-         observation_space: (`pobnrl.misc.DiscreteSpace`) of environment
+         env: (`pobnrl.environments.environment.Environment`) of environment
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.agent.Agent`)
@@ -23,43 +23,12 @@ def create_agent(
     """
 
     if conf.random_policy:
-        return RandomAgent(action_space)
+        return RandomAgent(env.action_space)
 
-    if 1 >= conf.exploration >= 0:
-        exploration_schedule = FixedExploration(conf.exploration)
-    else:
-        exploration_schedule = PiecewiseSchedule(
-            [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
-        )
+    if conf.agent_type == "model-free":
+        return create_mf_agent(env.action_space, env.observation_space, conf)
 
-    if conf.num_nets == 1:
-        # single-net agent
+    if conf.agent_type == "planning":
+        return create_mb_agent(env, conf)
 
-        return BaselineAgent(
-            create_qnet(
-                action_space,
-                observation_space,
-                'q_net',
-                conf
-            ),
-            action_space,
-            exploration_schedule,
-            conf
-        )
-
-    # num_nets > 1: ensemble agent
-
-    def qnet_constructor(name: str):
-        return create_qnet(
-            action_space,
-            observation_space,
-            name,
-            conf
-        )
-
-    return EnsembleAgent(
-        qnet_constructor,
-        action_space,
-        exploration_schedule,
-        conf,
-    )
+    raise ValueError("Unknown agent type provided")
