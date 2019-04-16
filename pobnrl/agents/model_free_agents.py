@@ -78,7 +78,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.q_net.episode_reset()
 
     def select_action(self) -> int:
-        """ requests greedy action from network 
+        """ requests greedy action from network
 
         RETURNS (`int`):
 
@@ -207,7 +207,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
             net.episode_reset()
 
     def select_action(self) -> int:
-        """ returns greedy action from current active policy 
+        """ returns greedy action from current active policy
 
         RETURNS (`int`):
 

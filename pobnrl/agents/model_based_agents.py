@@ -88,13 +88,11 @@ def belief_rejection_sampling(
 
     def env_step(state: Any):
         """ TODO """
-        print(f"stepping from state {state} with action {action}")
         env.state = state
         return env.step(action)
 
     def observation_equals(interaction: EnvironmentInteraction):
         """ TODO """
-        print(f"comparing {observation} with {interaction}")
         return np.all(interaction.observation == observation)
 
     return rejection_sampling(

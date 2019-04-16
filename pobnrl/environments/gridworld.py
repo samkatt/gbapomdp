@@ -292,7 +292,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
 
         """
         assert observation.shape == self.observation_space.shape, \
-            f"expecting {self.observation_space.shape} but got {observation.shape}"
+            f"expected {self.observation_space.shape}, got {observation.shape}"
         assert np.sum(observation[2:]) == 1, "only 1 goal may be true"
         assert np.all(self.size > observation) and np.all(observation >= 0)
 

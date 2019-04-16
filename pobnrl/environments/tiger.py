@@ -160,7 +160,7 @@ class Tiger(Environment):
 
         """
         assert observation.shape == self.observation_space.shape, \
-            f"expecting {self.observation_space.shape} but got {observation.shape}"
+            f"expected {self.observation_space.shape}, got {observation.shape}"
 
         assert np.sum(observation) in [0, 1], "wrong value for observation"
 

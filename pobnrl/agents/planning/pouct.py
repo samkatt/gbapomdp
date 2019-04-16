@@ -127,11 +127,10 @@ class POUCT():
     def select_action(
             self,
             belief: ParticleFilter) -> int:
-        """ selects an action given belief and environment
+        """ selects an action given belief
 
         Args:
              belief: (`pobnrl.agents.planning.beliefs.ParticleFilter`): the belief at the root to plan from
-             simulator: (`pobnrl.environments.environment.Environment`): generates interactions during simulations
 
         RETURNS (`int`):
 

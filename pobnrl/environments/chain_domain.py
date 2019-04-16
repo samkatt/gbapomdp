@@ -196,7 +196,7 @@ class ChainDomain(Environment):
         """
 
         assert observation.shape == self.observation_space.shape, \
-            f"expecting {self.observation_space.shape} but got {observation.shape}"
+            f"expected {self.observation_space.shape}, got {observation.shape}"
         assert np.all(self.size > observation) and np.all(observation >= 0)
         assert np.sum(observation) == 1
 
