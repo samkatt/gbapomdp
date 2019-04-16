@@ -34,11 +34,7 @@ def epsilon_greedy(
 
 # pylint: disable=too-few-public-methods
 class ExplorationSchedule(abc.ABC):
-    """ interface for e-greedy exploration schedule
-
-    TODO: move to agents
-
-    """
+    """ interface for e-greedy exploration schedule """
 
     @abc.abstractmethod
     def value(self, time: int) -> float:
@@ -47,11 +43,7 @@ class ExplorationSchedule(abc.ABC):
 
 # pylint: disable=too-few-public-methods
 class FixedExploration(ExplorationSchedule):
-    """ always returns 0 probability for exploring
-
-    TODO: move to agents
-
-    """
+    """ always returns 0 probability for exploring """
 
     def __init__(self, epsilon: float):
         """ creates fixed exploration policy with epsilon
@@ -84,11 +76,7 @@ def linear_interpolation(left: float, right: float, alpha: float) -> float:
 
 # pylint: disable=too-few-public-methods
 class PiecewiseSchedule(ExplorationSchedule):
-    """ scheduler advancing piecewise
-
-    TODO: move to agents
-
-    """
+    """ scheduler advancing piecewise """
 
     def __init__(
             self,
