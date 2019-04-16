@@ -10,12 +10,14 @@ from misc import DiscreteSpace
 
 
 # TODO: cannot parse source with `./make_documentation`
+# TODO: remove state and create a new type to include state?
 EnvironmentInteraction = namedtuple(
     'EnvironmentInteraction',
     'state observation reward terminal'
 )
 
 
+# TODO: slim down this interface
 class Environment(abc.ABC):
     """ interface to all environments """
 
@@ -30,7 +32,7 @@ class Environment(abc.ABC):
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`EnvironmentInteraction`): the transition
 
         """
 

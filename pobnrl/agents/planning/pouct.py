@@ -6,7 +6,7 @@ from typing import Tuple
 
 import numpy as np
 
-from agents.planning.beliefs import ParticleFilter
+from agents.planning.particle_filters import ParticleFilter
 from environments.environment import Environment
 
 
@@ -130,7 +130,7 @@ class POUCT():
         """ selects an action given belief
 
         Args:
-             belief: (`pobnrl.agents.planning.beliefs.ParticleFilter`): the belief at the root to plan from
+             belief: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): the belief at the root to plan from
 
         RETURNS (`int`):
 

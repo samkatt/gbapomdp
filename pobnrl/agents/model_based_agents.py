@@ -6,8 +6,8 @@ import numpy as np
 from agents.agent import Agent
 from environments.environment import Environment, EnvironmentInteraction
 
-from .planning.beliefs import BeliefManager, rejection_sampling
-from .planning.beliefs import WeightedFilter, FlatFilter
+from .planning.particle_filters import BeliefManager, rejection_sampling
+from .planning.particle_filters import WeightedFilter, FlatFilter
 from .planning.pouct import POUCT
 
 
@@ -23,7 +23,7 @@ class PrototypeAgent(Agent):
 
         Args:
              planner: (`pobnrl.agents.planning.pouct.POUCT`):
-             BeliefManager: (`pobnrl.agents.planning.beliefs.BeliefManager`):
+             BeliefManager: (`pobnrl.agents.planning.particle_filters.BeliefManager`):
 
         """
         self._planner = planner
@@ -83,40 +83,41 @@ def belief_rejection_sampling(
         particle_filter: FlatFilter,
         env: Environment,
         action: int,
-        observation: np.ndarray):
-    """ TODO """
+        observation: np.ndarray) -> FlatFilter:
+    """ Applies belief rejection sampling
 
-    def env_step(state: Any):
-        """ TODO """
+    Will update the belief by simulating a step in the environment and using
+    rejection sampling on the observation
+
+    Args:
+         particle_filter: (`pobnrl.agents.planning.particle_filters.FlatFilter`): current belief
+         env: (`pobnrl.environments.environment.Environment`): environment as a dynamic model
+         action: (`int`): taken action
+         observation: (`np.ndarray`): perceived observation
+
+    RETURNS (`pobnrl.agents.planning.particle_filters.FlatFilter`): new belief
+
+    """
+
+    def env_step(state: Any) -> EnvironmentInteraction:
         env.state = state
         return env.step(action)
 
-    def observation_equals(interaction: EnvironmentInteraction):
-        """ TODO """
+    def observation_equals(interaction: EnvironmentInteraction) -> bool:
         return np.all(interaction.observation == observation)
 
     return rejection_sampling(
         particle_filter,
-        env_step,
-        observation_equals,
-        lambda interaction: interaction.state
-    )
-
-
-def belief_importance_sampling(
-        particle_filter: FlatFilter,
-        env: Environment,
-        action: int,
-        observation: np.ndarray):
-    """ TODO """
-
-    raise NotImplementedError(
-        "missing P(o|s,a) from environments to do importance sampling"
+        process_sample_f=env_step,
+        accept_f=observation_equals,
+        extract_particle_f=lambda interaction: interaction.state
     )
 
 
 def create_agent(env: Environment, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
+
+    TODO: implement importance_sampling
 
     Args:
          env: (`pobnrl.environments.environment.Environment`) of environment
@@ -126,34 +127,18 @@ def create_agent(env: Environment, conf) -> PrototypeAgent:
 
     """
 
-    if conf.belief == 'rejection_sampling':
+    if conf.belief != 'rejection_sampling':
+        raise ValueError('belief must be rejection_sampling')
 
-        belief_type = FlatFilter
-
-        def update_belief_f(
-                belief: FlatFilter,
-                action: int,
-                observation: np.ndarray):
-            return belief_rejection_sampling(belief, env, action, observation)
-
-    elif conf.belief == 'importance_sampling':
-
-        belief_type = WeightedFilter
-
-        def update_belief_f(
-                belief: WeightedFilter,
-                action: int,
-                observation: np.ndarray):
-            return belief_importance_sampling(belief, env, action, observation)
-
-    else:
-        raise ValueError(
-            'belief must be either rejection or importance sampling'
-        )
+    def update_belief_f(
+            belief: FlatFilter,
+            action: int,
+            observation: np.ndarray):
+        return belief_rejection_sampling(belief, env, action, observation)
 
     belief_manager = BeliefManager(
         env.sample_start_state,
-        belief_type,
+        FlatFilter,
         update_belief_f,
         conf
     )

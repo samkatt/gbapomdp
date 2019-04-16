@@ -1,7 +1,5 @@
 """ beliefs are distributions over states
 
-TODO: rename to particle filters
-
 Contains
 * flat filter
 * weighted filter
@@ -161,7 +159,7 @@ class WeightedFilter(ParticleFilter):
 
 
         Args:
-             particle: (`pobnrl.agents.planning.beliefs.WeightedParticle`): weighted particle to be added
+             particle: (`WeightedParticle`): weighted particle to be added
 
         """
         if particle.weight < 0:
@@ -215,10 +213,17 @@ def rejection_sampling(
 ) -> ParticleFilter:
     """ applies rejection sampling on particle_filter
 
-    will continuously update and filter samples until a new particle filter of
-    the same size is created
+    Will sample, process, accept and then extract particles from
+    `particle_filter` untill a particle filter of accepted updated samples with
+    the same size is generated
 
-    TODO: doc
+    Args:
+         particle_filter: (`ParticleFilter`):
+         process_sample_f: (`Callable[[Any], Any]`): processes samples in `particle_filter`
+         accept_f: (`Callable[[Any], bool]`): tests processed sample
+         extract_particle_f: (`Callable[[Any], Any]`): takes new particle from processed sample (default is identity)
+
+    RETURNS (`ParticleFilter`): particle filter with accepted, updated particles
 
     """
 
@@ -243,10 +248,16 @@ def importance_sampling(
 ) -> WeightedFilter:
     """ returns a updated weighted filter according to provided functions
 
-    updates **all** samples in particle_filter and saves them with an
-    associated weight into a particle fitler
+    Will sample, weight, and extract particles from `particle_filter` untill a
+    particle filter of accepted updated samples with the same size is generated
 
-    TODO: doc
+    Args:
+         particle_filter: (`WeightedFilter`):
+         process_sample_f: (`Callable[[Any], Any]`): processes samples in `particle_filter`
+         weight_f: (`Callable[[Any], float]`): weights the processed sample
+         extract_particle_f: (`Callable[[Any], Any]`): takes new particle from processed sample (default is identity)
+
+    RETURNS (`WeightedFilter`): particle fitler with weighted, updated particles
 
     """
 
@@ -269,13 +280,19 @@ class BeliefManager():
             belief_type,  # class of particle filter to use
             update_belief_f: Callable[[ParticleFilter, int, int], ParticleFilter],
             conf):
-        """ initiatlizes the belief manager
+        """ Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
 
         Assumes the belief is over POMDP states.
 
-        TODO: doc
+        Args:
+             sample_particle_f: (`Callable[[], Any]`): function that samples particles
+             belief_type: (`class`) particle filterconstructor()
+             update_belief_f: (`Callable[[` `ParticleFilter`, `int, int],` `ParticleFilter` `]`): how to update the belief
+             conf: (`namespace`): contains configurations
+
+        TODO: conf -> num_particles
 
         """
 

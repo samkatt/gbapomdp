@@ -1,9 +1,9 @@
-""" runs tests on beliefs"""
+""" runs tests on particle_filters"""
 
 import unittest
 
-from agents.planning.beliefs import FlatFilter, WeightedFilter, WeightedParticle
-from agents.planning.beliefs import rejection_sampling, importance_sampling
+from agents.planning.particle_filters import FlatFilter, WeightedFilter, WeightedParticle
+from agents.planning.particle_filters import rejection_sampling, importance_sampling
 
 
 class TestFilters(unittest.TestCase):
