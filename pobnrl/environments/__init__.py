@@ -1,11 +1,12 @@
 """ all the environments in which an agent can act """
 
-from .environment import Environment
-from .tiger import Tiger
 from .cartpole import Cartpole
-from .collision_avoidance import CollisionAvoidance
-from .gridworld import GridWorld
 from .chain_domain import ChainDomain
+from .collision_avoidance import CollisionAvoidance
+from .environment import Environment
+from .gridworld import GridWorld
+from .misc import ActionSpace
+from .tiger import Tiger
 
 
 def create_environment(

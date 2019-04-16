@@ -4,8 +4,10 @@ from collections import deque
 from typing import Callable
 import numpy as np
 
-from misc import ActionSpace, epsilon_greedy, ExplorationSchedule
-from misc import PiecewiseSchedule, FixedExploration, DiscreteSpace
+from environments import ActionSpace
+from misc import DiscreteSpace
+from agents.misc import epsilon_greedy, PiecewiseSchedule
+from agents.misc import ExplorationSchedule, FixedExploration
 
 from .agent import Agent
 from .networks import create_qnet
@@ -25,8 +27,8 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
              qnet: (`pobnrl.agents.networks.q_functions.QNetInterface`): \
                     Q-net to use
-             action_space: (`pobnrl.misc.ActionSpace`): of environment
-             exploration: (`pobnrl.misc.ExplorationSchedule`): \
+             action_space: (`pobnrl.environments.ActionSpace`): of environment
+             exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
                     schedule for e-greedy
              conf: (`namespace`) set of configurations (see -h)
 
@@ -140,8 +142,8 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
             qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
-            action_space: (`pobnrl.misc.ActionSpace`): of environment
-            exploration: (`pobnrl.misc.ExplorationSchedule`): \
+            action_space: (`pobnrl.environments.ActionSpace`): of environment
+            exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
                     exploration schedule
             conf: (`namespace`): set of configurations
 
@@ -260,13 +262,13 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
 
 def create_agent(
-        action_space: DiscreteSpace,
+        action_space: ActionSpace,
         observation_space: DiscreteSpace,
         conf) -> Agent:
     """ factory function to construct model-free learning agents
 
     Args:
-         action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+         action_space: (`pobnrl.environments.ActionSpace`): of environment
          observation_space: (`pobnrl.misc.DiscreteSpace`) of environment
          conf: (`namespace`) configurations
 

@@ -6,8 +6,10 @@ from typing import Dict
 
 import numpy as np
 
-from environments.environment import Environment, EnvironmentInteraction
-from misc import DiscreteSpace, ActionSpace, log_level
+from misc import DiscreteSpace, log_level
+
+from .environment import Environment, EnvironmentInteraction
+from .misc import ActionSpace
 
 
 # pylint: disable=too-many-instance-attributes

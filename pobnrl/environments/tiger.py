@@ -6,8 +6,10 @@ import time
 import copy
 import numpy as np
 
-from environments.environment import Environment, EnvironmentInteraction
-from misc import DiscreteSpace, ActionSpace, log_level
+from misc import DiscreteSpace, log_level
+
+from .misc import ActionSpace
+from .environment import Environment, EnvironmentInteraction
 
 
 class Tiger(Environment):

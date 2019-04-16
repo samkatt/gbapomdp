@@ -8,8 +8,10 @@ import time
 from typing import List
 import numpy as np
 
-from environments.environment import Environment, EnvironmentInteraction
-from misc import DiscreteSpace, ActionSpace, log_level
+from misc import DiscreteSpace, log_level
+
+from .misc import ActionSpace
+from .environment import Environment, EnvironmentInteraction
 
 
 class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
@@ -112,8 +114,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         self._spaces = {
             "A": ActionSpace(4),
             "O": DiscreteSpace(
-                [self._size, self._size]
-                + (2 * np.ones(len(self._goal_cells))).tolist()
+                [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).tolist()
             )
         }
 
