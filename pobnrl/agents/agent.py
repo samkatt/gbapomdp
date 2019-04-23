@@ -59,7 +59,7 @@ class RandomAgent(Agent):
         """ constructs an agent that will act randomly
 
         Args:
-             num_actions: (`pobnrl.environment.ActionSpace`): the action space
+             num_actions: (`pobnrl.environments.misc.ActionSpace`): the action space
 
         """
         self._action_space = action_space

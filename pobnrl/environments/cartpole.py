@@ -1,18 +1,17 @@
 """ cartpole environment """
 
-import logging
 import time
 
 import gym
 
 from environments.environment import Environment, EnvironmentInteraction
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
 class Cartpole(Environment):
     """ cartpole environment """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     def __init__(self, verbose: bool):
         """ constructs cartpole with optionally graphical representation
@@ -40,7 +39,7 @@ class Cartpole(Environment):
         """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
-            self.logger.log(log_level['verbose'], 'showing recording..')
+            self.logger.log(LogLevel.V2, 'showing recording..')
             return True
 
         return False

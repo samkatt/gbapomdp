@@ -1,7 +1,6 @@
 """ Run POMCP on partiall ymethods on partially observable environments """
 
 import copy
-import logging
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
@@ -9,16 +8,7 @@ import numpy as np
 from environments import create_environment
 from agents import create_agent
 from episode import run_episode
-from misc import log_level
-
-# TODO: refactor
-VERBOSE_TO_LOGGING = {
-    0: 30,  # warning
-    1: 20,  # info
-    2: 15,  # verbose
-    3: 10,  # debug
-    4: 5    # spam
-}
+from misc import POBNRLogger, LogLevel
 
 
 def main(conf):
@@ -29,13 +19,8 @@ def main(conf):
 
     """
 
-    logging.basicConfig(
-        level=VERBOSE_TO_LOGGING[conf.verbose],
-        format="[%(asctime)s] %(levelname)s: %(message)s \t\t\t(%(name)s)",
-        datefmt='%H:%M:%S'
-    )
-
-    logger = logging.getLogger(__name__)
+    POBNRLogger.set_level(LogLevel.create(conf.verbose))
+    logger = POBNRLogger('pomcp main')
 
     ret_mean = ret_var = 0
 
@@ -50,10 +35,7 @@ def main(conf):
     conf.agent_type = "planning"
     agent = create_agent(sim, conf)
 
-    logger.log(
-        log_level['info'],
-        "Running %s experiment on %s", str(agent), str(env)
-    )
+    logger.log(LogLevel.V1, f"Running {agent} experiment on {env}")
 
     for run in range(conf.runs):
 
@@ -65,9 +47,7 @@ def main(conf):
         delta_2 = ret - ret_mean
         ret_var += delta * delta_2
 
-        logger.log(
-            log_level['info'], "run %d, avg return: %f", run, ret_mean
-        )
+        logger.log(LogLevel.V1, f"run {run}, avg return {ret_mean}")
 
         np.savetxt(
             conf.file,
@@ -78,8 +58,8 @@ def main(conf):
                 np.sqrt(ret_var / (run + 1)) / np.sqrt(run + 1)
             ],
             delimiter=', ',
-            header=str(conf)
-            + "\nreturn mean, return var, return count, return stder"
+            header=str(conf) +
+            "\nreturn mean, return var, return count, return stder"
         )
 
 
@@ -95,7 +75,7 @@ def parse_arguments(args: str = None):
     parser.add_argument(
         "--verbose", "-v",
         choices=[0, 1, 2, 3, 4, 5],
-        default=0,
+        default=1,
         type=int,
         help="level of logging")
 

@@ -1,12 +1,11 @@
 """ collision avoidance environment """
 
-import logging
 import time
 
 import copy
 import numpy as np
 
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .environment import Environment, EnvironmentInteraction
 from .misc import ActionSpace
@@ -27,7 +26,7 @@ class CollisionAvoidance(Environment):
 
     """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     # const
     BLOCK_MOVE_PROB = .5
@@ -247,4 +246,4 @@ class CollisionAvoidance(Environment):
                 f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
                 f"({step['state']['obstacle']}: {step['obs'][0]})"
 
-        self.logger.log(log_level['verbose'], descr)
+        self.logger.log(LogLevel.V2, descr)

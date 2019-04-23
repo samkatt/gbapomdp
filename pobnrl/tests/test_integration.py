@@ -20,7 +20,7 @@ class TestModelFreeAgents(unittest.TestCase):
 
         """
 
-        def_args = ['--episodes=3', '--runs=2', '--horizon=10']
+        def_args = ['--episodes=3', '--runs=2', '--horizon=10', '-v=0']
 
         # pylint: disable=too-many-function-args
         mf_main(mf_parse_arguments(def_args + args))
@@ -103,7 +103,7 @@ class TestPOMCPAgents(unittest.TestCase):
 
         """
 
-        def_args = ['--runs=2', '--horizon=5']
+        def_args = ['--runs=2', '--horizon=5', '-v=0']
 
         # pylint: disable=too-many-function-args
         pomcp_main(pomcp_parse_arguments(def_args + args))

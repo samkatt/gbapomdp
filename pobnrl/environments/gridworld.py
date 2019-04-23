@@ -1,14 +1,13 @@
 """ gridworld environment """
 
 import copy
-import logging
 import random
 import time
 
 from typing import List
 import numpy as np
 
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .misc import ActionSpace
 from .environment import Environment, EnvironmentInteraction
@@ -26,7 +25,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
 
     """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     # consts
     NORTH = 0
@@ -323,4 +322,4 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             descr += f" and {self.action_to_string[int(step['action'])]} " \
                 + f"to:\n{step['state'][0]}({step['obs'][:2]})"
 
-        self.logger.log(log_level['verbose'], descr)
+        self.logger.log(LogLevel.V2, descr)

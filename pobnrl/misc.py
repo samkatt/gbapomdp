@@ -10,17 +10,97 @@ Contains:
 """
 
 from contextlib import contextmanager
+from enum import Enum
 from typing import List
+import logging
 import os
 
-import logging
 import numpy as np
 import tensorflow as tf
 
-logger = logging.getLogger(__name__)
 
-# TODO: change to log function that wraps logger
-log_level = {"spam": 5, "debug": 10, "verbose": 15, "info": 20}
+class LogLevel(Enum):
+    """ log levels """
+    V0 = 1000
+    V1 = 30
+    V2 = 20
+    V3 = 15
+    V4 = 10
+    V5 = 5
+
+    @staticmethod
+    def create(level: int) -> 'LogLevel':
+        """ creates a loglevel from string
+
+        Args:
+             level: (`int`): in [0 ... 5]
+
+        RETURNS (`pobnrl.misc.LogLevel`):
+
+        """
+
+        return LogLevel['V' + str(level)]
+
+
+class POBNRLogger:
+    """ small API for logging
+
+    TODO: implement lazyness one way or another
+
+    """
+
+    _level = LogLevel.V0
+    registered_loggers = []
+
+    @classmethod
+    def set_level(cls, level: LogLevel):
+        """ sets level of the loggers
+
+        Anything that is logged with a **lower** level will be displayed
+
+        Args:
+             level: (`LogLevel`):
+
+        """
+
+        for logger in cls.registered_loggers:
+            logger.logger.setLevel(level.value)
+
+        cls._level = level
+
+    def __init__(self, name: str):
+        """ creates a logger with given name
+
+        Args:
+             name: (`str`): the name of the logger
+
+        """
+
+        self.logger = logging.Logger(name)
+
+        self.logger.setLevel(POBNRLogger._level.value)
+
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter(
+                fmt="[%(asctime)s] %(levelname)s: %(message)s \t\t\t(%(name)s)"
+            )
+        )
+        self.logger.addHandler(handler)
+
+        self._enabled = True
+
+        POBNRLogger.registered_loggers.append(self)
+
+    def log(self, lvl: LogLevel, msg: str):
+        """ logs message """
+        if self._enabled:
+            self.logger.log(lvl.value, msg)
+
+    def disable_logging(self):
+        """ disable logger """
+        self._enabled = False
+
 
 # please, for the love of everything good in this world, don't refer to this
 _SESS = None
@@ -41,11 +121,13 @@ def tf_session(use_gpu: bool):
          use_gpu: (`bool`): whether to use gpus
     """
 
+    logger = POBNRLogger('tf_session')
+
     # __enter__
     global _SESS  # pylint: disable=global-statement
     assert _SESS is None, "Please initiate tf_wrapper only once"
 
-    logger.log(log_level['verbose'], "initiating tensorflow session")
+    logger.log(LogLevel.V1, "initiating tensorflow session")
 
     tf_config = tf.ConfigProto(
         device_count={'GPU': int(use_gpu)},
@@ -60,7 +142,7 @@ def tf_session(use_gpu: bool):
 
     # __exit__()
 
-    logger.log(log_level['verbose'], "closing tensorflow session")
+    logger.log(LogLevel.V1, "closing tensorflow session")
 
     _SESS.close()
     _SESS = None

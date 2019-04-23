@@ -1,12 +1,11 @@
 """ tiger environment """
 
-import logging
 import time
 
 import copy
 import numpy as np
 
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .misc import ActionSpace
 from .environment import Environment, EnvironmentInteraction
@@ -15,7 +14,7 @@ from .environment import Environment, EnvironmentInteraction
 class Tiger(Environment):
     """ the tiger environment """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     # consts
     LEFT = 0
@@ -200,6 +199,6 @@ class Tiger(Environment):
             descr = descr + to_string(step["obs"][1])
 
         self.logger.log(
-            log_level['verbose'],
-            "%s, opened %s", descr, to_string(self._history[-1]["action"])
+            LogLevel.V2,
+            f"{descr}, opened {to_string(self._history[-1]['action'])}"
         )

@@ -2,12 +2,11 @@
 
 from typing import Callable
 import abc
-import logging
 import numpy as np
 import tensorflow as tf
 
 from agents.networks import neural_network_misc
-from misc import tf_run, log_level, DiscreteSpace
+from misc import tf_run, POBNRLogger, LogLevel, DiscreteSpace
 
 
 class QNetInterface(abc.ABC):
@@ -60,11 +59,11 @@ class QNetInterface(abc.ABC):
 class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
     """ a network based on DQN that can return q values and update """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            action_space: DiscreteSpace,
+            output_space: DiscreteSpace,  # TODO make nr output nodes
             observation_space: DiscreteSpace,
             q_func: Callable,  # Q-value network function
             optimizer,
@@ -75,7 +74,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the input architecture q_func is **not** a recurrent one
 
         Args:
-             action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             output_space: (`pobnrl.misc.DiscreteSpace`): of environment
              observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
              q_func: (`Callable`): the actual Q-function (non-recurrent)
              optimizer: the tf.optimizer to use for learning
@@ -124,21 +123,21 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         self.qvalues_fn = q_func(
             self.obs_ph,
-            action_space.n,
+            output_space.n,
             conf.network_size,
             scope=self.name + '_net'
         )
 
         next_qvalues_fn = q_func(
             self.next_obs_ph,
-            action_space.n,
+            output_space.n,
             conf.network_size,
             scope=self.name + '_net'
         )
 
         next_targets_fn = q_func(
             self.next_obs_ph,
-            action_space.n,
+            output_space.n,
             conf.network_size,
             scope=self.name + '_target'
         )
@@ -149,14 +148,14 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
             prior_vals = neural_network_misc.two_layer_q_net(
                 self.obs_ph,
-                action_space.n,
+                output_space.n,
                 4,
                 scope=self.name + '_prior'
             )
 
             next_prior_vals = neural_network_misc.two_layer_q_net(
                 self.next_obs_ph,
-                action_space.n,
+                output_space.n,
                 4,
                 scope=self.name + '_prior'
             )
@@ -261,8 +260,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         if self.replay_buffer.size < self.batch_size:
             self.logger.log(
-                log_level['debug'],
-                "Network %s cannot batch update due to small buf", self.name
+                LogLevel.V2,
+                f"Network {self.name} cannot batch update due to small buf"
             )
             return
 
@@ -308,11 +307,11 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
     """ a network based on DRQN that can return q values and update """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            action_space: DiscreteSpace,
+            output_space: DiscreteSpace,  # TODO make nr output nodes
             observation_space: DiscreteSpace,
             rec_q_func: Callable,
             optimizer,
@@ -323,7 +322,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the rec_q_func provided is a recurrent Q function
 
         Args:
-             action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             output_space: (`pobnrl.misc.DiscreteSpace`): of environment
              observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
              rec_q_func: (`Callable`): the (recurrent) Q function
              optimizer: the tf.optimizer optimizer to use for learning
@@ -386,7 +385,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell,
             self.rnn_state_ph,
-            action_space.n,
+            output_space.n,
             conf.network_size,
             scope=self.name + '_net'
         )
@@ -396,7 +395,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell_t,
             self.rnn_state_ph,
-            action_space.n,
+            output_space.n,
             conf.network_size,
             scope=self.name + '_target'
         )
@@ -406,7 +405,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell,
             self.rnn_state_ph,
-            action_space.n,
+            output_space.n,
             conf.network_size,
             scope=self.name + '_net'
         )
@@ -423,7 +422,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 self.seq_lengths_ph,
                 rnn_prior_cell,
                 None,
-                action_space.n,
+                output_space.n,
                 4,
                 scope=self.name + '_prior'
             )
@@ -432,7 +431,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 self.seq_lengths_ph,
                 rnn_prior_cell,
                 None,
-                action_space.n,
+                output_space.n,
                 4,
                 scope=self.name + '_prior'
             )
@@ -545,8 +544,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         if self.replay_buffer.size < self.batch_size:
             self.logger.log(
-                log_level['debug'],
-                "Network % cannot batch update due to small buf", self.name
+                LogLevel.V2,
+                f"Network {self.name} cannot batch update due to small buf"
             )
             return
 

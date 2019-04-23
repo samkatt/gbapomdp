@@ -1,12 +1,11 @@
 """ chain domain environment """
 
-import logging
 import time
 from typing import Dict
 
 import numpy as np
 
-from misc import DiscreteSpace, log_level
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .environment import Environment, EnvironmentInteraction
 from .misc import ActionSpace
@@ -30,7 +29,7 @@ class ChainDomain(Environment):
 
     """
 
-    logger = logging.getLogger(__name__)
+    logger = POBNRLogger(__name__)
 
     def __init__(self, size: int, verbose: bool):
         """ construct the chain environment
@@ -222,4 +221,4 @@ class ChainDomain(Environment):
         for x in self._history:
             descr += f"->{x}"
 
-        self.logger.log(log_level['verbose'], "agent travelled %s", descr)
+        self.logger.log(LogLevel.V2, f"agent travelled {descr}")
