@@ -6,8 +6,6 @@ import numpy as np
 
 from environments import gridworld, tiger, collision_avoidance, chain_domain
 
-# TODO: test all sample_start_state()
-
 
 class TestTiger(unittest.TestCase):
     """ tests functionality of the tiger environment """
@@ -75,6 +73,17 @@ class TestTiger(unittest.TestCase):
             self.assertEqual(step.reward, -100)
             self.assertTrue(step.terminal)
 
+    def test_sample_start_state(self):
+        """ tests sampling start states """
+
+        start_states = [self.env.sample_start_state() for _ in range(10)]
+
+        self.assertIn(0, start_states)
+        self.assertIn(1, start_states)
+
+        for state in start_states:
+            self.assertIn(state, [0, 1])
+
     def test_space(self):
         """ tests the size of the spaces """
         action_space = self.env.action_space
@@ -109,6 +118,16 @@ class TestGridWorld(unittest.TestCase):
             [0, 1, 0],
             [1, 0, 0]
         ])
+
+    def test_sample_start_state(self):  # pylint: disable=no-self-use
+        """ tests sampling start states """
+
+        env = gridworld.GridWorld(5, False)
+
+        start_states = [env.sample_start_state() for _ in range(10)]
+
+        for state in start_states:
+            np.testing.assert_array_equal(state[0], [0, 0])
 
     def test_step(self):
         """ Tests Gridworld.step() """
@@ -286,6 +305,12 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertEqual(env.state['agent_x'], 2)
         self.assertEqual(env.state['agent_y'], 1)
 
+    def test_sample_start_state(self):
+        """ tests sampling start states """
+
+        env = collision_avoidance.CollisionAvoidance(7, False)
+        self.assertDictEqual(env.sample_start_state(), {'agent_x': 6, 'agent_y': 3, 'obstacle': 3})
+
     def test_step(self):
         """ tests CollisionAvoidance.step """
 
@@ -418,6 +443,12 @@ class TestChainDomain(unittest.TestCase):
         obs = domain.reset()
         self.assertDictEqual(domain.state, {'x': 0, 'y': 9})
         np.testing.assert_array_equal(obs, expected_obs)
+
+    def test_sample_start_state(self):
+        """ tests sampling start states """
+
+        env = chain_domain.ChainDomain(4, False)
+        self.assertDictEqual(env.sample_start_state(), {'x': 0, 'y': 3})
 
     def test_space(self):
         """ tests ChainDomain.spaces """
