@@ -7,7 +7,7 @@ from typing import Tuple
 import numpy as np
 
 from agents.planning.particle_filters import ParticleFilter
-from environments.environment import Environment
+from environments import Simulator
 
 
 class TreeNode():
@@ -90,7 +90,7 @@ class POUCT():
 
     def __init__(  # pylint: disable=too-many-arguments
             self,
-            simulator: Environment,
+            simulator: Simulator,
             num_sims: int = 500,
             exploration_constant: float = 1.,
             planning_horizon: int = 10,
@@ -98,6 +98,7 @@ class POUCT():
         """ Creates the PO-UCT planner
 
         Args:
+             simulator: (`pobnrl.environments.environment.Simulator`)
              num_sims: (`int`): number of iterations
              exploration_constant: (`float`): UCB exploration constant
              planning_horizon: (`int`): the horizon to plan agains
@@ -188,7 +189,7 @@ class POUCT():
         return ret
 
     def _rollout(self, hor: int) -> Tuple[int, float]:
-        """ A random interaction with the environment
+        """ A random interaction with the simulator
 
         Args:
              hor: (`int`): the length of the rollout

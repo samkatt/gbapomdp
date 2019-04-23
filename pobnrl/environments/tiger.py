@@ -9,9 +9,10 @@ from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .misc import ActionSpace
 from .environment import Environment, EnvironmentInteraction
+from .environment import Simulator, SimulatedInteraction
 
 
-class Tiger(Environment):
+class Tiger(Environment, Simulator):
     """ the tiger environment """
 
     logger = POBNRLogger(__name__)
@@ -74,10 +75,11 @@ class Tiger(Environment):
         """
         return np.random.randint(0, 2)
 
-    def sample_observation(self, listening: bool) -> np.array:
+    def sample_observation(self, state: int, listening: bool) -> np.array:
         """ samples an observation, listening stores whether agent is listening
 
         Args:
+             state: (`int`): 0 is tiger left, 1 is tiger right
              listening: (`bool`): whether the agent is listening
 
         RETURNS (`np.array`): the observation (hot-encoded)
@@ -91,9 +93,9 @@ class Tiger(Environment):
 
         # 1-hot-encoding
         if np.random.random() < self.CORRECT_OBSERVATION_PROB:
-            obs[self.state] = 1
+            obs[state] = 1
         else:
-            obs[int(not self.state)] = 1
+            obs[int(not state)] = 1
 
         return obs
 
@@ -120,6 +122,34 @@ class Tiger(Environment):
 
         return np.zeros(2)
 
+    def simulation_step(self, state: int, action: int) -> SimulatedInteraction:
+        """ simulates stepping from state using action. Returns interaction
+
+        Will terminate episode when action is to open door,
+        otherwise return an observation.
+
+        Args:
+             state: (`int`): 0 is tiger left, 1 is tiger right
+             action: (`int`): 0 is open left, 1 is open right or 2 is listen
+
+        RETURNS (`pobnrl.environments.environment.SimulatedInteraction`): the transition
+
+        """
+
+        if action != self.LISTEN:
+            obs = self.sample_observation(state, False)
+            terminal = True
+            reward = self.GOOD_DOOR_REWARD if action == self.state \
+                else self.BAD_DOOR_REWARD
+            state = self.sample_start_state()
+
+        else:  # not opening door
+            obs = self.sample_observation(state, True)
+            terminal = False
+            reward = self.LISTEN_REWARD
+
+        return SimulatedInteraction(state, obs, reward, terminal)
+
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the tiger environment given action
 
@@ -133,22 +163,18 @@ class Tiger(Environment):
 
         """
 
-        if action != self.LISTEN:
-            obs = self.sample_observation(False)
-            terminal = True
-            reward = self.GOOD_DOOR_REWARD if action == self.state \
-                else self.BAD_DOOR_REWARD
-
-        else:  # not opening door
-            obs = self.sample_observation(True)
-            terminal = False
-            reward = self.LISTEN_REWARD
+        transition = self.simulation_step(self.state, action)
+        self._state = transition.state
 
         if self._recording:
-            self._history.append(
-                {'action': action, 'obs': obs, 'reward': reward})
+            self._history.append({'action': action,
+                                  'obs': transition.observation,
+                                  'reward': transition.reward
+                                  })
 
-        return EnvironmentInteraction(self.state, obs, reward, terminal)
+        return EnvironmentInteraction(
+            transition.observation, transition.reward, transition.terminal
+        )
 
     # pylint: disable=no-self-use
     def obs2index(self, observation: np.array) -> int:

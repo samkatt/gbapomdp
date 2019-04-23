@@ -64,22 +64,7 @@ class Cartpole(Environment):
         """
 
         obs, reward, terminal, _ = self.cartpole.step(action)
-        return EnvironmentInteraction(self.state, obs, reward, terminal)
-
-    def obs2index(self, _):
-        """ unmet interface requirement, will crash """
-        raise NotImplementedError
-
-    @property
-    def state(self):
-        """ returns current state """
-        return self.cartpole.env.unwrapped.state
-
-    def sample_start_state(self):
-        """ crashes. This environment does not support this """
-        assert NotImplementedError(
-            "cartpole cannot sample start state right now"
-        )
+        return EnvironmentInteraction(obs, reward, terminal)
 
     @property
     def action_space(self) -> DiscreteSpace:

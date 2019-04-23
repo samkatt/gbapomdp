@@ -8,11 +8,12 @@ import numpy as np
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .environment import Environment, EnvironmentInteraction
+from .environment import Simulator, SimulatedInteraction
 from .misc import ActionSpace
 
 
 # pylint: disable=too-many-instance-attributes
-class CollisionAvoidance(Environment):
+class CollisionAvoidance(Environment, Simulator):
     """ the collision avoidance environment
 
 
@@ -153,6 +154,46 @@ class CollisionAvoidance(Environment):
 
         return self.generate_observation()
 
+    def simulation_step(self, state: dict, action: int) -> SimulatedInteraction:
+        """ simulates stepping from state using action. Returns interaction
+
+        Args:
+             state: (`dict`): {'agent_x': int, 'agent_y': int, 'obstacle': int}
+             action: (`int`): 0 is go down, 1 is stay or 2 is go up
+
+        RETURNS (`SimulatedInteraction`):
+
+        """
+
+        # move agent
+        state['agent_x'] -= 1
+        state['agent_y'] = self.bound_in_grid(
+            state['agent_y'] + self.action_to_move[int(action)]
+        )
+
+        # move obstacle
+        if np.random.random() < self.BLOCK_MOVE_PROB:
+            if np.random.random() < .5:
+                state['obstacle'] += 1
+            else:
+                state['obstacle'] -= 1
+
+            state['obstacle'] = self.bound_in_grid(state['obstacle'])
+
+        # observation
+        obs = self.generate_observation(state)
+
+        # reward and terminal
+        reward = 0 if action == 1 else -1
+        terminal = False
+
+        if state['agent_x'] == 0:
+            terminal = True
+            if state['agent_y'] == state['obstacle']:
+                reward = self.COLLISION_REWARD
+
+        return SimulatedInteraction(state, obs, reward, terminal)
+
     def step(self, action: int) -> EnvironmentInteraction:
         """ updates the state and return observed transitions
 
@@ -170,42 +211,20 @@ class CollisionAvoidance(Environment):
         """
         assert 0 <= action < 3
 
-        # move agent
-        self.state['agent_x'] -= 1
-        self.state['agent_y'] = self.bound_in_grid(
-            self.state['agent_y'] + self.action_to_move[int(action)]
-        )
-
-        # move obstacle
-        if np.random.random() < self.BLOCK_MOVE_PROB:
-            if np.random.random() < .5:
-                self.state['obstacle'] += 1
-            else:
-                self.state['obstacle'] -= 1
-
-            self.state['obstacle'] = self.bound_in_grid(self.state['obstacle'])
-
-        # observation
-        obs = self.generate_observation()
-
-        # reward and terminal
-        reward = 0 if action == 1 else -1
-        terminal = False
-
-        if self.state['agent_x'] == 0:
-            terminal = True
-            if self.state['agent_y'] == self.state['obstacle']:
-                reward = self.COLLISION_REWARD
+        transition = self.simulation_step(self.state, action)
+        self._state = transition.state
 
         # recording
         if self._recording:
             self._history.append({
                 'action': action,
-                'obs': obs,
-                'reward': reward,
-                'state': copy.deepcopy(self.state)})
+                'obs': transition.observation,
+                'reward': transition.reward,
+                'state': copy.deepcopy(transition.state)})
 
-        return EnvironmentInteraction(self.state, obs, reward, terminal)
+        return EnvironmentInteraction(
+            transition.observation, transition.reward, transition.terminal
+        )
 
     def obs2index(self, observation: np.array) -> int:
         """ projects the observation as an int

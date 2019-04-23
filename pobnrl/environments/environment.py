@@ -9,15 +9,12 @@ import numpy as np
 from misc import DiscreteSpace
 
 
-# TODO: cannot parse source with `./make_documentation`
-# TODO: remove state and create a new type to include state?
 EnvironmentInteraction = namedtuple(
     'EnvironmentInteraction',
-    'state observation reward terminal'
+    'observation reward terminal'
 )
 
 
-# TODO: slim down this interface
 class Environment(abc.ABC):
     """ interface to all environments """
 
@@ -38,16 +35,6 @@ class Environment(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def state(self):
-        """ returns the current state """
-
-    @state.setter
-    @abc.abstractmethod
-    def state(self, state: Any):
-        """ sets state """
-
-    @property
-    @abc.abstractmethod
     def action_space(self) -> DiscreteSpace:
         """ returns size of domain action space
 
@@ -61,6 +48,33 @@ class Environment(abc.ABC):
         """ returns size of domain observation space
 
         RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space
+
+        """
+
+    def __repr__(self):
+        return (f"{self.__class__} with action space {self.action_space}, "
+                f"observation space {self.observation_space}")
+
+
+# TODO: cannot parse source with `./make_documentation`
+SimulatedInteraction = namedtuple(
+    'SimulatedInteraction',
+    'state observation reward terminal'
+)
+
+
+class Simulator(abc.ABC):
+    """ generative environment interface """
+
+    @abc.abstractmethod
+    def simulation_step(self, state: Any, action: int) -> SimulatedInteraction:
+        """ generates a transition
+
+        Args:
+             state: (`Any`): some state
+             action: (`int`): agent's taken action
+
+        RETURNS (`SimulatedInteraction`): the transition
 
         """
 
@@ -78,8 +92,3 @@ class Environment(abc.ABC):
         RETURNS (`int`): int representation of observation
 
         """
-
-    def __repr__(self):
-        return (f"{self.__class__} with action space {self.action_space}, "
-                f"observation space {self.observation_space} and "
-                f"current state {self.state}")

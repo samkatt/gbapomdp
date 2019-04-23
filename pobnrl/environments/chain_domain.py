@@ -8,11 +8,12 @@ import numpy as np
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .environment import Environment, EnvironmentInteraction
+from .environment import Simulator, SimulatedInteraction
 from .misc import ActionSpace
 
 
 # pylint: disable=too-many-instance-attributes
-class ChainDomain(Environment):
+class ChainDomain(Environment, Simulator):
     """ the chain environment
 
     The environments are indexed by problem size N and actionimask W =
@@ -110,7 +111,7 @@ class ChainDomain(Environment):
         Will use self.state if provided state is not given
 
         Args:
-             state: (`Dict[int]`): the state {'x', 'y'}
+             state: (`Dict[str, int]`): the state {'x', 'y'}
 
         """
 
@@ -146,10 +147,48 @@ class ChainDomain(Environment):
 
         return self.state2observation()
 
+    def simulation_step(self, state: Dict[str, int], action: int) -> SimulatedInteraction:
+        """ updates the state depending on action
+
+        Depending on the state, action can either move the agent left or rigth
+        deterministically. The observation is a noise-less 1-hot-encoding of
+        the state and the environment stops when the end is reached (on either
+        x-axis)
+
+        Args:
+             state: (`Dict[str, int]`): the state {'x', 'y'}
+             action: (`int`): 0 is action A, 1 = action B
+
+        RETURNS (`pobnrl.environments.environment.SimulatedInteraction`): the transition
+
+        """
+
+        assert 2 >= action >= 0, "expecting action A or B"
+
+        # move horizontally
+        if action == self._action_mapping[state['x']]:
+            state['x'] += 1
+            reward = -self._move_cost
+        else:
+            state['x'] = max(0, state['x'] - 1)  # bound on grid
+            reward = 0
+
+        # move vertically
+        state['y'] -= 1
+
+        terminal = state['y'] == 0
+
+        if terminal and state['x'] == self.size - 1:
+            reward = 1
+
+        return SimulatedInteraction(
+            state, self.state2observation(state), reward, terminal
+        )
+
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the domain depending on action
 
-        Dependin gon the state, action can either move the agent left or rigth
+        Depending on the state, action can either move the agent left or rigth
         deterministically. The observation is a noise-less 1-hot-encoding of
         the state and the environment stops when the end is reached (on either
         x-axis)
@@ -161,29 +200,14 @@ class ChainDomain(Environment):
 
         """
 
-        assert 2 >= action >= 0, "expecting action A or B"
-
-        # move horizontally
-        if action == self._action_mapping[self.state['x']]:
-            self._state['x'] += 1
-            reward = -self._move_cost
-        else:
-            self._state['x'] = max(0, self.state['x'] - 1)  # bound on grid
-            reward = 0
-
-        # move vertically
-        self._state['y'] -= 1
-
-        terminal = self.state['y'] == 0
-
-        if terminal and self.state['x'] == self.size - 1:
-            reward = 1
+        transition = self.simulation_step(self.state, action)
+        self._state = transition.state
 
         if self._recording:
             self._history.append(self.state['x'])
 
         return EnvironmentInteraction(
-            self.state, self.state2observation(), reward, terminal
+            transition.observation, transition.reward, transition.terminal
         )
 
     def obs2index(self, observation: np.array) -> int:

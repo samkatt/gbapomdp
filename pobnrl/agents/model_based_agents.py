@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 
 from agents.agent import Agent
-from environments.environment import Environment, EnvironmentInteraction
+from environments.environment import Simulator, SimulatedInteraction
 
 from .planning.particle_filters import BeliefManager, rejection_sampling
 from .planning.particle_filters import WeightedFilter, FlatFilter
@@ -81,17 +81,17 @@ class PrototypeAgent(Agent):
 
 def belief_rejection_sampling(
         particle_filter: FlatFilter,
-        env: Environment,
+        env: Simulator,
         action: int,
         observation: np.ndarray) -> FlatFilter:
     """ Applies belief rejection sampling
 
-    Will update the belief by simulating a step in the environment and using
+    Will update the belief by simulating a step in the simulator and using
     rejection sampling on the observation
 
     Args:
          particle_filter: (`pobnrl.agents.planning.particle_filters.FlatFilter`): current belief
-         env: (`pobnrl.environments.environment.Environment`): environment as a dynamic model
+         env: (`pobnrl.environments.environment.Simulator`): simulator as a dynamic model
          action: (`int`): taken action
          observation: (`np.ndarray`): perceived observation
 
@@ -99,11 +99,10 @@ def belief_rejection_sampling(
 
     """
 
-    def env_step(state: Any) -> EnvironmentInteraction:
-        env.state = state
-        return env.step(action)
+    def env_step(state: Any) -> SimulatedInteraction:
+        return env.simulation_step(state, action)
 
-    def observation_equals(interaction: EnvironmentInteraction) -> bool:
+    def observation_equals(interaction: SimulatedInteraction) -> bool:
         return np.all(interaction.observation == observation)
 
     return rejection_sampling(
@@ -114,13 +113,13 @@ def belief_rejection_sampling(
     )
 
 
-def create_agent(env: Environment, conf) -> PrototypeAgent:
+def create_agent(env: Simulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
 
     TODO: implement importance_sampling
 
     Args:
-         env: (`pobnrl.environments.environment.Environment`) of environment
+         env: (`pobnrl.environments.environment.Simulator`) simulator
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)

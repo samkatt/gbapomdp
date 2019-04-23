@@ -3,7 +3,7 @@
 from .cartpole import Cartpole
 from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
-from .environment import Environment
+from .environment import Environment, Simulator
 from .gridworld import GridWorld
 from .misc import ActionSpace
 from .tiger import Tiger

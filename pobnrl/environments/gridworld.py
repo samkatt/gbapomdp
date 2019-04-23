@@ -4,16 +4,17 @@ import copy
 import random
 import time
 
-from typing import List
+from typing import List, Tuple
 import numpy as np
 
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .misc import ActionSpace
 from .environment import Environment, EnvironmentInteraction
+from .environment import Simulator, SimulatedInteraction
 
 
-class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
+class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-attributes
     """ the gridworld environment
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -120,8 +121,14 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         self._state = [np.zeros(2), self.sample_goal()]
 
     @property
-    def state(self):
-        """ returns current state """
+    def state(self) -> list:
+        """ returns current state
+
+        Args:
+
+        RETURNS (`list`):
+
+        """
         return self._state
 
     @state.setter
@@ -144,7 +151,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         self._state = [agent_pos, goal_pos]
 
     def sample_start_state(self) -> list:
-        """ sample_start_state
+        """ returns [[0,0], some_goal]
 
         Args:
 
@@ -163,12 +170,12 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         return self._size
 
     @property
-    def goals(self) -> List[int]:
+    def goals(self) -> List[Tuple[int]]:
         """ returns the number of **possible** goals
 
         Args:
 
-        RETURNS (`List[int]`):
+        RETURNS (`List[Tuple[int]]`): list of (x,y)
 
         """
         return self._goal_cells
@@ -187,7 +194,7 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
         """
         return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
-    def sample_goal(self) -> tuple:
+    def sample_goal(self) -> Tuple[int]:
         """ samples a goal position
 
         RETURNS (`Tuple[int]`): the goal state (x,y)
@@ -240,21 +247,22 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
 
         return self.generate_observation(*self.state)
 
-    def step(self, action: int) -> EnvironmentInteraction:
-        """ update state as a result of action
+    def simulation_step(self, state: list, action: int) -> SimulatedInteraction:
+        """ performs a step on state and action and returns the transition
 
         moves agent accross the grid depending on the direction it took
 
         Args:
+             state: (`list`): [np.array, (goal_x, goal_y)]
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`pobnrl.environments.environment.SimulatedInteraction`): the transition
 
         """
 
         assert 4 > action >= 0, "agent can only move in 4 directions"
 
-        agent_pos, goal_pos = self.state
+        agent_pos, goal_pos = state
 
         # episode terminates when we have arrived in the goal state previously
         terminal = np.all(agent_pos == goal_pos)
@@ -268,19 +276,40 @@ class GridWorld(Environment):  # pylint: disable=too-many-instance-attributes
             agent_pos = self.bound_in_grid(
                 agent_pos + self.action_to_vec[int(action)])
 
-        self._state = [agent_pos, goal_pos]
+        state = [agent_pos, goal_pos]
 
-        obs = self.generate_observation(*self.state)
+        obs = self.generate_observation(*state)
         reward = 1 if terminal else 0
+
+        return SimulatedInteraction(
+            state, obs, reward, terminal
+        )
+
+    def step(self, action: int) -> EnvironmentInteraction:
+        """ update state as a result of action
+
+        moves agent accross the grid depending on the direction it took
+
+        Args:
+             action: (`int`): agent's taken action
+
+        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+
+        """
+
+        transition = self.simulation_step(self.state, action)
+        self._state = transition.state
 
         if self._recording:
             self._history.append({
                 'action': action,
-                'obs': obs,
-                'reward': reward,
+                'obs': transition.observation,
+                'reward': transition.reward,
                 'state': copy.deepcopy(self.state)})
 
-        return EnvironmentInteraction(self.state, obs, reward, terminal)
+        return EnvironmentInteraction(
+            transition.observation, transition.reward, transition.terminal
+        )
 
     def obs2index(self, observation: np.array) -> int:
         """ projects the observation as an int
