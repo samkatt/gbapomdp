@@ -11,7 +11,7 @@ Contains:
 
 from contextlib import contextmanager
 from enum import Enum
-from typing import List
+from typing import List, Tuple
 import logging
 import os
 
@@ -193,12 +193,12 @@ class DiscreteSpace():
         return self._dim
 
     @property
-    def shape(self) -> tuple:
+    def shape(self) -> Tuple[int]:
         """ returns the shape of the space
 
         Args:
 
-        RETURNS (`tuple`): as like np.shape
+        RETURNS (`Tuple[int]`): as like np.shape
 
         """
         return self._shape

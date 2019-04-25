@@ -1,12 +1,12 @@
 """ Neural networks used as Q functions """
 
-from typing import Callable
+from typing import Callable, Tuple
 import abc
 import numpy as np
 import tensorflow as tf
 
 from agents.networks import neural_network_misc
-from misc import tf_run, POBNRLogger, LogLevel, DiscreteSpace
+from misc import tf_run, POBNRLogger, LogLevel
 
 
 class QNetInterface(abc.ABC):
@@ -63,8 +63,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            output_space: DiscreteSpace,  # TODO make nr output nodes
-            observation_space: DiscreteSpace,
+            output_size: int,
+            input_shape: Tuple[int],
             q_func: Callable,  # Q-value network function
             optimizer,
             name: str,
@@ -74,8 +74,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the input architecture q_func is **not** a recurrent one
 
         Args:
-             output_space: (`pobnrl.misc.DiscreteSpace`): of environment
-             observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             output_size: (`int`): of environment
+             input_shape: (`Tuple[int]`): of environment
              q_func: (`Callable`): the actual Q-function (non-recurrent)
              optimizer: the tf.optimizer to use for learning
              name: (`str`): name of the network (used for scoping)
@@ -93,12 +93,12 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.batch_size = conf.batch_size
 
         self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(observation_space.shape)
+            = neural_network_misc.ReplayBuffer(input_shape)
 
         # shape of network input: variable in first dimension because
         # we sometimes provide complete sequences (for batch updates)
         # and sometimes just the last observation
-        input_shape = (self.history_len, *observation_space.shape)
+        input_shape = (self.history_len, *input_shape)
 
         # training operation place holders
         self.obs_ph = tf.placeholder(
@@ -123,21 +123,21 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
         self.qvalues_fn = q_func(
             self.obs_ph,
-            output_space.n,
+            output_size,
             conf.network_size,
             scope=self.name + '_net'
         )
 
         next_qvalues_fn = q_func(
             self.next_obs_ph,
-            output_space.n,
+            output_size,
             conf.network_size,
             scope=self.name + '_net'
         )
 
         next_targets_fn = q_func(
             self.next_obs_ph,
-            output_space.n,
+            output_size,
             conf.network_size,
             scope=self.name + '_target'
         )
@@ -148,14 +148,14 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
             prior_vals = neural_network_misc.two_layer_q_net(
                 self.obs_ph,
-                output_space.n,
+                output_size,
                 4,
                 scope=self.name + '_prior'
             )
 
             next_prior_vals = neural_network_misc.two_layer_q_net(
                 self.next_obs_ph,
-                output_space.n,
+                output_size,
                 4,
                 scope=self.name + '_prior'
             )
@@ -311,8 +311,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            output_space: DiscreteSpace,  # TODO make nr output nodes
-            observation_space: DiscreteSpace,
+            output_size: int,
+            input_shape: Tuple[int],
             rec_q_func: Callable,
             optimizer,
             name,
@@ -322,8 +322,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the rec_q_func provided is a recurrent Q function
 
         Args:
-             output_space: (`pobnrl.misc.DiscreteSpace`): of environment
-             observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             output_size: (`int`): output size of the network
+             input_shape: (`Tuple[int]`): of environment
              rec_q_func: (`Callable`): the (recurrent) Q function
              optimizer: the tf.optimizer optimizer to use for learning
              name: (`str`): name of the network (used for scoping)
@@ -341,13 +341,13 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.batch_size = conf.batch_size
 
         self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(observation_space.shape)
+            = neural_network_misc.ReplayBuffer(input_shape)
         self.rnn_state = None
 
         # shape of network input: variable in first dimension because
         # we sometimes provide complete sequences (for batch updates)
         # and sometimes just the last observation
-        input_shape = (None, *observation_space.shape)
+        input_shape = (None, *input_shape)
 
         # training operation place holders
         self.obs_ph = tf.placeholder(
@@ -385,7 +385,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell,
             self.rnn_state_ph,
-            output_space.n,
+            output_size,
             conf.network_size,
             scope=self.name + '_net'
         )
@@ -395,7 +395,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell_t,
             self.rnn_state_ph,
-            output_space.n,
+            output_size,
             conf.network_size,
             scope=self.name + '_target'
         )
@@ -405,7 +405,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             self.seq_lengths_ph,
             rnn_cell,
             self.rnn_state_ph,
-            output_space.n,
+            output_size,
             conf.network_size,
             scope=self.name + '_net'
         )
@@ -422,7 +422,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 self.seq_lengths_ph,
                 rnn_prior_cell,
                 None,
-                output_space.n,
+                output_size,
                 4,
                 scope=self.name + '_prior'
             )
@@ -431,7 +431,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 self.seq_lengths_ph,
                 rnn_prior_cell,
                 None,
-                output_space.n,
+                output_size,
                 4,
                 scope=self.name + '_prior'
             )

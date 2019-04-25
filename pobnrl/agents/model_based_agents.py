@@ -99,9 +99,11 @@ def belief_rejection_sampling(
 
     """
 
+    # TODO: use partial functions
     def env_step(state: Any) -> SimulatedInteraction:
         return env.simulation_step(state, action)
 
+    # TODO: use partial functions
     def observation_equals(interaction: SimulatedInteraction) -> bool:
         return np.all(interaction.observation == observation)
 
@@ -129,6 +131,7 @@ def create_agent(env: Simulator, conf) -> PrototypeAgent:
     if conf.belief != 'rejection_sampling':
         raise ValueError('belief must be rejection_sampling')
 
+    # TODO: use partial functions
     def update_belief_f(
             belief: FlatFilter,
             action: int,

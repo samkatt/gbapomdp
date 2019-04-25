@@ -27,8 +27,8 @@ def create_qnet(
 
     if conf.recurrent:
         return DRQNNet(
-            action_space,
-            observation_space,
+            action_space.n,
+            observation_space.shape,
             two_layer_rec_q_net,
             tf.train.AdamOptimizer(conf.learning_rate),
             scope,
@@ -36,8 +36,8 @@ def create_qnet(
         )
 
     return DQNNet(
-        action_space,
-        observation_space,
+        action_space.n,
+        observation_space.shape,
         two_layer_q_net,
         tf.train.AdamOptimizer(conf.learning_rate),
         scope,
