@@ -128,13 +128,6 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             scope=self.name + '_net'
         )
 
-        next_qvalues_fn = q_func(
-            self.next_obs_ph,
-            output_size,
-            conf.network_size,
-            scope=self.name + '_net'
-        )
-
         next_targets_fn = q_func(
             self.next_obs_ph,
             output_size,
@@ -178,17 +171,10 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             name=self.name + '_pick_Q'
         )
 
-        # TODO: before the prior part?
-        return_estimate = neural_network_misc.return_estimate(
-            next_qvalues_fn,
-            next_targets_fn,
-            conf.double_q
-        )
-
         targets = tf.where(
             self.done_mask_ph,
             x=self.rew_ph,
-            y=self.rew_ph + (conf.gamma * return_estimate)
+            y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
         )
 
         loss = neural_network_misc.loss(q_values, targets, conf.loss)
@@ -400,16 +386,6 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             scope=self.name + '_target'
         )
 
-        next_qvalues_fn, _ = rec_q_func(
-            self.next_obs_ph,
-            self.seq_lengths_ph,
-            rnn_cell,
-            self.rnn_state_ph,
-            output_size,
-            conf.network_size,
-            scope=self.name + '_net'
-        )
-
         # define loss
 
         if conf.prior_function_scale != 0:
@@ -454,16 +430,10 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             name=self.name + '_pick_Q'
         )
 
-        return_estimate = neural_network_misc.return_estimate(
-            next_qvalues_fn,
-            next_targets_fn,
-            conf.double_q
-        )
-
         targets = tf.where(
             self.done_mask_ph,
             x=self.rew_ph,
-            y=self.rew_ph + (conf.gamma * return_estimate)
+            y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
         )
 
         loss = neural_network_misc.loss(q_values, targets, conf.loss)

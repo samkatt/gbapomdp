@@ -73,19 +73,12 @@ class TestModelFreeAgents(unittest.TestCase):
         )
 
     def test_basic_features(self):
-        """ tests clipping, double_q, huber loss """
+        """ tests clipping, huber loss """
 
         self.run_experiment(['-D=tiger', '--loss=huber', '--num_nets=3'])
 
         self.run_experiment(
             ['-D=cartpole', '--clipping', "--horizon=10000"]
-        )
-
-        self.run_experiment(
-            ['--domain_size=5',
-             '-D=collision_avoidance',
-             '--double_q',
-             '--recurrent']
         )
 
 

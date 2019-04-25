@@ -7,7 +7,7 @@ ReplayBuffer: stores interactions
 Misc functions:
 
     * loss
-    * return_estimate
+    * network architectures
 
 """
 
@@ -18,30 +18,6 @@ from tensorflow.python.layers.layers import flatten
 import tensorflow as tf
 
 import numpy as np
-
-
-def return_estimate(next_q, next_target, use_double_q: bool):
-    """ compute estimated return
-
-    Either returns the max of the target network
-    or the double-q estimate (depending on use_double_q)
-
-    Args:
-         next_q: the next q-values
-         next_target: the target q-values
-         use_double_q: (`bool`): whether to use 'double-q' technique
-
-    """
-
-    if not use_double_q:
-        return tf.reduce_max(next_target, axis=-1)
-
-    # double_q
-    best_action = tf.argmax(next_q, axis=1, output_type=tf.int32)
-    best_action_indices = tf.stack(
-        [tf.range(tf.size(best_action)), best_action], axis=-1)
-
-    return tf.gather_nd(next_target, best_action_indices)
 
 
 def loss(q_values, targets, loss_type: str):

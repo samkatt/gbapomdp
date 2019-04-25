@@ -194,12 +194,6 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
-        "--double_q",
-        action='store_true',
-        help="whether to use doubleQ technique"
-    )
-
-    parser.add_argument(
         "--network_size",
         help='the number of hidden nodes in the q-network',
         default=64,
