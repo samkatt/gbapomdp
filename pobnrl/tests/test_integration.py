@@ -116,6 +116,11 @@ class TestPOMCPAgents(unittest.TestCase):
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
         self.run_experiment(['--domain_size=5', '-D=chain'])
 
+    def test_seting_sims(self):  # pylint: disable=no-self-use
+        """ tests setting number of simulations """
+
+        self.run_experiment(['-D=tiger', '--num_sims=10'])
+
 
 if __name__ == '__main__':
     unittest.main()

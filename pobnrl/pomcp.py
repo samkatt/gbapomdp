@@ -131,6 +131,7 @@ def parse_arguments(args: str = None):
     parser.add_argument(
         "--num_sims",
         default=512,
+        type=int,
         help="number of simulations/iterations to run per step"
     )
 
