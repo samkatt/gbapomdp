@@ -138,7 +138,7 @@ def create_agent(env: Simulator, conf) -> PrototypeAgent:
         env.sample_start_state,
         FlatFilter,
         update_belief_f,
-        conf
+        conf.num_particles
     )
 
     planner = POUCT(

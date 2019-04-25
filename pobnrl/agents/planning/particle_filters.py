@@ -279,7 +279,7 @@ class BeliefManager():
             sample_particle_f: Callable[[], Any],
             belief_type,  # class of particle filter to use
             update_belief_f: Callable[[ParticleFilter, int, int], ParticleFilter],
-            conf):
+            num_particles):
         """ Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
@@ -290,13 +290,11 @@ class BeliefManager():
              sample_particle_f: (`Callable[[], Any]`): function that samples particles
              belief_type: (`class`) particle filterconstructor()
              update_belief_f: (`Callable[[` `ParticleFilter`, `int, int],` `ParticleFilter` `]`): how to update the belief
-             conf: (`namespace`): contains configurations
-
-        TODO: conf -> num_particles
+             num_particles: (`int`): number of particles to hold
 
         """
 
-        self._size = conf.num_particles
+        self._size = num_particles
         self._belief_type = belief_type
 
         self._sample_particle_f = sample_particle_f
