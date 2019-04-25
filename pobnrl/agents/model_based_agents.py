@@ -1,5 +1,6 @@
 """ agents that act by learning a model of the environment """
 
+from functools import partial
 from typing import Any
 import numpy as np
 
@@ -7,7 +8,7 @@ from agents.agent import Agent
 from environments.environment import Simulator, SimulatedInteraction
 
 from .planning.particle_filters import BeliefManager, rejection_sampling
-from .planning.particle_filters import WeightedFilter, FlatFilter
+from .planning.particle_filters import FlatFilter
 from .planning.pouct import POUCT
 
 
@@ -81,9 +82,9 @@ class PrototypeAgent(Agent):
 
 def belief_rejection_sampling(
         particle_filter: FlatFilter,
-        env: Simulator,
         action: int,
-        observation: np.ndarray) -> FlatFilter:
+        observation: np.ndarray,
+        env: Simulator) -> FlatFilter:
     """ Applies belief rejection sampling
 
     Will update the belief by simulating a step in the simulator and using
@@ -99,11 +100,11 @@ def belief_rejection_sampling(
 
     """
 
-    # TODO: use partial functions
-    def env_step(state: Any) -> SimulatedInteraction:
-        return env.simulation_step(state, action)
+    env_step = partial(env.simulation_step, action=action)
 
-    # TODO: use partial functions
+    def extract_state(interaction: SimulatedInteraction) -> Any:
+        return interaction.state
+
     def observation_equals(interaction: SimulatedInteraction) -> bool:
         return np.all(interaction.observation == observation)
 
@@ -111,7 +112,7 @@ def belief_rejection_sampling(
         particle_filter,
         process_sample_f=env_step,
         accept_f=observation_equals,
-        extract_particle_f=lambda interaction: interaction.state
+        extract_particle_f=extract_state,
     )
 
 
@@ -131,12 +132,7 @@ def create_agent(env: Simulator, conf) -> PrototypeAgent:
     if conf.belief != 'rejection_sampling':
         raise ValueError('belief must be rejection_sampling')
 
-    # TODO: use partial functions
-    def update_belief_f(
-            belief: FlatFilter,
-            action: int,
-            observation: np.ndarray):
-        return belief_rejection_sampling(belief, env, action, observation)
+    update_belief_f = partial(belief_rejection_sampling, env=env)
 
     belief_manager = BeliefManager(
         env.sample_start_state,
