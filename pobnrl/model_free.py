@@ -71,19 +71,18 @@ def main(conf):
 
             # process results into rows of for each episode
             # return avg, return var, return #, return stder
-            summary = np.transpose([result_mean,
-                                    result_var / (run + 1),
-                                    [run + 1] * conf.episodes,
-                                    np.sqrt(
-                                        result_var / (run + 1)) /
-                                    np.sqrt(run + 1)])
+            summary = np.transpose([
+                result_mean,
+                result_var / (run + 1),
+                [run + 1] * conf.episodes,
+                np.sqrt(result_var / (run + 1)) / np.sqrt(run + 1)
+            ])
 
             np.savetxt(
                 conf.file,
                 summary,
                 delimiter=', ',
-                header=str(conf) +
-                "\nreturn mean, return var, return count, return stder"
+                header=f"{conf}\nreturn mean, return var, return count, return stder"
             )
 
 

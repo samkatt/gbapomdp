@@ -51,15 +51,14 @@ def main(conf):
 
         np.savetxt(
             conf.file,
-            [
+            [[
                 ret_mean,
                 ret_var,
                 run + 1,
                 np.sqrt(ret_var / (run + 1)) / np.sqrt(run + 1)
-            ],
+            ]],
             delimiter=', ',
-            header=str(conf) +
-            "\nreturn mean, return var, return count, return stder"
+            header=f"{conf}\nreturn mean, return var, return count, return stder"
         )
 
 
