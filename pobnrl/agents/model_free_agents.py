@@ -10,8 +10,8 @@ from agents.misc import epsilon_greedy, PiecewiseSchedule
 from agents.misc import ExplorationSchedule, FixedExploration
 
 from .agent import Agent
-from .networks import create_qnet
-from .networks.q_functions import QNetInterface
+from .neural_networks import create_qnet
+from .neural_networks.q_functions import QNetInterface
 
 
 class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
@@ -25,7 +25,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         """ initializes a single network
 
         Args:
-             qnet: (`pobnrl.agents.networks.q_functions.QNetInterface`): \
+             qnet: (`pobnrl.agents.neural_networks.q_functions.QNetInterface`): \
                     Q-net to use
              action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
              exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
@@ -140,7 +140,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         """ initialize network
 
         Args:
-            qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.networks.q_functions.QNetInterface`]): \
+            qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.neural_networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
             action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
             exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \

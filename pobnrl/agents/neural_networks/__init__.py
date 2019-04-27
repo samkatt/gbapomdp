@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from misc import DiscreteSpace
 
-from .neural_network_misc import two_layer_q_net, two_layer_rec_q_net
+from .networks import two_layer_q_net, two_layer_rec_q_net
 from .q_functions import QNetInterface, DQNNet, DRQNNet
 
 
@@ -21,7 +21,7 @@ def create_qnet(
          scope: (`str`): name of agent (learning scope)
          conf: (`namespace`): configurations (see -h)
 
-    RETURNS (`pobnrl.agents.networks.q_functions.QNetInterface`):
+    RETURNS (`pobnrl.agents.neural_networks.q_functions.QNetInterface`):
 
     """
 

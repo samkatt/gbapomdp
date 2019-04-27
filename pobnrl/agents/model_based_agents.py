@@ -56,8 +56,7 @@ class PrototypeAgent(Agent):
 
         """
 
-        self._last_action \
-            = self._planner.select_action(self._belief_manager.belief)
+        self._last_action = self._planner.select_action(self._belief_manager.belief)
 
         return self._last_action
 

@@ -49,15 +49,10 @@ python -h
 
 ### TODO
 * implement model-based agent:
-    - implement POMCP agent
-        + belief... manager??
-        + test on environments + all types beliefs
     - implement NNs as POMDP models
     - implement simulator
-* FIX
-    - figure out why num_nets 2 takes *so much longer*
+* test https://github.ccs.neu.edu/abaisero/gym-pomdps
 * refactoring
-    - create logger and inherit to most base classes
     - variables with _ or not, then always properties, what's the deal?
         + conf without _, rest with
         + property for non-confs that need to be accessible

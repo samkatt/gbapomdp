@@ -5,7 +5,7 @@ import abc
 import numpy as np
 import tensorflow as tf
 
-from agents.networks import neural_network_misc
+from agents.neural_networks import misc, networks
 from misc import tf_run, POBNRLogger, LogLevel
 
 
@@ -93,7 +93,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.batch_size = conf.batch_size
 
         self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(input_shape)
+            = misc.ReplayBuffer(input_shape)
 
         # shape of network input: variable in first dimension because
         # we sometimes provide complete sequences (for batch updates)
@@ -139,14 +139,14 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         if conf.prior_function_scale != 0:
             assert conf.prior_function_scale > 0
 
-            prior_vals = neural_network_misc.two_layer_q_net(
+            prior_vals = networks.two_layer_q_net(
                 self.obs_ph,
                 output_size,
                 4,
                 scope=self.name + '_prior'
             )
 
-            next_prior_vals = neural_network_misc.two_layer_q_net(
+            next_prior_vals = networks.two_layer_q_net(
                 self.next_obs_ph,
                 output_size,
                 4,
@@ -177,7 +177,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
         )
 
-        loss = neural_network_misc.loss(q_values, targets, conf.loss)
+        loss = misc.loss(q_values, targets, conf.loss)
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
@@ -327,7 +327,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.batch_size = conf.batch_size
 
         self.replay_buffer \
-            = neural_network_misc.ReplayBuffer(input_shape)
+            = misc.ReplayBuffer(input_shape)
         self.rnn_state = None
 
         # shape of network input: variable in first dimension because
@@ -393,7 +393,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
             rnn_prior_cell = tf.nn.rnn_cell.LSTMCell(4)
 
-            prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
+            prior_vals, _ = networks.two_layer_rec_q_net(
                 self.obs_ph,
                 self.seq_lengths_ph,
                 rnn_prior_cell,
@@ -402,7 +402,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
                 4,
                 scope=self.name + '_prior'
             )
-            next_prior_vals, _ = neural_network_misc.two_layer_rec_q_net(
+            next_prior_vals, _ = networks.two_layer_rec_q_net(
                 self.next_obs_ph,
                 self.seq_lengths_ph,
                 rnn_prior_cell,
@@ -436,7 +436,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
         )
 
-        loss = neural_network_misc.loss(q_values, targets, conf.loss)
+        loss = misc.loss(q_values, targets, conf.loss)
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,

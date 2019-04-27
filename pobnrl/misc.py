@@ -43,11 +43,7 @@ class LogLevel(Enum):
 
 
 class POBNRLogger:
-    """ small API for logging
-
-    TODO: implement lazyness one way or another
-
-    """
+    """ logger, inherit in order to use logging function with self.log() """
 
     _level = LogLevel.V0
     registered_loggers = []

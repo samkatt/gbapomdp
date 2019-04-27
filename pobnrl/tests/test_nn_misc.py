@@ -1,6 +1,6 @@
 """ tests misc functionality related to neural networks
 
-TDOO: NYI
+TODO: NYI
 
 """
 
@@ -8,7 +8,7 @@ import unittest
 
 
 class TestReplayBuffer(unittest.TestCase):
-    """ tests `pobnrl.agents.networks.neural_network_misc.ReplayBuffer` """
+    """ tests `pobnrl.agents.neural_networks.misc.ReplayBuffer` """
 
     def test_basic(self):
         """ basic_test """
