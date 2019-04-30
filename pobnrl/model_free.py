@@ -25,7 +25,7 @@ def main(conf):
 
     cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
-    result_var = np.zeros(conf.episodes)
+    ret_m2 = np.zeros(conf.episodes)
 
     env = create_environment(
         conf.domain,
@@ -67,15 +67,18 @@ def main(conf):
             delta = tmp_res - result_mean
             result_mean += delta / (run + 1)
             delta_2 = tmp_res - result_mean
-            result_var += delta * delta_2
+            ret_m2 += delta * delta_2
+
+            ret_var = np.zeros(conf.episodes) if run < 2 else ret_m2 / (run - 1)
+            stder = np.zeros(conf.episodes) if run < 2 else np.sqrt(ret_var / run)
 
             # process results into rows of for each episode
             # return avg, return var, return #, return stder
             summary = np.transpose([
                 result_mean,
-                result_var / (run + 1),
+                ret_var,
                 [run + 1] * conf.episodes,
-                np.sqrt(result_var / (run + 1)) / np.sqrt(run + 1)
+                stder
             ])
 
             np.savetxt(

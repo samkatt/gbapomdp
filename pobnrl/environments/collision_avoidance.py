@@ -34,7 +34,7 @@ class CollisionAvoidance(Environment, Simulator):
     COLLISION_REWARD = -1000
 
     action_to_move = [-1, 0, 1]
-    action_to_string = ["UP", "STAY", "DOWN"]
+    action_to_string = ["DOWN", "STAY", "UP"]
 
     def __init__(self, domain_size: int, verbose: bool):
         """ constructs a Collision Avoidance domain of specified size
@@ -46,7 +46,7 @@ class CollisionAvoidance(Environment, Simulator):
         """
 
         assert domain_size > 0, "Domain size must be > 0"
-        assert domain_size % 2 == 1
+        assert domain_size % 2 == 1, "Domain size must be odd"
 
         self._verbose = verbose
         self._size = domain_size
@@ -164,6 +164,7 @@ class CollisionAvoidance(Environment, Simulator):
         RETURNS (`SimulatedInteraction`):
 
         """
+        assert 0 <= action < 3
 
         # move agent
         state['agent_x'] -= 1

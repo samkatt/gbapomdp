@@ -1,32 +1,8 @@
 """ Contains networks """
 
-from typing import Any
-import abc
-import numpy as np
-
 from tensorflow.python.layers.layers import dense
 from tensorflow.python.layers.layers import flatten
 import tensorflow as tf
-
-
-class Network(abc.ABC):
-    """ interface for any network """
-
-    @abc.abstractmethod
-    def forward_pass(self, network_input: np.ndarray, *args, **kwargs) -> Any:
-        """ runs network_input through the network and returns output
-
-        If this.is_recurrent, then we expect the initial state both as input
-        and output too
-
-        Args:
-             network_input: (`np.ndarray`):
-             *args: (`list`): list of additional positional arguments
-             **kwargs: (`dict`): list of additional keywords arguments
-
-        RETURNS (`Any`):
-
-        """
 
 
 def two_layer_q_net(net_input, n_out: int, n_hidden: int, scope: str):

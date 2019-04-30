@@ -3,6 +3,7 @@
 import copy
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from math import sqrt
 import numpy as np
 
 from environments import create_environment
@@ -22,7 +23,7 @@ def main(conf):
     POBNRLogger.set_level(LogLevel.create(conf.verbose))
     logger = POBNRLogger('pomcp main')
 
-    ret_mean = ret_var = 0
+    ret_mean = ret_m2 = 0
 
     env = create_environment(
         conf.domain,
@@ -45,9 +46,12 @@ def main(conf):
         delta = ret - ret_mean
         ret_mean += delta / (run + 1)
         delta_2 = ret - ret_mean
-        ret_var += delta * delta_2
+        ret_m2 += delta * delta_2
 
         logger.log(LogLevel.V1, f"run {run}, avg return {ret_mean}")
+
+        ret_var = 0 if run < 2 else ret_m2 / (run - 1)
+        stder = 0 if run < 2 else sqrt(ret_var / run)
 
         np.savetxt(
             conf.file,
@@ -55,7 +59,7 @@ def main(conf):
                 ret_mean,
                 ret_var,
                 run + 1,
-                np.sqrt(ret_var / (run + 1)) / np.sqrt(run + 1)
+                stder
             ]],
             delimiter=', ',
             header=f"{conf}\nreturn mean, return var, return count, return stder"
