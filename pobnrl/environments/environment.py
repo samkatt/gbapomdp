@@ -9,10 +9,18 @@ import numpy as np
 from misc import DiscreteSpace
 
 
-EnvironmentInteraction = namedtuple(
-    'EnvironmentInteraction',
-    'observation reward terminal'
-)
+class EnvironmentInteraction(
+        namedtuple('environment_interaction', 'observation reward terminal')):
+    """ The tuple returned by environments doing steps
+
+        Contains:
+             observation: (`np.ndarray`)
+             reward: (`float`)
+             terminal: (`bool`)
+
+    """
+
+    __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
 class Environment(abc.ABC):
@@ -56,11 +64,19 @@ class Environment(abc.ABC):
                 f"observation space {self.observation_space}")
 
 
-# TODO: cannot parse source with `./make_documentation`
-SimulatedInteraction = namedtuple(
-    'SimulatedInteraction',
-    'state observation reward terminal'
-)
+class SimulatedInteraction(
+        namedtuple('simulated_interaction', 'state observation reward terminal')):
+    """ The tuple returned by simulations doing steps
+
+        Contains:
+             state: (`Any`)
+             observation: (`np.ndarray`)
+             reward: (`float`)
+             terminal: (`bool`)
+
+    """
+
+    __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
 class Simulator(abc.ABC):

@@ -4,10 +4,7 @@ Actual networks to compute Q values
 
 ReplayBuffer: stores interactions
 
-Misc functions:
-
-    * loss
-    * network architectures
+Loss calculations
 
 """
 

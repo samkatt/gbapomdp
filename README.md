@@ -53,13 +53,10 @@ python -h
     - implement simulator
 * test https://github.ccs.neu.edu/abaisero/gym-pomdps
 * refactoring
-    - variables with _ or not, then always properties, what's the deal?
-        + conf without _, rest with
-        + property for non-confs that need to be accessible
-    - rename and reinvent q_functions
-    - refactor priors away elegantly
-        + [maybe] refactor the whole creation of training operation..
-        + improved general network and losses type of approach
-    - create a 'batch' class and use that instead of individual placeholders
+    - class members
+        + conf / settings: directly accessible
+        + public members: properties
+        + implementation details: hidden starting with underscoe
+    + networks and their users
 
 [1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf
