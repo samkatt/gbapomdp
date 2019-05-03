@@ -152,7 +152,11 @@ def tf_run(operations, **kwargs):
 
 
 class DiscreteSpace():
-    """ DiscreteSpace discrete uninterupted space of some shape """
+    """ DiscreteSpace discrete uninterupted space of some shape
+
+    TODO: contains()
+
+    """
 
     def __init__(self, dim: List[int]):
         """ initiates a discrete space of size dim
@@ -161,6 +165,8 @@ class DiscreteSpace():
              dim: (`List[int]`): is a list of dimensions
 
         """
+
+        # TODO: why..?
         assert isinstance(dim, list)
 
         self._dim = np.array(dim)
@@ -183,6 +189,8 @@ class DiscreteSpace():
     def dimensions(self) -> np.array:
         """ returns the range of each dimension
 
+        TODO: rename to size?
+
         RETURNS (`np.array`): each member is the size of its dimension
 
         """
@@ -191,6 +199,8 @@ class DiscreteSpace():
     @property
     def shape(self) -> Tuple[int]:
         """ returns the shape of the space
+
+        TODO: len, ndim?
 
         Args:
 
@@ -208,4 +218,4 @@ class DiscreteSpace():
         return (np.random.random(self.shape) * self._dim).astype(int)
 
     def __repr__(self):
-        return f"DiscreteSpace of shape {self.dimensions}"
+        return f"DiscreteSpace of size {self.dimensions}"

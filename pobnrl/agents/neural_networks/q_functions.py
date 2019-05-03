@@ -63,8 +63,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            output_size: int,
-            input_shape: Tuple[int],
+            output_size: int,  # TODO: rename to num_actions
+            input_shape: Tuple[int],  # TODO: rename to obs_shape
             q_func: Callable,  # Q-value network function
             optimizer,
             name: str,
@@ -101,26 +101,13 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         input_shape = (self.history_len, *input_shape)
 
         # training operation place holders
-        self.obs_ph = tf.placeholder(
-            tf.float32, [None, *input_shape], name=self.name + '_obs'
-        )
-        self.act_ph = tf.placeholder(
-            tf.int32, [None], name=self.name + '_actions'
-        )
-        self.rew_ph = tf.placeholder(
-            tf.float32, [None], name=self.name + '_rewards'
-        )
-        self.done_mask_ph = tf.placeholder(
-            tf.bool, [None], name=self.name + '_terminals'
-        )
-        self.next_obs_ph = tf.placeholder(
-            tf.float32,
-            [None, *input_shape],
-            name=self.name + '_next_obs'
-        )
+        self.act_ph = tf.placeholder(tf.int32, [None], name=self.name + '_actions')
+        self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=self.name + '_obs')
+        self.rew_ph = tf.placeholder(tf.float32, [None], name=self.name + '_rewards')
+        self.done_mask_ph = tf.placeholder(tf.bool, [None], name=self.name + '_terminals')
+        self.next_obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=self.name + '_next_obs')
 
         # define operations to retrieve q and target values
-
         self.qvalues_fn = q_func(
             self.obs_ph,
             output_size,
@@ -297,8 +284,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
-            output_size: int,
-            input_shape: Tuple[int],
+            output_size: int,  # TODO: rename to num_actions
+            input_shape: Tuple[int],  # TODO: rename to obs_shape
             rec_q_func: Callable,
             optimizer,
             name,

@@ -209,8 +209,7 @@ def rejection_sampling(
         particle_filter: ParticleFilter,
         process_sample_f: Callable[[Any], Any],
         accept_f: Callable[[Any], bool],
-        extract_particle_f: Callable[[Any], Any] = lambda x: x
-) -> ParticleFilter:
+        extract_particle_f: Callable[[Any], Any] = lambda x: x) -> ParticleFilter:
     """ applies rejection sampling on particle_filter
 
     Will sample, process, accept and then extract particles from
@@ -244,8 +243,7 @@ def importance_sampling(
         particle_filter: WeightedFilter,
         process_sample_f: Callable[[Any], Any],
         weight_f: Callable[[Any], float],
-        extract_particle_f: Callable[[Any], Any] = lambda x: x
-) -> WeightedFilter:
+        extract_particle_f: Callable[[Any], Any] = lambda x: x) -> WeightedFilter:
     """ returns a updated weighted filter according to provided functions
 
     Will sample, weight, and extract particles from `particle_filter` untill a
@@ -272,7 +270,11 @@ def importance_sampling(
 
 
 class BeliefManager():
-    """ manages a belief """
+    """ manages a belief
+
+    TODO: rename to ParticleManager
+
+    """
 
     def __init__(
             self,
@@ -294,6 +296,7 @@ class BeliefManager():
 
         """
 
+        # TODO: rename to size
         self._size = num_particles
         self._belief_type = belief_type
 
@@ -325,6 +328,8 @@ class BeliefManager():
     @property
     def belief(self) -> ParticleFilter:
         """ returns the belief
+
+        TODO: rename to particle_filter
 
         Args:
 

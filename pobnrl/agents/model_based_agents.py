@@ -47,6 +47,8 @@ class PrototypeAgent(Agent):
 
         """
 
+        # TODO: not if RL, train instead
+
         self._belief_manager.reset()
 
     def select_action(self) -> int:
@@ -86,6 +88,8 @@ def belief_rejection_sampling(
         env: Simulator) -> FlatFilter:
     """ Applies belief rejection sampling
 
+    TODO: move somewhere else
+
     Will update the belief by simulating a step in the simulator and using
     rejection sampling on the observation
 
@@ -111,7 +115,7 @@ def belief_rejection_sampling(
         particle_filter,
         process_sample_f=env_step,
         accept_f=observation_equals,
-        extract_particle_f=extract_state,
+        extract_particle_f=extract_state,  # TODO: store transition?
     )
 
 

@@ -217,6 +217,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         """
         # state + displacement
         # where displacement is centered through - size
+        # TODO: multinominal?
         unbounded_obs = agent_pos \
             + np.random.choice(len(self.obs_mult), p=self.obs_mult, size=2) \
             - (self._size - 1)

@@ -6,7 +6,11 @@ from misc import DiscreteSpace
 
 
 class ActionSpace():
-    """ action space for environments """
+    """ action space for environments
+
+    TODO: add one_hot function
+
+    """
 
     def __init__(self, size: int):
         """ initiates an action space of size

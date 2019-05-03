@@ -7,6 +7,8 @@ from misc import DiscreteSpace
 from .networks import two_layer_q_net, two_layer_rec_q_net
 from .q_functions import QNetInterface, DQNNet, DRQNNet
 
+from .misc import ReplayBuffer
+
 
 def create_qnet(
         action_space: DiscreteSpace,

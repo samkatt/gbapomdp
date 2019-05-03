@@ -48,6 +48,7 @@ python -h
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
+* force state & observations to be from discrete (implement obs2index through observation space)
 * implement model-based agent:
     - implement NNs as POMDP models
     - implement simulator
