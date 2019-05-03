@@ -6,7 +6,9 @@ from typing import Any
 import abc
 import numpy as np
 
-from misc import DiscreteSpace
+from pobnrl.misc import DiscreteSpace
+
+from .misc import ActionSpace
 
 
 class EnvironmentInteraction(
@@ -43,10 +45,12 @@ class Environment(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def action_space(self) -> DiscreteSpace:
+    def action_space(self) -> ActionSpace:
         """ returns size of domain action space
 
-        RETURNS(`pobnrl.misc.DiscreteSpace`): the action space
+        TODO: update to ActionSpace
+
+        RETURNS(`pobnrl.environments.misc.ActionSpace`): the action space
 
         """
 
@@ -80,7 +84,11 @@ class SimulatedInteraction(
 
 
 class Simulator(abc.ABC):
-    """ generative environment interface """
+    """ generative environment interface
+
+    TODO: add reward(s,a,s') and terminal(s,a,s')
+
+    """
 
     @abc.abstractmethod
     def simulation_step(self, state: Any, action: int) -> SimulatedInteraction:

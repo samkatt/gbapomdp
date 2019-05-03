@@ -303,7 +303,7 @@ class BeliefManager():
         self._sample_particle_f = sample_particle_f
         self._update = update_belief_f
 
-        self._belief = None
+        self._belief = self._belief_type()
 
     def reset(self):
         """ resets by sampling new belief """

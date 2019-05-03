@@ -46,7 +46,7 @@ class POBNRLogger:
     """ logger, inherit in order to use logging function with self.log() """
 
     _level = LogLevel.V0
-    registered_loggers = []
+    registered_loggers: List['POBNRLogger'] = []
 
     @classmethod
     def set_level(cls, level: LogLevel):

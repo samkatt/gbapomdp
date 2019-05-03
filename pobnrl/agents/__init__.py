@@ -1,8 +1,6 @@
 """ agents in POBNRL """
 
-import copy
-
-from environments.environment import Environment
+from pobnrl.environments.environment import Environment
 
 from .agent import Agent, RandomAgent
 from .model_free_agents import create_agent as create_mf_agent

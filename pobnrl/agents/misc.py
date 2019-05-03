@@ -7,7 +7,8 @@
 from typing import List, Callable
 import abc
 import numpy as np
-from environments import ActionSpace
+
+from pobnrl.environments import ActionSpace
 
 
 def epsilon_greedy(

@@ -2,10 +2,11 @@
 
 import time
 
+from typing import List, Any, Dict
 import copy
 import numpy as np
 
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .environment import Environment, EnvironmentInteraction
 from .environment import Simulator, SimulatedInteraction
@@ -60,14 +61,14 @@ class CollisionAvoidance(Environment, Simulator):
 
         self._state = copy.deepcopy(self.init_state)
 
-        self._spaces = {
+        self._spaces: Dict[str, DiscreteSpace] = {
             "A": ActionSpace(3),
             "O": DiscreteSpace([self._size, self._size, self._size])
         }
 
         self._last_recording_time = 0
         self._recording = False
-        self._history = []
+        self._history: List[Any] = []
 
     @property
     def size(self):
@@ -246,8 +247,8 @@ class CollisionAvoidance(Environment, Simulator):
             + observation[2] * self.size * self.size
 
     @property
-    def action_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([3]) space """
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.misc.ActionSpace`([3]) space """
         return self._spaces['A']
 
     @property

@@ -4,11 +4,11 @@ from functools import partial
 from typing import Any
 import numpy as np
 
-from agents.agent import Agent
-from environments.environment import Simulator, SimulatedInteraction
+from pobnrl.environments.environment import Simulator, SimulatedInteraction
 
+from .agent import Agent
 from .planning.particle_filters import BeliefManager, rejection_sampling
-from .planning.particle_filters import FlatFilter
+from .planning.particle_filters import ParticleFilter, FlatFilter
 from .planning.pouct import POUCT
 
 
@@ -30,7 +30,7 @@ class PrototypeAgent(Agent):
         self._planner = planner
         self._belief_manager = belief_manager
 
-        self._last_action = None
+        self._last_action = -1
 
     def reset(self):
         """ resets belief """
@@ -82,10 +82,10 @@ class PrototypeAgent(Agent):
 
 
 def belief_rejection_sampling(
-        particle_filter: FlatFilter,
+        particle_filter: ParticleFilter,
         action: int,
         observation: np.ndarray,
-        env: Simulator) -> FlatFilter:
+        env: Simulator) -> ParticleFilter:
     """ Applies belief rejection sampling
 
     TODO: move somewhere else
@@ -94,12 +94,12 @@ def belief_rejection_sampling(
     rejection sampling on the observation
 
     Args:
-         particle_filter: (`pobnrl.agents.planning.particle_filters.FlatFilter`): current belief
+         particle_filter: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): current belief
          env: (`pobnrl.environments.environment.Simulator`): simulator as a dynamic model
          action: (`int`): taken action
          observation: (`np.ndarray`): perceived observation
 
-    RETURNS (`pobnrl.agents.planning.particle_filters.FlatFilter`): new belief
+    RETURNS (`pobnrl.agents.planning.particle_filters.ParticleFilter`): new belief
 
     """
 

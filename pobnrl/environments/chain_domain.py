@@ -1,11 +1,11 @@
 """ chain domain environment """
 
 import time
-from typing import Dict
+from typing import Dict, List, Any
 
 import numpy as np
 
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .environment import Environment, EnvironmentInteraction
 from .environment import Simulator, SimulatedInteraction
@@ -49,6 +49,8 @@ class ChainDomain(Environment, Simulator):
         self._move_cost = .01 / self.size
 
         self._action_space = ActionSpace(2)
+
+        # TODO: flatten observation space here
         self._observation_space = DiscreteSpace(
             [[2] * self.size for _ in range(self.size)]
         )
@@ -61,7 +63,7 @@ class ChainDomain(Environment, Simulator):
 
         self._last_recording_time = 0
         self._recording = False
-        self._history = []
+        self._history: List[Any] = []
 
     @property
     def state(self) -> Dict[str, int]:
@@ -228,8 +230,8 @@ class ChainDomain(Environment, Simulator):
         return observation.argmax()
 
     @property
-    def action_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace` space with 2 actions"""
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.misc.ActionSpace` space with 2 actions"""
         return self._action_space
 
     @property
@@ -242,7 +244,7 @@ class ChainDomain(Environment, Simulator):
 
         descr = "0"
 
-        for x in self._history:
-            descr += f"->{x}"
+        for step in self._history:
+            descr += f"->{step}"
 
         self.logger.log(LogLevel.V2, f"agent travelled {descr}")

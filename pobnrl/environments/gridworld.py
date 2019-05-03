@@ -1,13 +1,13 @@
 """ gridworld environment """
 
+from typing import List, Tuple, Any, Set, Dict
 import copy
 import random
 import time
 
-from typing import List, Tuple
 import numpy as np
 
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .misc import ActionSpace
 from .environment import Environment, EnvironmentInteraction
@@ -58,7 +58,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
 
         self._last_recording_time = 0
         self._recording = False
-        self._history = []
+        self._history: List[Any] = []
 
         # generate multinomial probabilities for the observation function (1-D)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -75,7 +75,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         self.obs_mult = np.array(obs_mult)
 
         # generate slow locations
-        self._slow_cells = set()
+        self._slow_cells: Set[Tuple[int, int]] = set()
 
         edge = self._size - 1
 
@@ -93,7 +93,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
             self._slow_cells.add((edge - 2, edge - 2))
 
         # generate goal locations
-        self._goal_cells = []
+        self._goal_cells: List[Tuple[int, int]] = []
 
         goal_edge_start = self._size - 2 if self._size < 5 \
             else self._size - 3 if self._size < 7 else self._size - 4
@@ -111,7 +111,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
             self._goal_cells.append((edge - 2, edge - 1))
             self._goal_cells.append((edge - 1, edge - 2))
 
-        self._spaces = {
+        self._spaces: Dict[str, DiscreteSpace] = {
             "A": ActionSpace(4),
             "O": DiscreteSpace(
                 [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).tolist()
@@ -170,12 +170,12 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         return self._size
 
     @property
-    def goals(self) -> List[Tuple[int]]:
+    def goals(self) -> List[Tuple[int, int]]:
         """ returns the number of **possible** goals
 
         Args:
 
-        RETURNS (`List[Tuple[int]]`): list of (x,y)
+        RETURNS (`List[Tuple[int, int]]`): list of (x,y)
 
         """
         return self._goal_cells
@@ -194,10 +194,10 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         """
         return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
-    def sample_goal(self) -> Tuple[int]:
+    def sample_goal(self) -> Tuple[int, int]:
         """ samples a goal position
 
-        RETURNS (`Tuple[int]`): the goal state (x,y)
+        RETURNS (`Tuple[int, int]`): the goal state (x,y)
 
         """
         return random.choice(self._goal_cells)
@@ -205,12 +205,12 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
     def generate_observation(
             self,
             agent_pos: np.array,
-            goal_pos: tuple) -> np.array:
+            goal_pos: Tuple[int, int]) -> np.array:
         """ generates a noisy observation of the state
 
         Args:
              agent_pos: (`np.array`): [x,y] position of the agent
-             goal_pos: (`Tuple[int]`): (x,y) position of the goal
+             goal_pos: (`Tuple[int, int]`): (x,y) position of the goal
 
         RETURNS (`np.array`): [x,y,... hot-encodign-goal-pos....]
 
@@ -335,8 +335,8 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
             + self.size * self.size * pow(2, np.argmax(observation[2:]) - 1)
 
     @property
-    def action_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([4]) space """
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.misc.ActionSpace`([4]) space """
         return self._spaces['A']
 
     @property

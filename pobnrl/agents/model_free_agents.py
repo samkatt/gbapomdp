@@ -1,13 +1,13 @@
 """ agents that learn a Q function directly """
 
 from collections import deque
-from typing import Callable
+from typing import Callable, Deque
 import numpy as np
 
-from environments import ActionSpace
-from misc import DiscreteSpace
-from agents.misc import epsilon_greedy, PiecewiseSchedule
-from agents.misc import ExplorationSchedule, FixedExploration
+from pobnrl.environments import ActionSpace
+from pobnrl.misc import DiscreteSpace
+from pobnrl.agents.misc import epsilon_greedy, PiecewiseSchedule
+from pobnrl.agents.misc import ExplorationSchedule, FixedExploration
 
 from .agent import Agent
 from .neural_networks import create_qnet
@@ -45,8 +45,8 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.action_space = action_space
 
         self.timestep = 0
-        self.last_action = None
-        self.last_obs = deque([], conf.history_len)
+        self.last_action = -1
+        self.last_obs: Deque[np.ndarray] = deque([], conf.history_len)
 
         self.exploration = exploration
 
@@ -59,7 +59,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         """
 
         self.timestep = 0
-        self.last_action = None
+        self.last_action = -1
         self.last_obs.clear()
 
         self.q_net.reset()
@@ -162,8 +162,8 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.exploration = exploration
 
         self.timestep = 0
-        self.last_action = None
-        self.last_obs = deque([], conf.history_len)
+        self.last_action = -1
+        self.last_obs: Deque[np.ndarray] = deque([], conf.history_len)
 
         self.nets = np.array(
             [qnet_constructor('ensemble_net_' + str(i))
@@ -180,7 +180,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         """
 
         self.timestep = 0
-        self.last_action = None
+        self.last_action = -1
         self.last_obs.clear()
 
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]

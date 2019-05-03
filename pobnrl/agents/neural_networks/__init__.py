@@ -2,7 +2,8 @@
 
 import tensorflow as tf
 
-from misc import DiscreteSpace
+from pobnrl.misc import DiscreteSpace
+from pobnrl.environments import ActionSpace
 
 from .networks import two_layer_q_net, two_layer_rec_q_net
 from .q_functions import QNetInterface, DQNNet, DRQNNet
@@ -11,14 +12,14 @@ from .misc import ReplayBuffer
 
 
 def create_qnet(
-        action_space: DiscreteSpace,
+        action_space: ActionSpace,
         observation_space: DiscreteSpace,
         scope: str,
         conf) -> QNetInterface:
     """ factory for creating Q networks / policies
 
     Args:
-         action_space: (`pobnrl.misc.DiscreteSpace`): of environment
+         action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
          observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
          scope: (`str`): name of agent (learning scope)
          conf: (`namespace`): configurations (see -h)

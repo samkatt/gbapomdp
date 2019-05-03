@@ -2,10 +2,11 @@
 
 import time
 
+from typing import List, Any, Dict
 import copy
 import numpy as np
 
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
 
 from .misc import ActionSpace
 from .environment import Environment, EnvironmentInteraction
@@ -38,14 +39,14 @@ class Tiger(Environment, Simulator):
         self._verbose = verbose
         self._state = self.sample_start_state()
 
-        self._spaces = {
+        self._spaces: Dict[str, DiscreteSpace] = {
             "A": ActionSpace(3),
             "O": DiscreteSpace([2, 2])
         }
 
         self._last_recording_time = 0
         self._recording = False
-        self._history = []
+        self._history: List[Any] = []
 
     @property
     def state(self):
@@ -197,7 +198,7 @@ class Tiger(Environment, Simulator):
         return 2 - observation[1]  # 2 if observation[1] is **also** 0
 
     @property
-    def action_space(self) -> DiscreteSpace:
+    def action_space(self) -> ActionSpace:
         """ a `pobnrl.misc.DiscreteSpace`([3]) space """
         return self._spaces['A']
 

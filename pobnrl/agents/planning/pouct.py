@@ -1,13 +1,13 @@
 """ Particle Observable UCT """
 
+from typing import Tuple, List, Dict
 import copy
 import random
-from typing import Tuple
 
 import numpy as np
 
-from agents.planning.particle_filters import ParticleFilter
-from environments import Simulator
+from pobnrl.agents.planning import ParticleFilter
+from pobnrl.environments import Simulator
 
 
 class TreeNode():
@@ -24,7 +24,7 @@ class TreeNode():
 
         self.depth = depth
 
-        self._children = [{} for _ in range(num_children)]
+        self._children: List[Dict[int, TreeNode]] = [{} for _ in range(num_children)]
 
         # statistics
         self.avg_values = np.zeros(num_children)
@@ -137,10 +137,11 @@ class POUCT():
 
         """
 
-        root = TreeNode(self.simulator.action_space.n, depth=0)
+        root = TreeNode(self.simulator.action_space.n, depth=0)  # TODO: get action_space as input
 
         # build tree
         for _ in range(self.num_sims):
+            # TODO: use the actual simulator here
             self.simulator.state = copy.deepcopy(belief.sample())
             self._traverse_tree(root)
 
@@ -173,7 +174,7 @@ class POUCT():
             )
             action = random.choice(np.argwhere(ucbs == ucbs.max()).flatten())
 
-            step = self.simulator.step(action)
+            step = self.simulator.step(action)  # TODO: simulated_step
 
             if not step.terminal:
                 ret = step.reward + self.discount * self._traverse_tree(
@@ -198,15 +199,15 @@ class POUCT():
 
         """
 
-        ret = 0
-        discount = 1
+        ret = .0
+        discount = 1.0
 
         first_action = self.simulator.action_space.sample()
 
         action = first_action
         for _ in range(hor):
 
-            step = self.simulator.step(action)
+            step = self.simulator.step(action)  # TODO: simulated_step
 
             ret += discount * step.reward
 

@@ -24,7 +24,7 @@ class TestFilters(unittest.TestCase):
 
         ffilter.add_particle(2)
 
-        samples = [ffilter.sample() for _ in range(10)]
+        samples = [ffilter.sample() for _ in range(15)]
         self.assertIn(2, samples)
         self.assertIn(5, samples)
 

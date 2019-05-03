@@ -4,8 +4,10 @@ import time
 
 import gym
 
-from environments.environment import Environment, EnvironmentInteraction
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
+
+from .environment import Environment, EnvironmentInteraction
+from .misc import ActionSpace
 
 
 class Cartpole(Environment):
@@ -67,7 +69,7 @@ class Cartpole(Environment):
         return EnvironmentInteraction(obs, reward, terminal)
 
     @property
-    def action_space(self) -> DiscreteSpace:
+    def action_space(self) -> ActionSpace:
         """ the underlying open ai gyme cartpole action space """
         return self.cartpole.action_space
 
