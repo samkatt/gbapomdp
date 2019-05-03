@@ -3,3 +3,4 @@ doc/*
 *.out
 *.npy
 videos
+.mypy_cache

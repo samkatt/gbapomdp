@@ -12,7 +12,7 @@ from episode import run_episode
 from misc import tf_session, tf_run, POBNRLogger, LogLevel
 
 
-def main(conf):
+def main(conf):  # pylint: disable=too-many-locals
     """ main: runs an agent in an environment given configurations
 
     Args:
@@ -57,8 +57,7 @@ def main(conf):
 
                     logger.log(
                         LogLevel.V1,
-                        f"run {run} episode {episode}: avg return: "
-                        + str(np.mean(tmp_res[max(0, episode - 100):episode]))
+                        f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode])}"
                     )
 
                     cur_time = time.time()
