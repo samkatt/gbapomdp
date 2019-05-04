@@ -6,8 +6,8 @@ import unittest
 
 import numpy as np
 
-from agents.planning.pouct import POUCT, TreeNode
-from environments import Tiger
+from pobnrl.agents.planning.pouct import POUCT, TreeNode
+from pobnrl.environments import Tiger
 
 
 class TestPOUCTNode(unittest.TestCase):
@@ -160,8 +160,10 @@ class TestPOUCT(unittest.TestCase):
         """ tests the values in a ucb table """
 
         # pylint: disable=protected-access
+        domain = Tiger(verbose=False)
         table = POUCT(
-            Tiger(verbose=False),
+            domain.action_space,
+            domain,
             num_sims=5,
             exploration_constant=1
         )._ucb_table
@@ -176,7 +178,8 @@ class TestPOUCT(unittest.TestCase):
 
         # pylint: disable=protected-access
         table = POUCT(
-            Tiger(verbose=False),
+            domain.action_space,
+            domain,
             num_sims=5,
             exploration_constant=50.3
         )._ucb_table

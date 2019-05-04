@@ -277,7 +277,7 @@ def create_agent(
     """
 
     if 1 >= conf.exploration >= 0:
-        exploration_schedule = FixedExploration(conf.exploration)
+        exploration_schedule: ExplorationSchedule = FixedExploration(conf.exploration)
     else:
         exploration_schedule = PiecewiseSchedule(
             [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05

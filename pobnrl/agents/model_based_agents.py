@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any
 import numpy as np
 
-from pobnrl.environments.environment import Simulator, SimulatedInteraction
+from pobnrl.environments.environment import Simulator, SimulatedInteraction, ActionSpace
 
 from .agent import Agent
 from .planning.particle_filters import BeliefManager, rejection_sampling
@@ -119,12 +119,13 @@ def belief_rejection_sampling(
     )
 
 
-def create_agent(env: Simulator, conf) -> PrototypeAgent:
+def create_agent(action_space: ActionSpace, env: Simulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
 
     TODO: implement importance_sampling
 
     Args:
+         action_space: (`pobnrl.environments.misc.ActionSpace`)
          env: (`pobnrl.environments.environment.Simulator`) simulator
          conf: (`namespace`) configurations
 
@@ -145,6 +146,7 @@ def create_agent(env: Simulator, conf) -> PrototypeAgent:
     )
 
     planner = POUCT(
+        action_space,
         env,
         conf.num_sims,
         conf.exploration,

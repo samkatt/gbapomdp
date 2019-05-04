@@ -50,10 +50,7 @@ class ChainDomain(Environment, Simulator):
 
         self._action_space = ActionSpace(2)
 
-        # TODO: flatten observation space here
-        self._observation_space = DiscreteSpace(
-            [[2] * self.size for _ in range(self.size)]
-        )
+        self._observation_space = DiscreteSpace([2] * self.size * self.size)
 
         # x, level (size-1...0)
         self._init_state = {'x': 0, 'y': self.size - 1}
@@ -124,7 +121,7 @@ class ChainDomain(Environment, Simulator):
         obs = np.zeros((self.size, self.size))
         obs[state['x'], state['y']] = 1
 
-        return obs
+        return obs.reshape(self.size * self.size)
 
     def reset(self):
         """ resets internal state and return first observation
@@ -222,8 +219,8 @@ class ChainDomain(Environment, Simulator):
 
         """
 
-        assert observation.shape == self.observation_space.shape, \
-            f"expected {self.observation_space.shape}, got {observation.shape}"
+        assert self.observation_space.contains(observation), \
+            f"{observation} not in observation space {self.observation_space}"
         assert np.all(self.size > observation) and np.all(observation >= 0)
         assert np.sum(observation) == 1
 

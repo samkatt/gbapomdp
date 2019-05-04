@@ -48,8 +48,6 @@ class Environment(abc.ABC):
     def action_space(self) -> ActionSpace:
         """ returns size of domain action space
 
-        TODO: update to ActionSpace
-
         RETURNS(`pobnrl.environments.misc.ActionSpace`): the action space
 
         """

@@ -296,7 +296,6 @@ class BeliefManager():
 
         """
 
-        # TODO: rename to size
         self._size = num_particles
         self._belief_type = belief_type
 

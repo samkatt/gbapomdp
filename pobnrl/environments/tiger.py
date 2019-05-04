@@ -86,7 +86,7 @@ class Tiger(Environment, Simulator):
         RETURNS (`np.array`): the observation (hot-encoded)
 
         """
-        obs = np.zeros(self._spaces["O"].shape)
+        obs = np.zeros(self._spaces["O"].ndim)
 
         # not listening means [0,0] observation (basically a 'null')
         if not listening:
@@ -187,8 +187,8 @@ class Tiger(Environment, Simulator):
         RETURNS (`int`): int representation of observation
 
         """
-        assert observation.shape == self.observation_space.shape, \
-            f"expected {self.observation_space.shape}, got {observation.shape}"
+        assert self._spaces['O'].contains(observation), \
+            f"{observation} not in {self._spaces['O']}"
 
         assert np.sum(observation) in [0, 1], "wrong value for observation"
 
@@ -199,7 +199,7 @@ class Tiger(Environment, Simulator):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([3]) space """
+        """ a `pobnrl.environments.misc.ActionSpace`([3]) space """
         return self._spaces['A']
 
     @property

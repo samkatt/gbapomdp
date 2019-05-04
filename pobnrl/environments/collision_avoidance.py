@@ -237,8 +237,8 @@ class CollisionAvoidance(Environment, Simulator):
         RETURNS (`int`): int representation of observation
 
         """
-        assert observation.shape == self.observation_space.shape, \
-            f"expecting {self.observation_space.shape} not {observation.shape}"
+        assert self.observation_space.contains(observation), \
+            f"{observation} not in space {self.observation_space}"
         assert np.all(self.size > observation) and np.all(observation >= 0), \
             f"expecting all observation to be more than 0, {observation}"
 

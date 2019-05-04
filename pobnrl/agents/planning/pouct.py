@@ -7,7 +7,7 @@ import random
 import numpy as np
 
 from pobnrl.agents.planning import ParticleFilter
-from pobnrl.environments import Simulator
+from pobnrl.environments import Simulator, ActionSpace
 
 
 class TreeNode():
@@ -90,6 +90,7 @@ class POUCT():
 
     def __init__(  # pylint: disable=too-many-arguments
             self,
+            action_space: ActionSpace,
             simulator: Simulator,
             num_sims: int = 500,
             exploration_constant: float = 1.,
@@ -98,6 +99,7 @@ class POUCT():
         """ Creates the PO-UCT planner
 
         Args:
+             action_space: (`pobnrl.environments.misc.ActionSpace`)
              simulator: (`pobnrl.environments.environment.Simulator`)
              num_sims: (`int`): number of iterations
              exploration_constant: (`float`): UCB exploration constant
@@ -109,6 +111,7 @@ class POUCT():
         self.num_sims = num_sims
         self.planning_horizon = planning_horizon
         self.discount = discount
+        self.action_space = action_space
         self.simulator = simulator
 
         tot_visits = action_visits = np.arange(self.num_sims).reshape(1, -1)
@@ -137,24 +140,23 @@ class POUCT():
 
         """
 
-        root = TreeNode(self.simulator.action_space.n, depth=0)  # TODO: get action_space as input
+        root = TreeNode(self.action_space.n, depth=0)
 
         # build tree
         for _ in range(self.num_sims):
-            # TODO: use the actual simulator here
-            self.simulator.state = copy.deepcopy(belief.sample())
-            self._traverse_tree(root)
+            self._traverse_tree(copy.deepcopy(belief.sample()), root)
 
         # pick best action from root
         return np.argmax(root.avg_values)
 
-    def _traverse_tree(self, node: TreeNode) -> float:
+    def _traverse_tree(self, state: np.ndarray, node: TreeNode) -> float:
         """ Travels down the tree
 
         Picks actions according to UCB, generates transitions according to
         simulator
 
         Args:
+             state: (`np.ndarray`): current state
              node: (`TreeNode`): the current node of the tree
 
         RETURNS (`float`): return of this traversal
@@ -165,19 +167,20 @@ class POUCT():
             return 0
 
         if node.num_visits == 0:
-            action, ret = self._rollout(self.planning_horizon - node.depth)
+            action, ret = self._rollout(state, self.planning_horizon - node.depth)
 
-        else:  # UCB
+        else:
 
             ucbs = POUCT.ucb(
                 node.avg_values, node.children_visits, self._ucb_table
             )
             action = random.choice(np.argwhere(ucbs == ucbs.max()).flatten())
 
-            step = self.simulator.step(action)  # TODO: simulated_step
+            step = self.simulator.simulation_step(state, action)
 
             if not step.terminal:
                 ret = step.reward + self.discount * self._traverse_tree(
+                    step.state,
                     node.child(
                         action, self.simulator.obs2index(step.observation)
                     )
@@ -189,10 +192,11 @@ class POUCT():
 
         return ret
 
-    def _rollout(self, hor: int) -> Tuple[int, float]:
+    def _rollout(self, state: np.ndarray, hor: int) -> Tuple[int, float]:
         """ A random interaction with the simulator
 
         Args:
+             state: (`np.ndarray`): state to rollout from
              hor: (`int`): the length of the rollout
 
         RETURNS (`Tuple[int, float]`): the (discounted) return of the rollout
@@ -202,12 +206,12 @@ class POUCT():
         ret = .0
         discount = 1.0
 
-        first_action = self.simulator.action_space.sample()
+        first_action = self.action_space.sample()
 
         action = first_action
         for _ in range(hor):
 
-            step = self.simulator.step(action)  # TODO: simulated_step
+            step = self.simulator.simulation_step(state, action)
 
             ret += discount * step.reward
 
@@ -216,7 +220,8 @@ class POUCT():
             if step.terminal:
                 break
 
-            action = self.simulator.action_space.sample()
+            action = self.action_space.sample()
+            state = step.state
 
         return (first_action, ret)
 

@@ -215,9 +215,8 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         RETURNS (`np.array`): [x,y,... hot-encodign-goal-pos....]
 
         """
-        # state + displacement
-        # where displacement is centered through - size
-        # TODO: multinominal?
+
+        # state + displacement, where displacement is centered through - size
         unbounded_obs = agent_pos \
             + np.random.choice(len(self.obs_mult), p=self.obs_mult, size=2) \
             - (self._size - 1)
@@ -321,8 +320,8 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         RETURNS (`int`): int representation of observation
 
         """
-        assert observation.shape == self.observation_space.shape, \
-            f"expected {self.observation_space.shape}, got {observation.shape}"
+        assert self.observation_space.contains(observation), \
+            f"{observation} not in {self.observation_space}"
         assert np.sum(observation[2:]) == 1, "only 1 goal may be true"
         assert np.all(self.size > observation) and np.all(observation >= 0)
 

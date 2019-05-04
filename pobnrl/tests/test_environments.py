@@ -89,8 +89,8 @@ class TestTiger(unittest.TestCase):
         action_space = self.env.action_space
         observation_space = self.env.observation_space
 
-        np.testing.assert_array_equal(action_space.dimensions, [3])
-        np.testing.assert_array_equal(observation_space.dimensions, [2, 2])
+        np.testing.assert_array_equal(action_space.size, [3])
+        np.testing.assert_array_equal(observation_space.size, [2, 2])
 
         self.assertEqual(action_space.n, 3)
         self.assertEqual(observation_space.n, 4)
@@ -177,11 +177,10 @@ class TestGridWorld(unittest.TestCase):
         action_space = env.action_space
         observation_space = env.observation_space
 
-        self.assertEqual(action_space.n, 4)
-        self.assertTupleEqual(action_space.shape, (1,))
+        np.testing.assert_array_equal(action_space.size, [4])
 
         self.assertEqual(observation_space.n, 25 * pow(2, len(env.goals)))
-        self.assertTupleEqual(observation_space.shape, (2 + len(env.goals),))
+        self.assertEqual(observation_space.ndim, 2 + len(env.goals))
 
     def test_utils(self):
         """ Tests misc functionality in Gridworld
@@ -370,14 +369,14 @@ class TestCollisionAvoidance(unittest.TestCase):
 
         # action_space
         self.assertEqual(env.action_space.n, 3)
-        self.assertTupleEqual(env.action_space.shape, (1,))
-        np.testing.assert_array_equal(env.action_space.dimensions, [3])
+        self.assertEqual(env.action_space.ndim, 1)
+        np.testing.assert_array_equal(env.action_space.size, [3])
 
         # observation_space
         self.assertEqual(env.observation_space.n, 7 * 7 * 7)
-        self.assertTupleEqual(env.observation_space.shape, (3,))
+        self.assertEqual(env.observation_space.ndim, 3)
         np.testing.assert_array_equal(
-            env.observation_space.dimensions, [7, 7, 7]
+            env.observation_space.size, [7, 7, 7]
         )
 
         # bound_in_grid
@@ -427,8 +426,8 @@ class TestChainDomain(unittest.TestCase):
 
         obs = domain.reset()
         self.assertDictEqual(domain.state, {'x': 0, 'y': 3})
-        np.testing.assert_array_equal(obs, [[0, 0, 0, 1], [0, 0, 0, 0],
-                                            [0, 0, 0, 0], [0, 0, 0, 0]])
+        np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
+                                            0, 0, 0, 0, 0, 0, 0, 0])
 
         domain = chain_domain.ChainDomain(size=10, verbose=False)
 
@@ -437,12 +436,12 @@ class TestChainDomain(unittest.TestCase):
 
         expected_obs = np.zeros((10, 10))
         expected_obs[0, 9] = 1
-        np.testing.assert_array_equal(obs, expected_obs)
+        np.testing.assert_array_equal(obs, expected_obs.reshape(100))
 
         domain.step(0)
         obs = domain.reset()
         self.assertDictEqual(domain.state, {'x': 0, 'y': 9})
-        np.testing.assert_array_equal(obs, expected_obs)
+        np.testing.assert_array_equal(obs, expected_obs.reshape(100))
 
     def test_sample_start_state(self):
         """ tests sampling start states """
@@ -458,17 +457,13 @@ class TestChainDomain(unittest.TestCase):
         action_space = domain.action_space
 
         self.assertEqual(action_space.n, 2)
-        self.assertTupleEqual(action_space.shape, (1,))
-        np.testing.assert_array_equal(action_space.dimensions, [2])
+        np.testing.assert_array_equal(action_space.size, [2])
 
         observation_space = domain.observation_space
 
         self.assertEqual(observation_space.n, 2 ** 9)
-        self.assertTupleEqual(observation_space.shape, (3, 3))
-        np.testing.assert_array_equal(
-            observation_space.dimensions,
-            [[2, 2, 2], [2, 2, 2], [2, 2, 2]]
-        )
+        np.testing.assert_array_equal(observation_space.size, [2] * 9)
+        self.assertEqual(observation_space.ndim, 9)
 
     def test_state(self):
         """ tests ChainDomain.state """
@@ -494,14 +489,14 @@ class TestChainDomain(unittest.TestCase):
         self.assertFalse(step.terminal)
         self.assertAlmostEqual(step.reward, -.0033333333)
         np.testing.assert_array_equal(
-            step.observation, [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
+            step.observation, [0, 0, 0, 0, 1, 0, 0, 0, 0]
         )
 
         step = domain.step((domain._action_mapping[1]))
         self.assertTrue(step.terminal)
         self.assertEqual(step.reward, 1)
         np.testing.assert_array_equal(
-            step.observation, [[0, 0, 0], [0, 0, 0], [1, 0, 0]]
+            step.observation, [0, 0, 0, 0, 0, 0, 1, 0, 0]
         )
 
         domain.reset()
@@ -511,14 +506,14 @@ class TestChainDomain(unittest.TestCase):
         self.assertFalse(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(
-            step.observation, [[0, 1, 0], [0, 0, 0], [0, 0, 0]]
+            step.observation, [0, 1, 0, 0, 0, 0, 0, 0, 0]
         )
 
         step = domain.step(not domain._action_mapping[0])
         self.assertTrue(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(
-            step.observation, [[1, 0, 0], [0, 0, 0], [0, 0, 0]]
+            step.observation, [1, 0, 0, 0, 0, 0, 0, 0, 0]
         )
 
     def test_utils(self):
@@ -539,21 +534,21 @@ class TestChainDomain(unittest.TestCase):
         expected_obs[0, 0] = 1
         np.testing.assert_array_equal(
             domain.state2observation({'x': 0, 'y': 0}),
-            expected_obs
+            expected_obs.reshape(16)
         )
 
         expected_obs = np.zeros((4, 4))
         expected_obs[2, 0] = 1
         np.testing.assert_array_equal(
             domain.state2observation({'x': 2, 'y': 0}),
-            expected_obs
+            expected_obs.reshape(16)
         )
 
         expected_obs = np.zeros((4, 4))
         expected_obs[2, 3] = 1
         np.testing.assert_array_equal(
             domain.state2observation({'x': 2, 'y': 3}),
-            expected_obs
+            expected_obs.reshape(16)
         )
 
     def test_observation_projection(self):
@@ -565,7 +560,7 @@ class TestChainDomain(unittest.TestCase):
             encoding = np.zeros((4, 4))
             encoding[obs[0], obs[1]] = 1
 
-            return encoding
+            return encoding.reshape(16)
 
         self.assertEqual(env.obs2index(one_hot(np.array([0, 0]))), 0)
         self.assertEqual(env.obs2index(one_hot(np.array([0, 1]))), 1)
@@ -576,7 +571,7 @@ class TestChainDomain(unittest.TestCase):
 
         obs = np.zeros((5, 5))
         obs[4, 4] = 1
-        self.assertRaises(AssertionError, env.obs2index, obs)
+        self.assertRaises(AssertionError, env.obs2index, obs.reshape(25))
 
 
 if __name__ == '__main__':

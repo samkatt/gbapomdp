@@ -31,3 +31,7 @@ class ActionSpace(DiscreteSpace):
 
     def __repr__(self):
         return f"ActionSpace of size {self.n}"
+
+# TODO
+# class GymSpace(DiscreteSpace):
+    # """ wrapper for open ai gym discrete spaces """

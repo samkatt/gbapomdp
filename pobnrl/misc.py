@@ -11,7 +11,7 @@ Contains:
 
 from contextlib import contextmanager
 from enum import Enum
-from typing import List, Tuple
+from typing import List, Union
 import logging
 import os
 
@@ -152,26 +152,18 @@ def tf_run(operations, **kwargs):
 
 
 class DiscreteSpace():
-    """ DiscreteSpace discrete uninterupted space of some shape
+    """ DiscreteSpace discrete uninterupted space of some shape """
 
-    TODO: contains()
-
-    """
-
-    def __init__(self, dim: List[int]):
-        """ initiates a discrete space of size dim
+    def __init__(self, size: Union[List[int], np.ndarray]):
+        """ initiates a discrete space of size size
 
         Args:
-             dim: (`List[int]`): is a list of dimensions
+             size: (`List[int]`): is a list of dimensions
 
         """
 
-        # TODO: why..?
-        assert isinstance(dim, list)
-
-        self._dim = np.array(dim)
-        self.num_elements = np.prod(self._dim)
-        self._shape = self._dim.shape
+        self.size = np.array(size)
+        self.num_elements = np.prod(self.size)
 
     @property
     def n(self) -> int:  # pylint: disable=invalid-name
@@ -186,28 +178,28 @@ class DiscreteSpace():
         return self.num_elements
 
     @property
-    def dimensions(self) -> np.array:
-        """ returns the range of each dimension
-
-        TODO: rename to size?
-
-        RETURNS (`np.array`): each member is the size of its dimension
-
-        """
-        return self._dim
-
-    @property
-    def shape(self) -> Tuple[int]:
-        """ returns the shape of the space
-
-        TODO: len, ndim?
+    def ndim(self) -> int:
+        """ returns the numbe of dimensions
 
         Args:
 
-        RETURNS (`Tuple[int]`): as like np.shape
+        RETURNS (`int`): number of dimensions
 
         """
-        return self._shape
+        return len(self.size)
+
+    def contains(self, elem: np.ndarray) -> bool:
+        """ returns `this` contains `elem`
+
+        Args:
+             elem: (`np.ndarray`): element to check against
+
+        RETURNS (`bool`):
+
+        """
+
+        return elem.shape == (self.ndim,) and \
+            (elem >= 0).all() and (elem < self.size).all()
 
     def sample(self) -> np.array:
         """ returns a sample from the space at random
@@ -215,7 +207,7 @@ class DiscreteSpace():
         RETURNS (`np.array`): a sample in the space of this
 
         """
-        return (np.random.random(self.shape) * self._dim).astype(int)
+        return (np.random.random(self.ndim) * self.size).astype(int)
 
     def __repr__(self):
-        return f"DiscreteSpace of size {self.dimensions}"
+        return f"DiscreteSpace of size {self.size}"

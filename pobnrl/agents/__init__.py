@@ -7,9 +7,7 @@ from .model_free_agents import create_agent as create_mf_agent
 from .model_based_agents import create_agent as create_mb_agent
 
 
-def create_agent(
-        env: Environment,
-        conf) -> Agent:
+def create_agent(env: Environment, conf) -> Agent:
     """ factory function to construct agents
 
     Args:
@@ -27,6 +25,6 @@ def create_agent(
         return create_mf_agent(env.action_space, env.observation_space, conf)
 
     if conf.agent_type == "planning":
-        return create_mb_agent(env, conf)
+        return create_mb_agent(env.action_space, env, conf)
 
     raise ValueError("Unknown agent type provided")
