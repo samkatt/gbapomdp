@@ -4,10 +4,10 @@ from collections import deque
 from typing import Callable, Deque
 import numpy as np
 
-from pobnrl.environments import ActionSpace
-from pobnrl.misc import DiscreteSpace
-from pobnrl.agents.misc import epsilon_greedy, PiecewiseSchedule
-from pobnrl.agents.misc import ExplorationSchedule, FixedExploration
+from environments import ActionSpace
+from misc import DiscreteSpace
+from agents.misc import epsilon_greedy, PiecewiseSchedule
+from agents.misc import ExplorationSchedule, FixedExploration
 
 from .agent import Agent
 from .neural_networks import create_qnet
@@ -27,7 +27,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
              qnet: (`pobnrl.agents.neural_networks.q_functions.QNetInterface`): \
                     Q-net to use
-             action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
+             action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
              exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
                     schedule for e-greedy
              conf: (`namespace`) set of configurations (see -h)
@@ -115,7 +115,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         """
 
         self.q_net.record_transition(
-            self.last_obs[-1], self.last_action, reward, terminal
+            self.last_obs[-1], self.last_action, reward, observation, terminal
         )
 
         self.last_obs.append(observation)
@@ -142,7 +142,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
             qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.neural_networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
-            action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
+            action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
             exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
                     exploration schedule
             conf: (`namespace`): set of configurations
@@ -245,7 +245,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         # store experience for recording nets
         for net in self._storing_nets:
             net.record_transition(
-                self.last_obs[-1], self.last_action, reward, terminal
+                self.last_obs[-1], self.last_action, reward, observation, terminal
             )
 
         self.last_obs.append(observation)
@@ -268,8 +268,8 @@ def create_agent(
     """ factory function to construct model-free learning agents
 
     Args:
-         action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
-         observation_space: (`pobnrl.misc.DiscreteSpace`) of environment
+         action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
+         observation_space: (`pobnrl.misc.DiscreteSpace`) ofenvironments
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.agent.Agent`)

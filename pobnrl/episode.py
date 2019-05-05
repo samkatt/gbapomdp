@@ -1,17 +1,17 @@
 """ implements running an episode """
 
-import pobnrl.agents.agent
-import pobnrl.environments.environment
+from agents import Agent
+from environments import Environment
 
 
 def run_episode(
-        env: pobnrl.environments.environment.Environment,
-        agent: pobnrl.agents.agent.Agent,
+        env: Environment,
+        agent: Agent,
         conf) -> float:
     """ runs a single episode of the agent in the environmnet
 
     Args:
-         env: (`pobnrl.environments.environment.Environment`):
+         env: (`pobnrl.environments.Environment`):
          agent: (`pobnrl.agents.agent.Agent`):
          conf: configurations
 

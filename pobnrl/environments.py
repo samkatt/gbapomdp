@@ -1,19 +1,48 @@
-""" environment interface """
+"""environments interface """
 
 from collections import namedtuple
 from typing import Any
-
 import abc
 import numpy as np
 
-from pobnrl.misc import DiscreteSpace
+from misc import DiscreteSpace
 
-from .misc import ActionSpace
+
+class ActionSpace(DiscreteSpace):
+    """ action space forenvironmentss
+
+    TODO: add one_hot function
+
+    """
+
+    def __init__(self, size: int):
+        """ initiates an action space of size
+
+        Args:
+             dim: (`int`): number of actions
+
+        """
+        super().__init__([size])
+
+    def sample(self) -> np.array:
+        """ returns a sample from the space at random
+
+        RETURNS (`np.array`): a sample in the space of this
+
+        """
+        return super().sample()[0]
+
+    def __repr__(self):
+        return f"ActionSpace of size {self.n}"
+
+# TODO: implement gymspace to allow cartpole to work again
+# class GymSpace(DiscreteSpace):
+    # """ wrapper for open ai gym discrete spaces """
 
 
 class EnvironmentInteraction(
-        namedtuple('environment_interaction', 'observation reward terminal')):
-    """ The tuple returned by environments doing steps
+        namedtuple('environments_interaction', 'observation reward terminal')):
+    """ The tuple returned by domains doing steps
 
         Contains:
              observation: (`np.ndarray`)
@@ -26,7 +55,7 @@ class EnvironmentInteraction(
 
 
 class Environment(abc.ABC):
-    """ interface to all environments """
+    """ interface to all domains """
 
     @abc.abstractmethod
     def reset(self):
@@ -48,7 +77,7 @@ class Environment(abc.ABC):
     def action_space(self) -> ActionSpace:
         """ returns size of domain action space
 
-        RETURNS(`pobnrl.environments.misc.ActionSpace`): the action space
+        RETURNS(`pobnrl.environments.ActionSpace`): the action space
 
         """
 
@@ -66,7 +95,7 @@ class Environment(abc.ABC):
                 f"observation space {self.observation_space}")
 
 
-class SimulatedInteraction(
+class POUCTInteraction(
         namedtuple('simulated_interaction', 'state observation reward terminal')):
     """ The tuple returned by simulations doing steps
 
@@ -81,22 +110,27 @@ class SimulatedInteraction(
     __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
-class Simulator(abc.ABC):
-    """ generative environment interface
+class POUCTSimulator(abc.ABC):
+    """ generative environment interface """
 
-    TODO: add reward(s,a,s') and terminal(s,a,s')
+    @property
+    @abc.abstractmethod
+    def action_space(self) -> ActionSpace:
+        """ returns size of domain action space
 
-    """
+        RETURNS(`pobnrl.environments.ActionSpace`): the action space
+
+        """
 
     @abc.abstractmethod
-    def simulation_step(self, state: Any, action: int) -> SimulatedInteraction:
+    def simulation_step(self, state: Any, action: int) -> POUCTInteraction:
         """ generates a transition
 
         Args:
              state: (`Any`): some state
              action: (`int`): agent's taken action
 
-        RETURNS (`SimulatedInteraction`): the transition
+        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
 
         """
 

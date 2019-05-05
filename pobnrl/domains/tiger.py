@@ -6,14 +6,12 @@ from typing import List, Any, Dict
 import copy
 import numpy as np
 
-from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
-
-from .misc import ActionSpace
-from .environment import Environment, EnvironmentInteraction
-from .environment import Simulator, SimulatedInteraction
+from environments import Environment, EnvironmentInteraction, ActionSpace
+from environments import POUCTSimulator, POUCTInteraction
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
-class Tiger(Environment, Simulator):
+class Tiger(Environment, POUCTSimulator):
     """ the tiger environment """
 
     logger = POBNRLogger(__name__)
@@ -76,7 +74,7 @@ class Tiger(Environment, Simulator):
         """
         return np.random.randint(0, 2)
 
-    def sample_observation(self, state: int, listening: bool) -> np.array:
+    def sample_observation(self, state: int, listening: bool) -> np.ndarray:
         """ samples an observation, listening stores whether agent is listening
 
         Args:
@@ -123,7 +121,7 @@ class Tiger(Environment, Simulator):
 
         return np.zeros(2)
 
-    def simulation_step(self, state: int, action: int) -> SimulatedInteraction:
+    def simulation_step(self, state: int, action: int) -> POUCTInteraction:
         """ simulates stepping from state using action. Returns interaction
 
         Will terminate episode when action is to open door,
@@ -133,7 +131,7 @@ class Tiger(Environment, Simulator):
              state: (`int`): 0 is tiger left, 1 is tiger right
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`pobnrl.environments.environment.SimulatedInteraction`): the transition
+        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
 
         """
 
@@ -149,7 +147,7 @@ class Tiger(Environment, Simulator):
             terminal = False
             reward = self.LISTEN_REWARD
 
-        return SimulatedInteraction(state, obs, reward, terminal)
+        return POUCTInteraction(state, obs, reward, terminal)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the tiger environment given action
@@ -160,7 +158,7 @@ class Tiger(Environment, Simulator):
         Args:
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
 
         """
 
@@ -199,7 +197,7 @@ class Tiger(Environment, Simulator):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.misc.ActionSpace`([3]) space """
+        """ a `pobnrl.envrionments.ActionSpace`([3]) space """
         return self._spaces['A']
 
     @property

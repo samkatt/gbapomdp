@@ -1,13 +1,11 @@
-""" cartpole environment """
+""" cartpoleenvironments """
 
 import time
 
 import gym
 
-from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
-
-from .environment import Environment, EnvironmentInteraction
-from .misc import ActionSpace
+from environments import Environment, EnvironmentInteraction, ActionSpace
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
 class Cartpole(Environment):
@@ -61,7 +59,7 @@ class Cartpole(Environment):
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
 
         """
 

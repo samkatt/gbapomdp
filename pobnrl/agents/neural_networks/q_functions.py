@@ -5,9 +5,9 @@ import abc
 import numpy as np
 import tensorflow as tf
 
-from pobnrl.agents.neural_networks import misc, networks
-from pobnrl.environments import ActionSpace
-from pobnrl.misc import tf_run, POBNRLogger, LogLevel, DiscreteSpace
+from agents.neural_networks import misc, networks
+from environments import ActionSpace
+from misc import tf_run, POBNRLogger, LogLevel, DiscreteSpace
 
 
 class QNetInterface(abc.ABC):
@@ -41,11 +41,12 @@ class QNetInterface(abc.ABC):
         """ updates the target network """
 
     @abc.abstractmethod
-    def record_transition(
+    def record_transition(  # pylint: disable=too-many-arguments
             self,
             observation: np.ndarray,
             action: int,
             reward: float,
+            next_observation: np.ndarray,
             terminal: bool):
         """ notifies this of provided transition
 
@@ -53,6 +54,7 @@ class QNetInterface(abc.ABC):
              observation: (`np.ndarray`): shape depends on env
              action: (`int`): the taken action
              reward: (`float`): the resulting reward
+             next_observation: (`np.ndarray`): shape depends on env
              terminal: (`bool`): whether transition was terminal
         """
 
@@ -75,8 +77,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the input architecture q_func is **not** a recurrent one
 
         Args:
-             action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
-             obs_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
+             obs_space: (`pobnrl.misc.DiscreteSpace`): ofenvironments
              q_func: (`Callable`): the actual Q-function (non-recurrent)
              optimizer: the tf.optimizer to use for learning
              name: (`str`): name of the network (used for scoping)
@@ -258,11 +260,12 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ updates the target network """
         tf_run(self.update_target_op)
 
-    def record_transition(
+    def record_transition(  # pylint: disable=too-many-arguments
             self,
             observation: np.ndarray,
             action: int,
             reward: float,
+            next_observation: np.ndarray,
             terminal: bool):
         """ notifies this of provided transition
 
@@ -272,10 +275,11 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
              observation: (`np.ndarray`): shape depends on env
              action: (`int`): the taken action
              reward: (`float`): the resulting reward
+             next_observation: (`np.ndarray`): shape depends on env
              terminal: (`bool`): whether transition was terminal
         """
 
-        self.replay_buffer.store(observation, action, reward, terminal)
+        self.replay_buffer.store(observation, action, reward, next_observation, terminal)
 
 
 class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
@@ -296,8 +300,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the rec_q_func provided is a recurrent Q function
 
         Args:
-             action_space: (`pobnrl.environments.misc.ActionSpace`): output size of the network
-             obs_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             action_space: (`pobnrl.environments.ActionSpace`): output size of the network
+             obs_space: (`pobnrl.misc.DiscreteSpace`): of eenvironments
              rec_q_func: (`Callable`): the (recurrent) Q function
              optimizer: the tf.optimizer optimizer to use for learning
              name: (`str`): name of the network (used for scoping)
@@ -530,11 +534,12 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ updates the target network """
         tf_run(self.update_target_op)
 
-    def record_transition(
+    def record_transition(  # pylint: disable=too-many-arguments
             self,
             observation: np.ndarray,
             action: int,
             reward: float,
+            next_observation: np.ndarray,
             terminal: bool):
         """ notifies this of provided transition
 
@@ -544,6 +549,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
              observation: (`np.ndarray`): shape depends on env
              action: (`int`): the taken action
              reward: (`float`): the resulting reward
+             next_observation: (`np.ndarray`): shape depends on env
              terminal: (`bool`): whether transition was terminal
         """
-        self.replay_buffer.store(observation, action, reward, terminal)
+        self.replay_buffer.store(observation, action, reward, next_observation, terminal)

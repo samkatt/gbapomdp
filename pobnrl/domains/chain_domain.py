@@ -5,18 +5,16 @@ from typing import Dict, List, Any
 
 import numpy as np
 
-from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
-
-from .environment import Environment, EnvironmentInteraction
-from .environment import Simulator, SimulatedInteraction
-from .misc import ActionSpace
+from environments import Environment, EnvironmentInteraction, ActionSpace
+from environments import POUCTSimulator, POUCTInteraction
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
 # pylint: disable=too-many-instance-attributes
-class ChainDomain(Environment, Simulator):
+class ChainDomain(Environment, POUCTSimulator):
     """ the chain environment
 
-    The environments are indexed by problem size N and actionimask W =
+    The domains are indexed by problem size N and action mask W =
     Ber(0.5)^NxN,with S={0,1}^NxN and A={0,1}. he agent begins each episode
     inthe upper left-most state in the grid and deterministically falls one row
     per time step. The state encodes the agent’s row and column as a one-hot
@@ -146,7 +144,7 @@ class ChainDomain(Environment, Simulator):
 
         return self.state2observation()
 
-    def simulation_step(self, state: Dict[str, int], action: int) -> SimulatedInteraction:
+    def simulation_step(self, state: Dict[str, int], action: int) -> POUCTInteraction:
         """ updates the state depending on action
 
         Depending on the state, action can either move the agent left or rigth
@@ -158,7 +156,7 @@ class ChainDomain(Environment, Simulator):
              state: (`Dict[str, int]`): the state {'x', 'y'}
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`pobnrl.environments.environment.SimulatedInteraction`): the transition
+        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
 
         """
 
@@ -180,7 +178,7 @@ class ChainDomain(Environment, Simulator):
         if terminal and state['x'] == self.size - 1:
             reward = 1
 
-        return SimulatedInteraction(
+        return POUCTInteraction(
             state, self.state2observation(state), reward, terminal
         )
 
@@ -195,7 +193,7 @@ class ChainDomain(Environment, Simulator):
         Args:
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
 
         """
 
@@ -228,7 +226,7 @@ class ChainDomain(Environment, Simulator):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.misc.ActionSpace` space with 2 actions"""
+        """ a `pobnrl.environments.ActionSpace` space with 2 actions"""
         return self._action_space
 
     @property

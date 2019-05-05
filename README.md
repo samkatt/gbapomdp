@@ -43,7 +43,7 @@ python -h
 
 * documentation: Run ``` ./make_documentation.sh ``` in root and find
   documentation in ``` doc/pobnrl ``` folder
-* formatting: Run ``` ./check_formatting.sh ``` in root and check whether the
+* formatting: Run ``` ./static_analyse.sh ``` in root and check whether the
   code is formatted correctly
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 

@@ -1,10 +1,10 @@
-""" runs tests on the environments """
+""" runs tests on the domains """
 
 import unittest
 
 import numpy as np
 
-from environments import gridworld, tiger, collision_avoidance, chain_domain
+from domains import gridworld, tiger, collision_avoidance, chain_domain
 
 
 class TestTiger(unittest.TestCase):

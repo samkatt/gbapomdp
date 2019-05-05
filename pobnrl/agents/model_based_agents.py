@@ -1,10 +1,10 @@
-""" agents that act by learning a model of the environment """
+""" agents that act by learning a model of theenvironments """
 
 from functools import partial
 from typing import Any
 import numpy as np
 
-from pobnrl.environments.environment import Simulator, SimulatedInteraction, ActionSpace
+from environments import POUCTSimulator, POUCTInteraction
 
 from .agent import Agent
 from .planning.particle_filters import BeliefManager, rejection_sampling
@@ -85,7 +85,7 @@ def belief_rejection_sampling(
         particle_filter: ParticleFilter,
         action: int,
         observation: np.ndarray,
-        env: Simulator) -> ParticleFilter:
+        env: POUCTSimulator) -> ParticleFilter:
     """ Applies belief rejection sampling
 
     TODO: move somewhere else
@@ -95,7 +95,7 @@ def belief_rejection_sampling(
 
     Args:
          particle_filter: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): current belief
-         env: (`pobnrl.environments.environment.Simulator`): simulator as a dynamic model
+         env: (`pobnrl.environments.POUCTSimulator`): simulator as a dynamic model
          action: (`int`): taken action
          observation: (`np.ndarray`): perceived observation
 
@@ -105,28 +105,27 @@ def belief_rejection_sampling(
 
     env_step = partial(env.simulation_step, action=action)
 
-    def extract_state(interaction: SimulatedInteraction) -> Any:
+    def extract_state(interaction: POUCTInteraction) -> Any:
         return interaction.state
 
-    def observation_equals(interaction: SimulatedInteraction) -> bool:
+    def observation_equals(interaction: POUCTInteraction) -> bool:
         return np.all(interaction.observation == observation)
 
     return rejection_sampling(
         particle_filter,
         process_sample_f=env_step,
         accept_f=observation_equals,
-        extract_particle_f=extract_state,  # TODO: store transition?
+        extract_particle_f=extract_state,
     )
 
 
-def create_agent(action_space: ActionSpace, env: Simulator, conf) -> PrototypeAgent:
+def create_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
 
     TODO: implement importance_sampling
 
     Args:
-         action_space: (`pobnrl.environments.misc.ActionSpace`)
-         env: (`pobnrl.environments.environment.Simulator`) simulator
+         env: (`pobnrl.environments.POUCTSimulator`) simulator
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
@@ -146,7 +145,6 @@ def create_agent(action_space: ActionSpace, env: Simulator, conf) -> PrototypeAg
     )
 
     planner = POUCT(
-        action_space,
         env,
         conf.num_sims,
         conf.exploration,

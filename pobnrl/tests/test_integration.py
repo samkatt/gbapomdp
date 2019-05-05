@@ -25,8 +25,8 @@ class TestModelFreeAgents(unittest.TestCase):
         # pylint: disable=too-many-function-args
         mf_main(mf_parse_arguments(def_args + args))
 
-    def test_environments(self):  # pylint: disable=no-self-use
-        """ just the default arguments on all environments """
+    def test_domains(self):  # pylint: disable=no-self-use
+        """ just the default arguments on all domains """
 
         self.run_experiment(['-D=tiger'])
         # self.run_experiment(['--domain_size=3', '-D=cartpole', "--horizon=10000"]) # FIXME
@@ -98,8 +98,8 @@ class TestPOMCPAgents(unittest.TestCase):
         # pylint: disable=too-many-function-args
         pomcp_main(pomcp_parse_arguments(def_args + args))
 
-    def test_environments(self):  # pylint: disable=no-self-use
-        """ just the default arguments on all discrete environments """
+    def test_domains(self):  # pylint: disable=no-self-use
+        """ just the default arguments on all discrete domains """
 
         self.run_experiment(['-D=tiger'])
         self.run_experiment(['--domain_size=3', '-D=gridworld'])

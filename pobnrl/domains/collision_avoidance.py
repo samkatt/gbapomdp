@@ -6,15 +6,13 @@ from typing import List, Any, Dict
 import copy
 import numpy as np
 
-from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
-
-from .environment import Environment, EnvironmentInteraction
-from .environment import Simulator, SimulatedInteraction
-from .misc import ActionSpace
+from environments import Environment, EnvironmentInteraction, ActionSpace
+from environments import POUCTSimulator, POUCTInteraction
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
 # pylint: disable=too-many-instance-attributes
-class CollisionAvoidance(Environment, Simulator):
+class CollisionAvoidance(Environment, POUCTSimulator):
     """ the collision avoidance environment
 
 
@@ -155,14 +153,14 @@ class CollisionAvoidance(Environment, Simulator):
 
         return self.generate_observation()
 
-    def simulation_step(self, state: dict, action: int) -> SimulatedInteraction:
+    def simulation_step(self, state: dict, action: int) -> POUCTInteraction:
         """ simulates stepping from state using action. Returns interaction
 
         Args:
              state: (`dict`): {'agent_x': int, 'agent_y': int, 'obstacle': int}
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`SimulatedInteraction`):
+        RETURNS (`pobnrl.environments.POUCTInteraction`):
 
         """
         assert 0 <= action < 3
@@ -194,7 +192,7 @@ class CollisionAvoidance(Environment, Simulator):
             if state['agent_y'] == state['obstacle']:
                 reward = self.COLLISION_REWARD
 
-        return SimulatedInteraction(state, obs, reward, terminal)
+        return POUCTInteraction(state, obs, reward, terminal)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ updates the state and return observed transitions
@@ -208,7 +206,7 @@ class CollisionAvoidance(Environment, Simulator):
         Args:
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
 
         """
         assert 0 <= action < 3
@@ -248,7 +246,7 @@ class CollisionAvoidance(Environment, Simulator):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.misc.ActionSpace`([3]) space """
+        """ a `pobnrl.environments.ActionSpace`([3]) space """
         return self._spaces['A']
 
     @property

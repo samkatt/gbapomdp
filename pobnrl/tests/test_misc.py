@@ -8,7 +8,8 @@ import unittest
 
 import numpy as np
 
-from pobnrl.misc import DiscreteSpace
+from misc import DiscreteSpace
+from agents.neural_networks.misc import ReplayBuffer
 
 
 class TestDiscreteSpace(unittest.TestCase):
@@ -44,6 +45,52 @@ class TestDiscreteSpace(unittest.TestCase):
         self.assertTrue(space.contains(np.array([0, 0])))
         self.assertFalse(space.contains(np.array([-1, 0])))
         self.assertFalse(space.contains(np.array([0, 3])))
+
+
+class TestReplayBuffer(unittest.TestCase):
+    """ Tests some functionality of the replay buffer """
+
+    def test_capacity(self):
+        """ tests the capacity property of the replay buffer """
+
+        replay_buffer = ReplayBuffer()
+
+        self.assertEqual(replay_buffer.capacity, 5000)
+
+        replay_buffer.store_2((), False)
+        self.assertEqual(replay_buffer.capacity, 5000)
+
+        replay_buffer.store_2((), False)
+        self.assertEqual(replay_buffer.capacity, 5000)
+
+        replay_buffer.store_2((), True)
+        self.assertEqual(replay_buffer.capacity, 5000)
+
+    def test_size(self):
+        """ tests the size property of replay buffer """
+
+        replay_buffer = ReplayBuffer()
+
+        self.assertEqual(replay_buffer.size_2, 1)
+
+        replay_buffer.store_2((), False)
+        self.assertEqual(replay_buffer.size_2, 1)
+
+        replay_buffer.store_2((), False)
+        self.assertEqual(replay_buffer.size_2, 1)
+
+        replay_buffer.store_2((), True)
+        self.assertEqual(replay_buffer.size_2, 2)
+
+        replay_buffer.store_2((), False)
+        self.assertEqual(replay_buffer.size_2, 2)
+
+        replay_buffer.store_2((), True)
+        replay_buffer.store_2((), True)
+        self.assertEqual(replay_buffer.size_2, 4)
+
+        replay_buffer.store_2((), True)
+        self.assertEqual(replay_buffer.size_2, 5)
 
 
 if __name__ == '__main__':

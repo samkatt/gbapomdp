@@ -8,7 +8,7 @@ from typing import List, Callable
 import abc
 import numpy as np
 
-from pobnrl.environments import ActionSpace
+from environments import ActionSpace
 
 
 def epsilon_greedy(
@@ -22,7 +22,7 @@ def epsilon_greedy(
          epsilon: (`float`): the probability of picking a random action
          action_space: (`pobnrl.environments.ActionSpace`): : a space of actions to sample from
 
-    RETURNS (`int`): an action (assuming discrete environments)
+    RETURNS (`int`): an action (assuming discrete domains
 
     """
     assert 1 >= epsilon >= 0

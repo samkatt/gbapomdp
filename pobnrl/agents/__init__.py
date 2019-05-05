@@ -1,6 +1,6 @@
 """ agents in POBNRL """
 
-from pobnrl.environments.environment import Environment
+from environments import Environment
 
 from .agent import Agent, RandomAgent
 from .model_free_agents import create_agent as create_mf_agent
@@ -11,7 +11,7 @@ def create_agent(env: Environment, conf) -> Agent:
     """ factory function to construct agents
 
     Args:
-         env: (`pobnrl.environments.environment.Environment`) of environment
+         env: (`pobnrl.environments.Environment`) ofenvironments
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.agent.Agent`)
@@ -25,6 +25,6 @@ def create_agent(env: Environment, conf) -> Agent:
         return create_mf_agent(env.action_space, env.observation_space, conf)
 
     if conf.agent_type == "planning":
-        return create_mb_agent(env.action_space, env, conf)
+        return create_mb_agent(env, conf)
 
     raise ValueError("Unknown agent type provided")

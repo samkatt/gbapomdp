@@ -7,14 +7,12 @@ import time
 
 import numpy as np
 
-from pobnrl.misc import DiscreteSpace, POBNRLogger, LogLevel
-
-from .misc import ActionSpace
-from .environment import Environment, EnvironmentInteraction
-from .environment import Simulator, SimulatedInteraction
+from environments import Environment, EnvironmentInteraction, ActionSpace
+from environments import POUCTSimulator, POUCTInteraction
+from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
-class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-attributes
+class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instance-attributes
     """ the gridworld environment
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -247,7 +245,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
 
         return self.generate_observation(*self.state)
 
-    def simulation_step(self, state: list, action: int) -> SimulatedInteraction:
+    def simulation_step(self, state: list, action: int) -> POUCTInteraction:
         """ performs a step on state and action and returns the transition
 
         moves agent accross the grid depending on the direction it took
@@ -256,7 +254,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
              state: (`list`): [np.array, (goal_x, goal_y)]
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.environment.SimulatedInteraction`): the transition
+        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
 
         """
 
@@ -281,7 +279,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         obs = self.generate_observation(*state)
         reward = 1 if terminal else 0
 
-        return SimulatedInteraction(
+        return POUCTInteraction(
             state, obs, reward, terminal
         )
 
@@ -293,7 +291,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.environment.EnvironmentInteraction`): the transition
+        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
 
         """
 
@@ -335,7 +333,7 @@ class GridWorld(Environment, Simulator):  # pylint: disable=too-many-instance-at
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.misc.ActionSpace`([4]) space """
+        """ a `pobnrl.environments.ActionSpace`([4]) space """
         return self._spaces['A']
 
     @property

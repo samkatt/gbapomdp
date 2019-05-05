@@ -1,4 +1,4 @@
-""" Run POMCP on partiall ymethods on partially observable environments """
+""" Run POMCP on partiall ymethods on partially observable domains"""
 
 import copy
 
@@ -6,10 +6,10 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
 import numpy as np
 
-from pobnrl.environments import create_environment
-from pobnrl.agents import create_agent
-from pobnrl.episode import run_episode
-from pobnrl.misc import POBNRLogger, LogLevel
+from domains import create_environment
+from agents import create_agent
+from episode import run_episode
+from misc import POBNRLogger, LogLevel
 
 
 def main(conf):

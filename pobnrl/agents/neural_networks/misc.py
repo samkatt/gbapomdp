@@ -8,7 +8,9 @@ Loss calculations
 
 """
 
-from typing import Tuple
+from collections import deque
+from typing import Deque, List, Tuple, Any
+import random
 
 import tensorflow as tf
 
@@ -44,15 +46,19 @@ class ReplayBuffer():
 
     """
 
-    SIZE = 100000
+    SIZE = 5000
 
-    def __init__(self, observation_shape: Tuple[int]):
+    def __init__(self, observation_shape: Tuple[int] = None):
         """ constructs the replay buffer for specified observation shape
 
         Args:
              observation_shape: (`Tuple[int]`): the shape of an observation
 
         """
+
+        # TODO: remove when completely refactored replay buffer
+        if observation_shape is None:
+            observation_shape = (1,)
 
         self._obs_shape = observation_shape
         self._total = 0
@@ -62,14 +68,61 @@ class ReplayBuffer():
         self._rewards = np.full(self.SIZE, 'nan', float)
         self._terminals = np.full(self.SIZE, True, bool)
 
+        self.episodes: Deque[List[Any]] = deque([], self.SIZE)
+        self.episodes.append([])
+
+    @property
+    def capacity(self) -> int:
+        """ returns the total (potential) size of the buffer """
+        return self.SIZE
+
+    @property
+    def size_2(self) -> int:
+        """ returns number of episodes in the buffer
+
+        TODO: rename when done
+
+        """
+        return len(self.episodes)
+
+    def store_2(self, step: Any, terminal: bool):
+        """ TODO: doc & rename when done """
+
+        self.episodes[-1].append(step)
+
+        if terminal:
+            self.episodes.append([])
+
+    @staticmethod
+    def sample_episode(episode: List[Any], history_len: int) -> List[Any]:
+
+        sampled_time_step = random.randint(0, len(episode))
+
+        start_index = max(0, sampled_time_step - history_len)
+
+        return episode[start_index:sampled_time_step]
+
+    def sample_2(self, batch_size: int, history_len: int = 1) -> List[List[Any]]:
+        """ TODO: rename and doc when done """
+
+        return [self.sample_episode(random.choice(self.episodes), history_len) for _ in range(batch_size)]
+
     @property
     def index(self) -> int:
-        """ The current index in the replay buffer """
+        """ The current index in the replay buffer
+
+        TODO: remove when not used anymore
+
+        """
         return self._total % self.SIZE
 
     @property
     def max_sample_index(self) -> int:
-        """ The maximum index to sample from the buffer """
+        """ The maximum index to sample from the buffer
+
+        TODO: remove when not used anymore
+
+        """
         return min(self.SIZE, self._total - 1)
 
     @property
@@ -81,21 +134,33 @@ class ReplayBuffer():
         """
         return self._total
 
-    def store(
+    def store(  # pylint: disable=too-many-arguments
             self,
-            obs: np.array,
+            obs: np.ndarray,
             action: int,
             reward: float,
+            next_obs: np.ndarray,
             terminal: bool) -> None:
         """ stores interaction <obs, action, reward, terminal>
 
         Args:
-        obs: (`np.array`): the 'previous' observation
+        obs: (`np.ndarray`): the 'previous' observation
         action: (`int`): the action taken
         reward: (`float`): the reward after taking action
+        next_obs: (`np.ndarray`): the 'next' observation
         terminal: (`bool`): whther the action was terminal
 
         """
+
+        self.store_2(
+            {
+                'obs': obs,
+                'action': action,
+                'reward': reward,
+                'terminal': terminal,
+                'next_obs': next_obs},
+            terminal
+        )
 
         self._obs[self.index] = np.copy(obs)
         self._actions[self.index] = action
@@ -130,53 +195,65 @@ class ReplayBuffer():
         assert history_len > 0, "history_len must be > 0"
         assert padding in ['left', 'right'], "padding expect 'left' or 'right"
 
+        batch = self.sample_2(batch_size, history_len)
+
         batch_shape = (batch_size, history_len)
 
-        sample_indices = np.random.randint(
-            0, self.max_sample_index, batch_size
-        )
+        # sample_indices = np.random.randint(
+        # 0, self.max_sample_index, batch_size
+        # )
 
-        sample_traces = [self.trace(i, history_len) for i in sample_indices]
-        trace_indices = np.concatenate(sample_traces)
-        trace_lengths = np.array([len(t) for t in sample_traces])
+        # sample_traces = [self.trace(i, history_len) for i in sample_indices]
+        # trace_indices = np.concatenate(sample_traces)
+        # # trace_lengths = np.array([len(t) for t in sample_traces])
 
-        if padding == 'left':
-            def trace_mask(seq_len):
-                # [0,0,0,t1,t2,t3]
-                return np.concatenate(
-                    [np.zeros(history_len - seq_len), np.ones(seq_len)]
-                )
-        else:
-            def trace_mask(seq_len):
-                # [t1,t2,t3,0,0,0]
-                return np.concatenate(
-                    [np.ones(seq_len), np.zeros(history_len - seq_len)]
-                )
+        trace_lengths = np.array([len(trace) for trace in batch])
 
-        # True/False mask of batch_shape to pick the values to be changed
-        sample_mask = np.array(
-            [trace_mask(l) for l in trace_lengths],
-            dtype=bool
-        )
+        # if padding == 'left':
+            # def trace_mask(seq_len):
+                # # [0,0,0,t1,t2,t3]
+                # return np.concatenate(
+                    # [np.zeros(history_len - seq_len), np.ones(seq_len)]
+                # )
+        # else:
+            # def trace_mask(seq_len):
+                # # [t1,t2,t3,0,0,0]
+                # return np.concatenate(
+                    # [np.ones(seq_len), np.zeros(history_len - seq_len)]
+                # )
+
+        # # True/False mask of batch_shape to pick the values to be changed
+        # sample_mask = np.array(
+            # [trace_mask(l) for l in trace_lengths],
+            # dtype=bool
+        # )
 
         # construct results by first initializing them with default
         # values (acting as padding where necessary) and then fill in
         # the values with the traces
 
-        rewards = np.full(batch_shape, float('nan'))  # nan padding
-        rewards[sample_mask] = self._rewards[trace_indices]
+        reward = np.full(batch_shape, float('nan'))  # nan padding
+        # rewards[sample_mask] = self._rewards[trace_indices]
 
-        terminals = np.full(batch_shape, False)  # False padding
-        terminals[sample_mask] = self._terminals[trace_indices]
+        terminal = np.full(batch_shape, False)  # False padding
+        # terminals[sample_mask] = self._terminals[trace_indices]
 
         obs = np.zeros(batch_shape + self._obs_shape)  # 0 padding
-        obs[sample_mask] = self._obs[trace_indices]
+        # obs[sample_mask] = self._obs[trace_indices]
 
-        actions = np.full(batch_shape, -1)  # -1 padding
-        actions[sample_mask] = self._actions[trace_indices]
+        action = np.full(batch_shape, -1)  # -1 padding
+        # actions[sample_mask] = self._actions[trace_indices]
+
+        for i, seq in enumerate(batch):
+            for thing in ['obs', 'reward', 'action', 'terminal']:
+                if padding == 'right':
+                    eval(thing)[i][:trace_lengths[i]] = [step[thing] for step in seq]
+                else:
+                    eval(thing)[i][-trace_lengths[i]:] = [step[thing] for step in seq]
 
         # construct next observation sequence
-        next_ob = self._obs[(sample_indices + 1) % self.SIZE]
+        # next_ob = self._obs[(sample_indices + 1) % self.SIZE]
+        next_ob = [seq[-1]['next_obs'] for seq in batch]
 
         next_obs = np.concatenate(
             (obs[:, 1:], np.zeros((batch_size, 1) + self._obs_shape)), axis=1
@@ -193,9 +270,9 @@ class ReplayBuffer():
 
         return {
             'obs': obs,
-            'actions': actions,
-            'rewards': rewards,
-            'terminals': terminals,
+            'actions': action,
+            'rewards': reward,
+            'terminals': terminal,
             'next_obs': next_obs,
             'seq_lengths': trace_lengths
         }

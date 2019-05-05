@@ -1,4 +1,4 @@
-""" run Neural RL methods on partially observable environments """
+""" run Neural RL methods on partially observable domains """
 
 import time
 
@@ -6,10 +6,10 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
 import tensorflow as tf
 
-from pobnrl.agents import create_agent
-from pobnrl.environments import create_environment
-from pobnrl.episode import run_episode
-from pobnrl.misc import tf_session, tf_run, POBNRLogger, LogLevel
+from agents import create_agent
+from domains import create_environment
+from episode import run_episode
+from misc import tf_session, tf_run, POBNRLogger, LogLevel
 
 
 def main(conf):  # pylint: disable=too-many-locals

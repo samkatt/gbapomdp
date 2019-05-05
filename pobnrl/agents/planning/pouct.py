@@ -1,13 +1,14 @@
 """ Particle Observable UCT """
 
-from typing import Tuple, List, Dict
+from typing import List, Dict, Tuple
 import copy
 import random
 
 import numpy as np
 
-from pobnrl.agents.planning import ParticleFilter
-from pobnrl.environments import Simulator, ActionSpace
+from environments import POUCTSimulator
+
+from .particle_filters import ParticleFilter
 
 
 class TreeNode():
@@ -90,8 +91,7 @@ class POUCT():
 
     def __init__(  # pylint: disable=too-many-arguments
             self,
-            action_space: ActionSpace,
-            simulator: Simulator,
+            simulator: POUCTSimulator,
             num_sims: int = 500,
             exploration_constant: float = 1.,
             planning_horizon: int = 10,
@@ -99,8 +99,7 @@ class POUCT():
         """ Creates the PO-UCT planner
 
         Args:
-             action_space: (`pobnrl.environments.misc.ActionSpace`)
-             simulator: (`pobnrl.environments.environment.Simulator`)
+             simulator: (`pobnrl.environments.POUCTSimulator`)
              num_sims: (`int`): number of iterations
              exploration_constant: (`float`): UCB exploration constant
              planning_horizon: (`int`): the horizon to plan agains
@@ -111,7 +110,6 @@ class POUCT():
         self.num_sims = num_sims
         self.planning_horizon = planning_horizon
         self.discount = discount
-        self.action_space = action_space
         self.simulator = simulator
 
         tot_visits = action_visits = np.arange(self.num_sims).reshape(1, -1)
@@ -140,7 +138,7 @@ class POUCT():
 
         """
 
-        root = TreeNode(self.action_space.n, depth=0)
+        root = TreeNode(self.simulator.action_space.n, depth=0)
 
         # build tree
         for _ in range(self.num_sims):
@@ -206,7 +204,7 @@ class POUCT():
         ret = .0
         discount = 1.0
 
-        first_action = self.action_space.sample()
+        first_action = self.simulator.action_space.sample()
 
         action = first_action
         for _ in range(hor):
@@ -220,7 +218,7 @@ class POUCT():
             if step.terminal:
                 break
 
-            action = self.action_space.sample()
+            action = self.simulator.action_space.sample()
             state = step.state
 
         return (first_action, ret)

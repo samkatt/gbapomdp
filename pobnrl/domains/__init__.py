@@ -1,26 +1,29 @@
-""" all the environments in which an agent can act """
+""" all the domains in which an agent can act """
+
+# from environments import Environment  # TODO: add after debugging works again
 
 from .cartpole import Cartpole
 from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
-from .environment import Environment, Simulator
 from .gridworld import GridWorld
-from .misc import ActionSpace
 from .tiger import Tiger
 
 
 def create_environment(
         domain_name: str,
         domain_size: int,
-        verbose: int) -> Environment:
-    """ the factory function to construct environments
+        # verbose: int) -> Environment:  # TODO: add after debugging works again
+        verbose: int):
+    """ the factory function to constructenvironmentss
+
+    TODO: rename to create_domains
 
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
          verbose: (`int`): verbosity level
 
-    RETURNS (`pobnrl.environments.environment.Environment`)
+    RETURNS (`pobnrl.environments.Environment`)
 
     """
     verbose = verbose > 1
