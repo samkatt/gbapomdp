@@ -95,8 +95,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.history_len = conf.history_len
         self.batch_size = conf.batch_size
 
-        self.replay_buffer \
-            = misc.ReplayBuffer((obs_space.ndim,))
+        self.replay_buffer = misc.ReplayBuffer()
 
         # shape of network input: variable in first dimension because
         # we sometimes provide complete sequences (for batch updates)
@@ -241,18 +240,39 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             )
             return
 
-        batch = self.replay_buffer.sample(
-            self.batch_size, self.history_len, padding='left'
-        )
+        batch = self.replay_buffer.sample(self.batch_size, self.history_len)
+
+        # may consider storing this, instead of fishing from batch..?
+        obs_shape = batch[0][0]['obs'].shape
+        seq_lengths = np.array([len(trace) for trace in batch])
+
+        # initiate all with padding values
+        reward = np.zeros(self.batch_size)
+        terminal = np.zeros(self.batch_size).astype(bool)
+        action = np.zeros(self.batch_size).astype(int)
+        obs = np.zeros((self.batch_size, self.history_len) + obs_shape)
+        next_ob = np.zeros((self.batch_size, *obs_shape))
+
+        for i, seq in enumerate(batch):
+            obs[i][:seq_lengths[i]] = [step['obs'] for step in seq]
+            reward[i] = seq[-1]['reward']
+            terminal[i] = seq[-1]['terminal']
+            action[i] = seq[-1]['action']
+            next_ob[i] = seq[-1]['next_obs']
+
+        # due to padding on the left side, we can simply append the *1*
+        # next  observation to the original sequence and remove the first
+        next_obs = np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)
+        next_obs[:, -1] = next_ob
 
         tf_run(
             self.train_op,
             feed_dict={
-                self.obs_ph: batch['obs'],
-                self.act_ph: batch['actions'][:, -1],
-                self.rew_ph: batch['rewards'][:, -1],
-                self.next_obs_ph: batch['next_obs'],
-                self.done_mask_ph: batch['terminals'][:, -1]
+                self.obs_ph: obs,
+                self.act_ph: action,
+                self.rew_ph: reward,
+                self.next_obs_ph: next_obs,
+                self.done_mask_ph: terminal
             }
         )
 
@@ -279,7 +299,16 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
              terminal: (`bool`): whether transition was terminal
         """
 
-        self.replay_buffer.store(observation, action, reward, next_observation, terminal)
+        self.replay_buffer.store(
+            {
+                'obs': observation,
+                'action': action,
+                'reward': reward,
+                'terminal': terminal,
+                'next_obs': next_observation
+            },
+            terminal
+        )
 
 
 class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
@@ -318,8 +347,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         self.history_len = conf.history_len
         self.batch_size = conf.batch_size
 
-        self.replay_buffer \
-            = misc.ReplayBuffer((obs_space.ndim,))
+        self.replay_buffer = misc.ReplayBuffer()
         self.rnn_state = None
 
         # shape of network input: variable in first dimension because
@@ -511,22 +539,39 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
             )
             return
 
-        batch = self.replay_buffer.sample(
-            self.batch_size, self.history_len, padding='right'
-        )
+        batch = self.replay_buffer.sample(self.batch_size, self.history_len)
 
-        sampled_step_idx = \
-            np.eye(self.history_len, dtype=bool)[batch['seq_lengths'] - 1]
+        # may consider storing this, instead of fishing from batch..?
+        obs_shape = batch[0][0]['obs'].shape
+        seq_lengths = np.array([len(trace) for trace in batch])
+
+        # initiate all with padding values
+        reward = np.zeros(self.batch_size)
+        terminal = np.zeros(self.batch_size).astype(bool)
+        action = np.zeros(self.batch_size).astype(int)
+        obs = np.zeros((self.batch_size, self.history_len) + obs_shape)
+        next_ob = np.zeros((self.batch_size, *obs_shape))
+
+        for i, seq in enumerate(batch):
+            obs[i][:seq_lengths[i]] = [step['obs'] for step in seq]
+            reward[i] = seq[-1]['reward']
+            terminal[i] = seq[-1]['terminal']
+            action[i] = seq[-1]['action']
+            next_ob[i] = seq[-1]['next_obs']
+
+        # next_obs are being appened where the sequence ended
+        next_obs = np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)
+        next_obs[np.arange(self.batch_size), seq_lengths - 1] = next_ob
 
         tf_run(
             self.train_op,
             feed_dict={
-                self.seq_lengths_ph: batch['seq_lengths'],
-                self.obs_ph: batch['obs'],
-                self.act_ph: batch['actions'][sampled_step_idx],
-                self.rew_ph: batch['rewards'][sampled_step_idx],
-                self.next_obs_ph: batch['next_obs'],
-                self.done_mask_ph: batch['terminals'][sampled_step_idx]
+                self.seq_lengths_ph: seq_lengths,
+                self.obs_ph: obs,
+                self.act_ph: action,
+                self.rew_ph: reward,
+                self.next_obs_ph: next_obs,
+                self.done_mask_ph: terminal
             }
         )
 
@@ -552,4 +597,13 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
              next_observation: (`np.ndarray`): shape depends on env
              terminal: (`bool`): whether transition was terminal
         """
-        self.replay_buffer.store(observation, action, reward, next_observation, terminal)
+        self.replay_buffer.store(
+            {
+                'obs': observation,
+                'action': action,
+                'reward': reward,
+                'terminal': terminal,
+                'next_obs': next_observation
+            },
+            terminal
+        )

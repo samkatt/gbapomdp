@@ -10,9 +10,10 @@ import numpy as np
 
 from misc import DiscreteSpace
 from agents.neural_networks.misc import ReplayBuffer
+from environments import ActionSpace
 
 
-class TestDiscreteSpace(unittest.TestCase):
+class TestSpaces(unittest.TestCase):
     """ tests the discrete space """
 
     def test_num_elements(self):
@@ -46,6 +47,15 @@ class TestDiscreteSpace(unittest.TestCase):
         self.assertFalse(space.contains(np.array([-1, 0])))
         self.assertFalse(space.contains(np.array([0, 3])))
 
+    def test_one_hot(self):  # pylint: disable=no-self-use
+        """ tests 1-hot encoding of actions """
+
+        action_space = ActionSpace(5)
+
+        np.testing.assert_array_equal(action_space.one_hot(0), [1, 0, 0, 0, 0])
+        np.testing.assert_array_equal(action_space.one_hot(4), [0, 0, 0, 0, 1])
+        np.testing.assert_array_equal(action_space.one_hot(3), [0, 0, 0, 1, 0])
+
 
 class TestReplayBuffer(unittest.TestCase):
     """ Tests some functionality of the replay buffer """
@@ -57,13 +67,13 @@ class TestReplayBuffer(unittest.TestCase):
 
         self.assertEqual(replay_buffer.capacity, 5000)
 
-        replay_buffer.store_2((), False)
+        replay_buffer.store((), False)
         self.assertEqual(replay_buffer.capacity, 5000)
 
-        replay_buffer.store_2((), False)
+        replay_buffer.store((), False)
         self.assertEqual(replay_buffer.capacity, 5000)
 
-        replay_buffer.store_2((), True)
+        replay_buffer.store((), True)
         self.assertEqual(replay_buffer.capacity, 5000)
 
     def test_size(self):
@@ -71,26 +81,26 @@ class TestReplayBuffer(unittest.TestCase):
 
         replay_buffer = ReplayBuffer()
 
-        self.assertEqual(replay_buffer.size_2, 1)
+        self.assertEqual(replay_buffer.size, 1)
 
-        replay_buffer.store_2((), False)
-        self.assertEqual(replay_buffer.size_2, 1)
+        replay_buffer.store((), False)
+        self.assertEqual(replay_buffer.size, 1)
 
-        replay_buffer.store_2((), False)
-        self.assertEqual(replay_buffer.size_2, 1)
+        replay_buffer.store((), False)
+        self.assertEqual(replay_buffer.size, 1)
 
-        replay_buffer.store_2((), True)
-        self.assertEqual(replay_buffer.size_2, 2)
+        replay_buffer.store((), True)
+        self.assertEqual(replay_buffer.size, 2)
 
-        replay_buffer.store_2((), False)
-        self.assertEqual(replay_buffer.size_2, 2)
+        replay_buffer.store((), False)
+        self.assertEqual(replay_buffer.size, 2)
 
-        replay_buffer.store_2((), True)
-        replay_buffer.store_2((), True)
-        self.assertEqual(replay_buffer.size_2, 4)
+        replay_buffer.store((), True)
+        replay_buffer.store((), True)
+        self.assertEqual(replay_buffer.size, 4)
 
-        replay_buffer.store_2((), True)
-        self.assertEqual(replay_buffer.size_2, 5)
+        replay_buffer.store((), True)
+        self.assertEqual(replay_buffer.size, 5)
 
 
 if __name__ == '__main__':

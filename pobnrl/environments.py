@@ -10,11 +10,7 @@ from misc import DiscreteSpace
 
 
 class ActionSpace(DiscreteSpace):
-    """ action space forenvironmentss
-
-    TODO: add one_hot function
-
-    """
+    """ action space forenvironmentss """
 
     def __init__(self, size: int):
         """ initiates an action space of size
@@ -25,13 +21,30 @@ class ActionSpace(DiscreteSpace):
         """
         super().__init__([size])
 
-    def sample(self) -> np.array:
+    def sample(self) -> np.ndarray:
         """ returns a sample from the space at random
 
         RETURNS (`np.array`): a sample in the space of this
 
         """
         return super().sample()[0]
+
+    def one_hot(self, action: int) -> np.ndarray:
+        """ returns a 1-hot encoding of the action
+
+        Args:
+             action: (`int`):
+
+        RETURNS (`np.ndarray`):
+
+        """
+
+        assert self.contains(np.array([action]))
+
+        one_hot_rep = np.zeros(self.size)
+        one_hot_rep[action] = 1
+
+        return one_hot_rep
 
     def __repr__(self):
         return f"ActionSpace of size {self.n}"
