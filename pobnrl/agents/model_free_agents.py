@@ -27,7 +27,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
              qnet: (`pobnrl.agents.neural_networks.q_functions.QNetInterface`): \
                     Q-net to use
-             action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
+             action_space: (`pobnrl.environments.ActionSpace`): of environment
              exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
                     schedule for e-greedy
              conf: (`namespace`) set of configurations (see -h)
@@ -142,7 +142,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         Args:
             qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.neural_networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
-            action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
+            action_space: (`pobnrl.environments.ActionSpace`): of environment
             exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
                     exploration schedule
             conf: (`namespace`): set of configurations
@@ -268,8 +268,8 @@ def create_agent(
     """ factory function to construct model-free learning agents
 
     Args:
-         action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
-         observation_space: (`pobnrl.misc.DiscreteSpace`) ofenvironments
+         action_space: (`pobnrl.environments.ActionSpace`): of environment
+         observation_space: (`pobnrl.misc.DiscreteSpace`) of environment
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.agent.Agent`)

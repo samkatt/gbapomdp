@@ -1,6 +1,6 @@
 """ all the domains in which an agent can act """
 
-# from environments import Environment  # TODO: add after debugging works again
+from environments import Environment
 
 from .cartpole import Cartpole
 from .chain_domain import ChainDomain
@@ -12,8 +12,7 @@ from .tiger import Tiger
 def create_environment(
         domain_name: str,
         domain_size: int,
-        # verbose: int) -> Environment:  # TODO: add after debugging works again
-        verbose: int):
+        verbose: int) -> Environment:
     """ the factory function to constructenvironmentss
 
     TODO: rename to create_domains

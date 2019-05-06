@@ -152,13 +152,20 @@ def tf_run(operations, **kwargs):
 
 
 class DiscreteSpace():
-    """ DiscreteSpace discrete uninterupted space of some shape """
+    """ DiscreteSpace discrete uninterupted space of some shape
+
+    TODO: add general Space
+        - model-free methods should not require discrete (obs) spaces
+        - make gymspace implement it
+        - make `this` implement it
+
+    """
 
     def __init__(self, size: Union[List[int], np.ndarray]):
         """ initiates a discrete space of size size
 
         Args:
-             size: (`List[int]`): is a list of dimensions
+             size: (`List[int]`): is a list of dimension ranges
 
         """
 
@@ -180,8 +187,6 @@ class DiscreteSpace():
     @property
     def ndim(self) -> int:
         """ returns the numbe of dimensions
-
-        Args:
 
         RETURNS (`int`): number of dimensions
 

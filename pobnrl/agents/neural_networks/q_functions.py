@@ -77,8 +77,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         Assumes the input architecture q_func is **not** a recurrent one
 
         Args:
-             action_space: (`pobnrl.environments.ActionSpace`): ofenvironments
-             obs_space: (`pobnrl.misc.DiscreteSpace`): ofenvironments
+             action_space: (`pobnrl.environments.ActionSpace`): of environment
+             obs_space: (`pobnrl.misc.DiscreteSpace`): of environment
              q_func: (`Callable`): the actual Q-function (non-recurrent)
              optimizer: the tf.optimizer to use for learning
              name: (`str`): name of the network (used for scoping)

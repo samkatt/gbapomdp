@@ -96,16 +96,20 @@ class ReplayBuffer():
     @staticmethod
     def sample_episode(episode: List[Any], history_len: int) -> List[Any]:
 
-        sampled_time_step = random.randint(0, len(episode))
+        end_index = random.randint(1, len(episode))
 
-        start_index = max(0, sampled_time_step - history_len)
+        start_index = max(0, end_index - history_len)
 
-        return episode[start_index:sampled_time_step]
+        return episode[start_index:end_index]
 
     def sample_2(self, batch_size: int, history_len: int = 1) -> List[List[Any]]:
         """ TODO: rename and doc when done """
 
-        return [self.sample_episode(random.choice(self.episodes), history_len) for _ in range(batch_size)]
+        max_sample = self.size_2 - 2
+
+        return [
+            self.sample_episode(self.episodes[random.randint(0, max_sample)], history_len)
+            for _ in range(batch_size)]
 
     @property
     def index(self) -> int:
@@ -199,60 +203,22 @@ class ReplayBuffer():
 
         batch_shape = (batch_size, history_len)
 
-        # sample_indices = np.random.randint(
-        # 0, self.max_sample_index, batch_size
-        # )
-
-        # sample_traces = [self.trace(i, history_len) for i in sample_indices]
-        # trace_indices = np.concatenate(sample_traces)
-        # # trace_lengths = np.array([len(t) for t in sample_traces])
-
         trace_lengths = np.array([len(trace) for trace in batch])
 
-        # if padding == 'left':
-            # def trace_mask(seq_len):
-                # # [0,0,0,t1,t2,t3]
-                # return np.concatenate(
-                    # [np.zeros(history_len - seq_len), np.ones(seq_len)]
-                # )
-        # else:
-            # def trace_mask(seq_len):
-                # # [t1,t2,t3,0,0,0]
-                # return np.concatenate(
-                    # [np.ones(seq_len), np.zeros(history_len - seq_len)]
-                # )
-
-        # # True/False mask of batch_shape to pick the values to be changed
-        # sample_mask = np.array(
-            # [trace_mask(l) for l in trace_lengths],
-            # dtype=bool
-        # )
-
-        # construct results by first initializing them with default
-        # values (acting as padding where necessary) and then fill in
-        # the values with the traces
-
         reward = np.full(batch_shape, float('nan'))  # nan padding
-        # rewards[sample_mask] = self._rewards[trace_indices]
-
         terminal = np.full(batch_shape, False)  # False padding
-        # terminals[sample_mask] = self._terminals[trace_indices]
-
         obs = np.zeros(batch_shape + self._obs_shape)  # 0 padding
-        # obs[sample_mask] = self._obs[trace_indices]
-
         action = np.full(batch_shape, -1)  # -1 padding
-        # actions[sample_mask] = self._actions[trace_indices]
 
         for i, seq in enumerate(batch):
-            for thing in ['obs', 'reward', 'action', 'terminal']:
-                if padding == 'right':
+            if padding == 'right':
+                for thing in ['obs', 'reward', 'action', 'terminal']:
                     eval(thing)[i][:trace_lengths[i]] = [step[thing] for step in seq]
-                else:
+            else:
+                for thing in ['obs', 'reward', 'action', 'terminal']:
                     eval(thing)[i][-trace_lengths[i]:] = [step[thing] for step in seq]
 
         # construct next observation sequence
-        # next_ob = self._obs[(sample_indices + 1) % self.SIZE]
         next_ob = [seq[-1]['next_obs'] for seq in batch]
 
         next_obs = np.concatenate(

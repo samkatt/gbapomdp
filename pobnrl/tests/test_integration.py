@@ -28,8 +28,8 @@ class TestModelFreeAgents(unittest.TestCase):
     def test_domains(self):  # pylint: disable=no-self-use
         """ just the default arguments on all domains """
 
-        self.run_experiment(['-D=tiger'])
-        # self.run_experiment(['--domain_size=3', '-D=cartpole', "--horizon=10000"]) # FIXME
+        self.run_experiment(['-D=tiger', '--episodes=50'])
+        self.run_experiment(['--domain_size=3', '-D=cartpole', "--horizon=10000"])
         self.run_experiment(['--domain_size=3', '-D=gridworld'])
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
         self.run_experiment(['--domain_size=5', '-D=chain'])
@@ -76,7 +76,7 @@ class TestModelFreeAgents(unittest.TestCase):
 
         self.run_experiment(['-D=tiger', '--loss=huber', '--num_nets=3'])
 
-        # self.run_experiment(['-D=cartpole', '--clipping', "--horizon=10000"]) # FIXME
+        self.run_experiment(['-D=cartpole', '--clipping', "--horizon=10000"])
 
 
 class TestPOMCPAgents(unittest.TestCase):

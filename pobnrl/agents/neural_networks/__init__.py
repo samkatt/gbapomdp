@@ -19,7 +19,7 @@ def create_qnet(
     """ factory for creating Q networks / policies
 
     Args:
-         action_space: (`pobnrl.environments.misc.ActionSpace`): of environment
+         action_space: (`pobnrl.environments.ActionSpace`): of environment
          observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
          scope: (`str`): name of agent (learning scope)
          conf: (`namespace`): configurations (see -h)

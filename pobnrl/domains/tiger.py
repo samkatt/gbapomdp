@@ -2,7 +2,7 @@
 
 import time
 
-from typing import List, Any, Dict
+from typing import List, Any
 import copy
 import numpy as np
 
@@ -37,10 +37,8 @@ class Tiger(Environment, POUCTSimulator):
         self._verbose = verbose
         self._state = self.sample_start_state()
 
-        self._spaces: Dict[str, DiscreteSpace] = {
-            "A": ActionSpace(3),
-            "O": DiscreteSpace([2, 2])
-        }
+        self._action_space = ActionSpace(3)
+        self._obs_space = DiscreteSpace([2, 2])
 
         self._last_recording_time = 0
         self._recording = False
@@ -84,7 +82,7 @@ class Tiger(Environment, POUCTSimulator):
         RETURNS (`np.array`): the observation (hot-encoded)
 
         """
-        obs = np.zeros(self._spaces["O"].ndim)
+        obs = np.zeros(self._obs_space.ndim)
 
         # not listening means [0,0] observation (basically a 'null')
         if not listening:
@@ -185,8 +183,8 @@ class Tiger(Environment, POUCTSimulator):
         RETURNS (`int`): int representation of observation
 
         """
-        assert self._spaces['O'].contains(observation), \
-            f"{observation} not in {self._spaces['O']}"
+        assert self._obs_space.contains(observation), \
+            f"{observation} not in {self._obs_space}"
 
         assert np.sum(observation) in [0, 1], "wrong value for observation"
 
@@ -197,13 +195,13 @@ class Tiger(Environment, POUCTSimulator):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.envrionments.ActionSpace`([3]) space """
-        return self._spaces['A']
+        """ a `pobnrl.environments.ActionSpace`([3]) space """
+        return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([1,1]) space """
-        return self._spaces['O']
+        return self._obs_space
 
     def display_history(self):
         """ prints out transitions """

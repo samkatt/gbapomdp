@@ -1,6 +1,6 @@
 """ gridworld environment """
 
-from typing import List, Tuple, Any, Set, Dict
+from typing import List, Tuple, Any, Set
 import copy
 import random
 import time
@@ -109,12 +109,10 @@ class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instan
             self._goal_cells.append((edge - 2, edge - 1))
             self._goal_cells.append((edge - 1, edge - 2))
 
-        self._spaces: Dict[str, DiscreteSpace] = {
-            "A": ActionSpace(4),
-            "O": DiscreteSpace(
-                [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).tolist()
-            )
-        }
+        self._action_space = ActionSpace(4)
+        self._obs_space = DiscreteSpace(
+            [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).tolist()
+        )
 
         self._state = [np.zeros(2), self.sample_goal()]
 
@@ -334,12 +332,12 @@ class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instan
     @property
     def action_space(self) -> ActionSpace:
         """ a `pobnrl.environments.ActionSpace`([4]) space """
-        return self._spaces['A']
+        return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
-        return self._spaces['O']
+        return self._obs_space
 
     def display_history(self):
         """ prints out transitions """

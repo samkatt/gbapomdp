@@ -4,7 +4,7 @@ import time
 
 import gym
 
-from environments import Environment, EnvironmentInteraction, ActionSpace
+from environments import Environment, EnvironmentInteraction, ActionSpace, GymSpace
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
@@ -34,6 +34,9 @@ class Cartpole(Environment):
             force=True,
             video_callable=recording_policy
         )
+
+        self._action_space = ActionSpace(2)
+        self._observation_space = GymSpace(self.cartpole.observation_space)
 
     def show_recording(self, _):
         """ returns whether a recording should be shown """
@@ -69,9 +72,9 @@ class Cartpole(Environment):
     @property
     def action_space(self) -> ActionSpace:
         """ the underlying open ai gyme cartpole action space """
-        return self.cartpole.action_space
+        return self._action_space  # type: ignore
 
     @property
     def observation_space(self) -> DiscreteSpace:
         """ the underlying open ai gyme cartpole observation space """
-        return self.cartpole.observation_space
+        return self._observation_space  # type: ignore

@@ -2,7 +2,7 @@
 
 import time
 
-from typing import List, Any, Dict
+from typing import List, Any
 import copy
 import numpy as np
 
@@ -59,10 +59,8 @@ class CollisionAvoidance(Environment, POUCTSimulator):
 
         self._state = copy.deepcopy(self.init_state)
 
-        self._spaces: Dict[str, DiscreteSpace] = {
-            "A": ActionSpace(3),
-            "O": DiscreteSpace([self._size, self._size, self._size])
-        }
+        self._action_space = ActionSpace(3)
+        self._obs_space = DiscreteSpace([self._size, self._size, self._size])
 
         self._last_recording_time = 0
         self._recording = False
@@ -247,12 +245,12 @@ class CollisionAvoidance(Environment, POUCTSimulator):
     @property
     def action_space(self) -> ActionSpace:
         """ a `pobnrl.environments.ActionSpace`([3]) space """
-        return self._spaces['A']
+        return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([grid_height]) space """
-        return self._spaces['O']
+        return self._obs_space
 
     def display_history(self):
         """ prints out transitions """

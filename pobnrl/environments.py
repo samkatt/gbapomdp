@@ -3,6 +3,7 @@
 from collections import namedtuple
 from typing import Any
 import abc
+import gym
 import numpy as np
 
 from misc import DiscreteSpace
@@ -35,9 +36,65 @@ class ActionSpace(DiscreteSpace):
     def __repr__(self):
         return f"ActionSpace of size {self.n}"
 
-# TODO: implement gymspace to allow cartpole to work again
-# class GymSpace(DiscreteSpace):
-    # """ wrapper for open ai gym discrete spaces """
+
+class GymSpace():
+    """ wrapper for open ai gym spaces """
+
+    def __init__(self, wrapped_space: gym.Space):
+
+        assert len(wrapped_space.shape) == 1, "only support 1-dim spaces for now"
+
+        self._wrapped_space = wrapped_space
+
+    @property
+    def n(self) -> int:  # pylint: disable=invalid-name
+        """ Number of elements in space
+
+        While the naming is pretty awful, it is consistent with the `Space`
+        class of open AI gym, which I prioritized here
+
+        RETURNS (`int`):
+
+        """
+        return self._wrapped_space.n
+
+    @property
+    def ndim(self) -> int:
+        """ returns the numbe of dimensions
+
+        returns the number of elements according to shape of wrapped space
+
+        RETURNS (`int`): number of dimensions
+
+        """
+        return self._wrapped_space.shape[0]
+
+    def contains(self, elem: np.ndarray) -> bool:
+        """ returns `this` contains `elem`
+
+        Directly calls the wrapped space
+
+        Args:
+             elem: (`np.ndarray`): element to check against
+
+        RETURNS (`bool`):
+
+        """
+
+        return self._wrapped_space.contains(elem)
+
+    def sample(self) -> np.array:
+        """ returns a sample from the space at random
+
+        Directly calls the wrapped space
+
+        RETURNS (`np.array`): a sample in the space of this
+
+        """
+        return self._wrapped_space.sample()
+
+    def __repr__(self):
+        return f"Wrapped gym space {self._wrapped_space}"
 
 
 class EnvironmentInteraction(
