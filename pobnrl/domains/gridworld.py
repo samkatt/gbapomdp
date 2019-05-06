@@ -12,7 +12,7 @@ from environments import POUCTSimulator, POUCTInteraction
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
-class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instance-attributes
+class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
     """ the gridworld environment
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -23,8 +23,6 @@ class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instan
     around the agent's real location (that accumulates around the edges).
 
     """
-
-    logger = POBNRLogger(__name__)
 
     # consts
     NORTH = 0
@@ -49,6 +47,8 @@ class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instan
         """
 
         assert domain_size > 0
+
+        POBNRLogger.__init__(self)
 
         # confs
         self._verbose = verbose
@@ -347,4 +347,4 @@ class GridWorld(Environment, POUCTSimulator):  # pylint: disable=too-many-instan
             descr += f" and {self.action_to_string[int(step['action'])]} " \
                 + f"to:\n{step['state'][0]}({step['obs'][:2]})"
 
-        self.logger.log(LogLevel.V2, descr)
+        self.log(LogLevel.V2, descr)

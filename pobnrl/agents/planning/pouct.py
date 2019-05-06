@@ -7,6 +7,7 @@ import random
 import numpy as np
 
 from environments import POUCTSimulator
+from misc import POBNRLogger, LogLevel
 
 from .particle_filters import ParticleFilter
 
@@ -86,7 +87,7 @@ class TreeNode():
             (value - self.avg_values[child]) / self.children_visits[child]
 
 
-class POUCT():
+class POUCT(POBNRLogger):
     """ MCTS for POMDPs using UCB """
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -106,6 +107,8 @@ class POUCT():
              discount: (`float`): the discount factor of the env
 
         """
+
+        POBNRLogger.__init__(self)
 
         self.num_sims = num_sims
         self.planning_horizon = planning_horizon
@@ -143,6 +146,8 @@ class POUCT():
         # build tree
         for _ in range(self.num_sims):
             self._traverse_tree(copy.deepcopy(belief.sample()), root)
+
+        self.log(LogLevel.V3, f"POUCT: converged to Q: {root.avg_values}")
 
         # pick best action from root
         return np.argmax(root.avg_values)

@@ -11,7 +11,7 @@ from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
 # pylint: disable=too-many-instance-attributes
-class ChainDomain(Environment, POUCTSimulator):
+class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
     """ the chain environment
 
     The domains are indexed by problem size N and action mask W =
@@ -28,8 +28,6 @@ class ChainDomain(Environment, POUCTSimulator):
 
     """
 
-    logger = POBNRLogger(__name__)
-
     def __init__(self, size: int, verbose: bool):
         """ construct the chain environment
 
@@ -40,6 +38,8 @@ class ChainDomain(Environment, POUCTSimulator):
         """
 
         assert size > 1, "Please enter domain size > 1"
+
+        POBNRLogger.__init__(self)
 
         self._size = size
         self._verbose = verbose
@@ -242,4 +242,4 @@ class ChainDomain(Environment, POUCTSimulator):
         for step in self._history:
             descr += f"->{step}"
 
-        self.logger.log(LogLevel.V2, f"agent travelled {descr}")
+        self.log(LogLevel.V2, f"agent travelled {descr}")

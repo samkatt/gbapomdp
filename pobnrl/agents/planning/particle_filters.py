@@ -6,12 +6,15 @@ Contains
 
 """
 
+from collections import Counter
 from typing import Any, Callable
 import abc
 import copy
 import random
 
 import numpy as np
+
+from misc import POBNRLogger, LogLevel
 
 
 class ParticleFilter(abc.ABC):
@@ -79,6 +82,9 @@ class FlatFilter(ParticleFilter):
         RETURNS (`int`):
         """
         return len(self._particles)
+
+    def __repr__(self) -> str:
+        return f"FlatFilter with: {Counter(self._particles)}"
 
 
 class WeightedParticle():
@@ -269,7 +275,7 @@ def importance_sampling(
     return particle_filter
 
 
-class BeliefManager():
+class BeliefManager(POBNRLogger):
     """ manages a belief
 
     TODO: rename to ParticleManager
@@ -296,6 +302,8 @@ class BeliefManager():
 
         """
 
+        POBNRLogger.__init__(self)
+
         self._size = num_particles
         self._belief_type = belief_type
 
@@ -313,6 +321,9 @@ class BeliefManager():
         for _ in range(self._size):
             self._belief.add_particle(self._sample_particle_f())
 
+        if self.log_is_on(LogLevel.V2):
+            self.log(LogLevel.V2, f"Belief reset to {self._belief}")
+
     def update(self, action: int, observation: np.ndarray):
         """ updates belief given action and observation
 
@@ -323,6 +334,9 @@ class BeliefManager():
         """
 
         self._belief = self._update(self._belief, action, observation)
+
+        if self.log_is_on(LogLevel.V3):
+            self.log(LogLevel.V3, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
 
     @property
     def belief(self) -> ParticleFilter:

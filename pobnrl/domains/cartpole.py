@@ -8,10 +8,8 @@ from environments import Environment, EnvironmentInteraction, ActionSpace, GymSp
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
-class Cartpole(Environment):
+class Cartpole(Environment, POBNRLogger):
     """ cartpole environment """
-
-    logger = POBNRLogger(__name__)
 
     def __init__(self, verbose: bool):
         """ constructs cartpole with optionally graphical representation
@@ -20,6 +18,8 @@ class Cartpole(Environment):
              verbose: (`bool`): whether to be (graphically) verbose
 
         """
+
+        POBNRLogger.__init__(self)
 
         self._cur_time = 0
 
@@ -42,7 +42,7 @@ class Cartpole(Environment):
         """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
-            self.logger.log(LogLevel.V2, 'showing recording..')
+            self.log(LogLevel.V2, 'showing recording..')
             return True
 
         return False

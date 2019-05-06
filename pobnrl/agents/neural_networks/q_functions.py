@@ -59,10 +59,8 @@ class QNetInterface(abc.ABC):
         """
 
 
-class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
+class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-attributes
     """ a network based on DQN that can return q values and update """
-
-    logger = POBNRLogger(__name__)
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
@@ -90,6 +88,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         assert conf.batch_size > 0
         assert conf.network_size > 0
         assert 1 >= conf.gamma > 0
+
+        POBNRLogger.__init__(self)
 
         self.name = name
         self.history_len = conf.history_len
@@ -234,7 +234,7 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            self.logger.log(
+            self.log(
                 LogLevel.V2,
                 f"Network {self.name} cannot batch update due to small buf"
             )
@@ -311,10 +311,8 @@ class DQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         )
 
 
-class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
+class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-attributes
     """ a network based on DRQN that can return q values and update """
-
-    logger = POBNRLogger(__name__)
 
     def __init__(  # pylint: disable=too-many-locals,too-many-arguments
             self,
@@ -342,6 +340,8 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         assert conf.batch_size > 0
         assert conf.network_size > 0
         assert 1 >= conf.gamma > 0
+
+        POBNRLogger.__init__(self)
 
         self.name = name
         self.history_len = conf.history_len
@@ -533,7 +533,7 @@ class DRQNNet(QNetInterface):  # pylint: disable=too-many-instance-attributes
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            self.logger.log(
+            self.log(
                 LogLevel.V2,
                 f"Network {self.name} cannot batch update due to small buf"
             )

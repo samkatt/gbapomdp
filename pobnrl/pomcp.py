@@ -1,7 +1,5 @@
 """ Run POMCP on partiall ymethods on partially observable domains"""
 
-import copy
-
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
 import numpy as np
@@ -31,7 +29,7 @@ def main(conf):
         conf.verbose
     )
 
-    sim = copy.deepcopy(env)
+    sim = env
 
     conf.agent_type = "planning"
     agent = create_agent(sim, conf)

@@ -1,7 +1,5 @@
 """ tiger environment """
 
-import time
-
 from typing import List, Any
 import copy
 import numpy as np
@@ -11,10 +9,8 @@ from environments import POUCTSimulator, POUCTInteraction
 from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
-class Tiger(Environment, POUCTSimulator):
+class Tiger(Environment, POUCTSimulator, POBNRLogger):
     """ the tiger environment """
-
-    logger = POBNRLogger(__name__)
 
     # consts
     LEFT = 0
@@ -34,14 +30,14 @@ class Tiger(Environment, POUCTSimulator):
 
         """
 
+        POBNRLogger.__init__(self)
+
         self._verbose = verbose
         self._state = self.sample_start_state()
 
         self._action_space = ActionSpace(3)
         self._obs_space = DiscreteSpace([2, 2])
 
-        self._last_recording_time = 0
-        self._recording = False
         self._history: List[Any] = []
 
     @property
@@ -59,7 +55,6 @@ class Tiger(Environment, POUCTSimulator):
         """
 
         assert 2 > state >= 0
-        assert not self._recording
 
         self._state = state
 
@@ -106,16 +101,11 @@ class Tiger(Environment, POUCTSimulator):
 
         self._state = self.sample_start_state()
 
-        # if we were recording, output the history and stop
-        if self._recording:
+        if self.log_is_on(LogLevel.V2) and self._history:
             self.display_history()
-            self._recording = False
 
         # record episodes every so often
-        if self._verbose and time.time() - self._last_recording_time > 5:
-            self._last_recording_time = time.time()
-            self._history = [copy.deepcopy(self.state)]
-            self._recording = True
+        self._history = [copy.deepcopy(self.state)]
 
         return np.zeros(2)
 
@@ -136,7 +126,7 @@ class Tiger(Environment, POUCTSimulator):
         if action != self.LISTEN:
             obs = self.sample_observation(state, False)
             terminal = True
-            reward = self.GOOD_DOOR_REWARD if action == self.state \
+            reward = self.GOOD_DOOR_REWARD if action == state \
                 else self.BAD_DOOR_REWARD
             state = self.sample_start_state()
 
@@ -163,11 +153,11 @@ class Tiger(Environment, POUCTSimulator):
         transition = self.simulation_step(self.state, action)
         self._state = transition.state
 
-        if self._recording:
-            self._history.append({'action': action,
-                                  'obs': transition.observation,
-                                  'reward': transition.reward
-                                  })
+        self._history.append({
+            'action': action,
+            'obs': transition.observation,
+            'reward': transition.reward
+        })
 
         return EnvironmentInteraction(
             transition.observation, transition.reward, transition.terminal
@@ -221,7 +211,7 @@ class Tiger(Environment, POUCTSimulator):
         for step in self._history[1:-1]:
             descr = descr + to_string(step["obs"][1])
 
-        self.logger.log(
+        self.log(
             LogLevel.V2,
             f"{descr}, opened {to_string(self._history[-1]['action'])}"
         )

@@ -192,6 +192,15 @@ class POUCTSimulator(abc.ABC):
 
         """
 
+    @property
+    @abc.abstractmethod
+    def observation_space(self) -> DiscreteSpace:
+        """ returns size of domain observation space
+
+        RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space
+
+        """
+
     @abc.abstractmethod
     def simulation_step(self, state: Any, action: int) -> POUCTInteraction:
         """ generates a transition

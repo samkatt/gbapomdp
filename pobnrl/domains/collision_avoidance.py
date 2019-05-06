@@ -12,7 +12,7 @@ from misc import DiscreteSpace, POBNRLogger, LogLevel
 
 
 # pylint: disable=too-many-instance-attributes
-class CollisionAvoidance(Environment, POUCTSimulator):
+class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
     """ the collision avoidance environment
 
 
@@ -25,8 +25,6 @@ class CollisionAvoidance(Environment, POUCTSimulator):
     and the obstacles coordinate with some noise.
 
     """
-
-    logger = POBNRLogger(__name__)
 
     # const
     BLOCK_MOVE_PROB = .5
@@ -46,6 +44,8 @@ class CollisionAvoidance(Environment, POUCTSimulator):
 
         assert domain_size > 0, "Domain size must be > 0"
         assert domain_size % 2 == 1, "Domain size must be odd"
+
+        POBNRLogger.__init__(self)
 
         self._verbose = verbose
         self._size = domain_size
@@ -263,4 +263,4 @@ class CollisionAvoidance(Environment, POUCTSimulator):
                 f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
                 f"({step['state']['obstacle']}: {step['obs'][0]})"
 
-        self.logger.log(LogLevel.V2, descr)
+        self.log(LogLevel.V2, descr)

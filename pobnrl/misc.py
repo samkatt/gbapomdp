@@ -64,13 +64,11 @@ class POBNRLogger:
 
         cls._level = level
 
-    def __init__(self, name: str):
-        """ creates a logger with given name
+    def __init__(self, name: str = None):
+        """ creates a logger """
 
-        Args:
-             name: (`str`): the name of the logger
-
-        """
+        if name is None:
+            name = self.__class__.__name__
 
         self.logger = logging.Logger(name)
 
@@ -96,6 +94,19 @@ class POBNRLogger:
     def disable_logging(self):
         """ disable logger """
         self._enabled = False
+
+    @classmethod
+    def log_is_on(cls, lvl: LogLevel) -> bool:
+        """ returns whether logging is on for given level
+
+        Args:
+             lvl: (`LogLevel`): level to check
+
+        RETURNS (`bool`): True if messages with this log level would be printed
+
+        """
+
+        return lvl.value >= cls._level.value
 
 
 # please, for the love of everything good in this world, don't refer to this
