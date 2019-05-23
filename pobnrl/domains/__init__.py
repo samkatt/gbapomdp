@@ -15,7 +15,7 @@ def create_environment(
         verbose: int) -> Environment:
     """ the factory function to constructenvironmentss
 
-    TODO: rename to create_domains
+    TODO: rename to create_domain
 
     Args:
          domain_name: (`str`): determines which domain is created

@@ -23,10 +23,10 @@ class TestTiger(unittest.TestCase):
         states = [self.env.sample_start_state() for _ in range(0, 20)]
 
         for state in states:
-            self.assertIn(state, [0, 1], 'state should be either 0 or 1')
+            self.assertIn(state[0], [0, 1], 'state should be either 0 or 1')
 
-        self.assertIn(0, states, 'there should be at least one of this state')
-        self.assertIn(1, states, 'there should be at least one of this state')
+        self.assertIn([0], states, 'there should be at least one of this state')
+        self.assertIn([1], states, 'there should be at least one of this state')
 
         obs = [self.env.reset() for _ in range(0, 10)]
         for observation in obs:
@@ -41,7 +41,7 @@ class TestTiger(unittest.TestCase):
         # tests effect of listening
         for _ in range(0, 50):
             step = self.env.step(self.env.LISTEN)
-            self.assertEqual(state, self.env.state)
+            np.testing.assert_array_equal(state, self.env.state)
             self.assertIn(step.observation.tolist(), [[0, 0], [0, 1], [1, 0]])
             self.assertFalse(step.terminal)
             self.assertEqual(step.reward, -1.0)
@@ -56,7 +56,7 @@ class TestTiger(unittest.TestCase):
         # test opening correct door
         for _ in range(0, 5):
             self.env.reset()
-            open_correct_door = self.env.state  # implementation knowledge
+            open_correct_door = self.env.state[0]  # implementation knowledge
             step = self.env.step(open_correct_door)
 
             np.testing.assert_array_equal(step.observation, [0, 0])
@@ -66,7 +66,7 @@ class TestTiger(unittest.TestCase):
         # test opening correct door
         for _ in range(0, 5):
             self.env.reset()
-            open_wrong_door = 1 - self.env.state  # implementation knowledge
+            open_wrong_door = 1 - self.env.state[0]  # implementation knowledge
             step = self.env.step(open_wrong_door)
 
             np.testing.assert_array_equal(step.observation, [0, 0])
@@ -78,11 +78,11 @@ class TestTiger(unittest.TestCase):
 
         start_states = [self.env.sample_start_state() for _ in range(10)]
 
-        self.assertIn(0, start_states)
-        self.assertIn(1, start_states)
+        self.assertIn([0], start_states)
+        self.assertIn([1], start_states)
 
         for state in start_states:
-            self.assertIn(state, [0, 1])
+            self.assertIn(state, [[0], [1]])
 
     def test_space(self):
         """ tests the size of the spaces """

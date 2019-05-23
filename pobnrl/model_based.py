@@ -1,4 +1,4 @@
-""" Run POMCP on partiall ymethods on partially observable domains"""
+""" Run POMCP on partially observable, potentially learned, environments """
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
@@ -19,7 +19,7 @@ def main(conf):
     """
 
     POBNRLogger.set_level(LogLevel.create(conf.verbose))
-    logger = POBNRLogger('pomcp main')
+    logger = POBNRLogger('model based main')
 
     ret_mean = ret_m2 = 0
 
@@ -30,6 +30,21 @@ def main(conf):
     )
 
     sim = env
+
+    # TODO: formalize after debugging
+    if conf.learn == 'true_dynamics_offline':
+
+        from domains import Tiger
+        from domains.learned_environments import PretrainedNeuralPOMDP
+        from misc import DiscreteSpace
+
+        sim = PretrainedNeuralPOMDP(
+            sim,
+            state_space=DiscreteSpace([2]),
+            reward_function=lambda s, a, _: Tiger.LISTEN_REWARD if a == Tiger.LISTEN else Tiger.GOOD_DOOR_REWARD if s == a else Tiger.BAD_DOOR_REWARD,
+            terminal_checker=lambda _, a, __: a != 2,
+            name="tiger_train_net"
+        )
 
     conf.agent_type = "planning"
     agent = create_agent(sim, conf)
@@ -155,6 +170,13 @@ def parse_arguments(args: str = None):
         default=512,
         help='number of particles in belief',
         type=int
+    )
+
+    parser.add_argument(
+        "--learn",
+        choices=['off', 'true_dynamics_offline'],
+        default='off',
+        help='which, if applicable, type of learning to use'
     )
 
     return parser.parse_args(args)  # if args == None, will read cmdline

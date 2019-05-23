@@ -48,17 +48,27 @@ python -h
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
-* implement model-based agent:
-    - implement NNs as POMDP models
-    - implement simulator
-* force state & observations to be from discrete (implement obs2index through observation space)
+* debug 'learned environments' and 'dynamics model'
+    - [x] make tiger work with np.array as state
+* generalize to other domains
+    - [ ] add 'reward' and 'terminal' function in simulator
+    - [ ] implement those functions in all domains
+    - [ ] create a new factory function to create learned environment
+    - [ ] make all domains return np.arrays as state
+* allow online learning
+    - [ ] belief manager can do both 'reset' and 'new_episode' things
+        + [ ] maybe additional function (input) for the belief manager
+        + [ ] create 'rejection belief manager' as a belief manager
+    - [ ] implement importance sampling
+    - [ ] domains or environments can somehow facilitate thins
+        + possibly 'reset state'
+            * default is sample new state
+            * implemented per domain
+* go over TODO and FIXME
+* force state & observations to be from discrete (implement obs2index through
+  observation space)
+* remove all pylint things
 * get ``` mypy --strict ``` working
 * test https://github.ccs.neu.edu/abaisero/gym-pomdps
-* refactoring
-    - class members
-        + conf / settings: directly accessible
-        + public members: properties
-        + implementation details: hidden starting with underscoe
-    + networks and their users
 
 [1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf

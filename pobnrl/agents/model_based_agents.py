@@ -47,8 +47,6 @@ class PrototypeAgent(Agent):
 
         """
 
-        # TODO: not if RL, train instead
-
         self._belief_manager.reset()
 
     def select_action(self) -> int:
@@ -72,7 +70,7 @@ class PrototypeAgent(Agent):
         Will update the belief given the observation (and last action)
 
         Args:
-             observation (`np.ndarray`): the observation
+             observation: (`np.ndarray`): the observation
              reward: (`float`): ignored
              terminal: (`bool`): ignored
 
@@ -87,8 +85,6 @@ def belief_rejection_sampling(
         observation: np.ndarray,
         env: POUCTSimulator) -> ParticleFilter:
     """ Applies belief rejection sampling
-
-    TODO: move somewhere else
 
     Will update the belief by simulating a step in the simulator and using
     rejection sampling on the observation
@@ -121,8 +117,6 @@ def belief_rejection_sampling(
 
 def create_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
-
-    TODO: implement importance_sampling
 
     Args:
          env: (`pobnrl.environments.POUCTSimulator`) simulator

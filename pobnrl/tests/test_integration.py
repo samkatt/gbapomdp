@@ -3,7 +3,7 @@
 import unittest
 
 from model_free import main as mf_main, parse_arguments as mf_parse_arguments
-from pomcp import main as pomcp_main, parse_arguments as pomcp_parse_arguments
+from model_based import main as mb_main, parse_arguments as mb_parse_arguments
 
 
 class TestModelFreeAgents(unittest.TestCase):
@@ -22,10 +22,9 @@ class TestModelFreeAgents(unittest.TestCase):
 
         def_args = ['--episodes=3', '--runs=2', '--horizon=10', '-v=0']
 
-        # pylint: disable=too-many-function-args
         mf_main(mf_parse_arguments(def_args + args))
 
-    def test_domains(self):  # pylint: disable=no-self-use
+    def test_domains(self):
         """ just the default arguments on all domains """
 
         self.run_experiment(['-D=tiger', '--episodes=50'])
@@ -79,7 +78,7 @@ class TestModelFreeAgents(unittest.TestCase):
         self.run_experiment(['-D=cartpole', '--clipping', "--horizon=10000"])
 
 
-class TestPOMCPAgents(unittest.TestCase):
+class TestPOMCP(unittest.TestCase):
     """ runs default PO-UCT with belief experiments """
 
     @staticmethod
@@ -95,10 +94,9 @@ class TestPOMCPAgents(unittest.TestCase):
 
         def_args = ['--runs=2', '--horizon=5', '-v=0']
 
-        # pylint: disable=too-many-function-args
-        pomcp_main(pomcp_parse_arguments(def_args + args))
+        mb_main(mb_parse_arguments(def_args + args))
 
-    def test_domains(self):  # pylint: disable=no-self-use
+    def test_domains(self):
         """ just the default arguments on all discrete domains """
 
         self.run_experiment(['-D=tiger'])
@@ -106,10 +104,15 @@ class TestPOMCPAgents(unittest.TestCase):
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
         self.run_experiment(['--domain_size=5', '-D=chain'])
 
-    def test_seting_sims(self):  # pylint: disable=no-self-use
+    def test_setting_sims(self):
         """ tests setting number of simulations """
 
         self.run_experiment(['-D=tiger', '--num_sims=10'])
+
+    def test_learning_true_dynamics_offline(self):
+        """ tests basic offline learning """
+
+        self.run_experiment(['-D=tiger', '--learn=true_dynamics_offline'])
 
 
 if __name__ == '__main__':

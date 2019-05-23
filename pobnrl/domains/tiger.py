@@ -46,35 +46,36 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         return self._state
 
     @state.setter
-    def state(self, state: int):
+    def state(self, state: np.ndarray):
         """ sets state
 
         Args:
-             state: (`int`):
+             state: (`np.ndarray`): [0] or [1]
 
         """
 
-        assert 2 > state >= 0
+        assert state.shape == (1,)
+        assert 2 > state[0] >= 0
 
         self._state = state
 
     @staticmethod
-    def sample_start_state() -> int:
+    def sample_start_state() -> np.ndarray:
         """ samples a random state (tiger left or right)
 
-        RETURNS (`int`): an initial state (in [0,1])
+        RETURNS (`np.narray`): an initial state (in [[0],[1]])
 
         """
-        return np.random.randint(0, 2)
+        return np.array([np.random.randint(0, 2)])
 
-    def sample_observation(self, state: int, listening: bool) -> np.ndarray:
+    def sample_observation(self, loc: int, listening: bool) -> np.ndarray:
         """ samples an observation, listening stores whether agent is listening
 
         Args:
-             state: (`int`): 0 is tiger left, 1 is tiger right
+             loc: (`int`): 0 is tiger left, 1 is tiger right
              listening: (`bool`): whether the agent is listening
 
-        RETURNS (`np.array`): the observation (hot-encoded)
+        RETURNS (`np.ndarray`): the observation (hot-encoded)
 
         """
         obs = np.zeros(self._obs_space.ndim)
@@ -85,16 +86,16 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
 
         # 1-hot-encoding
         if np.random.random() < self.CORRECT_OBSERVATION_PROB:
-            obs[state] = 1
+            obs[loc] = 1
         else:
-            obs[int(not state)] = 1
+            obs[int(not loc)] = 1
 
         return obs
 
     def reset(self):
         """ resets internal state and return first observation
 
-        resets the intenral state randomly (0 or 1)
+        resets the intenral state randomly ([0] or [1])
         returns [0,0] as a 'null' initial observation
 
         """
@@ -105,18 +106,18 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
             self.display_history()
 
         # record episodes every so often
-        self._history = [copy.deepcopy(self.state)]
+        self._history = [self.state.copy()]
 
         return np.zeros(2)
 
-    def simulation_step(self, state: int, action: int) -> POUCTInteraction:
+    def simulation_step(self, state: np.ndarray, action: int) -> POUCTInteraction:
         """ simulates stepping from state using action. Returns interaction
 
         Will terminate episode when action is to open door,
         otherwise return an observation.
 
         Args:
-             state: (`int`): 0 is tiger left, 1 is tiger right
+             state: (`np.ndarray`): [0] is tiger left, [1] is tiger right
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
         RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
@@ -124,14 +125,14 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         """
 
         if action != self.LISTEN:
-            obs = self.sample_observation(state, False)
+            obs = self.sample_observation(state[0], False)
             terminal = True
-            reward = self.GOOD_DOOR_REWARD if action == state \
+            reward = self.GOOD_DOOR_REWARD if action == state[0] \
                 else self.BAD_DOOR_REWARD
             state = self.sample_start_state()
 
         else:  # not opening door
-            obs = self.sample_observation(state, True)
+            obs = self.sample_observation(state[0], True)
             terminal = False
             reward = self.LISTEN_REWARD
 
@@ -164,11 +165,11 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         )
 
     # pylint: disable=no-self-use
-    def obs2index(self, observation: np.array) -> int:
+    def obs2index(self, observation: np.ndarray) -> int:
         """ projects the observation as an int
 
         Args:
-             observation: (`np.array`): observation to project
+             observation: (`np.ndarray`): observation to project
 
         RETURNS (`int`): int representation of observation
 
@@ -200,14 +201,14 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
             """ action, state or observation to string
 
             Args:
-                 element: (`int`): action, string or observation
+                 element: (`int`): action, state or observation
 
             RETURNS (`str`): string representation of element
 
             """
             return "L" if int(element) == self.LEFT else "R"
 
-        descr = "Tiger (" + to_string(self._history[0]) + ") and heard: "
+        descr = "Tiger (" + to_string(self._history[0][0]) + ") and heard: "
         for step in self._history[1:-1]:
             descr = descr + to_string(step["obs"][1])
 

@@ -276,11 +276,7 @@ def importance_sampling(
 
 
 class BeliefManager(POBNRLogger):
-    """ manages a belief
-
-    TODO: rename to ParticleManager
-
-    """
+    """ manages a belief """
 
     def __init__(
             self,
