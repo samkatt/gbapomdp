@@ -9,10 +9,24 @@ Loss calculations
 """
 
 from collections import deque
+import numpy as np
 from typing import Deque, List, Any
 import random
 
 import tensorflow as tf
+
+
+def softmax_sample(arr: np.array) -> int:
+    """ returns a soft(arg)max sample from `arr`
+
+    Args:
+         arr: (`np.array`): a 1-dimensional numpy array to sample from
+
+    RETURNS (`int`): between 0 ... len(arr)
+
+    """
+    ar_softmax = np.exp(arr - arr.max())
+    return np.random.choice(len(arr), p=ar_softmax / ar_softmax.sum())
 
 
 def loss(q_values, targets, loss_type: str):

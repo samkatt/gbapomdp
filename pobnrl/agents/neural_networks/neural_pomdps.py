@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from agents.neural_networks import two_layer_q_net
+from agents.neural_networks.misc import softmax_sample
 from environments import ActionSpace
 from misc import tf_run, DiscreteSpace
 
@@ -15,21 +16,6 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
     TODO: optionally use simple indices ( check with Andrea about encodings )
 
     """
-
-    @staticmethod
-    def softmax_sample(arr: np.array) -> int:
-        """ returns a soft(arg)max sample from `arr`
-
-        TODO: move somewhere else
-
-        Args:
-             arr: (`np.array`): a 1-dimensional numpy array to sample from
-
-        RETURNS (`int`): between 0 ... len(arr)
-
-        """
-        ar_softmax = np.exp(arr - arr.max())
-        return np.random.choice(len(arr), p=ar_softmax / ar_softmax.sum())
 
     def __init__(  # pylint: disable=too-many-arguments
             self,
@@ -117,7 +103,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
         )[0]  # squeeze batch_size dimension
 
         new_state = [  # softmax sample of each dimension
-            self.softmax_sample(
+            softmax_sample(
                 net_out[sum(self.state_space.size[:i]):
                         sum(self.state_space.size[:i + 1])]
             )
@@ -125,7 +111,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
         ]
 
         obs = [  # softmax sample of each dimension
-            self.softmax_sample(
+            softmax_sample(
                 net_out[self._num_state_out + sum(self.obs_space.size[:i]):
                         self._num_state_out + sum(self.obs_space.size[:i + 1])]
             )

@@ -8,8 +8,7 @@ import unittest
 
 import numpy as np
 
-from agents.neural_networks.misc import ReplayBuffer
-from agents.neural_networks.neural_pomdps import DynamicsModel as DM
+from agents.neural_networks.misc import ReplayBuffer, softmax_sample
 from environments import ActionSpace
 from misc import DiscreteSpace
 
@@ -110,17 +109,17 @@ class TestSoftmax(unittest.TestCase):
     def test_simple(self):
         """ some super easy stuff """
 
-        self.assertEqual(DM.softmax_sample(np.array([1])), 0)
-        self.assertEqual(DM.softmax_sample(np.array([25])), 0)
-        self.assertEqual(DM.softmax_sample(np.array([0, 5])), 1)
-        self.assertEqual(DM.softmax_sample(np.array([100, 0])), 0)
+        self.assertEqual(softmax_sample(np.array([1])), 0)
+        self.assertEqual(softmax_sample(np.array([25])), 0)
+        self.assertEqual(softmax_sample(np.array([0, 5])), 1)
+        self.assertEqual(softmax_sample(np.array([100, 0])), 0)
 
     def test_negative(self):
         """ tests with negative numbers """
 
-        self.assertEqual(DM.softmax_sample(np.array([-10])), 0)
-        self.assertEqual(DM.softmax_sample(np.array([-10, 1])), 1)
-        self.assertEqual(DM.softmax_sample(np.array([-10, -1])), 1)
+        self.assertEqual(softmax_sample(np.array([-10])), 0)
+        self.assertEqual(softmax_sample(np.array([-10, 1])), 1)
+        self.assertEqual(softmax_sample(np.array([-10, -1])), 1)
 
 
 if __name__ == '__main__':
