@@ -32,8 +32,6 @@ class ParticleFilter(abc.ABC):
     def sample(self) -> Any:
         """ randomly returns a particle
 
-        Args:
-
         RETURNS (`Any`): particle
 
         """
@@ -66,8 +64,6 @@ class FlatFilter(ParticleFilter):
 
     def sample(self) -> Any:
         """ randomly returns a particle
-
-        Args:
 
         RETURNS (`Any`): particle
 
@@ -111,8 +107,6 @@ class WeightedParticle():
     def weight(self) -> float:
         """ returns the weight of the particle
 
-        Args:
-
         RETURNS (`float`):
 
         """
@@ -133,8 +127,6 @@ class WeightedParticle():
     @property
     def value(self) -> Any:
         """ returns the value of the particle
-
-        Args:
 
         RETURNS (`Any`):
 
@@ -165,7 +157,6 @@ class WeightedFilter(ParticleFilter):
     def add_particle(self, particle: WeightedParticle):
         """ adds a (weightedfilter.)particle to the filter
 
-
         Args:
              particle: (`WeightedParticle`): weighted particle to be added
 
@@ -178,8 +169,6 @@ class WeightedFilter(ParticleFilter):
 
     def sample(self) -> Any:
         """ randomly returns a particle
-
-        Args:
 
         RETURNS (`Any`): particle
 
@@ -339,10 +328,6 @@ class BeliefManager(POBNRLogger):
     @property
     def belief(self) -> ParticleFilter:
         """ returns the belief
-
-        TODO: rename to particle_filter
-
-        Args:
 
         RETURNS (`ParticleFilter`):
 

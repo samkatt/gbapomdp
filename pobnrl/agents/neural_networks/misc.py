@@ -8,10 +8,11 @@ Loss calculations
 
 """
 
-from collections import deque
-import numpy as np
-from typing import Deque, List, Any
 import random
+
+from collections import deque
+from typing import Deque, List, Any
+import numpy as np
 
 import tensorflow as tf
 

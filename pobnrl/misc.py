@@ -163,14 +163,7 @@ def tf_run(operations, **kwargs):
 
 
 class DiscreteSpace():
-    """ DiscreteSpace discrete uninterupted space of some shape
-
-    TODO: add general Space
-        - model-free methods should not require discrete (obs) spaces
-        - make gymspace implement it
-        - make `this` implement it
-
-    """
+    """ DiscreteSpace discrete uninterupted space of some shape """
 
     def __init__(self, size: Union[List[int], np.ndarray]):
         """ initiates a discrete space of size size

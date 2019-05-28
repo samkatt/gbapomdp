@@ -50,7 +50,7 @@ def main(conf):  # pylint: disable=too-many-locals
             name="tiger_train_net"
         )
     else:
-        assert False, "please set --learn flag"
+        assert False, "please set --learn flag correctly"
 
     agent = create_agent(sim, conf, AgentType.MODELBASED)
 

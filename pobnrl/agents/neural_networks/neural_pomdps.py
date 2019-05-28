@@ -11,11 +11,7 @@ from misc import tf_run, DiscreteSpace
 
 
 class DynamicsModel():  # pylint: disable=too-many-instance-attributes
-    """ A neural network representing POMDP dynamics (s,a) -> p(s',o)
-
-    TODO: optionally use simple indices ( check with Andrea about encodings )
-
-    """
+    """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
 
     def __init__(  # pylint: disable=too-many-arguments
             self,

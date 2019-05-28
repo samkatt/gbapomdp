@@ -48,6 +48,14 @@ python -h
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
+* fixes
+    - [ ] think of domain spaces:
+        + [ ] all should have them, and they should be 'gettable'
+        + [ ] we should be able to account for continuous, maybe?
+        + maybe general space:
+            - model-free methods should not require discrete (obs) spaces
+            - make gymspace implement it
+            - make `this` implement it
 * allow online learning
     - [ ] belief manager can do both 'reset' and 'new_episode' things
         + [ ] maybe additional function (input) for the belief manager
@@ -63,9 +71,11 @@ python -h
     - [ ] create a new factory function to create learned environment
     - [ ] make all domains return np.arrays as state
     - [ ] force state & observations to be from discrete
-  observation space)
 * remove all pylint things
 * get ``` mypy --strict ``` working
 * test https://github.ccs.neu.edu/abaisero/gym-pomdps
+
+#### features
+* use pure indices in learning dynamics (i.e. BA-POMDP)
 
 [1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf
