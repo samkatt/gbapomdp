@@ -52,27 +52,27 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
         self._input_ph = tf.placeholder(
             tf.int32,
             shape=[None, self.state_space.ndim + self.action_space.n],
-            name=name + "_input"
+            name=f"{name}_input"
         )
 
         self._predict = two_layer_q_net(
             tf.cast(self._input_ph, tf.float32),
             n_out=self._num_state_out + self._num_obs_out,
             n_hidden=network_size,
-            scope=name + "_net"
+            scope=f"{name}_net"
         )
 
         # training data holders
         self._train_new_states_ph = tf.placeholder(
             tf.int32,
             shape=[None, self.state_space.ndim],
-            name=name + "_new_states"
+            name=f"{name}_new_states"
         )
 
         self._train_obs_ph = tf.placeholder(
             tf.int32,
             shape=[None, self.obs_space.ndim],
-            name=name + "_obs"
+            name=f"{name}_obs"
         )
 
         # training losses
@@ -84,7 +84,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
                     sum(self.state_space.size[:i]):
                     sum(self.state_space.size[:i + 1])
                 ],
-                name=name + "_state_dim" + str(i)
+                name=f"{name}_state_dim_{i}"
             ) for i in range(self.state_space.ndim)
         ]
 
@@ -96,14 +96,14 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
                     self._num_state_out + sum(self.obs_space.size[:i]):
                     self._num_state_out + sum(self.obs_space.size[:i + 1])
                 ],
-                name=name + "_obs_dim" + str(i)
+                name=f"{name}_obs_dim_{i}"
             ) for i in range(self.obs_space.ndim)
         ]
 
         # combine loss
         self._train_op = optimizer.minimize(
             tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
-            var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name + "_net")
+            var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_net")
         )
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[str, np.ndarray]:

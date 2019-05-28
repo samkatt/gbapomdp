@@ -9,7 +9,6 @@ Contains
 from collections import Counter
 from typing import Any, Callable
 import abc
-import copy
 import random
 
 import numpy as np

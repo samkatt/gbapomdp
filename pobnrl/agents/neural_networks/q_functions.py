@@ -103,25 +103,25 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
         input_shape = (self.history_len, obs_space.ndim)
 
         # training operation place holders
-        self.act_ph = tf.placeholder(tf.int32, [None], name=self.name + '_actions')
-        self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=self.name + '_obs')
-        self.rew_ph = tf.placeholder(tf.float32, [None], name=self.name + '_rewards')
-        self.done_mask_ph = tf.placeholder(tf.bool, [None], name=self.name + '_terminals')
-        self.next_obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=self.name + '_next_obs')
+        self.act_ph = tf.placeholder(tf.int32, [None], name=f"{self.name}_actions")
+        self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f"{self.name}_obs")
+        self.rew_ph = tf.placeholder(tf.float32, [None], name=f"{self.name}_rewards")
+        self.done_mask_ph = tf.placeholder(tf.bool, [None], name=f"{self.name}_terminals")
+        self.next_obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f{"self.name_next_obs")
 
         # define operations to retrieve q and target values
         self.qvalues_fn = q_func(
             self.obs_ph,
             action_space.n,
             conf.network_size,
-            scope=self.name + '_net'
+            scope=f"{self.name}_net"
         )
 
         next_targets_fn = q_func(
             self.next_obs_ph,
             action_space.n,
             conf.network_size,
-            scope=self.name + '_target'
+            scope=f"{self.name}_target"
         )
 
         # define loss
@@ -132,14 +132,14 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
                 self.obs_ph,
                 action_space.n,
                 4,
-                scope=self.name + '_prior'
+                scope=f"{self.name}_prior"
             )
 
             next_prior_vals = networks.two_layer_q_net(
                 self.next_obs_ph,
                 action_space.n,
                 4,
-                scope=self.name + '_prior'
+                scope=f"{self.name}_prior"
             )
 
             scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
@@ -157,7 +157,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
         q_values = tf.gather_nd(
             self.qvalues_fn,
             action_onehot,
-            name=self.name + '_pick_Q'
+            name=f"{self.name}_pick_Q"
         )
 
         targets = tf.where(
@@ -170,7 +170,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_net'
+            scope=f"{self.name}_net"
         )
         gradients, variables = zip(
             *optimizer.compute_gradients(loss, var_list=net_vars)
@@ -185,7 +185,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_target'
+            scope=f"{self.name}_target"
         )
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
@@ -357,21 +357,21 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
 
         # training operation place holders
         self.obs_ph = tf.placeholder(
-            tf.float32, [None, *input_shape], name=self.name + '_obs'
+            tf.float32, [None, *input_shape], name=f"{self.name}_obs"
         )
         self.act_ph = tf.placeholder(
-            tf.int32, [None], name=self.name + '_actions'
+            tf.int32, [None], name=f"{self.name}_actions"
         )
         self.rew_ph = tf.placeholder(
-            tf.float32, [None], name=self.name + '_rewards'
+            tf.float32, [None], name=f"{self.name}_rewards"
         )
         self.done_mask_ph = tf.placeholder(
-            tf.bool, [None], name=self.name + '_terminals'
+            tf.bool, [None], name=f"{self.name}_terminals"
         )
         self.next_obs_ph = tf.placeholder(
             tf.float32,
             [None, *input_shape],
-            name=self.name + '_next_obs'
+            name=f"{self.name}_next_obs"
         )
 
         rnn_cell = tf.nn.rnn_cell.LSTMCell(conf.network_size)
@@ -382,7 +382,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
         )
 
         self.seq_lengths_ph = tf.placeholder(
-            tf.int32, [None], name=self.name + '_seq_len'
+            tf.int32, [None], name=f"{self.name}_seq_len"
         )
 
         # training operation q values and targets
@@ -393,7 +393,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
             self.rnn_state_ph,
             action_space.n,
             conf.network_size,
-            scope=self.name + '_net'
+            scope=f"{self.name}_net"
         )
 
         next_targets_fn, _ = rec_q_func(
@@ -403,7 +403,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
             self.rnn_state_ph,
             action_space.n,
             conf.network_size,
-            scope=self.name + '_target'
+            scope=f"{self.name}_target"
         )
 
         # define loss
@@ -420,7 +420,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
                 None,
                 action_space.n,
                 4,
-                scope=self.name + '_prior'
+                scope=f"{self.name}_prior"
             )
             next_prior_vals, _ = networks.two_layer_rec_q_net(
                 self.next_obs_ph,
@@ -429,7 +429,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
                 None,
                 action_space.n,
                 4,
-                scope=self.name + '_prior'
+                scope=f"{self.name}_prior"
             )
 
             scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
@@ -460,7 +460,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_net'
+            scope=f"{self.name}'_net"
         )
         gradients, variables = zip(
             *optimizer.compute_gradients(loss, var_list=net_vars)
@@ -475,7 +475,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
         update_target_op = []
         target_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=self.name + '_target'
+            scope=f"{self.name}_target"
         )
 
         for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),

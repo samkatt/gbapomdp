@@ -31,13 +31,13 @@ def two_layer_q_net(net_input, n_out: int, n_hidden: int, scope: str):
                 hidden,
                 units=n_hidden,
                 activation=tf.nn.tanh,
-                name=scope + '_hidden_' + str(layer)
+                name=f"{scope}_hidden_{layer}"
             )
 
         qvalues = dense(
             hidden,
             units=n_out,
-            name=scope + '_out'
+            name=f"{scope}_out"
         )
 
     return qvalues
@@ -88,7 +88,7 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
                 hidden,
                 units=n_hidden,
                 activation=tf.nn.tanh,
-                name=scope + '_hidden_' + str(layer)
+                name=f"{scope}_hidden_{layer}"
             )
 
         # handlse the history len of each batch as a single sequence
@@ -98,7 +98,7 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
             inputs=hidden,
             initial_state=init_rnn_state,
             dtype=tf.float32,
-            scope=scope + '_rnn'
+            scope=f"{scope}_rnn"
         )
 
         seq_q_mask = tf.stack(
@@ -109,7 +109,7 @@ def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
         qvalues = dense(
             tf.gather_nd(hidden, seq_q_mask),
             units=n_out,
-            name=scope + '_out'
+            name=f"{scope}_out"
         )
 
     return qvalues, new_rec_state
