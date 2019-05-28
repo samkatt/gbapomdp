@@ -6,7 +6,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
 import tensorflow as tf
 
-from agents import create_agent
+from agents import create_agent, AgentType
 from domains import create_environment
 from episode import run_episode
 from misc import tf_session, tf_run, POBNRLogger, LogLevel
@@ -33,8 +33,7 @@ def main(conf):  # pylint: disable=too-many-locals
         conf.verbose
     )
 
-    conf.agent_type = "model-free"
-    agent = create_agent(env, conf)
+    agent = create_agent(env, conf, AgentType.MODELFREE)
 
     init_op = tf.global_variables_initializer()
 

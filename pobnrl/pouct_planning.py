@@ -5,7 +5,7 @@ from math import sqrt
 import numpy as np
 
 from domains import create_environment
-from agents import create_agent
+from agents import create_agent, AgentType
 from episode import run_episode
 from misc import POBNRLogger, LogLevel
 
@@ -31,8 +31,7 @@ def main(conf):
 
     sim = env
 
-    conf.agent_type = "planning"
-    agent = create_agent(sim, conf)
+    agent = create_agent(sim, conf, AgentType.MODELBASED)
 
     logger.log(LogLevel.V1, f"Running {agent} experiment on {env}")
 

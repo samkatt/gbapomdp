@@ -7,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 
 from domains import create_environment
-from agents import create_agent
+from agents import create_agent, AgentType
 from episode import run_episode
 from misc import POBNRLogger, LogLevel, tf_session, tf_run
 
@@ -52,8 +52,7 @@ def main(conf):  # pylint: disable=too-many-locals
     else:
         assert False, "please set --learn flag"
 
-    conf.agent_type = "planning"
-    agent = create_agent(sim, conf)
+    agent = create_agent(sim, conf, AgentType.MODELBASED)
 
     init_op = tf.global_variables_initializer()
 

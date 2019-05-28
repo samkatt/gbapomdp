@@ -107,7 +107,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
         self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f"{self.name}_obs")
         self.rew_ph = tf.placeholder(tf.float32, [None], name=f"{self.name}_rewards")
         self.done_mask_ph = tf.placeholder(tf.bool, [None], name=f"{self.name}_terminals")
-        self.next_obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f{"self.name_next_obs")
+        self.next_obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f"{self.name}_next_obs")
 
         # define operations to retrieve q and target values
         self.qvalues_fn = q_func(
@@ -447,7 +447,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
         q_values = tf.gather_nd(
             self.qvalues_fn,
             action_onehot,
-            name=self.name + '_pick_Q'
+            name=f"{self.name}_pick_Q"
         )
 
         targets = tf.where(
@@ -460,7 +460,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
 
         net_vars = tf.get_collection(
             tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=f"{self.name}'_net"
+            scope=f"{self.name}_net"
         )
         gradients, variables = zip(
             *optimizer.compute_gradients(loss, var_list=net_vars)

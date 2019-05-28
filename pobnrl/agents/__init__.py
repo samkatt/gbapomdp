@@ -1,5 +1,7 @@
 """ agents in POBNRL """
 
+from enum import Enum
+
 from environments import POUCTSimulator
 
 from .agent import Agent, RandomAgent
@@ -7,10 +9,14 @@ from .model_free_agents import create_agent as create_mf_agent
 from .model_based_agents import create_agent as create_mb_agent
 
 
-def create_agent(sim: POUCTSimulator, conf) -> Agent:
-    """ factory function to construct agents
+class AgentType(Enum):
+    """ AgentType """
+    MODELFREE = 1
+    MODELBASED = 2
 
-    TODO: perhaps take `conf.agent_type` as parameter instead of part of conf
+
+def create_agent(sim: POUCTSimulator, conf, agent_type: AgentType) -> Agent:
+    """ factory function to construct agents
 
     Args:
          sim: (`pobnrl.environments.POUCTSimulator`):
@@ -23,10 +29,10 @@ def create_agent(sim: POUCTSimulator, conf) -> Agent:
     if conf.random_policy:
         return RandomAgent(sim.action_space)
 
-    if conf.agent_type == "model-free":
+    if agent_type == AgentType.MODELFREE:
         return create_mf_agent(sim.action_space, sim.observation_space, conf)
 
-    if conf.agent_type == "planning":
+    if agent_type == AgentType.MODELBASED:
         return create_mb_agent(sim, conf)
 
     raise ValueError("Unknown agent type provided")
