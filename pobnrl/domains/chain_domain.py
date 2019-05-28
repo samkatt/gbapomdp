@@ -162,24 +162,26 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
 
         assert 2 >= action >= 0, "expecting action A or B"
 
+        new_state = state.copy()
+
         # move horizontally
         if action == self._action_mapping[state['x']]:
-            state['x'] += 1
+            new_state['x'] += 1
             reward = -self._move_cost
         else:
-            state['x'] = max(0, state['x'] - 1)  # bound on grid
+            new_state['x'] = max(0, state['x'] - 1)  # bound on grid
             reward = 0
 
         # move vertically
-        state['y'] -= 1
+        new_state['y'] -= 1
 
-        terminal = state['y'] == 0
+        terminal = new_state['y'] == 0
 
-        if terminal and state['x'] == self.size - 1:
+        if terminal and new_state['x'] == self.size - 1:
             reward = 1
 
         return POUCTInteraction(
-            state, self.state2observation(state), reward, terminal
+            new_state, self.state2observation(new_state), reward, terminal
         )
 
     def step(self, action: int) -> EnvironmentInteraction:

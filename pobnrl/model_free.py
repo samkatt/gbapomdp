@@ -114,6 +114,13 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
+        "--domain_size",
+        type=int,
+        default=0,
+        help="size of domain (gridworld is size of grid)"
+    )
+
+    parser.add_argument(
         "--file", "-f",
         default="results.npy",
         help="output file path"
@@ -165,13 +172,6 @@ def parse_arguments(args: str = None):
         "--clipping",
         action='store_true',
         help="whether or not to use clipping in computing loss"
-    )
-
-    parser.add_argument(
-        "--domain_size",
-        type=int,
-        default=0,
-        help="size of domain (gridworld is size of grid)"
     )
 
     parser.add_argument(

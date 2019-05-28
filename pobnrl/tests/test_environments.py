@@ -98,10 +98,13 @@ class TestTiger(unittest.TestCase):
     def test_observation_projection(self):
         """ tests tiger.obs2index """
 
-        self.assertEqual(self.env.obs2index(self.env.reset()), 2)
+        self.assertEqual(self.env.obs2index(self.env.reset()), 0)
 
-        self.assertEqual(self.env.obs2index(np.array([1, 0])), self.env.LEFT)
-        self.assertEqual(self.env.obs2index(np.array([0, 1])), 1)
+        self.assertEqual(self.env.obs2index(np.array([1, 0])), 1)
+        self.assertEqual(self.env.obs2index(np.array([0, 1])), 2)
+
+        self.assertEqual(self.env.obs2index(np.array([0, 0])), 0)
+        self.assertEqual(self.env.obs2index(np.array([1, 1])), 3)
 
 
 class TestGridWorld(unittest.TestCase):

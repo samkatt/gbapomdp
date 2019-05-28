@@ -163,34 +163,36 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         """
         assert 0 <= action < 3
 
+        new_state = state.copy()
+
         # move agent
-        state['agent_x'] -= 1
-        state['agent_y'] = self.bound_in_grid(
+        new_state['agent_x'] -= 1
+        new_state['agent_y'] = self.bound_in_grid(
             state['agent_y'] + self.action_to_move[int(action)]
         )
 
         # move obstacle
         if np.random.random() < self.BLOCK_MOVE_PROB:
             if np.random.random() < .5:
-                state['obstacle'] += 1
+                new_state['obstacle'] += 1
             else:
-                state['obstacle'] -= 1
+                new_state['obstacle'] -= 1
 
-            state['obstacle'] = self.bound_in_grid(state['obstacle'])
+            new_state['obstacle'] = self.bound_in_grid(new_state['obstacle'])
 
         # observation
-        obs = self.generate_observation(state)
+        obs = self.generate_observation(new_state)
 
         # reward and terminal
         reward = 0 if action == 1 else -1
         terminal = False
 
-        if state['agent_x'] == 0:
+        if new_state['agent_x'] == 0:
             terminal = True
-            if state['agent_y'] == state['obstacle']:
+            if new_state['agent_y'] == new_state['obstacle']:
                 reward = self.COLLISION_REWARD
 
-        return POUCTInteraction(state, obs, reward, terminal)
+        return POUCTInteraction(new_state, obs, reward, terminal)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ updates the state and return observed transitions

@@ -1,16 +1,18 @@
-""" Run POMCP on partially observable, potentially learned, environments """
+""" Run POMCP on partially observable, known, environments """
+
+import time
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from math import sqrt
 import numpy as np
+import tensorflow as tf
 
 from domains import create_environment
 from agents import create_agent
 from episode import run_episode
-from misc import POBNRLogger, LogLevel
+from misc import POBNRLogger, LogLevel, tf_session, tf_run
 
 
-def main(conf):
+def main(conf):  # pylint: disable=too-many-locals
     """ runs PO-UCT planner with a belief on given configurations
 
     Args:
@@ -21,7 +23,9 @@ def main(conf):
     POBNRLogger.set_level(LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
 
-    ret_mean = ret_m2 = 0
+    cur_time = time.time()
+    result_mean = np.zeros(conf.episodes)
+    ret_m2 = np.zeros(conf.episodes)
 
     env = create_environment(
         conf.domain,
@@ -45,38 +49,63 @@ def main(conf):
             terminal_checker=lambda _, a, __: a != 2,
             name="tiger_train_net"
         )
+    else:
+        assert False, "please set --learn flag"
 
     conf.agent_type = "planning"
     agent = create_agent(sim, conf)
 
+    init_op = tf.global_variables_initializer()
+
     logger.log(LogLevel.V1, f"Running {agent} experiment on {env}")
 
-    for run in range(conf.runs):
+    with tf_session(conf.use_gpu):
+        for run in range(conf.runs):
 
-        ret = run_episode(env, agent, conf)
+            tf_run(init_op)
+            agent.reset()
+            sim.learn_dynamics_offline()
 
-        # update mean and variance
-        delta = ret - ret_mean
-        ret_mean += delta / (run + 1)
-        delta_2 = ret - ret_mean
-        ret_m2 += delta * delta_2
+            tmp_res = np.zeros(conf.episodes)
 
-        logger.log(LogLevel.V1, f"run {run}, avg return {ret_mean}")
+            logger.log(LogLevel.V1, f"Starting run {run}")
+            for episode in range(conf.episodes):
 
-        ret_var = 0 if run < 2 else ret_m2 / (run - 1)
-        stder = 0 if run < 2 else sqrt(ret_var / run)
+                tmp_res[episode] = run_episode(env, agent, conf)
 
-        np.savetxt(
-            conf.file,
-            [[
-                ret_mean,
+                if episode > 0 and time.time() - cur_time > 5:
+
+                    logger.log(
+                        LogLevel.V1,
+                        f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode])}"
+                    )
+
+                    cur_time = time.time()
+
+            # update mean and variance
+            delta = tmp_res - result_mean
+            result_mean += delta / (run + 1)
+            delta_2 = tmp_res - result_mean
+            ret_m2 += delta * delta_2
+
+            ret_var = np.zeros(conf.episodes) if run < 2 else ret_m2 / (run - 1)
+            stder = np.zeros(conf.episodes) if run < 2 else np.sqrt(ret_var / run)
+
+            # process results into rows of for each episode
+            # return avg, return var, return #, return stder
+            summary = np.transpose([
+                result_mean,
                 ret_var,
-                run + 1,
+                [run + 1] * conf.episodes,
                 stder
-            ]],
-            delimiter=', ',
-            header=f"{conf}\nreturn mean, return var, return count, return stder"
-        )
+            ])
+
+            np.savetxt(
+                conf.file,
+                summary,
+                delimiter=', ',
+                header=f"{conf}\nreturn mean, return var, return count, return stder"
+            )
 
 
 def parse_arguments(args: str = None):
@@ -132,6 +161,13 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
+        "--episodes",
+        default=1000,
+        type=int,
+        help="number of episodes to run"
+    )
+
+    parser.add_argument(
         "--gamma",
         default=0.95,
         type=float,
@@ -174,9 +210,36 @@ def parse_arguments(args: str = None):
 
     parser.add_argument(
         "--learn",
-        choices=['off', 'true_dynamics_offline'],
-        default='off',
+        choices=['true_dynamics_offline'],
+        default='true_dynamics_offline',
         help='which, if applicable, type of learning to use'
+    )
+
+    parser.add_argument(
+        "--learning_rate", "--alpha",
+        default=1e-4,
+        type=float,
+        help="learning rate of the policy gradient descent"
+    )
+
+    parser.add_argument(
+        "--network_size",
+        help='the number of hidden nodes in the q-network',
+        default=64,
+        type=int
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        default=32,
+        type=int,
+        help="size of learning batch"
+    )
+
+    parser.add_argument(
+        "--use_gpu",
+        action='store_true',
+        help='enables gpu usage'
     )
 
     return parser.parse_args(args)  # if args == None, will read cmdline

@@ -1,7 +1,6 @@
 """ tiger environment """
 
 from typing import List, Any
-import copy
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
@@ -127,16 +126,17 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         if action != self.LISTEN:
             obs = self.sample_observation(state[0], False)
             terminal = True
+            new_state = self.sample_start_state()
             reward = self.GOOD_DOOR_REWARD if action == state[0] \
                 else self.BAD_DOOR_REWARD
-            state = self.sample_start_state()
 
         else:  # not opening door
             obs = self.sample_observation(state[0], True)
             terminal = False
             reward = self.LISTEN_REWARD
+            new_state = state.copy()
 
-        return POUCTInteraction(state, obs, reward, terminal)
+        return POUCTInteraction(new_state, obs, reward, terminal)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the tiger environment given action
@@ -174,15 +174,8 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         RETURNS (`int`): int representation of observation
 
         """
-        assert self._obs_space.contains(observation), \
-            f"{observation} not in {self._obs_space}"
 
-        assert np.sum(observation) in [0, 1], "wrong value for observation"
-
-        if observation[0] == 1:
-            return 0
-
-        return 2 - observation[1]  # 2 if observation[1] is **also** 0
+        return self._obs_space.index_of(observation)
 
     @property
     def action_space(self) -> ActionSpace:

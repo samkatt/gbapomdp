@@ -84,7 +84,10 @@ class FlatFilter(ParticleFilter):
         return len(self._particles)
 
     def __repr__(self) -> str:
-        return f"FlatFilter with: {Counter(self._particles)}"
+        try:
+            return f"FlatFilter with: {Counter(self._particles)}"
+        except TypeError:
+            return f"FlatFilter of size {self.size}"
 
 
 class WeightedParticle():
@@ -236,7 +239,7 @@ def rejection_sampling(
 
     while new_pf.size < particle_filter.size:
 
-        sample = copy.deepcopy(particle_filter.sample())
+        sample = particle_filter.sample()
         result = process_sample_f(sample)
 
         if accept_f(result):

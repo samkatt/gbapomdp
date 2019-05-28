@@ -182,6 +182,7 @@ class DiscreteSpace():
 
         self.size = np.array(size)
         self.num_elements = np.prod(self.size)
+        self._indexing_steps = np.array([np.prod(self.size[:i]) for i in range(len(self.size))]).astype(int)
 
     @property
     def n(self) -> int:  # pylint: disable=invalid-name
@@ -224,6 +225,11 @@ class DiscreteSpace():
 
         """
         return (np.random.random(self.ndim) * self.size).astype(int)
+
+    def index_of(self, elem: np.ndarray) -> int:
+        """ TODO: doc & test """
+        assert self.contains(elem)
+        return np.dot(elem, self._indexing_steps)
 
     def __repr__(self):
         return f"DiscreteSpace of size {self.size}"

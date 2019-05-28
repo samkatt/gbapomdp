@@ -4,6 +4,7 @@ import unittest
 
 from model_free import main as mf_main, parse_arguments as mf_parse_arguments
 from model_based import main as mb_main, parse_arguments as mb_parse_arguments
+from pouct_planning import main as pouct_main, parse_arguments as pouct_parse_arguments
 
 
 class TestModelFreeAgents(unittest.TestCase):
@@ -94,7 +95,7 @@ class TestPOMCP(unittest.TestCase):
 
         def_args = ['--runs=2', '--horizon=5', '-v=0']
 
-        mb_main(mb_parse_arguments(def_args + args))
+        pouct_main(pouct_parse_arguments(def_args + args))
 
     def test_domains(self):
         """ just the default arguments on all discrete domains """
@@ -108,6 +109,25 @@ class TestPOMCP(unittest.TestCase):
         """ tests setting number of simulations """
 
         self.run_experiment(['-D=tiger', '--num_sims=10'])
+
+
+class TestModelBasedRL(unittest.TestCase):
+    """ tests the model_base.py entry point """
+
+    @staticmethod
+    def run_experiment(args):
+        """ runs an experiment with args as configuration
+
+        Adds some default arguments to the experiment
+
+        Args:
+             args: ['--arg=val', ...] the argument to run
+
+        """
+
+        def_args = ['--runs=2', '--horizon=5', '-v=0', '--episodes=3']
+
+        mb_main(mb_parse_arguments(def_args + args))
 
     def test_learning_true_dynamics_offline(self):
         """ tests basic offline learning """

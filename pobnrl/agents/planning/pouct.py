@@ -1,7 +1,6 @@
 """ Particle Observable UCT """
 
 from typing import List, Dict, Tuple
-import copy
 import random
 
 import numpy as np
@@ -145,7 +144,7 @@ class POUCT(POBNRLogger):
 
         # build tree
         for _ in range(self.num_sims):
-            self._traverse_tree(copy.deepcopy(belief.sample()), root)
+            self._traverse_tree(belief.sample(), root)
 
         self.log(LogLevel.V3, f"POUCT: converged to Q: {root.avg_values}")
 

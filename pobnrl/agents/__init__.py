@@ -10,6 +10,8 @@ from .model_based_agents import create_agent as create_mb_agent
 def create_agent(sim: POUCTSimulator, conf) -> Agent:
     """ factory function to construct agents
 
+    TODO: perhaps take `conf.agent_type` as parameter instead of part of conf
+
     Args:
          sim: (`pobnrl.environments.POUCTSimulator`):
          conf: (`namespace`): configurations

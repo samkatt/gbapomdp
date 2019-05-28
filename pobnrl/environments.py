@@ -39,7 +39,7 @@ class ActionSpace(DiscreteSpace):
 
         """
 
-        assert self.contains(np.array([action]))
+        assert self.contains(action)
 
         one_hot_rep = np.zeros(self.size)
         one_hot_rep[action] = 1
@@ -48,6 +48,19 @@ class ActionSpace(DiscreteSpace):
 
     def __repr__(self):
         return f"ActionSpace of size {self.n}"
+
+    def contains(self, action: int) -> bool:
+        """ returns whether `this` contains action
+
+        TODO: test
+
+        Args:
+             action: (`int`): an action
+
+        RETURNS (`bool`): true if in `this`
+
+        """
+        return super().contains(np.array([action]))
 
 
 class GymSpace():

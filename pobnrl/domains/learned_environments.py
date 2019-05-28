@@ -28,7 +28,7 @@ def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
             terminal = step.terminal
 
             replay_buffer.store(
-                (state.copy(), action, step.state.copy(), step.observation.copy()),
+                (state.copy(), action, step.state.copy(), step.observation),
                 terminal
             )
 
@@ -60,7 +60,7 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
         self.domain_action_space = domain.action_space
         self.domain_obs_space = domain.observation_space
 
-        replay_buffer = generate_replay_buffer(domain)
+        self.replay_buffer = generate_replay_buffer(domain)
 
         self._models = [
             DynamicsModel(
@@ -73,10 +73,13 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
             ) for i in range(10)
         ]
 
-        for model in self._models:
-            for _ in range(100):  # TOOD: get from conf
+    def learn_dynamics_offline(self):
+        """ learn the dynamics function offline, given stored interactions """
 
-                batch = replay_buffer.sample(batch_size=32)
+        for model in self._models:
+            for _ in range(1000):  # TODO: get from conf
+
+                batch = self.replay_buffer.sample(batch_size=32)
 
                 # grab the elements from the batch
                 states = np.array([seq[0][0] for seq in batch])
@@ -84,10 +87,11 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
                 new_states = np.array([seq[0][2] for seq in batch])
                 observations = np.array([seq[0][3] for seq in batch])
 
-                model.batch_update(states, actions, observations, new_states)
+                model.batch_update(states, actions, new_states, observations)
 
     def sample_start_state(self) -> 'AugmentedState':
         """ returns a sample initial (internal) state and some neural network """
+
         return self.AugmentedState(
             self.sample_domain_start_state(),
             np.random.choice(self._models)
@@ -112,8 +116,10 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
     def obs2index(self, observation: np.ndarray) -> int:
         return self.domain_obs2index(observation)
 
+    @property
     def action_space(self) -> ActionSpace:
         return self.domain_action_space
 
+    @property
     def observation_space(self) -> DiscreteSpace:
         return self.domain_obs_space
