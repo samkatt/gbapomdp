@@ -7,7 +7,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import POUCTSimulator, POUCTInteraction
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from misc import DiscreteSpace, POBNRLogger
 
 
 # pylint: disable=too-many-instance-attributes
@@ -244,4 +244,4 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         for step in self._history:
             descr += f"->{step}"
 
-        self.log(LogLevel.V2, f"agent travelled {descr}")
+        self.log(POBNRLogger.LogLevel.V2, f"agent travelled {descr}")

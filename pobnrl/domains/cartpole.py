@@ -5,7 +5,7 @@ import time
 import gym
 
 from environments import Environment, EnvironmentInteraction, ActionSpace, GymSpace
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from misc import DiscreteSpace, POBNRLogger
 
 
 class Cartpole(Environment, POBNRLogger):
@@ -42,7 +42,7 @@ class Cartpole(Environment, POBNRLogger):
         """ returns whether a recording should be shown """
         if time.time() - self._cur_time > 20:
             self._cur_time = time.time()
-            self.log(LogLevel.V2, 'showing recording..')
+            self.log(POBNRLogger.LogLevel.V2, 'showing recording..')
             return True
 
         return False

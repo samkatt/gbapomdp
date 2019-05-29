@@ -19,32 +19,30 @@ import numpy as np
 import tensorflow as tf
 
 
-# TODO: move into POBNRLogger?
-class LogLevel(Enum):
-    """ log levels """
-    V0 = 1000
-    V1 = 30
-    V2 = 20
-    V3 = 15
-    V4 = 10
-    V5 = 5
-
-    @staticmethod
-    def create(level: int) -> 'LogLevel':
-        """ creates a loglevel from string
-
-        Args:
-             level: (`int`): in [0 ... 5]
-
-        RETURNS (`pobnrl.misc.LogLevel`):
-
-        """
-
-        return LogLevel['V' + str(level)]
-
-
 class POBNRLogger:
     """ logger, inherit in order to use logging function with self.log() """
+
+    class LogLevel(Enum):
+        """ log levels """
+        V0 = 1000
+        V1 = 30
+        V2 = 20
+        V3 = 15
+        V4 = 10
+        V5 = 5
+
+        @staticmethod
+        def create(level: int) -> 'POBNRLogger.LogLevel':
+            """ creates a loglevel from string
+
+            Args:
+                 level: (`int`): in [0 ... 5]
+
+            RETURNS (`pobnrl.misc.POBNRLogger.LogLevel`):
+
+            """
+
+            return POBNRLogger.LogLevel['V' + str(level)]
 
     _level = LogLevel.V0
     registered_loggers: List['POBNRLogger'] = []
@@ -135,7 +133,7 @@ def tf_session(use_gpu: bool):
     global _SESS  # pylint: disable=global-statement
     assert _SESS is None, "Please initiate tf_wrapper only once"
 
-    logger.log(LogLevel.V1, "initiating tensorflow session")
+    logger.log(POBNRLogger.LogLevel.V1, "initiating tensorflow session")
 
     tf_config = tf.ConfigProto(
         device_count={'GPU': int(use_gpu)},
@@ -150,7 +148,7 @@ def tf_session(use_gpu: bool):
 
     # __exit__()
 
-    logger.log(LogLevel.V1, "closing tensorflow session")
+    logger.log(POBNRLogger.LogLevel.V1, "closing tensorflow session")
 
     _SESS.close()
     _SESS = None

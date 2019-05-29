@@ -6,7 +6,7 @@ import numpy as np
 
 from environments import POUCTSimulator, POUCTInteraction
 from domains.learned_environments import PretrainedNeuralPOMDP
-from misc import POBNRLogger, LogLevel
+from misc import POBNRLogger
 
 from .agent import Agent
 from .planning.particle_filters import BeliefManager, rejection_sampling
@@ -52,7 +52,7 @@ class PrototypeAgent(Agent, POBNRLogger):
 
         """
 
-        self.log(LogLevel.V2, "Resetting agent for next episode")
+        self.log(POBNRLogger.LogLevel.V2, "Resetting agent for next episode")
         self._belief_manager.episode_reset()
 
     def select_action(self) -> int:
@@ -85,44 +85,6 @@ class PrototypeAgent(Agent, POBNRLogger):
         self._belief_manager.update(self._last_action, observation)
 
 
-def belief_rejection_sampling(
-        particle_filter: ParticleFilter,
-        action: int,
-        observation: np.ndarray,
-        env: POUCTSimulator) -> ParticleFilter:
-    """ Applies belief rejection sampling
-
-    TODO: move inside `RejectionSamplingBelieveManager`
-
-    Will update the belief by simulating a step in the simulator and using
-    rejection sampling on the observation
-
-    Args:
-         particle_filter: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): current belief
-         env: (`pobnrl.environments.POUCTSimulator`): simulator as a dynamic model
-         action: (`int`): taken action
-         observation: (`np.ndarray`): perceived observation
-
-    RETURNS (`pobnrl.agents.planning.particle_filters.ParticleFilter`): new belief
-
-    """
-
-    env_step = partial(env.simulation_step, action=action)
-
-    def extract_state(interaction: POUCTInteraction) -> Any:
-        return interaction.state
-
-    def observation_equals(interaction: POUCTInteraction) -> bool:
-        return np.all(interaction.observation == observation)
-
-    return rejection_sampling(
-        particle_filter,
-        process_sample_f=env_step,
-        accept_f=observation_equals,
-        extract_particle_f=extract_state,
-    )
-
-
 class RejectionSamplingBelieveManager(BeliefManager):
     """ believe manager that uses rejection sampling """
 
@@ -144,8 +106,44 @@ class RejectionSamplingBelieveManager(BeliefManager):
             num_particles=num_particles,
             filter_type=FlatFilter,
             sample_particle_f=sim.sample_start_state,
-            update_belief_f=partial(belief_rejection_sampling, env=sim),
+            update_belief_f=partial(self.update_belief, env=sim),
             reset_particle_f=reset_particle_f
+        )
+
+    @staticmethod
+    def update_belief(
+            particle_filter: ParticleFilter,
+            action: int,
+            observation: np.ndarray,
+            env: POUCTSimulator) -> ParticleFilter:
+        """ Applies belief rejection sampling
+
+        Will update the belief by simulating a step in the simulator and using
+        rejection sampling on the observation
+
+        Args:
+        particle_filter: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): current belief
+        env: (`pobnrl.environments.POUCTSimulator`): simulator as a dynamic model
+        action: (`int`): taken action
+        observation: (`np.ndarray`): perceived observation
+
+        RETURNS (`pobnrl.agents.planning.particle_filters.ParticleFilter`): new belief
+
+        """
+
+        env_step = partial(env.simulation_step, action=action)
+
+        def extract_state(interaction: POUCTInteraction) -> Any:
+            return interaction.state
+
+        def observation_equals(interaction: POUCTInteraction) -> bool:
+            return np.all(interaction.observation == observation)
+
+        return rejection_sampling(
+            particle_filter,
+            process_sample_f=env_step,
+            accept_f=observation_equals,
+            extract_particle_f=extract_state,
         )
 
 

@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
-from misc import tf_run, POBNRLogger, LogLevel, DiscreteSpace
+from misc import tf_run, POBNRLogger, DiscreteSpace
 
 
 class QNetInterface(abc.ABC):
@@ -235,7 +235,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
 
         if self.replay_buffer.size < self.batch_size:
             self.log(
-                LogLevel.V2,
+                POBNRLogger.LogLevel.V2,
                 f"Network {self.name} cannot batch update due to small buf"
             )
             return
@@ -534,7 +534,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
 
         if self.replay_buffer.size < self.batch_size:
             self.log(
-                LogLevel.V2,
+                POBNRLogger.LogLevel.V2,
                 f"Network {self.name} cannot batch update due to small buf"
             )
             return

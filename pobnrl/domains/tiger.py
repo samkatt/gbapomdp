@@ -5,7 +5,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import POUCTSimulator, POUCTInteraction
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from misc import DiscreteSpace, POBNRLogger
 
 
 class Tiger(Environment, POUCTSimulator, POBNRLogger):
@@ -101,7 +101,7 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
 
         self._state = self.sample_start_state()
 
-        if self.log_is_on(LogLevel.V2) and self._history:
+        if self.log_is_on(POBNRLogger.LogLevel.V2) and self._history:
             self.display_history()
 
         # record episodes every so often
@@ -206,6 +206,6 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
             descr = descr + to_string(step["obs"][1])
 
         self.log(
-            LogLevel.V2,
+            POBNRLogger.LogLevel.V2,
             f"{descr}, opened {to_string(self._history[-1]['action'])}"
         )

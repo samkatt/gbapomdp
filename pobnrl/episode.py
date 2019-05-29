@@ -10,6 +10,8 @@ def run_episode(
         conf) -> float:
     """ runs a single episode of the agent in the environmnet
 
+    NOTE: assumes env and agent has been reset
+
     Args:
          env: (`pobnrl.environments.Environment`):
          agent: (`pobnrl.agents.agent.Agent`):
@@ -18,9 +20,6 @@ def run_episode(
     RETURNS (`float`): discounted return
 
     """
-
-    obs = env.reset()
-    agent.episode_reset(obs)
 
     discounted_return = 0
     discount = 1  # discount accumulates by multiplying with conf.gamma

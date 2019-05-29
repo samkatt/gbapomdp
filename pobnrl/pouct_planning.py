@@ -7,7 +7,7 @@ import numpy as np
 from domains import create_environment
 from agents import create_agent, AgentType
 from episode import run_episode
-from misc import POBNRLogger, LogLevel
+from misc import POBNRLogger
 
 
 def main(conf):
@@ -18,7 +18,7 @@ def main(conf):
 
     """
 
-    POBNRLogger.set_level(LogLevel.create(conf.verbose))
+    POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
 
     ret_mean = ret_m2 = 0
@@ -33,10 +33,13 @@ def main(conf):
 
     agent = create_agent(sim, conf, AgentType.PLANNING)
 
-    logger.log(LogLevel.V1, f"Running {agent} experiment on {env}")
+    logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 
     agent.reset()
     for run in range(conf.runs):
+
+        env.reset()
+        agent.reset()
 
         ret = run_episode(env, agent, conf)
 
@@ -46,7 +49,7 @@ def main(conf):
         delta_2 = ret - ret_mean
         ret_m2 += delta * delta_2
 
-        logger.log(LogLevel.V1, f"run {run}, avg return {ret_mean}")
+        logger.log(POBNRLogger.LogLevel.V1, f"run {run}, avg return {ret_mean}")
 
         ret_var = 0 if run < 2 else ret_m2 / (run - 1)
         stder = 0 if run < 2 else sqrt(ret_var / run)

@@ -6,7 +6,7 @@ import random
 import numpy as np
 
 from environments import POUCTSimulator
-from misc import POBNRLogger, LogLevel
+from misc import POBNRLogger
 
 from .particle_filters import ParticleFilter
 
@@ -146,7 +146,7 @@ class POUCT(POBNRLogger):
         for _ in range(self.num_sims):
             self._traverse_tree(belief.sample(), root)
 
-        self.log(LogLevel.V3, f"POUCT: converged to Q: {root.avg_values}")
+        self.log(POBNRLogger.LogLevel.V3, f"POUCT: converged to Q: {root.avg_values}")
 
         # pick best action from root
         return np.argmax(root.avg_values)

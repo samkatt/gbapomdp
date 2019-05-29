@@ -8,7 +8,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import POUCTSimulator, POUCTInteraction
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from misc import DiscreteSpace, POBNRLogger
 
 
 # pylint: disable=too-many-instance-attributes
@@ -265,4 +265,4 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
                 f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
                 f"({step['state']['obstacle']}: {step['obs'][0]})"
 
-        self.log(LogLevel.V2, descr)
+        self.log(POBNRLogger.LogLevel.V2, descr)

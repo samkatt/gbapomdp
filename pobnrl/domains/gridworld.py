@@ -1,15 +1,13 @@
 """ gridworld environment """
 
-from typing import List, Tuple, Any, Set
-import copy
+from typing import List, Tuple, Set
 import random
-import time
 
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import POUCTSimulator, POUCTInteraction
-from misc import DiscreteSpace, POBNRLogger, LogLevel
+from misc import DiscreteSpace, POBNRLogger
 
 
 class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
@@ -35,7 +33,7 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
     SLOW_MOVE_SUCCESS_PROB = .15
 
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
-    action_to_string = ["^^^", ">>>", "vvv", "<<<"]
+    action_to_string = ["UP", "RIGHT", "DOWN", "LEFT"]
 
     def __init__(self, domain_size: int, verbose: bool):
         """ creates a gridworld of provided size and verbosity
@@ -53,10 +51,6 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         # confs
         self._verbose = verbose
         self._size = domain_size
-
-        self._last_recording_time = 0
-        self._recording = False
-        self._history: List[Any] = []
 
         # generate multinomial probabilities for the observation function (1-D)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -142,7 +136,6 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         assert goal_pos in self.goals
         assert agent_pos.shape == (2,)
         assert 0 <= agent_pos[0] < self.size and 0 <= agent_pos[1] < self.size
-        assert not self._recording
 
         self._state = [agent_pos, goal_pos]
 
@@ -230,16 +223,8 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
 
         self._state = self.sample_start_state()
 
-        # if we were recording, output the history and stop
-        if self._recording:
-            self.display_history()
-            self._recording = False
-
-        # record episodes every so often
-        if self._verbose and time.time() - self._last_recording_time > 15:
-            self._last_recording_time = time.time()
-            self._history = [copy.deepcopy(self.state)]
-            self._recording = True
+        if self.log_is_on(POBNRLogger.LogLevel.V2):
+            self.log(POBNRLogger.LogLevel.V2, f"Starting in {self.state[0]} with goal {self.state[1]}")
 
         return self.generate_observation(*self.state)
 
@@ -272,13 +257,13 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
             agent_pos = self.bound_in_grid(
                 agent_pos + self.action_to_vec[int(action)])
 
-        state = [agent_pos, goal_pos]
+        new_state = [agent_pos, goal_pos]
 
-        obs = self.generate_observation(*state)
+        obs = self.generate_observation(*new_state)
         reward = 1 if terminal else 0
 
         return POUCTInteraction(
-            state, obs, reward, terminal
+            new_state, obs, reward, terminal
         )
 
     def step(self, action: int) -> EnvironmentInteraction:
@@ -296,12 +281,11 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         transition = self.simulation_step(self.state, action)
         self._state = transition.state
 
-        if self._recording:
-            self._history.append({
-                'action': action,
-                'obs': transition.observation,
-                'reward': transition.reward,
-                'state': copy.deepcopy(self.state)})
+        if self.log_is_on(POBNRLogger.LogLevel.V2):
+            self.log(
+                POBNRLogger.LogLevel.V2,
+                f"Move {self.action_to_string[int(action)]} to {transition.state[0]} and"
+                f" observe {transition.observation[:2]} (goal {np.argmax(transition.observation[2:])})")
 
         return EnvironmentInteraction(
             transition.observation, transition.reward, transition.terminal
@@ -347,4 +331,4 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
             descr += f" and {self.action_to_string[int(step['action'])]} " \
                 + f"to:\n{step['state'][0]}({step['obs'][:2]})"
 
-        self.log(LogLevel.V2, descr)
+        self.log(POBNRLogger.LogLevel.V2, descr)

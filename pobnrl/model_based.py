@@ -9,7 +9,7 @@ import tensorflow as tf
 from domains import create_environment
 from agents import create_agent, AgentType
 from episode import run_episode
-from misc import POBNRLogger, LogLevel, tf_session, tf_run
+from misc import POBNRLogger, tf_session, tf_run
 
 
 def main(conf):  # pylint: disable=too-many-locals
@@ -20,7 +20,7 @@ def main(conf):  # pylint: disable=too-many-locals
 
     """
 
-    POBNRLogger.set_level(LogLevel.create(conf.verbose))
+    POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
 
     cur_time = time.time()
@@ -56,7 +56,7 @@ def main(conf):  # pylint: disable=too-many-locals
 
     init_op = tf.global_variables_initializer()
 
-    logger.log(LogLevel.V1, f"Running {agent} experiment on {env}")
+    logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 
     with tf_session(conf.use_gpu):
         for run in range(conf.runs):
@@ -67,15 +67,18 @@ def main(conf):  # pylint: disable=too-many-locals
 
             tmp_res = np.zeros(conf.episodes)
 
-            logger.log(LogLevel.V1, f"Starting run {run}")
+            logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}")
             for episode in range(conf.episodes):
+
+                env.reset()
+                agent.episode_reset(None)
 
                 tmp_res[episode] = run_episode(env, agent, conf)
 
                 if episode > 0 and time.time() - cur_time > 5:
 
                     logger.log(
-                        LogLevel.V1,
+                        POBNRLogger.LogLevel.V1,
                         f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode])}"
                     )
 
