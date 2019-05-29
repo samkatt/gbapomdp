@@ -49,7 +49,12 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
             state_space: DiscreteSpace,
             reward_function: Callable[[np.ndarray, int, np.ndarray], float],
             terminal_checker: Callable[[np.ndarray, int, np.ndarray], bool],
+            conf,
             name: str):
+
+        # settings
+        self._batch_size = conf.batch_size
+        self._num_pretrain_epochs = conf.num_pretrain_epochs
 
         # domain knowledge
         self.domain_obs2index = domain.obs2index
@@ -66,18 +71,18 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
                 state_space,
                 domain.action_space,
                 domain.observation_space,
-                64,  # TODO: allow conf input
+                conf.network_size,
                 f"{name}_model_{i}"
-            ) for i in range(16)
+            ) for i in range(conf.num_nets)
         ]
 
     def learn_dynamics_offline(self):
         """ learn the dynamics function offline, given stored interactions """
 
         for model in self._models:
-            for _ in range(1000):  # TODO: get from conf
+            for _ in range(self._num_pretrain_epochs):
 
-                batch = self.replay_buffer.sample(batch_size=32)
+                batch = self.replay_buffer.sample(batch_size=self._batch_size)
 
                 # grab the elements from the batch
                 states = np.array([seq[0][0] for seq in batch])

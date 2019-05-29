@@ -46,6 +46,7 @@ def main(conf):  # pylint: disable=too-many-locals
             state_space=DiscreteSpace([2]),
             reward_function=lambda s, a, _: Tiger.LISTEN_REWARD if a == Tiger.LISTEN else Tiger.GOOD_DOOR_REWARD if s == a else Tiger.BAD_DOOR_REWARD,
             terminal_checker=lambda _, a, __: a != 2,
+            conf=conf,
             name="tiger_train_net"
         )
     else:
@@ -61,6 +62,7 @@ def main(conf):  # pylint: disable=too-many-locals
         for run in range(conf.runs):
 
             tf_run(init_op)
+
             agent.reset()
             sim.learn_dynamics_offline()
 
@@ -231,10 +233,24 @@ def parse_arguments(args: str = None):
     )
 
     parser.add_argument(
+        "--num_nets",
+        default=4,
+        type=int,
+        help='number of learned dynamic models'
+    )
+
+    parser.add_argument(
         "--batch_size",
         default=32,
         type=int,
         help="size of learning batch"
+    )
+
+    parser.add_argument(
+        "--num_pretrain_epochs",
+        default=100,
+        type=int,
+        help="number of batch training offline"
     )
 
     parser.add_argument(
