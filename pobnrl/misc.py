@@ -19,6 +19,7 @@ import numpy as np
 import tensorflow as tf
 
 
+# TODO: move into POBNRLogger?
 class LogLevel(Enum):
     """ log levels """
     V0 = 1000

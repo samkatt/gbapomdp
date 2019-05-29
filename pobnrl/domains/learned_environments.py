@@ -3,7 +3,6 @@
 from collections import namedtuple
 from typing import Callable
 import numpy as np
-import tensorflow as tf
 
 from agents.neural_networks import ReplayBuffer
 from agents.neural_networks.neural_pomdps import DynamicsModel
@@ -68,9 +67,8 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
                 domain.action_space,
                 domain.observation_space,
                 64,  # TODO: allow conf input
-                tf.train.AdamOptimizer(),  # TODO: allow conf input
                 f"{name}_model_{i}"
-            ) for i in range(10)
+            ) for i in range(16)
         ]
 
     def learn_dynamics_offline(self):

@@ -31,10 +31,11 @@ def main(conf):
 
     sim = env
 
-    agent = create_agent(sim, conf, AgentType.MODELBASED)
+    agent = create_agent(sim, conf, AgentType.PLANNING)
 
     logger.log(LogLevel.V1, f"Running {agent} experiment on {env}")
 
+    agent.reset()
     for run in range(conf.runs):
 
         ret = run_episode(env, agent, conf)

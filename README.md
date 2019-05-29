@@ -48,29 +48,27 @@ python -h
 * testing: Run ``` ./run_tests.sh ``` in root and check whether all pass
 
 ### TODO
-* fixes
-    - [ ] think of domain spaces:
-        + [ ] all should have them, and they should be 'gettable'
+* allow online learning
+    - [x] belief manager can do both 'reset' and 'new_episode' things
+        + [x] maybe additional function (input) for the belief manager
+        + [x] create 'rejection belief manager' as a belief manager
+* generalize to other domains
+    - [ ] fix domain spaces:
+        + [ ] all should have all, and they should be 'gettable'
         + [ ] we should be able to account for continuous, maybe?
         + maybe general space:
             - model-free methods should not require discrete (obs) spaces
             - make gymspace implement it
             - make `this` implement it
-* allow online learning
-    - [ ] belief manager can do both 'reset' and 'new_episode' things
-        + [ ] maybe additional function (input) for the belief manager
-        + [ ] create 'rejection belief manager' as a belief manager
-    - [ ] implement importance sampling
-    - [ ] domains or environments can somehow facilitate thins
-        + possibly 'reset state'
-            * default is sample new state
-            * implemented per domain
-* generalize to other domains
     - [ ] add 'reward' and 'terminal' function in simulator
     - [ ] implement those functions in all domains
     - [ ] create a new factory function to create learned environment
     - [ ] make all domains return np.arrays as state
     - [ ] force state & observations to be from discrete
+* generalize to other learning methods
+    - [ ] generalize `reset_particle_f`
+* clean up
+    - [ ] implement abstract iteration method for particle filters
 * remove all pylint things
 * get ``` mypy --strict ``` working
 * test https://github.ccs.neu.edu/abaisero/gym-pomdps

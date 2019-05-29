@@ -19,13 +19,11 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
             network_size: int,
-            optimizer: tf.train.Optimizer,
             name: str):
 
         self.state_space = state_space
         self.action_space = action_space
         self.obs_space = obs_space
-        network_size = network_size
 
         self._num_state_out = np.sum(self.state_space.size)
         self._num_obs_out = np.sum(self.obs_space.size)
@@ -57,7 +55,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             name=f"{name}_obs"
         )
 
-        # training losses
+        # compute losses
         state_losses = [
             tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=self._train_new_states_ph[:, i],
@@ -82,8 +80,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             ) for i in range(self.obs_space.ndim)
         ]
 
-        # combine loss
-        self._train_op = optimizer.minimize(
+        self._train_op = tf.train.AdamOptimizer().minimize(
             tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
             var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_net")
         )
