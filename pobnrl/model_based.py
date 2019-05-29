@@ -35,7 +35,6 @@ def main(conf):  # pylint: disable=too-many-locals
 
     sim = env
 
-    # TODO: formalize after debugging
     if conf.learn == 'true_dynamics_offline':
 
         from domains import Tiger

@@ -219,7 +219,14 @@ class DiscreteSpace():
         return (np.random.random(self.ndim) * self.size).astype(int)
 
     def index_of(self, elem: np.ndarray) -> int:
-        """ TODO: doc & test """
+        """ returns the index of an element (projects to single dimension)
+
+        Args:
+             elem: (`np.ndarray`): the element to project
+
+        RETURNS (`int`): projection
+
+        """
         assert self.contains(elem)
         return np.dot(elem, self._indexing_steps)
 

@@ -52,8 +52,6 @@ class ActionSpace(DiscreteSpace):
     def contains(self, action: int) -> bool:
         """ returns whether `this` contains action
 
-        TODO: test
-
         Args:
              action: (`int`): an action
 

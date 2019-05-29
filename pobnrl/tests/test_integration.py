@@ -93,7 +93,7 @@ class TestPOMCP(unittest.TestCase):
 
         """
 
-        def_args = ['--runs=2', '--horizon=5', '-v=0']
+        def_args = ['--num_sims=16', '--num_particles=64', '--runs=2', '--horizon=5', '-v=0']
 
         pouct_main(pouct_parse_arguments(def_args + args))
 
@@ -125,7 +125,7 @@ class TestModelBasedRL(unittest.TestCase):
 
         """
 
-        def_args = ['--runs=2', '--horizon=5', '-v=0', '--episodes=3']
+        def_args = ['--num_sims=16', '--num_particles=64', '--runs=2', '--horizon=5', '-v=0', '--episodes=3']
 
         mb_main(mb_parse_arguments(def_args + args))
 

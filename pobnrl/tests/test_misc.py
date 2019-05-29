@@ -56,6 +56,25 @@ class TestSpaces(unittest.TestCase):
         np.testing.assert_array_equal(action_space.one_hot(4), [0, 0, 0, 0, 1])
         np.testing.assert_array_equal(action_space.one_hot(3), [0, 0, 0, 1, 0])
 
+    def test_index_of(self):  # pylint: disable=no-self-use
+        """ tests getting index of things """
+
+        single_dim_space = DiscreteSpace([5])
+        self.assertEqual(single_dim_space.index_of(np.array([0])), 0)
+        self.assertEqual(single_dim_space.index_of(np.array([2])), 2)
+        self.assertEqual(single_dim_space.index_of(np.array([4])), 4)
+
+        multi_dim_space = DiscreteSpace([3, 2, 5])
+        self.assertEqual(multi_dim_space.index_of(np.array([0, 0, 0])), 0)
+        self.assertEqual(multi_dim_space.index_of(np.array([2, 0, 0])), 2)
+        self.assertEqual(multi_dim_space.index_of(np.array([0, 1, 0])), 3)
+        self.assertEqual(multi_dim_space.index_of(np.array([0, 0, 3])), 18)
+        self.assertEqual(multi_dim_space.index_of(np.array([2, 0, 3])), 20)
+        self.assertEqual(multi_dim_space.index_of(np.array([2, 1, 2])), 17)
+
+        edge_case_space = DiscreteSpace([2, 1, 3])
+        self.assertEqual(edge_case_space.index_of(np.array([0, 0, 2])), 4)
+
 
 class TestReplayBuffer(unittest.TestCase):
     """ Tests some functionality of the replay buffer """
