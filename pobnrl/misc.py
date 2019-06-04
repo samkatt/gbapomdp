@@ -88,8 +88,9 @@ class POBNRLogger:
 
     def log(self, lvl: LogLevel, msg: str):
         """ logs message """
+
         if self._enabled:
-            self.logger.log(lvl.value, f"{lvl.name}: {msg}")
+            self.logger.log(lvl.value, lvl.name + ": " + msg)
 
     def disable_logging(self):
         """ disable logger """
