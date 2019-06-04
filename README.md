@@ -57,24 +57,15 @@ code is formatted correctly
 * testing: Run `./run_tests.sh` in root and check whether all pass
 
 ### TODO
-* clean up 
-    - [x] make static analysis complain about nothing
-    - [x] check all pylint things
-    - [x] let domains print out immediately
-        + [x] tiger
-        + [x] gridworld
-        + [x] chain domain
-        + [x] collision avoidance
-    - [ ] check all TODO
-    - improve logging [ ] Level -> description [ ] name: [ ] minimize time / date
+- improve logging [ ] Level -> description [ ] name: [ ] minimize time / date
 * generalize to other domains:
-* fix domain spaces
-    + [ ] make all domains return `np.arrays` as state
-    + [ ] all should have all, and they should be 'gettable'
-* add 'reward' and 'terminal' function in simulator (or somewhere else)
-* implement those functions in all domains
-* create a new factory function to create learned environment (instead of
-  in `model_based.py`)
+    - fix domain spaces
+        + [ ] make all domains return `np.arrays` as state
+        + [ ] all should have all, and they should be 'gettable'
+    - add 'reward' and 'terminal' function in simulator (or somewhere else)
+    - implement those functions in all domains
+    - create a new factory function to create learned environment (instead of
+      in `model_based.py`)
 * force state & observations to be from discrete
 * general space class:
     - [ ] model-free methods should not require discrete (obs) spaces

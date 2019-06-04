@@ -45,8 +45,7 @@ def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
     return replay_buffer
 
 
-# TODO: rename
-class PretrainedNeuralPOMDP(POUCTSimulator):  # pylint: disable=too-many-instance-attributes
+class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attributes
     """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
     class AugmentedState(namedtuple('bn_pomdp_state', 'domain_state model')):
@@ -58,12 +57,12 @@ class PretrainedNeuralPOMDP(POUCTSimulator):  # pylint: disable=too-many-instanc
     def __init__(  # pylint: disable=too-many-arguments
             self,
             domain: POUCTSimulator,
-            state_space: DiscreteSpace,  # TODO: get from domain?
-            reward_function: Callable[[np.ndarray, int, np.ndarray], float],  # TODO: get from domain?
-            terminal_checker: Callable[[np.ndarray, int, np.ndarray], bool],  # TODO: get from domain?
+            state_space: DiscreteSpace,
+            reward_function: Callable[[np.ndarray, int, np.ndarray], float],
+            terminal_checker: Callable[[np.ndarray, int, np.ndarray], bool],
             conf,
             name: str):
-        """ Creates `PretrainedNeuralPOMDP`
+        """ Creates `NeuralEnsemble`
 
         Args:
              domain: (`pobnrl.environments.POUCTSimulator`): domain to train interactions from
@@ -77,7 +76,6 @@ class PretrainedNeuralPOMDP(POUCTSimulator):  # pylint: disable=too-many-instanc
 
         # settings
         self._batch_size = conf.batch_size
-        self._num_pretrain_epochs = conf.num_pretrain_epochs
 
         # domain knowledge
         self.domain_obs2index = domain.obs2index
@@ -87,8 +85,6 @@ class PretrainedNeuralPOMDP(POUCTSimulator):  # pylint: disable=too-many-instanc
 
         self.domain_reward = reward_function
         self.domain_terminal = terminal_checker
-
-        self.replay_buffer = generate_replay_buffer(domain)
 
         self._models = [
             DynamicsModel(
@@ -100,14 +96,22 @@ class PretrainedNeuralPOMDP(POUCTSimulator):  # pylint: disable=too-many-instanc
             ) for i in range(conf.num_nets)
         ]
 
-    # TODO: make different interface
-    def learn_dynamics_offline(self):
-        """ learn the dynamics function offline, given stored interactions """
+    def learn_dynamics_offline(self, simulator: POUCTSimulator, num_epochs: int):
+        """  learn the dynamics function offline, given simulator
+
+        Args:
+             simulator: (`pobnrl.environments.POUCTSimulator`): simulator to generate interactions from
+             num_epochs: (`int`): number of batch updates
+
+        """
 
         for model in self._models:
-            for _ in range(self._num_pretrain_epochs):
 
-                batch = self.replay_buffer.sample(batch_size=self._batch_size)
+            replay_buffer = generate_replay_buffer(simulator)
+
+            for _ in range(num_epochs):
+
+                batch = replay_buffer.sample(batch_size=self._batch_size)
 
                 # grab the elements from the batch
                 states = np.array([seq[0][0] for seq in batch])

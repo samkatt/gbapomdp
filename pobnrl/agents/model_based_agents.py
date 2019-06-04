@@ -5,7 +5,7 @@ from typing import Any, Callable
 import numpy as np
 
 from environments import POUCTSimulator, POUCTInteraction
-from domains.learned_environments import PretrainedNeuralPOMDP
+from domains.learned_environments import NeuralEnsemble
 from misc import POBNRLogger
 
 from .agent import Agent
@@ -172,7 +172,7 @@ def create_learning_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
     believe_manager = RejectionSamplingBelieveManager(
         conf.num_particles,
         env,
-        lambda augmented_state: PretrainedNeuralPOMDP.AugmentedState(env.sample_start_state(), augmented_state.model)
+        lambda augmented_state: NeuralEnsemble.AugmentedState(env.sample_start_state(), augmented_state.model)
     )
 
     return PrototypeAgent(

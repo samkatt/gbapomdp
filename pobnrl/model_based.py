@@ -35,10 +35,10 @@ def main(conf):  # pylint: disable=too-many-locals
     if conf.learn == 'true_dynamics_offline':
 
         from domains import Tiger
-        from domains.learned_environments import PretrainedNeuralPOMDP
+        from domains.learned_environments import NeuralEnsemble
         from misc import DiscreteSpace
 
-        sim = PretrainedNeuralPOMDP(
+        sim = NeuralEnsemble(
             sim,
             state_space=DiscreteSpace([2]),
             reward_function=lambda s, a, _: Tiger.LISTEN_REWARD if a == Tiger.LISTEN else Tiger.GOOD_DOOR_REWARD if s == a else Tiger.BAD_DOOR_REWARD,
@@ -61,7 +61,9 @@ def main(conf):  # pylint: disable=too-many-locals
             tf_run(init_op)
 
             agent.reset()
-            sim.learn_dynamics_offline()
+
+            if conf.learn == 'true_dynamics_offline':
+                sim.learn_dynamics_offline(env, conf.num_pretrain_epochs)
 
             tmp_res = np.zeros(conf.episodes)
 

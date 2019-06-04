@@ -1,6 +1,5 @@
 """ collision avoidance environment """
 
-import copy
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
