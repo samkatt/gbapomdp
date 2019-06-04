@@ -76,7 +76,8 @@ class POBNRLogger:
         handler = logging.StreamHandler()
         handler.setFormatter(
             logging.Formatter(
-                fmt="[%(asctime)s] %(levelname)s: %(message)s \t\t\t(%(name)s)"
+                f"[%(asctime)s] %(message)s",
+                "%H:%M"
             )
         )
         self.logger.addHandler(handler)
@@ -88,7 +89,7 @@ class POBNRLogger:
     def log(self, lvl: LogLevel, msg: str):
         """ logs message """
         if self._enabled:
-            self.logger.log(lvl.value, msg)
+            self.logger.log(lvl.value, f"{lvl.name}: {msg}")
 
     def disable_logging(self):
         """ disable logger """

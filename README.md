@@ -57,7 +57,6 @@ code is formatted correctly
 * testing: Run `./run_tests.sh` in root and check whether all pass
 
 ### TODO
-- improve logging [ ] Level -> description [ ] name: [ ] minimize time / date
 * generalize to other domains:
     - fix domain spaces
         + [ ] make all domains return `np.arrays` as state
