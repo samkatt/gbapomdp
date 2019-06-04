@@ -35,12 +35,11 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     action_to_string = ["UP", "RIGHT", "DOWN", "LEFT"]
 
-    def __init__(self, domain_size: int, verbose: bool):
+    def __init__(self, domain_size: int):
         """ creates a gridworld of provided size and verbosity
 
         Args:
              domain_size: (`int`): the size (assumed odd) of the grid
-             verbose: (`bool`): whether to be verbose
 
         """
 
@@ -49,7 +48,6 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         POBNRLogger.__init__(self)
 
         # confs
-        self._verbose = verbose
         self._size = domain_size
 
         # generate multinomial probabilities for the observation function (1-D)
@@ -222,10 +220,6 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         """ resets state """
 
         self._state = self.sample_start_state()
-
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
-            self.log(POBNRLogger.LogLevel.V2, f"Starting in {self.state[0]} with goal {self.state[1]}")
-
         return self.generate_observation(*self.state)
 
     def simulation_step(self, state: list, action: int) -> POUCTInteraction:
@@ -279,13 +273,17 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         """
 
         transition = self.simulation_step(self.state, action)
-        self._state = transition.state
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(
-                POBNRLogger.LogLevel.V2,
-                f"Move {self.action_to_string[int(action)]} to {transition.state[0]} and"
-                f" observe {transition.observation[:2]} (goal {np.argmax(transition.observation[2:])})")
+                POBNRLogger.LogLevel.V3,
+                f"Agent moved from {self.state[0]}  to {transition.state[0]}"
+                f" after picking {self.action_to_string[int(action)]} and"
+                f" observed {transition.observation[:2]}"
+                f" (goal {np.argmax(transition.observation[2:])})"
+            )
+
+        self._state = transition.state
 
         return EnvironmentInteraction(
             transition.observation, transition.reward, transition.terminal
@@ -322,13 +320,3 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
         return self._obs_space
-
-    def display_history(self):
-        """ prints out transitions """
-
-        descr = f"with goal {self._history[0][1]}:\n [0,0]"
-        for step in self._history[1:]:
-            descr += f" and {self.action_to_string[int(step['action'])]} " \
-                + f"to:\n{step['state'][0]}({step['obs'][:2]})"
-
-        self.log(POBNRLogger.LogLevel.V2, descr)

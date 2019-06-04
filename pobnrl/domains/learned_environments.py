@@ -12,6 +12,14 @@ from misc import DiscreteSpace
 
 
 def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
+    """ Fills up a replay buffer of (s,a,s',o) interactions
+
+    Args:
+         domain: (`pobnrl.environments.POUCTSimulator`): a simulator to generate interactions
+
+    RETURNS (`pobnrl.agents.neural_networks.misc.ReplayBuffer`):
+
+    """
 
     replay_buffer = ReplayBuffer()
 
@@ -37,21 +45,35 @@ def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
     return replay_buffer
 
 
-class PretrainedNeuralPOMDP(POUCTSimulator):
+# TODO: rename
+class PretrainedNeuralPOMDP(POUCTSimulator):  # pylint: disable=too-many-instance-attributes
+    """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
     class AugmentedState(namedtuple('bn_pomdp_state', 'domain_state model')):
+        """ A state containing (POMDP state, POMDP dynamics) """
 
         # required to keep lightweight implementation of namedtuple
         __slots__ = ()
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
             self,
             domain: POUCTSimulator,
-            state_space: DiscreteSpace,
-            reward_function: Callable[[np.ndarray, int, np.ndarray], float],
-            terminal_checker: Callable[[np.ndarray, int, np.ndarray], bool],
+            state_space: DiscreteSpace,  # TODO: get from domain?
+            reward_function: Callable[[np.ndarray, int, np.ndarray], float],  # TODO: get from domain?
+            terminal_checker: Callable[[np.ndarray, int, np.ndarray], bool],  # TODO: get from domain?
             conf,
             name: str):
+        """ Creates `PretrainedNeuralPOMDP`
+
+        Args:
+             domain: (`pobnrl.environments.POUCTSimulator`): domain to train interactions from
+             state_space: (`pobnrl.misc.DiscreteSpace`): the state space of the `domain`
+             reward_function: (`Callable[[np.ndarray, int, np.ndarray], float]`): reward function
+             terminal_checker: (`Callable[[np.ndarray, int, np.ndarray], bool]`): termination check
+             conf: configurations from program input (network_size and learning_rate)
+             name: (`str`): name (unique) of this simulator
+
+        """
 
         # settings
         self._batch_size = conf.batch_size
@@ -78,6 +100,7 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
             ) for i in range(conf.num_nets)
         ]
 
+    # TODO: make different interface
     def learn_dynamics_offline(self):
         """ learn the dynamics function offline, given stored interactions """
 
@@ -95,8 +118,13 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
                 model.batch_update(states, actions, new_states, observations)
 
     def sample_start_state(self) -> 'AugmentedState':
-        """ returns a sample initial (internal) state and some neural network """
+        """  returns a sample initial (internal) state and some neural network
 
+        Args:
+
+        RETURNS (`AugmentedState`):
+
+        """
         return self.AugmentedState(
             self.sample_domain_start_state(),
             np.random.choice(self._models)
@@ -104,8 +132,17 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
 
     def simulation_step(
             self,
-            state: 'AugmentedState',
+            state: AugmentedState,
             action: int) -> POUCTInteraction:
+        """ Performs simulation step
+
+        Args:
+             state: (`AugmentedState`): incoming state
+             action: (`int`): action
+
+        RETURNS (`pobnrl.environments.POUCTInteraction`):
+
+        """
 
         # use model to generate a step
         new_domain_state, obs = state.model.simulation_step(state.domain_state, action)
@@ -119,12 +156,34 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
         )
 
     def obs2index(self, observation: np.ndarray) -> int:
+        """ projects observation to single dimension (scalar)
+
+        Args:
+             observation: (`np.ndarray`):
+
+        RETURNS (`int`):
+
+        """
         return self.domain_obs2index(observation)
 
     @property
     def action_space(self) -> ActionSpace:
+        """ returns `this` actions space
+
+        Args:
+
+        RETURNS (`pobnrl.environments.ActionSpace`):
+
+        """
         return self.domain_action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
+        """ returns `this` observation space
+
+        Args:
+
+        RETURNS (`pobnrl.misc.DiscreteSpace`):
+
+        """
         return self.domain_obs_space

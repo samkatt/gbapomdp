@@ -1,8 +1,5 @@
 """ collision avoidance environment """
 
-import time
-
-from typing import List, Any
 import copy
 import numpy as np
 
@@ -11,7 +8,6 @@ from environments import POUCTSimulator, POUCTInteraction
 from misc import DiscreteSpace, POBNRLogger
 
 
-# pylint: disable=too-many-instance-attributes
 class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
     """ the collision avoidance environment
 
@@ -33,12 +29,11 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
     action_to_move = [-1, 0, 1]
     action_to_string = ["DOWN", "STAY", "UP"]
 
-    def __init__(self, domain_size: int, verbose: bool):
+    def __init__(self, domain_size: int):
         """ constructs a Collision Avoidance domain of specified size
 
         Args:
              domain_size: (`int`): the size of the grid
-             verbose: (`bool`): whether to print experiences to stdout
 
         """
 
@@ -47,24 +42,13 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
 
         POBNRLogger.__init__(self)
 
-        self._verbose = verbose
         self._size = domain_size
         self._mid = int(self._size / 2)
-
-        self.init_state = {
-            'agent_x': self._size - 1,
-            'agent_y': self._mid,
-            'obstacle': self._mid
-        }
-
-        self._state = copy.deepcopy(self.init_state)
 
         self._action_space = ActionSpace(3)
         self._obs_space = DiscreteSpace([self._size, self._size, self._size])
 
-        self._last_recording_time = 0
-        self._recording = False
-        self._history: List[Any] = []
+        self._state = self.sample_start_state()
 
     @property
     def size(self):
@@ -85,10 +69,9 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
 
         """
 
-        assert self._size > state['agent_x'] > 0
+        assert self._size > state['agent_x'] >= 0
         assert self._size > state['agent_y'] >= 0
         assert self._size > state['obstacle'] >= 0
-        assert not self._recording
 
         self._state = state
 
@@ -100,7 +83,11 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         RETURNS (`dict`): {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` }
 
         """
-        return copy.deepcopy(self.init_state)
+        return {
+            'agent_x': self._size - 1,
+            'agent_y': self._mid,
+            'obstacle': self._mid
+        }
 
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
@@ -136,19 +123,7 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
     def reset(self):
         """ resets state and potentially records the episode"""
 
-        self._state = copy.deepcopy(self.init_state)
-
-        # if we were recording, output the history and stop
-        if self._recording:
-            self.display_history()
-            self._recording = False
-
-        # record episodes every so often if verbose
-        if self._verbose and time.time() - self._last_recording_time > 15:
-            self._last_recording_time = time.time()
-            self._history = [copy.deepcopy(self.state)]
-            self._recording = True
-
+        self._state = self.sample_start_state()
         return self.generate_observation()
 
     def simulation_step(self, state: dict, action: int) -> POUCTInteraction:
@@ -212,15 +187,18 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         assert 0 <= action < 3
 
         transition = self.simulation_step(self.state, action)
-        self._state = transition.state
 
-        # recording
-        if self._recording:
-            self._history.append({
-                'action': action,
-                'obs': transition.observation,
-                'reward': transition.reward,
-                'state': copy.deepcopy(transition.state)})
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
+            self.log(
+                POBNRLogger.LogLevel.V3,
+                f"Step: (x: {self.state['agent_x']}, y: {self.state['agent_y']}) and a="
+                f"{self.action_to_string[action]} --> "
+                f"(x:{transition.state['agent_x']}, y: {transition.state['agent_y']}),"
+                " with obstacle "
+                f"{transition.state['obstacle']} (obs:  {transition.observation[-1]})"
+            )
+
+        self.state = transition.state
 
         return EnvironmentInteraction(
             transition.observation, transition.reward, transition.terminal
@@ -237,11 +215,11 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         """
         assert self.observation_space.contains(observation), \
             f"{observation} not in space {self.observation_space}"
-        assert np.all(self.size > observation) and np.all(observation >= 0), \
+        assert np.all(self.size > observation) and np.all(observation >= 0),\
             f"expecting all observation to be more than 0, {observation}"
 
-        return observation[0] \
-            + observation[1] * self.size \
+        return observation[0]\
+            + observation[1] * self.size\
             + observation[2] * self.size * self.size
 
     @property
@@ -253,16 +231,3 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([grid_height]) space """
         return self._obs_space
-
-    def display_history(self):
-        """ prints out transitions """
-
-        descr = f"[{self._size-1}, {self._mid}]"
-
-        for step in self._history[1:]:
-            descr += " " + \
-                f"{self.action_to_string[int(step['action'])]} --> "\
-                f"({step['state']['agent_x']}, {step['state']['agent_y']} "\
-                f"({step['state']['obstacle']}: {step['obs'][0]})"
-
-        self.log(POBNRLogger.LogLevel.V2, descr)

@@ -33,7 +33,6 @@ def epsilon_greedy(
     return action_space.sample()
 
 
-# pylint: disable=too-few-public-methods
 class ExplorationSchedule(abc.ABC):
     """ interface for e-greedy exploration schedule """
 
@@ -42,7 +41,6 @@ class ExplorationSchedule(abc.ABC):
         """ returns epsilon for a given timestep """
 
 
-# pylint: disable=too-few-public-methods
 class FixedExploration(ExplorationSchedule):
     """ always returns 0 probability for exploring """
 
@@ -75,7 +73,6 @@ def linear_interpolation(left: float, right: float, alpha: float) -> float:
     return left + alpha * (right - left)
 
 
-# pylint: disable=too-few-public-methods
 class PiecewiseSchedule(ExplorationSchedule):
     """ scheduler advancing piecewise """
 

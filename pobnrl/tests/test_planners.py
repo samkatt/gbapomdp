@@ -159,9 +159,9 @@ class TestPOUCT(unittest.TestCase):
     def test_ucb_table(self):
         """ tests the values in a ucb table """
 
-        # pylint: disable=protected-access
-        domain = Tiger(verbose=False)
-        table = POUCT(
+        domain = Tiger()
+
+        table = POUCT(  # pylint: disable=protected-access
             domain,
             num_sims=5,
             exploration_constant=1
@@ -175,8 +175,7 @@ class TestPOUCT(unittest.TestCase):
         self.assertAlmostEqual(table[3, 2], math.sqrt(math.log(4) / 2))
         self.assertAlmostEqual(table[3, 4], math.sqrt(math.log(4) / 4))
 
-        # pylint: disable=protected-access
-        table = POUCT(
+        table = POUCT(  # pylint: disable=protected-access
             domain,
             num_sims=5,
             exploration_constant=50.3

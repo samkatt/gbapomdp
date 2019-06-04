@@ -57,6 +57,16 @@ code is formatted correctly
 * testing: Run `./run_tests.sh` in root and check whether all pass
 
 ### TODO
+* clean up 
+    - [x] make static analysis complain about nothing
+    - [x] check all pylint things
+    - [x] let domains print out immediately
+        + [x] tiger
+        + [x] gridworld
+        + [x] chain domain
+        + [x] collision avoidance
+    - [ ] check all TODO
+    - improve logging [ ] Level -> description [ ] name: [ ] minimize time / date
 * generalize to other domains:
 * fix domain spaces
     + [ ] make all domains return `np.arrays` as state
@@ -70,7 +80,6 @@ code is formatted correctly
     - [ ] model-free methods should not require discrete (obs) spaces
     - [ ] make gymspace implement it
     - [ ] make `this` implement it
-* remove all pylint things
 * get `mypy --strict` working
 * test `https://github.ccs.neu.edu/abaisero/gym-pomdps`
 

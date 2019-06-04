@@ -11,19 +11,14 @@ from misc import DiscreteSpace, POBNRLogger
 class Cartpole(Environment, POBNRLogger):
     """ cartpole environment """
 
-    def __init__(self, verbose: bool):
-        """ constructs cartpole with optionally graphical representation
-
-        Args:
-             verbose: (`bool`): whether to be (graphically) verbose
-
-        """
+    def __init__(self):
+        """ constructs cartpole with optionally graphical representation """
 
         POBNRLogger.__init__(self)
 
         self._cur_time = 0
 
-        recording_policy = self.show_recording if verbose else False
+        recording_policy = self.show_recording if self.log_is_on(POBNRLogger.LogLevel.V2) else False
 
         self.cartpole = gym.make('CartPole-v0')
 

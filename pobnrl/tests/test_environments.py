@@ -12,7 +12,7 @@ class TestTiger(unittest.TestCase):
 
     def setUp(self):
         """ creates a tiger member """
-        self.env = tiger.Tiger(False)
+        self.env = tiger.Tiger()
         self.env.reset()
 
     def test_reset(self):
@@ -112,7 +112,7 @@ class TestGridWorld(unittest.TestCase):
 
     def test_reset(self):
         """ Tests Gridworld.reset() """
-        env = gridworld.GridWorld(3, False)
+        env = gridworld.GridWorld(3)
         observation = env.reset()
 
         np.testing.assert_array_equal(env.state[0], [0, 0])
@@ -125,7 +125,7 @@ class TestGridWorld(unittest.TestCase):
     def test_sample_start_state(self):  # pylint: disable=no-self-use
         """ tests sampling start states """
 
-        env = gridworld.GridWorld(5, False)
+        env = gridworld.GridWorld(5)
 
         start_states = [env.sample_start_state() for _ in range(10)]
 
@@ -135,7 +135,7 @@ class TestGridWorld(unittest.TestCase):
     def test_step(self):
         """ Tests Gridworld.step() """
 
-        env = gridworld.GridWorld(3, False)
+        env = gridworld.GridWorld(3)
         env.reset()
 
         goal = env.state[1]
@@ -176,7 +176,7 @@ class TestGridWorld(unittest.TestCase):
 
     def test_space(self):
         """ Tests Gridworld.spaces """
-        env = gridworld.GridWorld(5, False)
+        env = gridworld.GridWorld(5)
         action_space = env.action_space
         observation_space = env.observation_space
 
@@ -197,7 +197,7 @@ class TestGridWorld(unittest.TestCase):
 
         """
 
-        env = gridworld.GridWorld(3, False)
+        env = gridworld.GridWorld(3)
 
         # test bound_in_grid
         np.testing.assert_array_equal(
@@ -218,7 +218,7 @@ class TestGridWorld(unittest.TestCase):
         # Gridworld.goals
         self.assertListEqual(env.goals, [(1, 2), (2, 1), (2, 2)])
 
-        larger_env = gridworld.GridWorld(7, False)
+        larger_env = gridworld.GridWorld(7)
         self.assertEqual(len(larger_env.goals), 10)
 
         # Gridworld.state
@@ -267,7 +267,7 @@ class TestGridWorld(unittest.TestCase):
     def test_observation_projection(self):
         """ tests obs2index """
 
-        env = gridworld.GridWorld(3, False)
+        env = gridworld.GridWorld(3)
 
         obs = np.array([0, 0, 1, 0, 0])
 
@@ -300,7 +300,7 @@ class TestCollisionAvoidance(unittest.TestCase):
     def test_reset(self):
         """ tests CollisionAvoidance.reset """
 
-        env = collision_avoidance.CollisionAvoidance(3, False)
+        env = collision_avoidance.CollisionAvoidance(3)
         env.reset()
 
         self.assertEqual(env.state['obstacle'], 1)
@@ -310,13 +310,13 @@ class TestCollisionAvoidance(unittest.TestCase):
     def test_sample_start_state(self):
         """ tests sampling start states """
 
-        env = collision_avoidance.CollisionAvoidance(7, False)
+        env = collision_avoidance.CollisionAvoidance(7)
         self.assertDictEqual(env.sample_start_state(), {'agent_x': 6, 'agent_y': 3, 'obstacle': 3})
 
     def test_step(self):
         """ tests CollisionAvoidance.step """
 
-        env = collision_avoidance.CollisionAvoidance(7, False)
+        env = collision_avoidance.CollisionAvoidance(7)
 
         env.reset()
         step = env.step(1)
@@ -368,7 +368,7 @@ class TestCollisionAvoidance(unittest.TestCase):
 
         """
 
-        env = collision_avoidance.CollisionAvoidance(7, False)
+        env = collision_avoidance.CollisionAvoidance(7)
 
         # action_space
         self.assertEqual(env.action_space.n, 3)
@@ -405,8 +405,7 @@ class TestCollisionAvoidance(unittest.TestCase):
     def test_observation_projection(self):
         """ tests obs2index """
 
-        env = collision_avoidance.CollisionAvoidance(
-            domain_size=5, verbose=False)
+        env = collision_avoidance.CollisionAvoidance(domain_size=5)
 
         self.assertEqual(env.obs2index(np.array([0, 0, 0])), 0)
         self.assertEqual(env.obs2index(np.array([1, 0, 0])), 1)
@@ -423,16 +422,16 @@ class TestCollisionAvoidance(unittest.TestCase):
 class TestChainDomain(unittest.TestCase):
     """ tests the chain domain """
 
-    def test_reset(self):  # pylint: disable=no-self-use
+    def test_reset(self):
         """ tests ChainDomain.reset """
-        domain = chain_domain.ChainDomain(size=4, verbose=False)
+        domain = chain_domain.ChainDomain(size=4)
 
         obs = domain.reset()
         self.assertDictEqual(domain.state, {'x': 0, 'y': 3})
         np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0])
 
-        domain = chain_domain.ChainDomain(size=10, verbose=False)
+        domain = chain_domain.ChainDomain(size=10)
 
         obs = domain.reset()
         self.assertDictEqual(domain.state, {'x': 0, 'y': 9})
@@ -449,13 +448,13 @@ class TestChainDomain(unittest.TestCase):
     def test_sample_start_state(self):
         """ tests sampling start states """
 
-        env = chain_domain.ChainDomain(4, False)
+        env = chain_domain.ChainDomain(4)
         self.assertDictEqual(env.sample_start_state(), {'x': 0, 'y': 3})
 
     def test_space(self):
         """ tests ChainDomain.spaces """
 
-        domain = chain_domain.ChainDomain(size=3, verbose=False)
+        domain = chain_domain.ChainDomain(size=3)
 
         action_space = domain.action_space
 
@@ -471,7 +470,7 @@ class TestChainDomain(unittest.TestCase):
     def test_state(self):
         """ tests ChainDomain.state """
 
-        domain = chain_domain.ChainDomain(size=3, verbose=False)
+        domain = chain_domain.ChainDomain(size=3)
         domain.reset()
 
         self.assertDictEqual(domain.state, {'x': 0, 'y': 2})
@@ -483,12 +482,11 @@ class TestChainDomain(unittest.TestCase):
     def test_step(self):
         """ tests ChainDomain.step """
 
-        domain = chain_domain.ChainDomain(size=3, verbose=False)
+        domain = chain_domain.ChainDomain(size=3)
 
         # test if all effects go right
-        # pylint: disable=protected-access
+        step = domain.step(domain._action_mapping[0])  # pylint: disable=protected-access
 
-        step = domain.step(domain._action_mapping[0])
         self.assertFalse(step.terminal)
         self.assertAlmostEqual(step.reward, -.0033333333)
         np.testing.assert_array_equal(
@@ -528,10 +526,10 @@ class TestChainDomain(unittest.TestCase):
         """
 
         for size in 3, 9:
-            domain = chain_domain.ChainDomain(size=size, verbose=False)
+            domain = chain_domain.ChainDomain(size=size)
             self.assertEqual(domain.size, size)
 
-        domain = chain_domain.ChainDomain(size=4, verbose=False)
+        domain = chain_domain.ChainDomain(size=4)
 
         expected_obs = np.zeros((4, 4))
         expected_obs[0, 0] = 1
@@ -557,7 +555,7 @@ class TestChainDomain(unittest.TestCase):
     def test_observation_projection(self):
         """ tests obs2index """
 
-        env = chain_domain.ChainDomain(size=4, verbose=False)
+        env = chain_domain.ChainDomain(size=4)
 
         def one_hot(obs):
             encoding = np.zeros((4, 4))

@@ -56,7 +56,7 @@ class TestSpaces(unittest.TestCase):
         np.testing.assert_array_equal(action_space.one_hot(4), [0, 0, 0, 0, 1])
         np.testing.assert_array_equal(action_space.one_hot(3), [0, 0, 0, 1, 0])
 
-    def test_index_of(self):  # pylint: disable=no-self-use
+    def test_index_of(self):
         """ tests getting index of things """
 
         single_dim_space = DiscreteSpace([5])

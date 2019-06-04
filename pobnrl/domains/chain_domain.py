@@ -1,7 +1,6 @@
 """ chain domain environment """
 
-import time
-from typing import Dict, List, Any
+from typing import Dict
 
 import numpy as np
 
@@ -10,7 +9,6 @@ from environments import POUCTSimulator, POUCTInteraction
 from misc import DiscreteSpace, POBNRLogger
 
 
-# pylint: disable=too-many-instance-attributes
 class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
     """ the chain environment
 
@@ -28,12 +26,11 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
 
     """
 
-    def __init__(self, size: int, verbose: bool):
+    def __init__(self, size: int):
         """ construct the chain environment
 
         Args:
              size: (`int`): size of the grid
-             verbose: (`bool`): whether to be verbose or not (print to stdout)
 
         """
 
@@ -42,23 +39,14 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         POBNRLogger.__init__(self)
 
         self._size = size
-        self._verbose = verbose
-
         self._move_cost = .01 / self.size
 
         self._action_space = ActionSpace(2)
-
         self._observation_space = DiscreteSpace([2] * self.size * self.size)
-
-        # x, level (size-1...0)
-        self._init_state = {'x': 0, 'y': self.size - 1}
-        self._state = self._init_state.copy()
 
         self._action_mapping = np.random.binomial(1, .5, self.size)
 
-        self._last_recording_time = 0
-        self._recording = False
-        self._history: List[Any] = []
+        self._state = self.sample_start_state()
 
     @property
     def state(self) -> Dict[str, int]:
@@ -79,7 +67,6 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
              state: (`Dict[str, int]`):{'x', 'y'}
 
         """
-        assert not self._recording
         assert self.size > state['x'] >= 0
         assert self.size > state['y'] > 0
         assert state['x'] <= (self.size - state['y'])
@@ -95,7 +82,8 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
 
         """
 
-        return self._init_state.copy()
+        # x, level (size-1...0)
+        return {'x': 0, 'y': self.size - 1}
 
     @property
     def size(self):
@@ -129,19 +117,7 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
 
         """
 
-        self._state = self._init_state.copy()
-
-        # if we were recording, output the history and stop
-        if self._recording:
-            self.display_history()
-            self._recording = False
-
-        # record episodes every so often
-        if self._verbose and time.time() - self._last_recording_time > 5:
-            self._last_recording_time = time.time()
-            self._history = []
-            self._recording = True
-
+        self._state = self.sample_start_state()
         return self.state2observation()
 
     def simulation_step(self, state: Dict[str, int], action: int) -> POUCTInteraction:
@@ -200,10 +176,14 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         """
 
         transition = self.simulation_step(self.state, action)
-        self._state = transition.state
 
-        if self._recording:
-            self._history.append(self.state['x'])
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
+            self.log(
+                POBNRLogger.LogLevel.V3,
+                f"Agent moved {self.state['x']} -> {transition.state['x']}"
+            )
+
+        self._state = transition.state
 
         return EnvironmentInteraction(
             transition.observation, transition.reward, transition.terminal
@@ -235,13 +215,3 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace` space of size x size """
         return self._observation_space
-
-    def display_history(self):
-        """ prints out transitions """
-
-        descr = "0"
-
-        for step in self._history:
-            descr += f"->{step}"
-
-        self.log(POBNRLogger.LogLevel.V2, f"agent travelled {descr}")

@@ -13,13 +13,24 @@ from misc import tf_run, DiscreteSpace
 class DynamicsModel():  # pylint: disable=too-many-instance-attributes
     """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments
+    def __init__(
             self,
             state_space: DiscreteSpace,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
             conf,
             name: str):
+        """ Creates a dynamic model
+
+        Args:
+             state_space: (`pobnrl.misc.DiscreteSpace`):
+             action_space: (`pobnrl.environments.ActionSpace`):
+             obs_space: (`pobnrl.misc.DiscreteSpace`):
+             conf: configurations from program input
+             name: (`str`): name of this model (unique)
+
+        """
 
         self.state_space = state_space
         self.action_space = action_space
@@ -85,7 +96,16 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_net")
         )
 
-    def simulation_step(self, state: np.array, action: int) -> Tuple[str, np.ndarray]:
+    def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
+        """ The simulation step of this dynamics model: S x A -> S, O
+
+        Args:
+             state: (`np.array`): input state
+             action: (`int`): chosen action
+
+        RETURNS (`Tuple[np.ndarray, np.ndarray]`): [state, observation]
+
+        """
 
         assert self.state_space.contains(state), f"{state} not in {self.state_space}"
         assert self.action_space.contains(action), f"{action} not in {self.action_space}"
@@ -119,6 +139,15 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             actions: np.ndarray,
             new_states: np.ndarray,
             obs: np.ndarray):
+        """ performs a batch update (single gradient descent step)
+
+        Args:
+             states: (`np.ndarray`): (batch_size, state_shape) array of states
+             actions: (`np.ndarray`): (batch_size,) array of actions
+             new_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
+             obs: (`np.ndarray`): (batch_size, obs_shape) array of observations
+
+        """
 
         net_input = np.array([
             [*state, *self.action_space.one_hot(action).astype(int)]

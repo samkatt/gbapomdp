@@ -26,14 +26,14 @@ def create_environment(
     verbose = verbose > 1
 
     if domain_name == "tiger":
-        return Tiger(verbose)
+        return Tiger()
     if domain_name == "cartpole":
-        return Cartpole(verbose)
+        return Cartpole()
     if domain_name == "gridworld":
-        return GridWorld(domain_size, verbose)
+        return GridWorld(domain_size)
     if domain_name == "collision_avoidance":
-        return CollisionAvoidance(domain_size, verbose)
+        return CollisionAvoidance(domain_size)
     if domain_name == "chain":
-        return ChainDomain(domain_size, verbose)
+        return ChainDomain(domain_size)
 
     raise ValueError('unknown domain ' + domain_name)

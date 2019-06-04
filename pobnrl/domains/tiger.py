@@ -1,6 +1,5 @@
 """ tiger environment """
 
-from typing import List, Any
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
@@ -21,23 +20,17 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
     LISTEN_REWARD = -1
     CORRECT_OBSERVATION_PROB = .85
 
-    def __init__(self, verbose: bool):
-        """ construct the tiger environment
+    ELEM_TO_STRING = ["L", "R"]
 
-        Args:
-             verbose: (`bool`): whether to be verbose or not (print to stdout)
-
-        """
+    def __init__(self):
+        """ construct the tiger environment """
 
         POBNRLogger.__init__(self)
 
-        self._verbose = verbose
         self._state = self.sample_start_state()
 
         self._action_space = ActionSpace(3)
         self._obs_space = DiscreteSpace([2, 2])
-
-        self._history: List[Any] = []
 
     @property
     def state(self):
@@ -98,15 +91,7 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         returns [0,0] as a 'null' initial observation
 
         """
-
         self._state = self.sample_start_state()
-
-        if self.log_is_on(POBNRLogger.LogLevel.V2) and self._history:
-            self.display_history()
-
-        # record episodes every so often
-        self._history = [self.state.copy()]
-
         return np.zeros(2)
 
     def simulation_step(self, state: np.ndarray, action: int) -> POUCTInteraction:
@@ -152,19 +137,24 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         """
 
         transition = self.simulation_step(self.state, action)
-        self._state = transition.state
 
-        self._history.append({
-            'action': action,
-            'obs': transition.observation,
-            'reward': transition.reward
-        })
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
+            if action != self.LISTEN:  # agent is opening door
+                descr = f"the agent opens {self.ELEM_TO_STRING[action]}"
+            else:
+                descr = "the agent listens"
+
+            self.log(
+                POBNRLogger.LogLevel.V3,
+                f"With tiger {self.ELEM_TO_STRING[self.state[0]]}, {descr}"
+            )
+
+        self._state = transition.state
 
         return EnvironmentInteraction(
             transition.observation, transition.reward, transition.terminal
         )
 
-    # pylint: disable=no-self-use
     def obs2index(self, observation: np.ndarray) -> int:
         """ projects the observation as an int
 
@@ -186,26 +176,3 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([1,1]) space """
         return self._obs_space
-
-    def display_history(self):
-        """ prints out transitions """
-
-        def to_string(element: int) -> str:
-            """ action, state or observation to string
-
-            Args:
-                 element: (`int`): action, state or observation
-
-            RETURNS (`str`): string representation of element
-
-            """
-            return "L" if int(element) == self.LEFT else "R"
-
-        descr = "Tiger (" + to_string(self._history[0][0]) + ") and heard: "
-        for step in self._history[1:-1]:
-            descr = descr + to_string(step["obs"][1])
-
-        self.log(
-            POBNRLogger.LogLevel.V2,
-            f"{descr}, opened {to_string(self._history[-1]['action'])}"
-        )
