@@ -315,8 +315,8 @@ class BeliefManager(POBNRLogger):
         for _ in range(self._size):
             self._belief.add_particle(self._sample_particle_f())
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
-            self.log(POBNRLogger.LogLevel.V2, f"Belief reset to {self._belief}")
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
+            self.log(POBNRLogger.LogLevel.V3, f"Belief reset to {self._belief}")
 
     def episode_reset(self):
         """ resets the belief for a new episode """
@@ -324,8 +324,8 @@ class BeliefManager(POBNRLogger):
         for particle in self._belief:
             self._reset_particle_f(particle)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
-            self.log(POBNRLogger.LogLevel.V2, f"Belief reset for new episode {self._belief}")
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
+            self.log(POBNRLogger.LogLevel.V3, f"Belief reset for new episode {self._belief}")
 
     def update(self, action: int, observation: np.ndarray):
         """ updates belief given action and observation
@@ -338,8 +338,8 @@ class BeliefManager(POBNRLogger):
 
         self._belief = self._update(self._belief, action, observation)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V3):
-            self.log(POBNRLogger.LogLevel.V3, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
+        if self.log_is_on(POBNRLogger.LogLevel.V4):
+            self.log(POBNRLogger.LogLevel.V4, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
 
     @property
     def particle_filter(self) -> ParticleFilter:

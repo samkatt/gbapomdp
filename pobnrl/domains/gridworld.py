@@ -274,9 +274,9 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
 
         transition = self.simulation_step(self.state, action)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V3):
+        if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
-                POBNRLogger.LogLevel.V3,
+                POBNRLogger.LogLevel.V2,
                 f"Agent moved from {self.state[0]}  to {transition.state[0]}"
                 f" after picking {self.action_to_string[int(action)]} and"
                 f" observed {transition.observation[:2]}"

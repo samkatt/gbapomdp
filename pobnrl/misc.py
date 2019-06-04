@@ -24,12 +24,12 @@ class POBNRLogger:
 
     class LogLevel(Enum):
         """ log levels """
-        V0 = 1000
-        V1 = 30
-        V2 = 20
-        V3 = 15
-        V4 = 10
-        V5 = 5
+        V0 = 1000  # NO messages
+        V1 = 30  # print results
+        V2 = 20  # print episodes
+        V3 = 15  # print episode level agent things
+        V4 = 10  # print time steps level agent things
+        V5 = 5   # hardcore debugging
 
         @staticmethod
         def create(level: int) -> 'POBNRLogger.LogLevel':

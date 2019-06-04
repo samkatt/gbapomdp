@@ -77,7 +77,7 @@ def main(conf):  # pylint: disable=too-many-locals
 
                 if episode > 0:
                     logger.log(
-                        POBNRLogger.LogLevel.V2,
+                        POBNRLogger.LogLevel.V1,
                         f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode])}"
                     )
 

@@ -187,9 +187,9 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
 
         transition = self.simulation_step(self.state, action)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V3):
+        if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
-                POBNRLogger.LogLevel.V3,
+                POBNRLogger.LogLevel.V2,
                 f"Step: (x: {self.state['agent_x']}, y: {self.state['agent_y']}) and a="
                 f"{self.action_to_string[action]} --> "
                 f"(x:{transition.state['agent_x']}, y: {transition.state['agent_y']}),"

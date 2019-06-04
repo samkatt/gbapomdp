@@ -138,14 +138,14 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
 
         transition = self.simulation_step(self.state, action)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V3):
+        if self.log_is_on(POBNRLogger.LogLevel.V2):
             if action != self.LISTEN:  # agent is opening door
                 descr = f"the agent opens {self.ELEM_TO_STRING[action]}"
             else:
                 descr = "the agent listens"
 
             self.log(
-                POBNRLogger.LogLevel.V3,
+                POBNRLogger.LogLevel.V2,
                 f"With tiger {self.ELEM_TO_STRING[self.state[0]]}, {descr}"
             )
 

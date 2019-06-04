@@ -177,9 +177,9 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
 
         transition = self.simulation_step(self.state, action)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V3):
+        if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
-                POBNRLogger.LogLevel.V3,
+                POBNRLogger.LogLevel.V2,
                 f"Agent moved {self.state['x']} -> {transition.state['x']}"
             )
 

@@ -52,7 +52,7 @@ class PrototypeAgent(Agent, POBNRLogger):
 
         """
 
-        self.log(POBNRLogger.LogLevel.V2, "Resetting agent for next episode")
+        self.log(POBNRLogger.LogLevel.V3, "Resetting agent for next episode")
         self._belief_manager.episode_reset()
 
     def select_action(self) -> int:
