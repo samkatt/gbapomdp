@@ -18,7 +18,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             state_space: DiscreteSpace,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            network_size: int,
+            conf,
             name: str):
 
         self.state_space = state_space
@@ -38,7 +38,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
         self._predict = two_layer_q_net(
             tf.cast(self._input_ph, tf.float32),
             n_out=self._num_state_out + self._num_obs_out,
-            n_hidden=network_size,
+            n_hidden=conf.network_size,
             scope=f"{name}_net"
         )
 
@@ -80,7 +80,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             ) for i in range(self.obs_space.ndim)
         ]
 
-        self._train_op = tf.train.AdamOptimizer().minimize(
+        self._train_op = tf.train.AdamOptimizer(conf.learning_rate).minimize(
             tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
             var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_net")
         )

@@ -41,7 +41,8 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
 
     class AugmentedState(namedtuple('bn_pomdp_state', 'domain_state model')):
 
-        __slots__ = ()  # required to keep lightweight implementation of namedtuple
+        # required to keep lightweight implementation of namedtuple
+        __slots__ = ()
 
     def __init__(
             self,
@@ -59,10 +60,11 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
         # domain knowledge
         self.domain_obs2index = domain.obs2index
         self.sample_domain_start_state = domain.sample_start_state
-        self.domain_reward = reward_function
-        self.domain_terminal = terminal_checker
         self.domain_action_space = domain.action_space
         self.domain_obs_space = domain.observation_space
+
+        self.domain_reward = reward_function
+        self.domain_terminal = terminal_checker
 
         self.replay_buffer = generate_replay_buffer(domain)
 
@@ -71,7 +73,7 @@ class PretrainedNeuralPOMDP(POUCTSimulator):
                 state_space,
                 domain.action_space,
                 domain.observation_space,
-                conf.network_size,
+                conf,
                 f"{name}_model_{i}"
             ) for i in range(conf.num_nets)
         ]

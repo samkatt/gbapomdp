@@ -1,7 +1,5 @@
 """ run Neural RL methods on partially observable domains """
 
-import time
-
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
 import tensorflow as tf
@@ -23,7 +21,6 @@ def main(conf):  # pylint: disable=too-many-locals
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger(__name__)
 
-    cur_time = time.time()
     result_mean = np.zeros(conf.episodes)
     ret_m2 = np.zeros(conf.episodes)
 
@@ -55,14 +52,11 @@ def main(conf):  # pylint: disable=too-many-locals
 
                 tmp_res[episode] = run_episode(env, agent, conf)
 
-                if episode > 0 and time.time() - cur_time > 5:
-
+                if episode > 0:
                     logger.log(
-                        POBNRLogger.LogLevel.V1,
+                        POBNRLogger.LogLevel.V2,
                         f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode])}"
                     )
-
-                    cur_time = time.time()
 
             # update mean and variance
             delta = tmp_res - result_mean
