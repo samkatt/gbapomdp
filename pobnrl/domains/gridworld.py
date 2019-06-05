@@ -137,12 +137,12 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
                 len(self._goal_cells)
             ))
 
+        self._state_space = DiscreteSpace([self.size, self.size, len(self._goal_cells)])
         self._action_space = ActionSpace(4)
         self._obs_space = DiscreteSpace(
-            [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).tolist()
+            [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).astype(int).tolist()
         )
 
-        self._state_space = DiscreteSpace([self.size, self.size, len(self._goal_cells)])
         self._state = self.sample_start_state()
 
     @property

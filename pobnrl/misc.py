@@ -174,8 +174,8 @@ class DiscreteSpace():
 
         """
 
-        self.size = np.array(size)
-        self.num_elements = np.prod(self.size)
+        self.size = np.array(size).astype(int)
+        self.num_elements: int = np.prod(self.size)
         self._indexing_steps = np.array([np.prod(self.size[:i]) for i in range(len(self.size))]).astype(int)
 
     @property

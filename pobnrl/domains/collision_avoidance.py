@@ -234,11 +234,11 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
                 POBNRLogger.LogLevel.V2,
-                f"Step: (x: {self.state['agent_x']}, y: {self.state['agent_y']}) and a="
+                f"Step: (x: {self.state[0]}, y: {self.state[1]}) and a="
                 f"{self.action_to_string[action]} --> "
-                f"(x:{sim_step.state['agent_x']}, y: {sim_step.state['agent_y']}),"
+                f"(x:{sim_step.state[0]}, y: {sim_step.state[1]}),"
                 " with obstacle "
-                f"{sim_step.state['obstacle']} (obs:  {sim_step.observation[-1]})"
+                f"{sim_step.state[2]} (obs: {sim_step.observation[-1]})"
             )
 
         self.state = sim_step.state
