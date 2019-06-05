@@ -133,9 +133,9 @@ class TestModelBasedRL(unittest.TestCase):
         """ tests basic offline learning """
 
         self.run_experiment(['-D=tiger', '--learn=true_dynamics_offline'])
-        self.run_experiment(['-D=collision_avoidance', '--domain_size=5', '--learn=true_dynamics_offline'])
-        self.run_experiment(['-D=chain', '--domain_size=4', '--learn=true_dynamics_offline'])
-        self.run_experiment(['-D=gridworld', '--domain_size=3', '--learn=true_dynamics_offline'])
+        self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--learn=true_dynamics_offline'])
+        # self.run_experiment(['-D=chain', '--domain_size=4', '--learn=true_dynamics_offline'])
+        # self.run_experiment(['-D=gridworld', '--domain_size=3', '--learn=true_dynamics_offline'])
 
 
 if __name__ == '__main__':
