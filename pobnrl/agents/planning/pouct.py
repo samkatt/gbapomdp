@@ -5,7 +5,7 @@ import random
 
 import numpy as np
 
-from environments import POUCTSimulator
+from environments import Simulator
 from misc import POBNRLogger
 
 from .particle_filters import ParticleFilter
@@ -91,7 +91,7 @@ class POUCT(POBNRLogger):
 
     def __init__(  # pylint: disable=too-many-arguments
             self,
-            simulator: POUCTSimulator,
+            simulator: Simulator,
             num_sims: int = 500,
             exploration_constant: float = 1.,
             planning_horizon: int = 10,
@@ -99,7 +99,7 @@ class POUCT(POBNRLogger):
         """ Creates the PO-UCT planner
 
         Args:
-             simulator: (`pobnrl.environments.POUCTSimulator`)
+             simulator: (`pobnrl.environments.Simulator`)
              num_sims: (`int`): number of iterations
              exploration_constant: (`float`): UCB exploration constant
              planning_horizon: (`int`): the horizon to plan agains
@@ -180,15 +180,18 @@ class POUCT(POBNRLogger):
 
             step = self.simulator.simulation_step(state, action)
 
-            if not step.terminal:
-                ret = step.reward + self.discount * self._traverse_tree(
+            reward = self.simulator.reward(state, action, step.state)
+            terminal = self.simulator.terminal(state, action, step.state)
+
+            if not terminal:
+                ret = reward + self.discount * self._traverse_tree(
                     step.state,
                     node.child(
                         action, self.simulator.obs2index(step.observation)
                     )
                 )
             else:
-                ret = step.reward
+                ret = reward
 
         node.update_value(action, ret)
 
@@ -214,12 +217,14 @@ class POUCT(POBNRLogger):
         for _ in range(hor):
 
             step = self.simulator.simulation_step(state, action)
+            reward = self.simulator.reward(state, action, step.state)
+            terminal = self.simulator.terminal(state, action, step.state)
 
-            ret += discount * step.reward
+            ret += discount * reward
 
             discount *= self.discount
 
-            if step.terminal:
+            if terminal:
                 break
 
             action = self.simulator.action_space.sample()

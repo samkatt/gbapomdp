@@ -4,8 +4,9 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
 import tensorflow as tf
 
-from domains import create_environment
 from agents import create_agent, AgentType
+from domains import create_environment
+from domains.learned_environments import NeuralEnsemble
 from episode import run_episode
 from misc import POBNRLogger, tf_session, tf_run
 
@@ -17,6 +18,9 @@ def main(conf):  # pylint: disable=too-many-locals
          conf: configurations as namespace from `parse_arguments`
 
     """
+
+    assert conf.learn == 'true_dynamics_offline', \
+        "please set --learn flag correctly"
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
@@ -30,24 +34,7 @@ def main(conf):  # pylint: disable=too-many-locals
         conf.verbose
     )
 
-    sim = env
-
-    if conf.learn == 'true_dynamics_offline':
-
-        from domains import Tiger
-        from domains.learned_environments import NeuralEnsemble
-        from misc import DiscreteSpace
-
-        sim = NeuralEnsemble(
-            sim,
-            state_space=DiscreteSpace([2]),
-            reward_function=lambda s, a, _: Tiger.LISTEN_REWARD if a == Tiger.LISTEN else Tiger.GOOD_DOOR_REWARD if s == a else Tiger.BAD_DOOR_REWARD,
-            terminal_checker=lambda _, a, __: a != 2,
-            conf=conf,
-            name="tiger_train_net"
-        )
-    else:
-        assert False, "please set --learn flag correctly"
+    sim = NeuralEnsemble(env, conf=conf, name="ensemble_pomdp")
 
     agent = create_agent(sim, conf, AgentType.MODELBASED)
 

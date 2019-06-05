@@ -1,15 +1,13 @@
 """ chain domain environment """
 
-from typing import Dict
-
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import POUCTSimulator, POUCTInteraction
+from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
+class ChainDomain(Environment, Simulator, POBNRLogger):
     """ the chain environment
 
     The domains are indexed by problem size N and action mask W =
@@ -41,6 +39,7 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         self._size = size
         self._move_cost = .01 / self.size
 
+        self._state_space = DiscreteSpace([self.size, self.size])
         self._action_space = ActionSpace(2)
         self._observation_space = DiscreteSpace([2] * self.size * self.size)
 
@@ -49,54 +48,69 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         self._state = self.sample_start_state()
 
     @property
-    def state(self) -> Dict[str, int]:
+    def state(self) -> np.ndarray:
         """ returns current state
 
         Args:
 
-        RETURNS (`Dict[str, int]`): {'x', 'y'} positions of agent
+        RETURNS (`np.ndarray`): [x,y] positions of agent
 
         """
         return self._state
 
     @state.setter
-    def state(self, state: Dict[str, int]):
+    def state(self, state: np.ndarray):
         """ sets state
 
         Args:
-             state: (`Dict[str, int]`):{'x', 'y'}
+             state: (`np.ndarray`): [x,y] agent position
 
         """
-        assert self.size > state['x'] >= 0
-        assert self.size > state['y'] > 0
-        assert state['x'] <= (self.size - state['y'])
+        assert self.size > state[0] >= 0
+        assert self.size > state[1] > 0
+        assert state[0] <= (self.size - state[1])
 
         self._state = state
 
-    def sample_start_state(self) -> Dict[str, int]:
+    @property
+    def state_space(self) -> DiscreteSpace:
+        """ `pobnrl.misc.DiscreteSpace`([size,size])"""
+        return self._state_space
+
+    @property
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.ActionSpace` space with 2 actions"""
+        return self._action_space
+
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace` space of size x size """
+        return self._observation_space
+
+    def sample_start_state(self) -> np.ndarray:
         """ samples the (deterministic) start state
 
         Args:
 
-        RETURNS (`Dict[str, int]`):{'x', 'y'}
+        RETURNS (`np.ndarray`): [x,y]
 
         """
 
         # x, level (size-1...0)
-        return {'x': 0, 'y': self.size - 1}
+        return np.ndarray([0, self.size - 1])
 
     @property
     def size(self):
         """ returns size (length) of (square) grid """
         return self._size
 
-    def state2observation(self, state: Dict[str, int] = None):
+    def state2observation(self, state: np.ndarray = None):
         """ returns a 1-hot encoding of the state
 
         Will use self.state if provided state is not given
 
         Args:
-             state: (`Dict[str, int]`): the state {'x', 'y'}
+             state: (`np.ndarray`): the state [x,y]
 
         """
 
@@ -105,22 +119,17 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
             state = self.state
 
         obs = np.zeros((self.size, self.size))
-        obs[state['x'], state['y']] = 1
+        obs[state[0], state[1]] = 1
 
         return obs.reshape(self.size * self.size)
 
     def reset(self):
-        """ resets internal state and return first observation
-
-        resets the intenral state randomly (0 or 1)
-        returns [0,0] as a 'null' initial observation
-
-        """
+        """ resets internal state and return first observation """
 
         self._state = self.sample_start_state()
         return self.state2observation()
 
-    def simulation_step(self, state: Dict[str, int], action: int) -> POUCTInteraction:
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ updates the state depending on action
 
         Depending on the state, action can either move the agent left or rigth
@@ -129,10 +138,10 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         x-axis)
 
         Args:
-             state: (`Dict[str, int]`): the state {'x', 'y'}
+             state: (`np.ndarray`): the state [x,y]
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
+        RETURNS (`pobnrl.environments.SimulationResult`): the transition
 
         """
 
@@ -141,24 +150,56 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         new_state = state.copy()
 
         # move horizontally
-        if action == self._action_mapping[state['x']]:
-            new_state['x'] += 1
-            reward = -self._move_cost
+        if action == self._action_mapping[state[0]]:
+            new_state[0] += 1
         else:
-            new_state['x'] = max(0, state['x'] - 1)  # bound on grid
-            reward = 0
+            new_state[0] = max(0, state[0] - 1)  # bound on grid
 
         # move vertically
-        new_state['y'] -= 1
+        new_state[1] -= 1
 
-        terminal = new_state['y'] == 0
+        return SimulationResult(new_state, self.state2observation(new_state))
 
-        if terminal and new_state['x'] == self.size - 1:
-            reward = 1
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """ reward for finding end, otherwise slight penalty for going to end
 
-        return POUCTInteraction(
-            new_state, self.state2observation(new_state), reward, terminal
-        )
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`float`): the reward of the transition
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
+        reward = 0 if action != self._action_mapping[state[0]] else -self._move_cost
+
+        if new_state['x'] == self.size - 1:
+            reward += 1
+
+        return reward
+
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """ the termination function: agent reaches bottom
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`bool`): whether the transition is terminal
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
+        return new_state[1] == 0
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the domain depending on action
@@ -175,19 +216,20 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
 
         """
 
-        transition = self.simulation_step(self.state, action)
+        sim_step = self.simulation_step(self.state, action)
+
+        reward = self.reward(self.state, action, sim_step.state)
+        terminal = self.terminal(self.state, action, sim_step.state)
 
         if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
                 POBNRLogger.LogLevel.V2,
-                f"Agent moved {self.state['x']} -> {transition.state['x']}"
+                f"Agent moved {self.state} -> {sim_step.state}"
             )
 
-        self._state = transition.state
+        self._state = sim_step.state
 
-        return EnvironmentInteraction(
-            transition.observation, transition.reward, transition.terminal
-        )
+        return EnvironmentInteraction(sim_step.observation, reward, terminal)
 
     def obs2index(self, observation: np.array) -> int:
         """ projects the observation as an int
@@ -205,13 +247,3 @@ class ChainDomain(Environment, POUCTSimulator, POBNRLogger):
         assert np.sum(observation) == 1
 
         return observation.argmax()
-
-    @property
-    def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace` space with 2 actions"""
-        return self._action_space
-
-    @property
-    def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace` space of size x size """
-        return self._observation_space

@@ -2,7 +2,7 @@
 
 from enum import Enum
 
-from environments import POUCTSimulator
+from environments import Simulator
 
 from .agent import Agent, RandomAgent
 from .model_free_agents import create_agent as create_mf_agent
@@ -16,11 +16,11 @@ class AgentType(Enum):
     PLANNING = 3
 
 
-def create_agent(sim: POUCTSimulator, conf, agent_type: AgentType) -> Agent:
+def create_agent(sim: Simulator, conf, agent_type: AgentType) -> Agent:
     """ factory function to construct agents
 
     Args:
-         sim: (`pobnrl.environments.POUCTSimulator`):
+         sim: (`pobnrl.environments.Simulator`):
          conf: (`namespace`): configurations
 
     RETURNS (`pobnrl.agents.agent.Agent`)

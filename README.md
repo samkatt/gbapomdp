@@ -74,6 +74,6 @@ code is formatted correctly
 * test `https://github.ccs.neu.edu/abaisero/gym-pomdps`
 
 #### features
-          * use pure indices in learning dynamics (i.e. BA-POMDP)
+* use pure indices in learning dynamics (i.e. BA-POMDP)
 
-    [1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf
+[1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf

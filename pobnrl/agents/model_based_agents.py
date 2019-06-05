@@ -4,7 +4,7 @@ from functools import partial
 from typing import Any, Callable
 import numpy as np
 
-from environments import POUCTSimulator, POUCTInteraction
+from environments import Simulator, SimulationResult
 from domains.learned_environments import NeuralEnsemble
 from misc import POBNRLogger
 
@@ -91,13 +91,13 @@ class RejectionSamplingBelieveManager(BeliefManager):
     def __init__(
             self,
             num_particles: int,
-            sim: POUCTSimulator,
+            sim: Simulator,
             reset_particle_f: Callable[[Any], Any] = None):
         """ creates a believe manager based on rejection sampling
 
         Args:
              num_particles: (`int`): the number of particles in the filter
-             sim: (`POUCTSimulator`): the simulator to update particles
+             sim: (`pobnrl.environments.Simulator`): the simulator to update particles
              reset_particle_f: (`Callable[[Any], Any]`): how to reset particles
 
         """
@@ -115,7 +115,7 @@ class RejectionSamplingBelieveManager(BeliefManager):
             particle_filter: ParticleFilter,
             action: int,
             observation: np.ndarray,
-            env: POUCTSimulator) -> ParticleFilter:
+            env: Simulator) -> ParticleFilter:
         """ Applies belief rejection sampling
 
         Will update the belief by simulating a step in the simulator and using
@@ -123,7 +123,7 @@ class RejectionSamplingBelieveManager(BeliefManager):
 
         Args:
         particle_filter: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): current belief
-        env: (`pobnrl.environments.POUCTSimulator`): simulator as a dynamic model
+        env: (`pobnrl.environments.Simulator`): simulator as a dynamic model
         action: (`int`): taken action
         observation: (`np.ndarray`): perceived observation
 
@@ -131,27 +131,27 @@ class RejectionSamplingBelieveManager(BeliefManager):
 
         """
 
-        env_step = partial(env.simulation_step, action=action)
+        update_step = partial(env.simulation_step, action=action)
 
-        def extract_state(interaction: POUCTInteraction) -> Any:
+        def extract_state(interaction: SimulationResult) -> Any:
             return interaction.state
 
-        def observation_equals(interaction: POUCTInteraction) -> bool:
+        def observation_equals(interaction: SimulationResult) -> bool:
             return np.all(interaction.observation == observation)
 
         return rejection_sampling(
             particle_filter,
-            process_sample_f=env_step,
+            process_sample_f=update_step,
             accept_f=observation_equals,
             extract_particle_f=extract_state,
         )
 
 
-def create_learning_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
+def create_learning_agent(env: Simulator, conf) -> PrototypeAgent:
     """ factory function to construct model based learning agents
 
     Args:
-         env: (`pobnrl.environments.POUCTSimulator`) simulator
+         env: (`pobnrl.environments.Simulator`) simulator
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
@@ -169,10 +169,16 @@ def create_learning_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
         conf.gamma
     )
 
+    def reset_particle(augmented_state):
+        NeuralEnsemble.AugmentedState(
+            env.sample_start_state(),
+            augmented_state.model
+        )
+
     believe_manager = RejectionSamplingBelieveManager(
-        conf.num_particles,
-        env,
-        lambda augmented_state: NeuralEnsemble.AugmentedState(env.sample_start_state(), augmented_state.model)
+        num_particles=conf.num_particles,
+        sim=env,
+        reset_particle_f=reset_particle
     )
 
     return PrototypeAgent(
@@ -181,11 +187,11 @@ def create_learning_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
     )
 
 
-def create_planning_agent(env: POUCTSimulator, conf) -> PrototypeAgent:
+def create_planning_agent(env: Simulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
 
     Args:
-         env: (`pobnrl.environments.POUCTSimulator`) simulator
+         env: (`pobnrl.environments.Simulator`) simulator
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)

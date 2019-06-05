@@ -3,11 +3,11 @@
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import POUCTSimulator, POUCTInteraction
+from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class Tiger(Environment, POUCTSimulator, POBNRLogger):
+class Tiger(Environment, Simulator, POBNRLogger):
     """ the tiger environment """
 
     # consts
@@ -29,6 +29,7 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
 
         self._state = self.sample_start_state()
 
+        self._state_space = DiscreteSpace([2])
         self._action_space = ActionSpace(3)
         self._obs_space = DiscreteSpace([2, 2])
 
@@ -50,6 +51,21 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         assert 2 > state[0] >= 0
 
         self._state = state
+
+    @property
+    def state_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([2]) space """
+        return self._state_space
+
+    @property
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.ActionSpace`([3]) space """
+        return self._action_space
+
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([1,1]) space """
+        return self._obs_space
 
     @staticmethod
     def sample_start_state() -> np.ndarray:
@@ -94,7 +110,7 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         self._state = self.sample_start_state()
         return np.zeros(2)
 
-    def simulation_step(self, state: np.ndarray, action: int) -> POUCTInteraction:
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ simulates stepping from state using action. Returns interaction
 
         Will terminate episode when action is to open door,
@@ -104,24 +120,58 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
              state: (`np.ndarray`): [0] is tiger left, [1] is tiger right
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
+        RETURNS (`pobnrl.environments.SimulationResult`): the transition
 
         """
 
         if action != self.LISTEN:
             obs = self.sample_observation(state[0], False)
-            terminal = True
             new_state = self.sample_start_state()
-            reward = self.GOOD_DOOR_REWARD if action == state[0] \
-                else self.BAD_DOOR_REWARD
 
         else:  # not opening door
             obs = self.sample_observation(state[0], True)
-            terminal = False
-            reward = self.LISTEN_REWARD
             new_state = state.copy()
 
-        return POUCTInteraction(new_state, obs, reward, terminal)
+        return SimulationResult(new_state, obs)
+
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """ A constant if listening, penalty if opening to door, and reward otherwise
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`float`):
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
+        if action == self.LISTEN:
+            return self.LISTEN_REWARD
+
+        return self.GOOD_DOOR_REWARD if action == state[0] else self.BAD_DOOR_REWARD
+
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """ True if opening a door
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`bool`):
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
+        return action != self.LISTEN
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the tiger environment given action
@@ -136,24 +186,24 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
 
         """
 
-        transition = self.simulation_step(self.state, action)
+        sim_result = self.simulation_step(self.state, action)
+        reward = self.reward(self.state, action, sim_result.state)
+        terminal = self.terminal(self.state, action, sim_result.state)
 
         if self.log_is_on(POBNRLogger.LogLevel.V2):
-            if action != self.LISTEN:  # agent is opening door
+            if action == self.LISTEN:
+                descr = "the agent listens"  # TODO: add what is hears
+            else:  # agent is opening door
                 descr = f"the agent opens {self.ELEM_TO_STRING[action]}"
-            else:
-                descr = "the agent listens"
 
             self.log(
                 POBNRLogger.LogLevel.V2,
                 f"With tiger {self.ELEM_TO_STRING[self.state[0]]}, {descr}"
             )
 
-        self._state = transition.state
+        self.state = sim_result.state
 
-        return EnvironmentInteraction(
-            transition.observation, transition.reward, transition.terminal
-        )
+        return EnvironmentInteraction(sim_result.observation, reward, terminal)
 
     def obs2index(self, observation: np.ndarray) -> int:
         """ projects the observation as an int
@@ -166,13 +216,3 @@ class Tiger(Environment, POUCTSimulator, POBNRLogger):
         """
 
         return self._obs_space.index_of(observation)
-
-    @property
-    def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace`([3]) space """
-        return self._action_space
-
-    @property
-    def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([1,1]) space """
-        return self._obs_space

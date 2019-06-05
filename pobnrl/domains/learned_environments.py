@@ -1,21 +1,20 @@
 """ domains either learned or constructed from other domains """
 
 from collections import namedtuple
-from typing import Callable
 import numpy as np
 
 from agents.neural_networks import ReplayBuffer
 from agents.neural_networks.neural_pomdps import DynamicsModel
 from environments import ActionSpace
-from environments import POUCTSimulator, POUCTInteraction
+from environments import Simulator, SimulationResult
 from misc import DiscreteSpace
 
 
-def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
+def generate_replay_buffer(domain: Simulator) -> ReplayBuffer:
     """ Fills up a replay buffer of (s,a,s',o) interactions
 
     Args:
-         domain: (`pobnrl.environments.POUCTSimulator`): a simulator to generate interactions
+         domain: (`pobnrl.environments.Simulator`): a simulator to generate interactions
 
     RETURNS (`pobnrl.agents.neural_networks.misc.ReplayBuffer`):
 
@@ -32,7 +31,7 @@ def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
             action = domain.action_space.sample()
 
             step = domain.simulation_step(state, action)
-            terminal = step.terminal
+            terminal = domain.terminal(state, action, step.state)
 
             replay_buffer.store(
                 (state.copy(), action, step.state.copy(), step.observation),
@@ -45,7 +44,8 @@ def generate_replay_buffer(domain: POUCTSimulator) -> ReplayBuffer:
     return replay_buffer
 
 
-class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attributes
+# TODO: not **really** the same as any other simulator. Refactor somehow
+class NeuralEnsemble(Simulator):  # pylint: disable=too-many-instance-attributes
     """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
     class AugmentedState(namedtuple('bn_pomdp_state', 'domain_state model')):
@@ -54,22 +54,12 @@ class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attri
         # required to keep lightweight implementation of namedtuple
         __slots__ = ()
 
-    def __init__(  # pylint: disable=too-many-arguments
-            self,
-            domain: POUCTSimulator,
-            state_space: DiscreteSpace,
-            reward_function: Callable[[np.ndarray, int, np.ndarray], float],
-            terminal_checker: Callable[[np.ndarray, int, np.ndarray], bool],
-            conf,
-            name: str):
+    def __init__(self, domain: Simulator, conf, name: str):
         """ Creates `NeuralEnsemble`
 
         Args:
-             domain: (`pobnrl.environments.POUCTSimulator`): domain to train interactions from
-             state_space: (`pobnrl.misc.DiscreteSpace`): the state space of the `domain`
-             reward_function: (`Callable[[np.ndarray, int, np.ndarray], float]`): reward function
-             terminal_checker: (`Callable[[np.ndarray, int, np.ndarray], bool]`): termination check
-             conf: configurations from program input (network_size and learning_rate)
+             domain: (`pobnrl.environments.Simulator`): domain to train interactions from
+             conf: configurations from program input (`network_size` and `learning_rate`)
              name: (`str`): name (unique) of this simulator
 
         """
@@ -78,17 +68,18 @@ class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attri
         self._batch_size = conf.batch_size
 
         # domain knowledge
-        self.domain_obs2index = domain.obs2index
-        self.sample_domain_start_state = domain.sample_start_state
         self.domain_action_space = domain.action_space
         self.domain_obs_space = domain.observation_space
 
-        self.domain_reward = reward_function
-        self.domain_terminal = terminal_checker
+        self.sample_domain_start_state = domain.sample_start_state
+        self.domain_obs2index = domain.obs2index
+
+        self.domain_reward = domain.reward
+        self.domain_terminal = domain.terminal
 
         self._models = [
             DynamicsModel(
-                state_space,
+                domain.state_space,
                 domain.action_space,
                 domain.observation_space,
                 conf,
@@ -96,11 +87,11 @@ class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attri
             ) for i in range(conf.num_nets)
         ]
 
-    def learn_dynamics_offline(self, simulator: POUCTSimulator, num_epochs: int):
+    def learn_dynamics_offline(self, simulator: Simulator, num_epochs: int):
         """  learn the dynamics function offline, given simulator
 
         Args:
-             simulator: (`pobnrl.environments.POUCTSimulator`): simulator to generate interactions from
+             simulator: (`pobnrl.environments.Simulator`): simulator to generate interactions from
              num_epochs: (`int`): number of batch updates
 
         """
@@ -121,54 +112,16 @@ class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attri
 
                 model.batch_update(states, actions, new_states, observations)
 
-    def sample_start_state(self) -> 'AugmentedState':
-        """  returns a sample initial (internal) state and some neural network
+    @property
+    def state_space(self) -> DiscreteSpace:
+        """ No method should want to know `this` state space
 
         Args:
 
-        RETURNS (`AugmentedState`):
+        RETURNS (`pobnrl.misc.DiscreteSpace`):
 
         """
-        return self.AugmentedState(
-            self.sample_domain_start_state(),
-            np.random.choice(self._models)
-        )
-
-    def simulation_step(
-            self,
-            state: AugmentedState,
-            action: int) -> POUCTInteraction:
-        """ Performs simulation step
-
-        Args:
-             state: (`AugmentedState`): incoming state
-             action: (`int`): action
-
-        RETURNS (`pobnrl.environments.POUCTInteraction`):
-
-        """
-
-        # use model to generate a step
-        new_domain_state, obs = state.model.simulation_step(state.domain_state, action)
-
-        # domain knowledge to get reward and terminality
-        rew = self.domain_reward(state.domain_state, action, new_domain_state)
-        term = self.domain_terminal(state.domain_state, action, new_domain_state)
-
-        return POUCTInteraction(
-            self.AugmentedState(new_domain_state, state.model), obs, rew, term
-        )
-
-    def obs2index(self, observation: np.ndarray) -> int:
-        """ projects observation to single dimension (scalar)
-
-        Args:
-             observation: (`np.ndarray`):
-
-        RETURNS (`int`):
-
-        """
-        return self.domain_obs2index(observation)
+        raise NotImplementedError
 
     @property
     def action_space(self) -> ActionSpace:
@@ -191,3 +144,72 @@ class NeuralEnsemble(POUCTSimulator):  # pylint: disable=too-many-instance-attri
 
         """
         return self.domain_obs_space
+
+    def sample_start_state(self) -> 'AugmentedState':
+        """  returns a sample initial (internal) state and some neural network
+
+        Args:
+
+        RETURNS (`AugmentedState`):
+
+        """
+        return self.AugmentedState(
+            self.sample_domain_start_state(),
+            np.random.choice(self._models)
+        )
+
+    def simulation_step(
+            self,
+            state: AugmentedState,
+            action: int) -> SimulationResult:
+        """ Performs simulation step
+
+        Args:
+             state: (`AugmentedState`): incoming state
+             action: (`int`): action
+
+        RETURNS (`pobnrl.environments.SimulationResult`):
+
+        """
+
+        # use model to generate a step
+        new_domain_state, obs = state.model.simulation_step(state.domain_state, action)
+
+        return SimulationResult(self.AugmentedState(new_domain_state, state.model), obs)
+
+    def reward(self, state: AugmentedState, action: int, new_state: AugmentedState) -> float:
+        """ the reward function of the underlying environment
+
+        Args:
+             state: (`AugmentedState`):
+             action: (`int`):
+             new_state: (`AugmentedState`):
+
+        RETURNS (`float`): the reward of the transition
+
+        """
+        return self.domain_reward(state.domain_state, action, new_state.domain_state)
+
+    def terminal(self, state: AugmentedState, action: int, new_state: AugmentedState) -> bool:
+        """ the termination function of the underlying environment
+
+        Args:
+             state: (`AugmentedState`):
+             action: (`int`):
+             new_state: (`AugmentedState`):
+
+        RETURNS (`bool`): whether the transition is terminal
+
+        """
+        return self.domain_terminal(state.domain_state, action, new_state.domain_state)
+
+    def obs2index(self, observation: np.ndarray) -> int:
+        """ projects observation to single dimension (scalar)
+
+        Args:
+             observation: (`np.ndarray`):
+
+        RETURNS (`int`):
+
+        """
+        return self.domain_obs2index(observation)

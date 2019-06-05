@@ -1,7 +1,6 @@
 """environments interface """
 
 from collections import namedtuple
-from typing import Any
 import abc
 import gym
 import numpy as np
@@ -176,23 +175,33 @@ class Environment(abc.ABC):
                 f"observation space {self.observation_space}")
 
 
-class POUCTInteraction(
-        namedtuple('simulated_interaction', 'state observation reward terminal')):
+class SimulationResult(
+        namedtuple('simulated_interaction', 'state observation')):
     """ The tuple returned by simulations doing steps
 
         Contains:
              state: (`Any`)
              observation: (`np.ndarray`)
-             reward: (`float`)
-             terminal: (`bool`)
 
     """
 
-    __slots__ = ()  # required to keep lightweight implementation of namedtuple
+    # required to keep lightweight implementation of namedtuple
+    __slots__ = ()
 
 
-class POUCTSimulator(abc.ABC):
+class Simulator(abc.ABC):
     """ generative environment interface """
+
+    @property
+    @abc.abstractmethod
+    def state_space(self) -> DiscreteSpace:
+        """ the (discrete) state space of the POMDP
+
+        Args:
+
+        RETURNS (`pobnrl.misc.DiscreteSpace`):
+
+        """
 
     @property
     @abc.abstractmethod
@@ -213,28 +222,54 @@ class POUCTSimulator(abc.ABC):
         """
 
     @abc.abstractmethod
-    def simulation_step(self, state: Any, action: int) -> POUCTInteraction:
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ generates a transition
 
         Args:
-             state: (`Any`): some state
+             state: (`np.ndarray`): some state
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
+        RETURNS (`SimulationResult`): the transition
 
         """
 
     @abc.abstractmethod
-    def sample_start_state(self) -> Any:
+    def sample_start_state(self) -> np.ndarray:
         """ returns a potential start state """
 
     @abc.abstractmethod
-    def obs2index(self, observation: np.array) -> int:
+    def obs2index(self, observation: np.ndarray) -> int:
         """ projects the observation as an int
 
         Args:
-             observation: (`np.array`): observation to project
+             observation: (`np.ndarray`): observation to project
 
         RETURNS (`int`): int representation of observation
+
+        """
+
+    @abc.abstractmethod
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """ the reward function
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`float`): the reward of the transition
+
+        """
+
+    @abc.abstractmethod
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """ the termination function
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`bool`): whether the transition is terminal
 
         """

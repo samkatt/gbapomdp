@@ -1,16 +1,17 @@
 """ gridworld environment """
 
+from collections import namedtuple
 from typing import List, Tuple, Set
 import random
 
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import POUCTSimulator, POUCTInteraction
+from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
+class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
     """ the gridworld environment
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -34,6 +35,18 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
 
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     action_to_string = ["UP", "RIGHT", "DOWN", "LEFT"]
+
+    class Goal(namedtuple('grid_goal', 'x y index')):
+        """ goal in gridworld
+
+            Contains:
+                x: (`int`)
+                y: (`int`)
+                index: (`int`)
+        """
+
+        # required to keep lightweight implementation of namedtuple
+        __slots__ = ()
 
     def __init__(self, domain_size: int):
         """ creates a gridworld of provided size and verbosity
@@ -83,69 +96,107 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
             self._slow_cells.add((edge - 2, edge - 2))
 
         # generate goal locations
-        self._goal_cells: List[Tuple[int, int]] = []
+        self._goal_cells: List[GridWorld.Goal] = []
 
         goal_edge_start = self._size - 2 if self._size < 5 \
             else self._size - 3 if self._size < 7 else self._size - 4
 
         for pos in range(goal_edge_start, self._size - 1):
-            self._goal_cells.append((pos, edge))  # fill top side
-            self._goal_cells.append((edge, pos))  # fill right side
+            self._goal_cells.append(GridWorld.Goal(  # fill top side
+                pos,
+                edge,
+                len(self._goal_cells)
+            ))
 
-        self._goal_cells.append((edge, edge))  # top right corner
+            self._goal_cells.append(GridWorld.Goal(
+                edge,
+                pos,
+                len(self._goal_cells)
+            ))  # fill right side
+
+        self._goal_cells.append(GridWorld.Goal(edge, edge, len(self._goal_cells)))  # top right corner
 
         if self._size > 3:
-            self._goal_cells.append((edge - 1, edge - 1))
+            self._goal_cells.append(GridWorld.Goal(
+                edge - 1,
+                edge - 1,
+                len(self._goal_cells)
+            ))
 
         if self._size > 6:
-            self._goal_cells.append((edge - 2, edge - 1))
-            self._goal_cells.append((edge - 1, edge - 2))
+            self._goal_cells.append(GridWorld.Goal(
+                edge - 2,
+                edge - 1,
+                len(self._goal_cells)
+            ))
+            self._goal_cells.append(GridWorld.Goal(
+                edge - 1,
+                edge - 2,
+                len(self._goal_cells)
+            ))
 
         self._action_space = ActionSpace(4)
         self._obs_space = DiscreteSpace(
             [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).tolist()
         )
 
-        self._state = [np.zeros(2), self.sample_goal()]
+        self._state_space = DiscreteSpace([self.size, self.size, len(self._goal_cells)])
+        self._state = self.sample_start_state()
 
     @property
-    def state(self) -> list:
+    def state(self) -> np.ndarray:
         """ returns current state
 
         Args:
 
-        RETURNS (`list`):
+        RETURNS (`np.ndarray`): [x,y,goal_index]
 
         """
         return self._state
 
     @state.setter
-    def state(self, value: list):
+    def state(self, value: np.ndarray):
         """ set state of grid
 
         Checks whether the state is valid through assertion error
 
         Args:
-             value: (`list`): [np.array, (goal_x, goal_y)]
+             value: (`np.ndarray`): [x,y,goal_index]
 
         """
 
-        agent_pos, goal_pos = value
-        assert goal_pos in self.goals
-        assert agent_pos.shape == (2,)
-        assert 0 <= agent_pos[0] < self.size and 0 <= agent_pos[1] < self.size
+        agent_x, agent_y, goal_index = value
 
-        self._state = [agent_pos, goal_pos]
+        assert len(self.goals) > goal_index >= 0
+        assert 0 <= agent_x < self.size and 0 <= agent_x < self.size
+        assert 0 <= agent_y < self.size and 0 <= agent_y < self.size
 
-    def sample_start_state(self) -> list:
+        self._state = np.array([agent_x, agent_y, goal_index])
+
+    @property
+    def state_space(self) -> DiscreteSpace:
+        """ `pobnrl.misc.DiscreteSpace`([size,size,num_goals]) """
+        return self._state_space
+
+    @property
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.ActionSpace`([4]) space """
+        return self._action_space
+
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
+        return self._obs_space
+
+    def sample_start_state(self) -> np.ndarray:
         """ returns [[0,0], some_goal]
 
         Args:
 
-        RETURNS (`list`): [np.array, (goal_x, goal_y)]
+        RETURNS (`np.ndarray`): [x,y,goal_index]
 
         """
-        return [np.zeros(2), self.sample_goal()]
+        return np.array([0, 0, self.sample_goal().index])
 
     @property
     def size(self) -> int:
@@ -157,51 +208,50 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         return self._size
 
     @property
-    def goals(self) -> List[Tuple[int, int]]:
+    def goals(self) -> List['GridWorld.Goal']:
         """ returns the number of **possible** goals
 
         Args:
 
-        RETURNS (`List[Tuple[int, int]]`): list of (x,y)
+        RETURNS (`List[` `GridWorld.Goal` `]`):
 
         """
         return self._goal_cells
 
-    def bound_in_grid(self, state_or_obs: np.array) -> np.array:
+    def bound_in_grid(self, state_or_obs: np.ndarray) -> np.array:
         """ returns bounded state or obs s.t. it is within the grid
 
         simpy returns state_or_obs if it is in the grid size,
         otherwise returns the edge value
 
         Args:
-             state_or_obs: (`np.array`): some (x,y) position on the grid
+             state_or_obs: (`np.ndarray`): some (x,y) position on the grid
 
-        RETURNS (`np.array`): the bounded value state_or_obs
+        RETURNS (`np.ndarray`): the bounded value state_or_obs
 
         """
         return np.maximum(0, np.minimum(state_or_obs, self._size - 1))
 
-    def sample_goal(self) -> Tuple[int, int]:
+    def sample_goal(self) -> 'GridWorld.Goal':
         """ samples a goal position
 
-        RETURNS (`Tuple[int, int]`): the goal state (x,y)
+        RETURNS (`Tuple[` `GridWorld.Goal` `]`): the goal state
 
         """
         return random.choice(self._goal_cells)
 
-    def generate_observation(
-            self,
-            agent_pos: np.array,
-            goal_pos: Tuple[int, int]) -> np.array:
+    def generate_observation(self, state: np.ndarray) -> np.array:
         """ generates a noisy observation of the state
 
         Args:
-             agent_pos: (`np.array`): [x,y] position of the agent
-             goal_pos: (`Tuple[int, int]`): (x,y) position of the goal
+             state: (`np.ndarray`): [x, y, goal_index]
 
         RETURNS (`np.array`): [x,y,... hot-encodign-goal-pos....]
 
         """
+
+        agent_x, agent_y, goal_index = state
+        agent_pos = np.array([agent_x, agent_y])
 
         # state + displacement, where displacement is centered through - size
         unbounded_obs = agent_pos \
@@ -212,7 +262,7 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
 
         # 1-hot-encoding goal
         goal_observation = np.zeros(len(self._goal_cells))
-        goal_observation[self._goal_cells.index(goal_pos)] = 1
+        goal_observation[goal_index] = 1
 
         return np.hstack([bounded_obs, goal_observation])
 
@@ -220,27 +270,25 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         """ resets state """
 
         self._state = self.sample_start_state()
-        return self.generate_observation(*self.state)
+        return self.generate_observation(self.state)
 
-    def simulation_step(self, state: list, action: int) -> POUCTInteraction:
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ performs a step on state and action and returns the transition
 
         moves agent accross the grid depending on the direction it took
 
         Args:
-             state: (`list`): [np.array, (goal_x, goal_y)]
+             state: (`np.ndarray`): [x, y, goal_index]
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.POUCTInteraction`): the transition
+        RETURNS (`pobnrl.environments.SimulationResult`): the transition
 
         """
 
         assert 4 > action >= 0, "agent can only move in 4 directions"
 
-        agent_pos, goal_pos = state
-
-        # episode terminates when we have arrived in the goal state previously
-        terminal = np.all(agent_pos == goal_pos)
+        agent_x, agent_y, goal_index = state
+        agent_pos = np.array([agent_x, agent_y])
 
         if tuple(agent_pos) not in self._slow_cells:
             move_prob = self.MOVE_SUCCESS_PROB
@@ -251,14 +299,46 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
             agent_pos = self.bound_in_grid(
                 agent_pos + self.action_to_vec[int(action)])
 
-        new_state = [agent_pos, goal_pos]
+        new_state = np.array([*agent_pos, goal_index])
 
-        obs = self.generate_observation(*new_state)
-        reward = 1 if terminal else 0
+        obs = self.generate_observation(new_state)
 
-        return POUCTInteraction(
-            new_state, obs, reward, terminal
-        )
+        return SimulationResult(new_state, obs)
+
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """ 0, unless leaving the goal
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`float`): the reward of the transition
+
+        """
+
+        # reward if terminal
+        return int(self.terminal(state, action, new_state))
+
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """ False, unless leaving the goal
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`bool`): whether the transition is terminal
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
+        # terminal if [x,y] == [goal_x,goal_y]
+        goal = self.goals[state[2]]
+        return np.all(state[:2] == [goal.x, goal.y])
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ update state as a result of action
@@ -272,22 +352,23 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
 
         """
 
-        transition = self.simulation_step(self.state, action)
+        sim_step = self.simulation_step(self.state, action)
+
+        reward = self.reward(self.state, action, sim_step.state)
+        terminal = self.terminal(self.state, action, sim_step.state)
 
         if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
                 POBNRLogger.LogLevel.V2,
-                f"Agent moved from {self.state[0]}  to {transition.state[0]}"
-                f" after picking {self.action_to_string[int(action)]} and"
-                f" observed {transition.observation[:2]}"
-                f" (goal {np.argmax(transition.observation[2:])})"
+                f"Agent moved from {self.state[:2]}  to {sim_step.state[:2]}"
+                f" after picking {self.action_to_string[action]} and"
+                f" observed {sim_step.observation[:2]}"
+                f" (goal {self.state[2]})"
             )
 
-        self._state = transition.state
+        self._state = sim_step.state
 
-        return EnvironmentInteraction(
-            transition.observation, transition.reward, transition.terminal
-        )
+        return EnvironmentInteraction(sim_step.observation, reward, terminal)
 
     def obs2index(self, observation: np.array) -> int:
         """ projects the observation as an int
@@ -310,13 +391,3 @@ class GridWorld(Environment, POUCTSimulator, POBNRLogger):  # pylint: disable=to
         return observation[0] \
             + observation[1] * self.size \
             + self.size * self.size * pow(2, np.argmax(observation[2:]) - 1)
-
-    @property
-    def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace`([4]) space """
-        return self._action_space
-
-    @property
-    def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
-        return self._obs_space

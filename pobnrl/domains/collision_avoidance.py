@@ -3,11 +3,11 @@
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import POUCTSimulator, POUCTInteraction
+from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
+class CollisionAvoidance(Environment, Simulator, POBNRLogger):
     """ the collision avoidance environment
 
 
@@ -44,8 +44,9 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         self._size = domain_size
         self._mid = int(self._size / 2)
 
+        self._state_space = DiscreteSpace([self._size, self._size, self._size])
         self._action_space = ActionSpace(3)
-        self._obs_space = DiscreteSpace([self._size, self._size, self._size])
+        self._obs_space = self._state_space
 
         self._state = self.sample_start_state()
 
@@ -55,38 +56,47 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         return self._size
 
     @property
-    def state(self) -> dict:
-        """ {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` } """
+    def state(self) -> np.ndarray:
+        """ [x, y, obs_y] """
         return self._state
 
     @state.setter
-    def state(self, state: dict):
+    def state(self, state: np.ndarray):
         """ sets state
 
         Args:
-             dict: {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` }
+             dict: [x, y, obs_y]
 
         """
 
-        assert self._size > state['agent_x'] >= 0
-        assert self._size > state['agent_y'] >= 0
-        assert self._size > state['obstacle'] >= 0
+        assert np.all(self._size > state >= 0)
 
         self._state = state
 
-    def sample_start_state(self) -> dict:
+    @property
+    def state_space(self) -> DiscreteSpace:
+        """ `pobnrl.misc.DiscreteSpace`([size,size,size]) """
+        return self._state_space
+
+    @property
+    def action_space(self) -> ActionSpace:
+        """ a `pobnrl.environments.ActionSpace`([3]) space """
+        return self._action_space
+
+    @property
+    def observation_space(self) -> DiscreteSpace:
+        """ a `pobnrl.misc.DiscreteSpace`([size,size,size]) space """
+        return self._obs_space
+
+    def sample_start_state(self) -> np.ndarray:
         """ returns the (deterministic) start state
 
         Args:
 
-        RETURNS (`dict`): {'agent_x': `int`, 'agent_y': `int`, 'obstacle': `int` }
+        RETURNS (`np.ndarray`): [x, y, obs_y]
 
         """
-        return {
-            'agent_x': self._size - 1,
-            'agent_y': self._mid,
-            'obstacle': self._mid
-        }
+        return np.array([self._size - 1, self._mid, self._mid])
 
     def bound_in_grid(self, y_pos: int) -> int:
         """ returns bounded y_pos s.t. it is within the grid
@@ -102,12 +112,11 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         """
         return max(0, min(self._size - 1, y_pos))
 
-    def generate_observation(self, state: dict = None) -> np.ndarray:
+    def generate_observation(self, state: np.ndarray = None) -> np.ndarray:
         """ generates an observation of the state (noisy obstacle sensor)
 
         Args:
-             state: (`dict`): {'agent_x': int, 'agent_y': int, 'obstacle': int}
-                                If None, it will use the current state
+             state: (`np.ndarray`): [x, y, obs_y] (if None, it will use the current state)
 
         RETURNS (`np.ndarray`): [agent_x, agent_y, obstacle_y]
 
@@ -115,9 +124,9 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         if state is None:
             state = self.state
 
-        obs = self.bound_in_grid(round(state['obstacle'] + np.random.normal()))
+        obs = self.bound_in_grid(round(state[2] + np.random.normal()))
 
-        return np.array([state['agent_x'], state['agent_y'], obs])
+        return np.array([*state[:2], obs])
 
     def reset(self):
         """ resets state and potentially records the episode"""
@@ -125,14 +134,14 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         self._state = self.sample_start_state()
         return self.generate_observation()
 
-    def simulation_step(self, state: dict, action: int) -> POUCTInteraction:
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ simulates stepping from state using action. Returns interaction
 
         Args:
-             state: (`dict`): {'agent_x': int, 'agent_y': int, 'obstacle': int}
+             state: (`np.ndarray`): [x, y, obs_y]
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`pobnrl.environments.POUCTInteraction`):
+        RETURNS (`pobnrl.environments.SimulationResult`):
 
         """
         assert 0 <= action < 3
@@ -140,33 +149,65 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         new_state = state.copy()
 
         # move agent
-        new_state['agent_x'] -= 1
-        new_state['agent_y'] = self.bound_in_grid(
-            state['agent_y'] + self.action_to_move[int(action)]
+        new_state[0] -= 1
+        new_state[1] = self.bound_in_grid(
+            state[1] + self.action_to_move[int(action)]
         )
 
         # move obstacle
         if np.random.random() < self.BLOCK_MOVE_PROB:
             if np.random.random() < .5:
-                new_state['obstacle'] += 1
+                new_state[2] += 1
             else:
-                new_state['obstacle'] -= 1
+                new_state[2] -= 1
 
-            new_state['obstacle'] = self.bound_in_grid(new_state['obstacle'])
+            new_state[2] = self.bound_in_grid(new_state[2])
 
         # observation
         obs = self.generate_observation(new_state)
 
-        # reward and terminal
+        return SimulationResult(new_state, obs)
+
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """ 0 if staying, small penalty for going diagonal, huge cost if collision
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`float`): the reward of the transition
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
         reward = 0 if action == 1 else -1
-        terminal = False
 
-        if new_state['agent_x'] == 0:
-            terminal = True
-            if new_state['agent_y'] == new_state['obstacle']:
-                reward = self.COLLISION_REWARD
+        if new_state[0] == 0 and new_state[1] == new_state[2]:
+            reward += self.COLLISION_REWARD
 
-        return POUCTInteraction(new_state, obs, reward, terminal)
+        return reward
+
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """ True if reached end in `new_state`
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`bool`): whether the transition is terminal
+
+        """
+
+        assert self.state_space.contains(state)
+        assert self.state_space.contains(new_state)
+        assert self.action_space.contains(action)
+
+        return new_state[0] == 0
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ updates the state and return observed transitions
@@ -185,22 +226,24 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         """
         assert 0 <= action < 3
 
-        transition = self.simulation_step(self.state, action)
+        sim_step = self.simulation_step(self.state, action)
+        reward = self.reward(self.state, action, sim_step.state)
+        terminal = self.terminal(self.state, action, sim_step.state)
 
         if self.log_is_on(POBNRLogger.LogLevel.V2):
             self.log(
                 POBNRLogger.LogLevel.V2,
                 f"Step: (x: {self.state['agent_x']}, y: {self.state['agent_y']}) and a="
                 f"{self.action_to_string[action]} --> "
-                f"(x:{transition.state['agent_x']}, y: {transition.state['agent_y']}),"
+                f"(x:{sim_step.state['agent_x']}, y: {sim_step.state['agent_y']}),"
                 " with obstacle "
-                f"{transition.state['obstacle']} (obs:  {transition.observation[-1]})"
+                f"{sim_step.state['obstacle']} (obs:  {sim_step.observation[-1]})"
             )
 
-        self.state = transition.state
+        self.state = sim_step.state
 
         return EnvironmentInteraction(
-            transition.observation, transition.reward, transition.terminal
+            sim_step.observation, reward, terminal
         )
 
     def obs2index(self, observation: np.array) -> int:
@@ -220,13 +263,3 @@ class CollisionAvoidance(Environment, POUCTSimulator, POBNRLogger):
         return observation[0]\
             + observation[1] * self.size\
             + observation[2] * self.size * self.size
-
-    @property
-    def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace`([3]) space """
-        return self._action_space
-
-    @property
-    def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([grid_height]) space """
-        return self._obs_space
