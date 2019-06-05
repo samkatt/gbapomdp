@@ -2,6 +2,8 @@
 
 import unittest
 
+import random
+
 import numpy as np
 
 from domains import gridworld, tiger, collision_avoidance, chain_domain
@@ -168,7 +170,7 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(step.reward, 0)
         self.assertEqual(env.state[2], goal)
 
-        random_goal = np.choice(env.goals())
+        random_goal = random.choice(env.goals)
         env.state = np.array([random_goal.x, random_goal.y, random_goal.index])
         step = env.step(np.random.randint(0, 4))
 
@@ -213,23 +215,29 @@ class TestGridWorld(unittest.TestCase):
             env.bound_in_grid(np.array([-1, 3])), [0, 2]
         )
 
+        list_of_goals = [
+            gridworld.GridWorld.Goal(1, 2, 0),
+            gridworld.GridWorld.Goal(2, 1, 1),
+            gridworld.GridWorld.Goal(2, 2, 2),
+        ]
+
         # test sample_goal
-        self.assertIn(env.sample_goal(), [(1, 2), (2, 1), (2, 2)])
+        self.assertIn(env.sample_goal(), list_of_goals)
 
         # Gridworld.goals
-        self.assertListEqual(env.goals, [(1, 2), (2, 1), (2, 2)])
+        self.assertListEqual(env.goals, list_of_goals)
 
         larger_env = gridworld.GridWorld(7)
         self.assertEqual(len(larger_env.goals), 10)
 
         # Gridworld.state
-        random_goal = np.choice(env.goals())
+        random_goal = random.choice(env.goals)
         test_state = np.array([random_goal.x, random_goal.y, random_goal.index])
         env.state = test_state
-        self.assertEqual(env.state, test_state)
+        np.testing.assert_array_equal(env.state, test_state)
 
         with self.assertRaises(AssertionError):
-            env.state = np.array(3, 2, random_goal.index)
+            env.state = np.array([3, 2, random_goal.index])
 
         with self.assertRaises(AssertionError):
             env.state = np.array([0, 2, 5])
@@ -244,25 +252,25 @@ class TestGridWorld(unittest.TestCase):
         )
         env.obs_mult = np.array([0, 0, 1, 0, 0])
 
-        observation = env.generate_observation([0, 0], (2, 2))
+        observation = env.generate_observation(np.array([0, 0, 2]))
         np.testing.assert_array_equal(observation[2:], [0, 0, 1])
         np.testing.assert_array_equal(observation[:2], [0, 0])
 
-        observation = env.generate_observation([1, 1], (2, 1))
+        observation = env.generate_observation(np.array([1, 1, 1]))
         np.testing.assert_array_equal(observation[2:], [0, 1, 0])
         np.testing.assert_array_equal(observation[:2], [1, 1])
 
         env.obs_mult = np.array([0, .5, 0, .5, 0])
-        observation = env.generate_observation([0, 0], (2, 2))
+        observation = env.generate_observation(np.array([0, 0, 2]))
         self.assertIn(observation[0], [0, 1])
         self.assertIn(observation[1], [0, 1])
 
-        observation = env.generate_observation([1, 1], (2, 2))
+        observation = env.generate_observation(np.array([1, 1, 2]))
         self.assertIn(observation[0], [0, 2])
         self.assertIn(observation[1], [0, 2])
 
         env.obs_mult = np.array([1, 0, 0, 0, 0])
-        observation = env.generate_observation([1, 2], (2, 2))
+        observation = env.generate_observation(np.array([1, 2, 2]))
         self.assertEqual(observation[0], 0)
         self.assertEqual(observation[1], 0)
 
@@ -313,7 +321,7 @@ class TestCollisionAvoidance(unittest.TestCase):
         """ tests sampling start states """
 
         env = collision_avoidance.CollisionAvoidance(7)
-        self.assertListEqual(env.sample_start_state(), np.array([6, 3, 3]))
+        np.testing.assert_array_equal(env.sample_start_state(), [6, 3, 3])
 
     def test_step(self):
         """ tests CollisionAvoidance.step """
@@ -427,14 +435,14 @@ class TestChainDomain(unittest.TestCase):
         domain = chain_domain.ChainDomain(size=4)
 
         obs = domain.reset()
-        self.assertDictEqual(domain.state, np.array([0, 3]))
+        np.testing.assert_array_equal(domain.state, [0, 3])
         np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0])
 
         domain = chain_domain.ChainDomain(size=10)
 
         obs = domain.reset()
-        self.assertListEqual(domain.state, np.array([0, 9]))
+        np.testing.assert_array_equal(domain.state, [0, 9])
 
         expected_obs = np.zeros((10, 10))
         expected_obs[0, 9] = 1
@@ -442,14 +450,14 @@ class TestChainDomain(unittest.TestCase):
 
         domain.step(0)
         obs = domain.reset()
-        self.assertListEqual(domain.state, np.array([0, 9]))
+        np.testing.assert_array_equal(domain.state, [0, 9])
         np.testing.assert_array_equal(obs, expected_obs.reshape(100))
 
     def test_sample_start_state(self):
         """ tests sampling start states """
 
         env = chain_domain.ChainDomain(4)
-        self.assertDictEqual(env.sample_start_state(), np.array([0, 3]))
+        np.testing.assert_array_equal(env.sample_start_state(), [0, 3])
 
     def test_space(self):
         """ tests ChainDomain.spaces """
@@ -473,7 +481,7 @@ class TestChainDomain(unittest.TestCase):
         domain = chain_domain.ChainDomain(size=3)
         domain.reset()
 
-        self.assertListEqual(domain.state, np.array([0, 2]))
+        np.testing.assert_array_equal(domain.state, [0, 2])
 
         domain.step(0)
         self.assertIn(domain.state[0], [0, 1])
@@ -495,7 +503,7 @@ class TestChainDomain(unittest.TestCase):
 
         step = domain.step((domain._action_mapping[1]))  # pylint: disable=protected-access
         self.assertTrue(step.terminal)
-        self.assertEqual(step.reward, 1)
+        self.assertAlmostEqual(step.reward, 1 - .0033333333)
         np.testing.assert_array_equal(
             step.observation, [0, 0, 0, 0, 0, 0, 1, 0, 0]
         )

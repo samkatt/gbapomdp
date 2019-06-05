@@ -97,7 +97,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         """
 
         # x, level (size-1...0)
-        return np.ndarray([0, self.size - 1])
+        return np.array([0, self.size - 1])
 
     @property
     def size(self):
@@ -178,7 +178,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         reward = 0 if action != self._action_mapping[state[0]] else -self._move_cost
 
-        if new_state['x'] == self.size - 1:
+        if new_state[0] == self.size - 1:
             reward += 1
 
         return reward

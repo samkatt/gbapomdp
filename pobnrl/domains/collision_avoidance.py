@@ -69,7 +69,8 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
         """
 
-        assert np.all(self._size > state >= 0)
+        assert np.all(self._size > state)
+        assert np.all(state >= 0)
 
         self._state = state
 

@@ -114,7 +114,9 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
                 len(self._goal_cells)
             ))  # fill right side
 
-        self._goal_cells.append(GridWorld.Goal(edge, edge, len(self._goal_cells)))  # top right corner
+        self._goal_cells.append(  # top right corner
+            GridWorld.Goal(edge, edge, len(self._goal_cells))
+        )
 
         if self._size > 3:
             self._goal_cells.append(GridWorld.Goal(
