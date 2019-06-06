@@ -57,21 +57,24 @@ code is formatted correctly
 * testing: Run `./run_tests.sh` in root and check whether all pass
 
 ### TODO
-* generalize to other domains:
-    - fix domain spaces
-        + [ ] make all domains return `np.arrays` as state
-        + [ ] all should have all, and they should be 'gettable'
-    - add 'reward' and 'terminal' function in simulator (or somewhere else)
-    - implement those functions in all domains
-    - create a new factory function to create learned environment (instead of
-      in `model_based.py`)
-* force state & observations to be from discrete
-* general space class:
-    - [ ] model-free methods should not require discrete (obs) spaces
-    - [ ] make gymspace implement it
-    - [ ] make `this` implement it
+
 * get `mypy --strict` working
 * test `https://github.ccs.neu.edu/abaisero/gym-pomdps`
+* move to keras
+
+#### spaces issue
+
+Observations:
+1. Planning requires (small) discrete action & observation problems
+2. Current implementation of learned environments assumes small discrete state space
+3. Model-free methods have been using one-hot, while learned model is much better at the opposite
+
+Questions:
+* Continuous versus discrete
+    1. Should I go to continuous states (learned environments)?
+    2. Should I go to continuous planning things?
+* Should I make a more general space, and work with gym spaces?
+* How do I go about different representations of the observations, states and actions?
 
 #### features
 * use pure indices in learning dynamics (i.e. BA-POMDP)

@@ -159,7 +159,7 @@ class TestPOUCT(unittest.TestCase):
     def test_ucb_table(self):
         """ tests the values in a ucb table """
 
-        domain = Tiger()
+        domain = Tiger(use_one_hot=True)
 
         table = POUCT(  # pylint: disable=protected-access
             domain,

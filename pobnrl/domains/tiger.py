@@ -22,16 +22,18 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     ELEM_TO_STRING = ["L", "R"]
 
-    def __init__(self):
+    def __init__(self, use_one_hot: bool):
         """ construct the tiger environment """
 
         POBNRLogger.__init__(self)
 
-        self._state = self.sample_start_state()
+        self._use_one_hot_obs = use_one_hot
 
         self._state_space = DiscreteSpace([2])
         self._action_space = ActionSpace(3)
-        self._obs_space = DiscreteSpace([2, 2])
+        self._obs_space = DiscreteSpace([2, 2]) if self._use_one_hot_obs else DiscreteSpace([3])
+
+        self._state = self.sample_start_state()
 
     @property
     def state(self):
@@ -64,8 +66,36 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([1,1]) space """
+        """ a `pobnrl.misc.DiscreteSpace`([1,1]) space if one-hot, otherwise [3]"""
         return self._obs_space
+
+    def encode_observation(self, observation: int) -> np.ndarray:
+        """ encodes the observation for usage outside of `this`
+
+        This wraps the `int` observation into a numpy array. Either directly,
+        or with one-hot encoding if `Tiger` was initiated with that parameter
+        to true
+
+        Args:
+             observation: (`int`): 0, 1= hear behind door, 2=null
+
+        RETURNS (`np.ndarray`):
+
+        """
+
+        if not self._use_one_hot_obs:
+            return np.array([observation])
+
+        # use one hot encoding
+        obs = np.ones(2)
+
+        # not left or right means [1,1] observation (basically a 'null')
+        if observation > 1:
+            return obs
+
+        obs[int(not observation)] = 0
+
+        return obs
 
     @staticmethod
     def sample_start_state() -> np.ndarray:
@@ -76,39 +106,31 @@ class Tiger(Environment, Simulator, POBNRLogger):
         """
         return np.array([np.random.randint(0, 2)])
 
-    def sample_observation(self, loc: int, listening: bool) -> np.ndarray:
+    def sample_observation(self, loc: int, listening: bool) -> int:
         """ samples an observation, listening stores whether agent is listening
 
         Args:
              loc: (`int`): 0 is tiger left, 1 is tiger right
              listening: (`bool`): whether the agent is listening
 
-        RETURNS (`np.ndarray`): the observation (hot-encoded)
+        RETURNS (`int`): the observation: 0 = left, 1 = right, 2 = null
 
         """
-        obs = np.zeros(self._obs_space.ndim)
 
-        # not listening means [0,0] observation (basically a 'null')
         if not listening:
-            return obs
+            return self.LISTEN
 
-        # 1-hot-encoding
-        if np.random.random() < self.CORRECT_OBSERVATION_PROB:
-            obs[loc] = 1
-        else:
-            obs[int(not loc)] = 1
-
-        return obs
+        return loc if np.random.random() < self.CORRECT_OBSERVATION_PROB else int(not loc)
 
     def reset(self):
         """ resets internal state and return first observation
 
         resets the intenral state randomly ([0] or [1])
-        returns [0,0] as a 'null' initial observation
+        returns [1,1] as a 'null' initial observation
 
         """
         self._state = self.sample_start_state()
-        return np.zeros(2)
+        return self.encode_observation(self.LISTEN)
 
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ simulates stepping from state using action. Returns interaction
@@ -132,7 +154,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
             obs = self.sample_observation(state[0], True)
             new_state = state.copy()
 
-        return SimulationResult(new_state, obs)
+        return SimulationResult(new_state, self.encode_observation(obs))
 
     def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
         """ A constant if listening, penalty if opening to door, and reward otherwise
@@ -215,4 +237,9 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         """
 
-        return self._obs_space.index_of(observation)
+        assert self.observation_space.contains(observation)
+
+        if not self._use_one_hot_obs:
+            return observation[0]
+
+        return self._obs_space.index_of(observation) - 1

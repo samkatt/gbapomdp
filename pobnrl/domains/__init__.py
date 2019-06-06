@@ -26,7 +26,7 @@ def create_environment(
     verbose = verbose > 1
 
     if domain_name == "tiger":
-        return Tiger()
+        return Tiger(use_one_hot=True)
     if domain_name == "cartpole":
         return Cartpole()
     if domain_name == "gridworld":

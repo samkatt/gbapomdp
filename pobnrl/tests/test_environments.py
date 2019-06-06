@@ -14,15 +14,18 @@ class TestTiger(unittest.TestCase):
 
     def setUp(self):
         """ creates a tiger member """
-        self.env = tiger.Tiger()
+        self.one_hot_env = tiger.Tiger(use_one_hot=True)
+        self.one_hot_env.reset()
+
+        self.env = tiger.Tiger(use_one_hot=False)
         self.env.reset()
 
     def test_reset(self):
         """ tests that start state is 0 or 1 """
 
-        self.assertIn(self.env.state, [0, 1])
+        self.assertIn(self.one_hot_env.state, [0, 1])
 
-        states = [self.env.sample_start_state() for _ in range(0, 20)]
+        states = [self.one_hot_env.sample_start_state() for _ in range(0, 20)]
 
         for state in states:
             self.assertIn(state[0], [0, 1], 'state should be either 0 or 1')
@@ -30,21 +33,27 @@ class TestTiger(unittest.TestCase):
         self.assertIn([0], states, 'there should be at least one of this state')
         self.assertIn([1], states, 'there should be at least one of this state')
 
+        # one-hot observation
+        obs = [self.one_hot_env.reset() for _ in range(0, 10)]
+        for observation in obs:
+            np.testing.assert_array_equal(observation, [1, 1])
+
+        # regular observation
         obs = [self.env.reset() for _ in range(0, 10)]
         for observation in obs:
-            np.testing.assert_array_equal(observation, [0, 0])
+            np.testing.assert_array_equal(observation, [2])
 
     def test_step(self):
         """ tests some basic dynamics """
 
-        state = self.env.state
+        state = self.one_hot_env.state
 
         obs = []
         # tests effect of listening
         for _ in range(0, 50):
-            step = self.env.step(self.env.LISTEN)
-            np.testing.assert_array_equal(state, self.env.state)
-            self.assertIn(step.observation.tolist(), [[0, 0], [0, 1], [1, 0]])
+            step = self.one_hot_env.step(self.one_hot_env.LISTEN)
+            np.testing.assert_array_equal(state, self.one_hot_env.state)
+            self.assertIn(step.observation.tolist(), [[0, 1], [1, 0]])
             self.assertFalse(step.terminal)
             self.assertEqual(step.reward, -1.0)
 
@@ -52,33 +61,34 @@ class TestTiger(unittest.TestCase):
 
         # tests stochasticity of observations when listening
         self.assertNotIn([0, 0], obs)
+        self.assertNotIn([1, 1], obs)
         self.assertIn([0, 1], obs)
         self.assertIn([1, 0], obs)
 
         # test opening correct door
         for _ in range(0, 5):
-            self.env.reset()
-            open_correct_door = self.env.state[0]  # implementation knowledge
-            step = self.env.step(open_correct_door)
+            self.one_hot_env.reset()
+            open_correct_door = self.one_hot_env.state[0]  # implementation knowledge
+            step = self.one_hot_env.step(open_correct_door)
 
-            np.testing.assert_array_equal(step.observation, [0, 0])
+            np.testing.assert_array_equal(step.observation, [1, 1])
             self.assertEqual(step.reward, 10)
             self.assertTrue(step.terminal)
 
         # test opening correct door
         for _ in range(0, 5):
-            self.env.reset()
-            open_wrong_door = 1 - self.env.state[0]  # implementation knowledge
-            step = self.env.step(open_wrong_door)
+            self.one_hot_env.reset()
+            open_wrong_door = 1 - self.one_hot_env.state[0]  # implementation knowledge
+            step = self.one_hot_env.step(open_wrong_door)
 
-            np.testing.assert_array_equal(step.observation, [0, 0])
+            np.testing.assert_array_equal(step.observation, [1, 1])
             self.assertEqual(step.reward, -100)
             self.assertTrue(step.terminal)
 
     def test_sample_start_state(self):
         """ tests sampling start states """
 
-        start_states = [self.env.sample_start_state() for _ in range(10)]
+        start_states = [self.one_hot_env.sample_start_state() for _ in range(10)]
 
         self.assertIn([0], start_states)
         self.assertIn([1], start_states)
@@ -88,25 +98,41 @@ class TestTiger(unittest.TestCase):
 
     def test_space(self):
         """ tests the size of the spaces """
-        action_space = self.env.action_space
-        observation_space = self.env.observation_space
 
+        action_space = self.one_hot_env.action_space
         np.testing.assert_array_equal(action_space.size, [3])
-        np.testing.assert_array_equal(observation_space.size, [2, 2])
-
         self.assertEqual(action_space.n, 3)
-        self.assertEqual(observation_space.n, 4)
+
+        one_hot_observation_space = self.one_hot_env.observation_space
+        np.testing.assert_array_equal(one_hot_observation_space.size, [2, 2])
+        self.assertEqual(one_hot_observation_space.n, 4)
+
+        observation_space = self.env.observation_space
+        np.testing.assert_array_equal(observation_space.size, [3])
+        self.assertEqual(observation_space.n, 3)
 
     def test_observation_projection(self):
         """ tests tiger.obs2index """
 
-        self.assertEqual(self.env.obs2index(self.env.reset()), 0)
+        self.assertEqual(self.one_hot_env.obs2index(self.one_hot_env.reset()), 2)
+        self.assertEqual(self.one_hot_env.obs2index(self.one_hot_env.reset()), 2)
 
-        self.assertEqual(self.env.obs2index(np.array([1, 0])), 1)
-        self.assertEqual(self.env.obs2index(np.array([0, 1])), 2)
+        self.assertEqual(self.one_hot_env.obs2index(np.array([1, 0])), 0)
+        self.assertEqual(self.one_hot_env.obs2index(np.array([0, 1])), 1)
 
-        self.assertEqual(self.env.obs2index(np.array([0, 0])), 0)
-        self.assertEqual(self.env.obs2index(np.array([1, 1])), 3)
+        self.assertEqual(self.one_hot_env.obs2index(np.array([0, 0])), -1)
+        self.assertEqual(self.one_hot_env.obs2index(np.array([1, 1])), 2)
+
+    def test_observation_encoding(self):
+        """ tests encoding of observation in Tiger """
+
+        np.testing.assert_array_equal(self.one_hot_env.encode_observation(0), [1, 0])
+        np.testing.assert_array_equal(self.one_hot_env.encode_observation(1), [0, 1])
+        np.testing.assert_array_equal(self.one_hot_env.encode_observation(2), [1, 1])
+
+        np.testing.assert_array_equal(self.env.encode_observation(0), [0])
+        np.testing.assert_array_equal(self.env.encode_observation(1), [1])
+        np.testing.assert_array_equal(self.env.encode_observation(2), [2])
 
 
 class TestGridWorld(unittest.TestCase):
