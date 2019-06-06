@@ -496,16 +496,16 @@ class TestCollisionAvoidance(unittest.TestCase):
 class TestChainDomain(unittest.TestCase):
     """ tests the chain domain """
 
-    def test_reset(self):
+    def test_reset(self):  # pylint: disable=no-self-use
         """ tests ChainDomain.reset """
-        domain = chain_domain.ChainDomain(size=4)
+        domain = chain_domain.ChainDomain(size=4, one_hot_observations=True)
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 3])
         np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0])
 
-        domain = chain_domain.ChainDomain(size=10)
+        domain = chain_domain.ChainDomain(size=10, one_hot_observations=True)
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 9])
@@ -519,22 +519,33 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(domain.state, [0, 9])
         np.testing.assert_array_equal(obs, expected_obs.reshape(100))
 
-    def test_sample_start_state(self):
+        # compact observation representation
+        domain = chain_domain.ChainDomain(5, one_hot_observations=False)
+        obs = domain.reset()
+        np.testing.assert_array_equal(obs, [0, 4])
+
+    def test_sample_start_state(self):  # pylint: disable=no-self-use
         """ tests sampling start states """
 
-        env = chain_domain.ChainDomain(4)
+        env = chain_domain.ChainDomain(4, one_hot_observations=False)
         np.testing.assert_array_equal(env.sample_start_state(), [0, 3])
 
     def test_space(self):
         """ tests ChainDomain.spaces """
 
-        domain = chain_domain.ChainDomain(size=3)
+        domain = chain_domain.ChainDomain(size=3, one_hot_observations=False)
 
         action_space = domain.action_space
 
         self.assertEqual(action_space.n, 2)
         np.testing.assert_array_equal(action_space.size, [2])
 
+        observation_space = domain.observation_space
+        self.assertEqual(observation_space.n, 3 * 3)
+        np.testing.assert_array_equal(observation_space.size, [3, 3])
+        self.assertEqual(observation_space.ndim, 2)
+
+        domain = chain_domain.ChainDomain(size=3, one_hot_observations=True)
         observation_space = domain.observation_space
 
         self.assertEqual(observation_space.n, 2 ** 9)
@@ -544,7 +555,7 @@ class TestChainDomain(unittest.TestCase):
     def test_state(self):
         """ tests ChainDomain.state """
 
-        domain = chain_domain.ChainDomain(size=3)
+        domain = chain_domain.ChainDomain(size=3, one_hot_observations=False)
         domain.reset()
 
         np.testing.assert_array_equal(domain.state, [0, 2])
@@ -556,7 +567,7 @@ class TestChainDomain(unittest.TestCase):
     def test_step(self):
         """ tests ChainDomain.step """
 
-        domain = chain_domain.ChainDomain(size=3)
+        domain = chain_domain.ChainDomain(size=3, one_hot_observations=True)
 
         # test if all effects go right
         step = domain.step(domain._action_mapping[0])  # pylint: disable=protected-access
@@ -600,10 +611,18 @@ class TestChainDomain(unittest.TestCase):
         """
 
         for size in 3, 9:
-            domain = chain_domain.ChainDomain(size=size)
+            domain = chain_domain.ChainDomain(size=size, one_hot_observations=False)
             self.assertEqual(domain.size, size)
 
-        domain = chain_domain.ChainDomain(size=4)
+        # compact observation state2observation
+        domain = chain_domain.ChainDomain(size=4, one_hot_observations=False)
+
+        np.testing.assert_array_equal(domain.state2observation(np.array([0, 0])), [0, 0])
+        np.testing.assert_array_equal(domain.state2observation(np.array([2, 0])), [2, 0])
+        np.testing.assert_array_equal(domain.state2observation(np.array([2, 3])), [2, 3])
+
+        # one hot state2observation
+        domain = chain_domain.ChainDomain(size=4, one_hot_observations=True)
 
         expected_obs = np.zeros((4, 4))
         expected_obs[0, 0] = 1
@@ -629,7 +648,18 @@ class TestChainDomain(unittest.TestCase):
     def test_observation_projection(self):
         """ tests obs2index """
 
-        env = chain_domain.ChainDomain(size=4)
+        # regular compact obsevation
+        env = chain_domain.ChainDomain(size=4, one_hot_observations=False)
+
+        self.assertEqual(env.obs2index(np.array([0, 0])), 0)
+        self.assertEqual(env.obs2index(np.array([1, 0])), 1)
+        self.assertEqual(env.obs2index(np.array([0, 1])), 4)
+        self.assertEqual(env.obs2index(np.array([2, 0])), 2)
+        self.assertEqual(env.obs2index(np.array([3, 2])), 11)
+        self.assertEqual(env.obs2index(np.array([2, 3])), 14)
+
+        # one-hot observation
+        env = chain_domain.ChainDomain(size=4, one_hot_observations=True)
 
         def one_hot(obs):
             encoding = np.zeros((4, 4))

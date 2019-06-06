@@ -3,9 +3,10 @@
 Contains:
     * sampling operations
     * mathematical spaces or sets
-    * wrapper functions for interaction with tensorflow:
+    * wrapper functions for interaction with tensorflow
     * (exploration) schedulars
     * e-greedy methods
+    * logger class
 
 """
 
@@ -19,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 
 tf.logging.set_verbosity(tf.logging.ERROR)
+
 
 class POBNRLogger:
     """ logger, inherit in order to use logging function with self.log() """

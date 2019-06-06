@@ -183,6 +183,13 @@ class POUCT(POBNRLogger):
             reward = self.simulator.reward(state, action, step.state)
             terminal = self.simulator.terminal(state, action, step.state)
 
+            if self.log_is_on(POBNRLogger.LogLevel.V5):
+                self.log(
+                    POBNRLogger.LogLevel.V5,
+                    f"MCTS simulated action {action} in {state} -->"
+                    f" {step.state} and obs {step.observation}"
+                )
+
             if not terminal:
                 ret = reward + self.discount * self._traverse_tree(
                     step.state,

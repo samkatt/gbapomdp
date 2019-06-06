@@ -7,7 +7,7 @@ from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class ChainDomain(Environment, Simulator, POBNRLogger):
+class ChainDomain(Environment, Simulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
     """ the chain environment
 
     The domains are indexed by problem size N and action mask W =
@@ -24,7 +24,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
     """
 
-    def __init__(self, size: int):
+    def __init__(self, size: int, one_hot_observations):
         """ construct the chain environment
 
         Args:
@@ -38,13 +38,17 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         self._size = size
         self._move_cost = .01 / self.size
+        self._one_hot_observations = one_hot_observations
 
         self._state_space = DiscreteSpace([self.size, self.size])
         self._action_space = ActionSpace(2)
-        self._observation_space = DiscreteSpace([2] * self.size * self.size)
+
+        if self._one_hot_observations:
+            self._observation_space = DiscreteSpace([2] * self.size * self.size)
+        else:
+            self._observation_space = self.state_space  # (x,y)
 
         self._action_mapping = np.random.binomial(1, .5, self.size)
-
         self._state = self.sample_start_state()
 
     @property
@@ -84,7 +88,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace` space of size x size """
+        """ a `pobnrl.misc.DiscreteSpace`, depends on `one_hot_observation` flag for `this`"""
         return self._observation_space
 
     def sample_start_state(self) -> np.ndarray:
@@ -117,6 +121,9 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         # default value of state
         if state is None:
             state = self.state
+
+        if not self._one_hot_observations:
+            return state
 
         obs = np.zeros((self.size, self.size))
         obs[state[0], state[1]] = 1
@@ -244,6 +251,11 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         assert self.observation_space.contains(observation), \
             f"{observation} not in observation space {self.observation_space}"
         assert np.all(self.size > observation) and np.all(observation >= 0)
-        assert np.sum(observation) == 1
 
+        if not self._one_hot_observations:
+            return self.observation_space.index_of(observation)
+
+        # one-hot
+
+        assert np.sum(observation) == 1
         return observation.argmax()

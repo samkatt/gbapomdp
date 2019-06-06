@@ -41,6 +41,6 @@ def create_environment(
     if domain_name == "collision_avoidance":
         return CollisionAvoidance(domain_size)
     if domain_name == "chain":
-        return ChainDomain(domain_size)
+        return ChainDomain(domain_size, one_hot_observations=encoding == EncodeType.ONE_HOT)
 
     raise ValueError('unknown domain ' + domain_name)

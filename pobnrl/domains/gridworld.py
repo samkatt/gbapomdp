@@ -270,10 +270,9 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
         if not self._one_hot_goal_encoding:
             return np.array([*bounded_obs, goal_index])
 
-        else:
-            # 1-hot-encoding goal
-            goal_observation = np.zeros(len(self._goal_cells))
-            goal_observation[goal_index] = 1
+        # 1-hot-encoding goal
+        goal_observation = np.zeros(len(self._goal_cells))
+        goal_observation[goal_index] = 1
 
         return np.hstack([bounded_obs, goal_observation])
 
