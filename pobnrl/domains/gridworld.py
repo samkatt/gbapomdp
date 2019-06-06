@@ -48,7 +48,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
         # required to keep lightweight implementation of namedtuple
         __slots__ = ()
 
-    def __init__(self, domain_size: int):
+    def __init__(self, domain_size: int, one_hot_goal_encoding):
         """ creates a gridworld of provided size and verbosity
 
         Args:
@@ -62,6 +62,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
 
         # confs
         self._size = domain_size
+        self._one_hot_goal_encoding = one_hot_goal_encoding
 
         # generate multinomial probabilities for the observation function (1-D)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -108,11 +109,11 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
                 len(self._goal_cells)
             ))
 
-            self._goal_cells.append(GridWorld.Goal(
+            self._goal_cells.append(GridWorld.Goal(  # fill right side
                 edge,
                 pos,
                 len(self._goal_cells)
-            ))  # fill right side
+            ))
 
         self._goal_cells.append(  # top right corner
             GridWorld.Goal(edge, edge, len(self._goal_cells))
@@ -139,9 +140,13 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
 
         self._state_space = DiscreteSpace([self.size, self.size, len(self._goal_cells)])
         self._action_space = ActionSpace(4)
-        self._obs_space = DiscreteSpace(
-            [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).astype(int).tolist()
-        )
+
+        if not self._one_hot_goal_encoding:
+            self._obs_space = DiscreteSpace([self._size, self._size, len(self._goal_cells)])
+        else:
+            self._obs_space = DiscreteSpace(
+                [self._size, self._size] + (2 * np.ones(len(self._goal_cells))).astype(int).tolist()
+            )
 
         self._state = self.sample_start_state()
 
@@ -262,9 +267,13 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
 
         bounded_obs = self.bound_in_grid(unbounded_obs).astype(int)
 
-        # 1-hot-encoding goal
-        goal_observation = np.zeros(len(self._goal_cells))
-        goal_observation[goal_index] = 1
+        if not self._one_hot_goal_encoding:
+            return np.array([*bounded_obs, goal_index])
+
+        else:
+            # 1-hot-encoding goal
+            goal_observation = np.zeros(len(self._goal_cells))
+            goal_observation[goal_index] = 1
 
         return np.hstack([bounded_obs, goal_observation])
 
@@ -383,10 +392,15 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
         """
         assert self.observation_space.contains(observation), \
             f"{observation} not in {self.observation_space}"
-        assert np.sum(observation[2:]) == 1, "only 1 goal may be true"
         assert np.all(self.size > observation) and np.all(observation >= 0)
 
-        if observation[2] == 1:
+        if not self._one_hot_goal_encoding:
+            return self.observation_space.index_of(observation)
+
+        # one-hot goal encoding:
+        assert np.sum(observation[2:]) == 1, "only 1 goal may be true"
+
+        if observation[2] == 1:  # corner case: first potential goal
             return observation[0] + observation[1] * self.size
 
         # increment by goal

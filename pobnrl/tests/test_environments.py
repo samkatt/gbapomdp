@@ -140,7 +140,7 @@ class TestGridWorld(unittest.TestCase):
 
     def test_reset(self):
         """ Tests Gridworld.reset() """
-        env = gridworld.GridWorld(3)
+        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
         observation = env.reset()
 
         np.testing.assert_array_equal(env.state[0], [0, 0])
@@ -150,10 +150,14 @@ class TestGridWorld(unittest.TestCase):
             [1, 0, 0]
         ])
 
+        env = gridworld.GridWorld(3, one_hot_goal_encoding=False)
+        observation = env.reset()
+        self.assertIn(observation[2], [0, 1, 2])
+
     def test_sample_start_state(self):  # pylint: disable=no-self-use
         """ tests sampling start states """
 
-        env = gridworld.GridWorld(5)
+        env = gridworld.GridWorld(5, one_hot_goal_encoding=True)
 
         start_states = [env.sample_start_state() for _ in range(10)]
 
@@ -163,7 +167,7 @@ class TestGridWorld(unittest.TestCase):
     def test_step(self):
         """ Tests Gridworld.step() """
 
-        env = gridworld.GridWorld(3)
+        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
         env.reset()
 
         goal = env.state[2]
@@ -205,14 +209,21 @@ class TestGridWorld(unittest.TestCase):
 
     def test_space(self):
         """ Tests Gridworld.spaces """
-        env = gridworld.GridWorld(5)
-        action_space = env.action_space
-        observation_space = env.observation_space
+        env = gridworld.GridWorld(5, one_hot_goal_encoding=True)
 
+        action_space = env.action_space
         np.testing.assert_array_equal(action_space.size, [4])
 
+        # one-hot goal encoding
+        observation_space = env.observation_space
         self.assertEqual(observation_space.n, 25 * pow(2, len(env.goals)))
         self.assertEqual(observation_space.ndim, 2 + len(env.goals))
+
+        # regular (not one-hot) goal encoding
+        env = gridworld.GridWorld(5, one_hot_goal_encoding=False)
+        observation_space = env.observation_space
+        self.assertEqual(observation_space.n, 25 * len(env.goals))
+        self.assertEqual(observation_space.ndim, 3)
 
     def test_utils(self):
         """ Tests misc functionality in Gridworld
@@ -226,7 +237,7 @@ class TestGridWorld(unittest.TestCase):
 
         """
 
-        env = gridworld.GridWorld(3)
+        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
 
         # test bound_in_grid
         np.testing.assert_array_equal(
@@ -253,7 +264,7 @@ class TestGridWorld(unittest.TestCase):
         # Gridworld.goals
         self.assertListEqual(env.goals, list_of_goals)
 
-        larger_env = gridworld.GridWorld(7)
+        larger_env = gridworld.GridWorld(7, one_hot_goal_encoding=True)
         self.assertEqual(len(larger_env.goals), 10)
 
         # Gridworld.state
@@ -300,10 +311,11 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(observation[0], 0)
         self.assertEqual(observation[1], 0)
 
-    def test_observation_projection(self):
+    def test_observation_projection_one_hot_goal_encoding(self):
         """ tests obs2index """
 
-        env = gridworld.GridWorld(3)
+        # one-hot goal encoding
+        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
 
         obs = np.array([0, 0, 1, 0, 0])
 
@@ -327,6 +339,34 @@ class TestGridWorld(unittest.TestCase):
         self.assertRaises(AssertionError, env.obs2index, obs)
 
         obs = np.array([1, 2, 0, 0, 1])
+        self.assertEqual(env.obs2index(obs), 25)
+
+    def test_observation_projection_regular_encoding(self):
+        """ tests obs2index for regular encodings """
+
+        env = gridworld.GridWorld(3, one_hot_goal_encoding=False)
+
+        obs = np.array([0, 0, 0])
+
+        for i in range(3):
+            obs[0] = i
+            self.assertEqual(env.obs2index(obs), i)
+
+        obs[0] = 1
+        obs[1] = 1
+        self.assertEqual(env.obs2index(obs), 4)
+
+        # increase goal index
+        obs[2] = 1
+        self.assertEqual(env.obs2index(obs), 13)
+
+        obs[1] = 2
+        self.assertEqual(env.obs2index(obs), 16)
+
+        obs[-1] = 3
+        self.assertRaises(AssertionError, env.obs2index, obs)
+
+        obs = np.array([1, 2, 2])
         self.assertEqual(env.obs2index(obs), 25)
 
 

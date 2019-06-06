@@ -30,7 +30,7 @@ def create_environment(
     if domain_name == "cartpole":
         return Cartpole()
     if domain_name == "gridworld":
-        return GridWorld(domain_size)
+        return GridWorld(domain_size, one_hot_goal_encoding=True)
     if domain_name == "collision_avoidance":
         return CollisionAvoidance(domain_size)
     if domain_name == "chain":

@@ -26,8 +26,8 @@ def softmax_sample(arr: np.array) -> int:
     RETURNS (`int`): between 0 ... len(arr)
 
     """
-    ar_softmax = np.exp(arr - arr.max())
-    return np.random.choice(len(arr), p=ar_softmax / ar_softmax.sum())
+    ar_exp = np.exp(arr - arr.max())
+    return np.random.choice(len(arr), p=ar_exp / ar_exp.sum())
 
 
 def loss(q_values, targets, loss_type: str):
