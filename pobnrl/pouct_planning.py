@@ -4,7 +4,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
 import numpy as np
 
-from domains import create_environment
+from domains import create_environment, EncodeType
 from agents import create_agent, AgentType
 from episode import run_episode
 from misc import POBNRLogger
@@ -26,7 +26,7 @@ def main(conf):
     env = create_environment(
         conf.domain,
         conf.domain_size,
-        conf.verbose
+        EncodeType.DEFAULT
     )
 
     sim = env

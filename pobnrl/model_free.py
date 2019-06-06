@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from agents import create_agent, AgentType
-from domains import create_environment
+from domains import create_environment, EncodeType
 from episode import run_episode
 from misc import tf_session, tf_run, POBNRLogger
 
@@ -27,7 +27,7 @@ def main(conf):  # pylint: disable=too-many-locals
     env = create_environment(
         conf.domain,
         conf.domain_size,
-        conf.verbose
+        EncodeType.ONE_HOT
     )
 
     agent = create_agent(env, conf, AgentType.MODELFREE)
