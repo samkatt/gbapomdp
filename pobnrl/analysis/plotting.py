@@ -8,7 +8,26 @@ import more_itertools as mitt
 import numpy as np
 
 
-def plot_experiment(file_names: List[str], smooth_amount: int = 25):
+def main(smoothing_argument: str, files: List[str]) -> None:
+    """ main: validates user input and plots files
+
+    Args:
+         smoothing_argument: (`str`): amount of smoothing in the plots
+         *files: list of files
+
+    RETURNS (`None`):
+
+    """
+
+    try:
+        smoothing = int(smoothing_argument)
+    except ValueError:
+        print(f"{smoothing_argument} cannot be interpret as amount of smoothing (int)")
+
+    plot_experiment(files, smooth_amount=smoothing)
+
+
+def plot_experiment(file_names: List[str], smooth_amount: int = 25) -> None:
     """ plot_experiment plots returns of experiment return files
 
     Args:
@@ -28,4 +47,7 @@ def plot_experiment(file_names: List[str], smooth_amount: int = 25):
 
 
 if __name__ == "__main__":
-    plot_experiment(sys.argv[2:], smooth_amount=int(sys.argv[1]))
+
+    assert len(sys.argv) > 2, "Expects at least 2 arguments: # smoothing and list fo files"
+
+    main(sys.argv[1], sys.argv[2:])
