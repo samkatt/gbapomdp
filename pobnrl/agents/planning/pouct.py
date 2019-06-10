@@ -89,7 +89,7 @@ class TreeNode():
 class POUCT(POBNRLogger):
     """ MCTS for POMDPs using UCB """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
             self,
             simulator: Simulator,
             num_sims: int = 500,

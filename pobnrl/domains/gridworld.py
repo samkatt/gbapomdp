@@ -11,7 +11,7 @@ from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
+class GridWorld(Environment, Simulator, POBNRLogger):
     """ the gridworld environment
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -276,7 +276,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):  # pylint: disable=too-man
 
         return np.hstack([bounded_obs, goal_observation])
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """ resets state """
 
         self._state = self.sample_start_state()

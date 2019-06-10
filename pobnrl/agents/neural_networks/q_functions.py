@@ -14,11 +14,11 @@ class QNetInterface(abc.ABC):
     """ interface to all Q networks """
 
     @abc.abstractmethod
-    def reset(self):
+    def reset(self) -> None:
         """ resets to initial state """
 
     @abc.abstractmethod
-    def episode_reset(self):
+    def episode_reset(self) -> None:
         """ resets the internal state to prepare for a new episode """
 
     @abc.abstractmethod
@@ -33,21 +33,21 @@ class QNetInterface(abc.ABC):
         """
 
     @abc.abstractmethod
-    def batch_update(self):
+    def batch_update(self) -> None:
         """ performs a batch update """
 
     @abc.abstractmethod
-    def update_target(self):
+    def update_target(self) -> None:
         """ updates the target network """
 
     @abc.abstractmethod
-    def record_transition(  # pylint: disable=too-many-arguments
+    def record_transition(
             self,
             observation: np.ndarray,
             action: int,
             reward: float,
             next_observation: np.ndarray,
-            terminal: bool):
+            terminal: bool) -> None:
         """ notifies this of provided transition
 
         Args:
@@ -59,14 +59,14 @@ class QNetInterface(abc.ABC):
         """
 
 
-class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-attributes
+class DQNNet(QNetInterface, POBNRLogger):
     """ a network based on DQN that can return q values and update """
 
-    def __init__(  # pylint: disable=too-many-locals,too-many-arguments
+    def __init__(
             self,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            q_func: Callable,  # Q-value network function
+            q_func: Callable,  # type: ignore
             optimizer,
             name: str,
             conf):
@@ -194,7 +194,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
 
         self.update_target_op = tf.group(*update_target_op)
 
-    def reset(self):
+    def reset(self) -> None:
         """ resets the replay buffer
 
         Weights are controlled in tensorflow and reset outside of this scope
@@ -202,7 +202,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
         """
         self.replay_buffer.clear()
 
-    def episode_reset(self):
+    def episode_reset(self) -> None:
         """ no internal state so does nothing, interface requirement """
 
     def qvalues(self, obs: np.ndarray) -> np.array:
@@ -230,7 +230,7 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
             feed_dict={self.obs_ph: obs[None]}  # add batch dim
         )
 
-    def batch_update(self):
+    def batch_update(self) -> None:
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
@@ -276,17 +276,17 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
             }
         )
 
-    def update_target(self):
+    def update_target(self) -> None:
         """ updates the target network """
         tf_run(self.update_target_op)
 
-    def record_transition(  # pylint: disable=too-many-arguments
+    def record_transition(
             self,
             observation: np.ndarray,
             action: int,
             reward: float,
             next_observation: np.ndarray,
-            terminal: bool):
+            terminal: bool) -> None:
         """ notifies this of provided transition
 
         Stores transition in replay buffer
@@ -311,14 +311,14 @@ class DQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-a
         )
 
 
-class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-attributes
+class DRQNNet(QNetInterface, POBNRLogger):
     """ a network based on DRQN that can return q values and update """
 
-    def __init__(  # pylint: disable=too-many-locals,too-many-arguments
+    def __init__(
             self,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            rec_q_func: Callable,
+            rec_q_func: Callable,  # type: ignore
             optimizer,
             name,
             conf):
@@ -484,7 +484,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
 
         self.update_target_op = tf.group(*update_target_op)
 
-    def reset(self):
+    def reset(self) -> None:
         """ resets the net internal state and replay buffer
 
         Weights are controlled in tensorflow and reset outside of this scope
@@ -494,7 +494,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
         self.replay_buffer.clear()
         self.rnn_state = None
 
-    def episode_reset(self):
+    def episode_reset(self) -> None:
         """ resets the net internal state """
         self.rnn_state = None
 
@@ -529,7 +529,7 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
 
         return qvals
 
-    def batch_update(self):
+    def batch_update(self) -> None:
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
@@ -575,17 +575,17 @@ class DRQNNet(QNetInterface, POBNRLogger):  # pylint: disable=too-many-instance-
             }
         )
 
-    def update_target(self):
+    def update_target(self) -> None:
         """ updates the target network """
         tf_run(self.update_target_op)
 
-    def record_transition(  # pylint: disable=too-many-arguments
+    def record_transition(
             self,
             observation: np.ndarray,
             action: int,
             reward: float,
             next_observation: np.ndarray,
-            terminal: bool):
+            terminal: bool) -> None:
         """ notifies this of provided transition
 
         Stores transition in replay buffer

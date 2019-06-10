@@ -10,11 +10,11 @@ class Agent(abc.ABC):
     """ all agents must implement this interface """
 
     @abc.abstractmethod
-    def reset(self):
+    def reset(self) -> None:
         """ resets agent to initial state """
 
     @abc.abstractmethod
-    def episode_reset(self, observation: np.ndarray):
+    def episode_reset(self, observation: np.ndarray) -> None:
         """ called after each episode to prepare for the next
 
         Args:
@@ -64,10 +64,10 @@ class RandomAgent(Agent):
         """
         self._action_space = action_space
 
-    def reset(self):
+    def reset(self) -> None:
         """ stateless and thus ignored """
 
-    def episode_reset(self, observation: np.ndarray):
+    def episode_reset(self, observation: np.ndarray) -> None:
         """ Will not do anything since there is no internal state to reset
 
         Part of the interface of `pobnrl.agents.agent.Agent`

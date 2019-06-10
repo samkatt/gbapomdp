@@ -14,7 +14,7 @@ from .neural_networks import create_qnet
 from .neural_networks.q_functions import QNetInterface
 
 
-class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
+class BaselineAgent(Agent):
     """ default single q-net agent implementation"""
 
     def __init__(self,
@@ -52,7 +52,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
         self.q_net = qnet
 
-    def reset(self):
+    def reset(self) -> None:
         """ re-initializes members
 
         e.g.  empties replay buffer and sets timestep to 0, resets net
@@ -64,7 +64,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
 
         self.q_net.reset()
 
-    def episode_reset(self, observation: np.ndarray):
+    def episode_reset(self, observation: np.ndarray) -> None:
         """ prepares for next episode
 
         stores the observation and resets its Q-network
@@ -129,7 +129,7 @@ class BaselineAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self.timestep += 1
 
 
-class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
+class EnsembleAgent(Agent):
     """ ensemble agent """
 
     def __init__(self,
@@ -173,7 +173,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
         self._current_policy = np.random.choice(self.nets)
 
-    def reset(self):
+    def reset(self) -> None:
         """ re-initializes members
 
         e.g.  empties replay buffer and sets timestep to 0, resets nets
@@ -189,7 +189,7 @@ class EnsembleAgent(Agent):  # pylint: disable=too-many-instance-attributes
         for net in self.nets:
             net.reset()
 
-    def episode_reset(self, observation: np.ndarray):
+    def episode_reset(self, observation: np.ndarray) -> None:
         """ prepares for next episode
 
         stores the observation and resets its Q-network and resets its models

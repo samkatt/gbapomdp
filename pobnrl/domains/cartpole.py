@@ -3,6 +3,7 @@
 import time
 
 import gym
+import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace, GymSpace
 from misc import DiscreteSpace, POBNRLogger
@@ -11,7 +12,7 @@ from misc import DiscreteSpace, POBNRLogger
 class Cartpole(Environment, POBNRLogger):
     """ cartpole environment """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ constructs cartpole with optionally graphical representation """
 
         POBNRLogger.__init__(self)
@@ -45,7 +46,7 @@ class Cartpole(Environment, POBNRLogger):
     def __del__(self):
         self.cartpole.env.close()
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """ resets the cartpole gym environment """
         return self.cartpole.reset()
 
@@ -67,9 +68,9 @@ class Cartpole(Environment, POBNRLogger):
     @property
     def action_space(self) -> ActionSpace:
         """ the underlying open ai gyme cartpole action space """
-        return self._action_space  # type: ignore
+        return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
         """ the underlying open ai gyme cartpole observation space """
-        return self._observation_space  # type: ignore
+        return self._observation_space

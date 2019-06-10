@@ -138,7 +138,7 @@ class Environment(abc.ABC):
     """ interface to all domains """
 
     @abc.abstractmethod
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """ resets internal state and return first observation """
 
     @abc.abstractmethod

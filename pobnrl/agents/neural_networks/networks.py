@@ -43,7 +43,7 @@ def two_layer_q_net(net_input, n_out: int, n_hidden: int, scope: str):
     return qvalues
 
 
-def two_layer_rec_q_net(  # pylint: disable=too-many-arguments
+def two_layer_rec_q_net(
         net_input,
         seq_lengths,
         rnn_cell,

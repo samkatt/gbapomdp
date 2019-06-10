@@ -10,7 +10,7 @@ from episode import run_episode
 from misc import POBNRLogger
 
 
-def main(conf):
+def main(conf) -> None:
     """ runs PO-UCT planner with a belief on given configurations
 
     Args:
@@ -21,7 +21,7 @@ def main(conf):
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
 
-    ret_mean = ret_m2 = 0
+    ret_mean = ret_m2 = .0
 
     env = create_environment(
         conf.domain,
@@ -67,7 +67,7 @@ def main(conf):
         )
 
 
-def parse_arguments(args: str = None):
+def parse_arguments(args: str = ""):
     """ converges arguments from commandline (or string) to namespace
 
     Args:
@@ -160,7 +160,7 @@ def parse_arguments(args: str = None):
         type=int
     )
 
-    return parser.parse_args(args)  # if args == None, will read cmdline
+    return parser.parse_args(args)  # if args is "", will read cmdline
 
 
 if __name__ == '__main__':

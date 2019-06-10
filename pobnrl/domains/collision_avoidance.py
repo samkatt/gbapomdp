@@ -129,7 +129,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
         return np.array([*state[:2], obs])
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """ resets state and potentially records the episode"""
 
         self._state = self.sample_start_state()

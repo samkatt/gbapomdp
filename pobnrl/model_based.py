@@ -11,7 +11,7 @@ from episode import run_episode
 from misc import POBNRLogger, tf_session, tf_run
 
 
-def main(conf):  # pylint: disable=too-many-locals
+def main(conf) -> None:
     """ runs PO-UCT planner with a belief on given configurations
 
     Args:
@@ -94,7 +94,7 @@ def main(conf):  # pylint: disable=too-many-locals
             )
 
 
-def parse_arguments(args: str = None):
+def parse_arguments(args: str = ""):
     """ converges arguments from commandline (or string) to namespace
 
     Args:
@@ -242,7 +242,7 @@ def parse_arguments(args: str = None):
         help='enables gpu usage'
     )
 
-    return parser.parse_args(args)  # if args == None, will read cmdline
+    return parser.parse_args(args)  # if args is "", will read cmdline
 
 
 if __name__ == '__main__':

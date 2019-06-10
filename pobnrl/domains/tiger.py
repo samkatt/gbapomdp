@@ -122,7 +122,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         return loc if np.random.random() < self.CORRECT_OBSERVATION_PROB else int(not loc)
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """ resets internal state and return first observation
 
         resets the intenral state randomly ([0] or [1])

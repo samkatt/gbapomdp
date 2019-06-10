@@ -37,12 +37,12 @@ class PrototypeAgent(Agent, POBNRLogger):
 
         self._last_action = -1
 
-    def reset(self):
+    def reset(self) -> None:
         """ resets belief """
 
         self._belief_manager.reset()
 
-    def episode_reset(self, _observation: np.ndarray):
+    def episode_reset(self, _observation: np.ndarray) -> None:
         """ resets belief
 
         Ignores observation for now
@@ -88,7 +88,7 @@ class PrototypeAgent(Agent, POBNRLogger):
 class RejectionSamplingBelieveManager(BeliefManager):
     """ believe manager that uses rejection sampling """
 
-    def __init__(
+    def __init__(  # type: ignore
             self,
             num_particles: int,
             sim: Simulator,

@@ -50,10 +50,10 @@ Systems. 2018.][1]
 
 ## Development
 
-* documentation: Run `./make_documentation.sh` in root and find
-documentation in `doc/pobnrl` folder
-* formatting: Run `./static_analyse.sh` in root and check whether the
-code is formatted correctly
+* documentation: Run `./make_documentation.sh` in root and find documentation
+  in `doc/pobnrl` folder
+* static analysis & formatting: Run `./static_analyse.sh` in root and check
+  whether the code is formatted correctly
 * testing: Run `./run_tests.sh` in root and check whether all pass
 
 ### TODO

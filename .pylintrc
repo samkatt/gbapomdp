@@ -62,7 +62,10 @@ confidence=
 # --disable=W".
 disable=no-name-in-module,
         import-error,
-        duplicate-code
+        duplicate-code,
+        too-many-arguments,
+        too-many-instance-attributes,
+        too-many-locals
         #print-statement,
         #parameter-unpacking,
         #unpacking-in-except,

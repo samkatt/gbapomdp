@@ -4,7 +4,7 @@
 
 """
 
-from typing import List, Callable
+from typing import List, Callable, Tuple
 import abc
 import numpy as np
 
@@ -78,14 +78,14 @@ class PiecewiseSchedule(ExplorationSchedule):
 
     def __init__(
             self,
-            endpoints: List[tuple],
+            endpoints: List[Tuple[float, float]],
             interpolation: Callable[[float, float, float], float]
             = linear_interpolation,
-            outside_value: float = None):
+            outside_value: float = float('NaN')):
         """ Piecewise Schedule
 
         Args:
-             endpoints: (`List[tuple]`) [(int, int)]:
+             endpoints: (`List[Tuple[float, float]]`):
 
                 list of pairs `(time, value)` meanining that schedule should
                 output `value` when `t==time`. All the values for time must be
@@ -126,5 +126,5 @@ class PiecewiseSchedule(ExplorationSchedule):
                 return self._interpolation(left, right, alpha)
 
         # t does not belong to any of the pieces, so doom.
-        assert self._outside_value is not None
+        assert not np.isnan(self._outside_value)
         return self._outside_value

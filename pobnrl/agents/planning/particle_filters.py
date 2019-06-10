@@ -7,7 +7,7 @@ Contains:
 """
 
 from collections import Counter
-from typing import Any, Callable
+from typing import Any, Callable, List
 import abc
 import random
 
@@ -55,7 +55,7 @@ class FlatFilter(ParticleFilter):
     def __init__(self):
         """ create a flat filter """
 
-        self._particles = []
+        self._particles: List[Any] = []
 
     def add_particle(self, particle: Any):
         """ adds a particle to the filter
@@ -158,8 +158,8 @@ class WeightedFilter(ParticleFilter):
     def __init__(self):
         """ create a weighted filter """
 
-        self._total_weight = 0
-        self._particles = []
+        self._total_weight = .0
+        self._particles: List[WeightedParticle] = []
 
     def add_particle(self, particle: WeightedParticle):
         """ adds a (weightedfilter.)particle to the filter
@@ -183,7 +183,7 @@ class WeightedFilter(ParticleFilter):
 
         rand = random.uniform(0, self._total_weight)
 
-        acc = 0
+        acc = .0
         # loop through particles until we accumulate more weight than sampled
         for particle in self._particles:
             acc += particle.weight
@@ -276,7 +276,7 @@ def importance_sampling(
 class BeliefManager(POBNRLogger):
     """ manages a belief """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # type: ignore
             self,
             num_particles: int,
             filter_type: Callable[[], ParticleFilter],
@@ -306,7 +306,7 @@ class BeliefManager(POBNRLogger):
 
         self._belief = self._filter_type()
 
-    def reset(self):
+    def reset(self) -> None:
         """ resets by sampling new belief """
 
         self._belief = self._filter_type()
@@ -318,7 +318,7 @@ class BeliefManager(POBNRLogger):
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset to {self._belief}")
 
-    def episode_reset(self):
+    def episode_reset(self) -> None:
         """ resets the belief for a new episode """
 
         for particle in self._belief:

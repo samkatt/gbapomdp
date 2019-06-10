@@ -10,10 +10,9 @@ from environments import ActionSpace
 from misc import tf_run, DiscreteSpace
 
 
-class DynamicsModel():  # pylint: disable=too-many-instance-attributes
+class DynamicsModel():
     """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
 
-    # pylint: disable=too-many-arguments
     def __init__(
             self,
             state_space: DiscreteSpace,
@@ -138,7 +137,7 @@ class DynamicsModel():  # pylint: disable=too-many-instance-attributes
             states: np.ndarray,
             actions: np.ndarray,
             new_states: np.ndarray,
-            obs: np.ndarray):
+            obs: np.ndarray) -> None:
         """ performs a batch update (single gradient descent step)
 
         Args:

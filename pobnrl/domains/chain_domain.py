@@ -7,7 +7,7 @@ from environments import Simulator, SimulationResult
 from misc import DiscreteSpace, POBNRLogger
 
 
-class ChainDomain(Environment, Simulator, POBNRLogger):  # pylint: disable=too-many-instance-attributes
+class ChainDomain(Environment, Simulator, POBNRLogger):
     """ the chain environment
 
     The domains are indexed by problem size N and action mask W =
@@ -130,7 +130,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):  # pylint: disable=too-m
 
         return obs.reshape(self.size * self.size)
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         """ resets internal state and return first observation """
 
         self._state = self.sample_start_state()

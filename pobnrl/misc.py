@@ -12,7 +12,7 @@ Contains:
 
 from contextlib import contextmanager
 from enum import Enum
-from typing import List, Union
+from typing import List, Union, Any
 import logging
 import os
 
@@ -66,10 +66,10 @@ class POBNRLogger:
 
         cls._level = level
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: str = ""):
         """ creates a logger """
 
-        if name is None:
+        if not name:
             name = self.__class__.__name__
 
         self.logger = logging.Logger(name)
@@ -114,7 +114,7 @@ class POBNRLogger:
 
 
 # please, for the love of everything good in this world, don't refer to this
-_SESS = None
+_SESS: tf.Session = None
 
 
 @contextmanager
@@ -161,7 +161,7 @@ def tf_session(use_gpu: bool):
     tf.reset_default_graph()
 
 
-def tf_run(operations, **kwargs):
+def tf_run(operations, **kwargs) -> Any:
     """ runs a tf session """
     return _SESS.run(operations, **kwargs)
 
