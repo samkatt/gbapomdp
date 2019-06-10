@@ -1,1 +1,1 @@
-(export PYTHONPATH=$PYTHONPATH:pobnrl; python -m unittest discover pobnrl/tests/)
+(export PYTHONPATH=$PYTHONPATH:pobnrl; python -m unittest discover -p test*.py pobnrl/tests/)
