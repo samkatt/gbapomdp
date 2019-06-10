@@ -391,7 +391,11 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         """
         assert self.observation_space.contains(observation), \
             f"{observation} not in {self.observation_space}"
-        assert np.all(self.size > observation) and np.all(observation >= 0)
+        assert \
+            np.all(self.size > observation[:2]) \
+            and len(self.goals) > observation[2] \
+            and np.all(observation >= 0), \
+            f"{observation} not in {self.observation_space}"
 
         if not self._one_hot_goal_encoding:
             return self.observation_space.index_of(observation)

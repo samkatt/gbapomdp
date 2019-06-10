@@ -168,6 +168,7 @@ def create_learning_agent(env: Simulator, conf) -> PrototypeAgent:
         conf.gamma
     )
 
+    # FIXME: refactor the particle reset (keeping model in particle)
     def reset_particle(augmented_state):
         augmented_state.domain_state = env.sample_domain_start_state()
 
