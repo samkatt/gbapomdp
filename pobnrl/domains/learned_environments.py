@@ -1,6 +1,5 @@
 """ domains either learned or constructed from other domains """
 
-from collections import namedtuple
 import numpy as np
 
 from agents.neural_networks import ReplayBuffer
@@ -47,11 +46,16 @@ def generate_replay_buffer(domain: Simulator) -> ReplayBuffer:
 class NeuralEnsemble(Simulator):
     """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
-    class AugmentedState(namedtuple('bn_pomdp_state', 'domain_state model')):
+    class AugmentedState:
         """ A state containing (POMDP state, POMDP dynamics) """
 
-        # required to keep lightweight implementation of namedtuple
-        __slots__ = ()
+        def __init__(self, domain_state: np.ndarray, model: DynamicsModel):
+
+            self.domain_state = domain_state
+            self.model = model
+
+        def __repr__(self) -> str:
+            return f'Augmented state: state {self.domain_state} with model {self.model}'
 
     def __init__(self, domain: Simulator, conf, name: str):
         """ Creates `NeuralEnsemble`

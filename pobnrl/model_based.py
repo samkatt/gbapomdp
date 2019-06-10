@@ -1,6 +1,7 @@
 """ Run POMCP on partially observable, known, environments """
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from typing import Optional, List
 import numpy as np
 import tensorflow as tf
 
@@ -94,7 +95,7 @@ def main(conf) -> None:
             )
 
 
-def parse_arguments(args: str = ""):
+def parse_arguments(args: Optional[List[str]] = None):
     """ converges arguments from commandline (or string) to namespace
 
     Args:

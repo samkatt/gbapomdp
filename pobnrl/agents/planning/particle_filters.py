@@ -6,7 +6,6 @@ Contains:
     * belief managers
 """
 
-from collections import Counter
 from typing import Any, Callable, List
 import abc
 import random
@@ -86,10 +85,7 @@ class FlatFilter(ParticleFilter):
         return iter(self._particles)
 
     def __repr__(self) -> str:
-        try:
-            return f"FlatFilter with: {Counter(self._particles)}"
-        except TypeError:
-            return f"FlatFilter of size {self.size}"
+        return f"FlatFilter of size {self.size}"
 
 
 class WeightedParticle():
@@ -282,7 +278,7 @@ class BeliefManager(POBNRLogger):
             filter_type: Callable[[], ParticleFilter],
             sample_particle_f: Callable[[], Any],
             update_belief_f: Callable[[ParticleFilter, int, int], ParticleFilter],
-            reset_particle_f: Callable[[Any], Any] = None):
+            reset_particle_f: Callable[[Any], None] = None):
         """ Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
@@ -292,7 +288,7 @@ class BeliefManager(POBNRLogger):
              filter_type: (`Callable[[],` `ParticleFilter` `],`) particle filter constructor
              sample_particle_f: (`Callable[[], Any]`): function that samples particles
              update_belief_f: (`Callable[[` `ParticleFilter`, `int, int],` `ParticleFilter` `]`): how to update the belief
-             reset_particle_f: ('Callable[[Any], Any]'): how to reset a particle to start state (defaults to `sample_particle_f`)
+             reset_particle_f: ('Callable[[Any], None]'): how to reset a particle to start state (defaults to `sample_particle_f`)
         """
 
         POBNRLogger.__init__(self)

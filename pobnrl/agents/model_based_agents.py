@@ -5,7 +5,6 @@ from typing import Any, Callable
 import numpy as np
 
 from environments import Simulator, SimulationResult
-from domains.learned_environments import NeuralEnsemble
 from misc import POBNRLogger
 
 from .agent import Agent
@@ -159,7 +158,7 @@ def create_learning_agent(env: Simulator, conf) -> PrototypeAgent:
     """
 
     if conf.belief != 'rejection_sampling':
-        raise ValueError('belief must be rejection_sampling')
+        raise ValueError(f'belief must be rejection_sampling, not {conf.belief}')
 
     planner = POUCT(
         env,
@@ -170,10 +169,7 @@ def create_learning_agent(env: Simulator, conf) -> PrototypeAgent:
     )
 
     def reset_particle(augmented_state):
-        NeuralEnsemble.AugmentedState(
-            env.sample_start_state(),
-            augmented_state.model
-        )
+        augmented_state.domain_state = env.sample_domain_start_state()
 
     believe_manager = RejectionSamplingBelieveManager(
         num_particles=conf.num_particles,

@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from math import sqrt
+from typing import List, Optional
 import numpy as np
 
 from domains import create_environment, EncodeType
@@ -67,7 +68,7 @@ def main(conf) -> None:
         )
 
 
-def parse_arguments(args: str = ""):
+def parse_arguments(args: Optional[List[str]] = None):
     """ converges arguments from commandline (or string) to namespace
 
     Args:
