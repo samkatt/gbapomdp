@@ -44,7 +44,6 @@ def generate_replay_buffer(domain: Simulator) -> ReplayBuffer:
     return replay_buffer
 
 
-# TODO: not **really** the same as any other simulator. Refactor somehow
 class NeuralEnsemble(Simulator):  # pylint: disable=too-many-instance-attributes
     """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 

@@ -21,14 +21,14 @@ class TestModelFreeAgents(unittest.TestCase):
 
         """
 
-        def_args = ['--episodes=3', '--runs=2', '--horizon=10', '-v=0']
+        def_args = ['--episodes=2', '--runs=2', '--horizon=10', '-v=0']
 
         mf_main(mf_parse_arguments(def_args + args))
 
     def test_domains(self):
         """ just the default arguments on all domains """
 
-        self.run_experiment(['-D=tiger', '--episodes=50'])
+        self.run_experiment(['-D=tiger', '--episodes=25'])
         self.run_experiment(['--domain_size=3', '-D=cartpole', "--horizon=10000"])
         self.run_experiment(['--domain_size=3', '-D=gridworld'])
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
@@ -125,7 +125,7 @@ class TestModelBasedRL(unittest.TestCase):
 
         """
 
-        def_args = ['--num_sims=16', '--num_particles=64', '--runs=2', '--horizon=5', '-v=0', '--episodes=3']
+        def_args = ['--num_sims=16', '--num_particles=64', '--runs=2', '--horizon=5', '-v=0', '--episodes=2']
 
         mb_main(mb_parse_arguments(def_args + args))
 
@@ -134,8 +134,8 @@ class TestModelBasedRL(unittest.TestCase):
 
         self.run_experiment(['-D=tiger', '--learn=true_dynamics_offline'])
         self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--learn=true_dynamics_offline'])
-        # self.run_experiment(['-D=chain', '--domain_size=4', '--learn=true_dynamics_offline'])
-        # self.run_experiment(['-D=gridworld', '--domain_size=3', '--learn=true_dynamics_offline'])
+        self.run_experiment(['-D=chain', '--domain_size=4', '--learn=true_dynamics_offline'])
+        self.run_experiment(['-D=gridworld', '--domain_size=3', '--learn=true_dynamics_offline'])
 
 
 if __name__ == '__main__':
