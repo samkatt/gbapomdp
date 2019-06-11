@@ -42,13 +42,13 @@ class DynamicsModel():
         self._input_t = tf.placeholder(
             tf.int32,
             shape=[None, self.state_space.ndim + self.action_space.n],
-            name=f"{name}_input"
+            name=f"{name}_input_T"
         )
 
         self._input_o = tf.placeholder(
             tf.int32,
             shape=[None, 2 * self.state_space.ndim + self.action_space.n],
-            name=f"{name}_input"
+            name=f"{name}_input_O"
         )
 
         self._new_state_logits = two_layer_q_net(

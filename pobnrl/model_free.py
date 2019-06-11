@@ -53,11 +53,10 @@ def main(conf) -> None:
 
                 tmp_res[episode] = run_episode(env, agent, conf)
 
-                if episode > 0:
-                    logger.log(
-                        POBNRLogger.LogLevel.V1,
-                        f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode])}"
-                    )
+                logger.log(
+                    POBNRLogger.LogLevel.V1,
+                    f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
+                )
 
             # update mean and variance
             delta = tmp_res - result_mean
