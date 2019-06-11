@@ -5,7 +5,7 @@ from typing import Optional, List
 import numpy as np
 import tensorflow as tf
 
-from agents import create_agent, AgentType
+from agents.model_free_agents import create_agent
 from domains import create_environment, EncodeType
 from episode import run_episode
 from misc import tf_session, tf_run, POBNRLogger
@@ -31,7 +31,7 @@ def main(conf) -> None:
         EncodeType.ONE_HOT
     )
 
-    agent = create_agent(env, conf, AgentType.MODELFREE)
+    agent = create_agent(env.action_space, env.observation_space, conf)
 
     init_op = tf.global_variables_initializer()
 

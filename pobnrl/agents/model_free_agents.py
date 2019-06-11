@@ -9,7 +9,7 @@ from misc import DiscreteSpace
 from agents.misc import epsilon_greedy, PiecewiseSchedule
 from agents.misc import ExplorationSchedule, FixedExploration
 
-from .agent import Agent
+from .agent import Agent, RandomAgent
 from .neural_networks import create_qnet
 from .neural_networks.q_functions import QNetInterface
 
@@ -275,6 +275,9 @@ def create_agent(
     RETURNS (`pobnrl.agents.agent.Agent`)
 
     """
+
+    if conf.random_policy:
+        return RandomAgent(action_space)
 
     if 1 >= conf.exploration >= 0:
         exploration_schedule: ExplorationSchedule = FixedExploration(conf.exploration)

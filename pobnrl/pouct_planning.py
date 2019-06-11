@@ -6,7 +6,7 @@ from typing import List, Optional
 import numpy as np
 
 from domains import create_environment, EncodeType
-from agents import create_agent, AgentType
+from agents.model_based_agents import create_planning_agent
 from episode import run_episode
 from misc import POBNRLogger
 
@@ -32,7 +32,7 @@ def main(conf) -> None:
 
     sim = env
 
-    agent = create_agent(sim, conf, AgentType.PLANNING)
+    agent = create_planning_agent(sim, conf)
 
     logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 

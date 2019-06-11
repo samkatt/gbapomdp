@@ -5,7 +5,7 @@ from typing import Optional, List
 import numpy as np
 import tensorflow as tf
 
-from agents import create_agent, AgentType
+from agents.model_based_agents import create_learning_agent
 from domains import create_environment, EncodeType
 from domains.learned_environments import NeuralEnsemble
 from episode import run_episode
@@ -37,7 +37,7 @@ def main(conf) -> None:
 
     sim = NeuralEnsemble(env, conf=conf, name="ensemble_pomdp")
 
-    agent = create_agent(sim, conf, AgentType.MODELBASED)
+    agent = create_learning_agent(sim, conf)
 
     init_op = tf.global_variables_initializer()
 
