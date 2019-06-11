@@ -132,10 +132,19 @@ class TestModelBasedRL(unittest.TestCase):
     def test_learning_true_dynamics_offline(self):
         """ tests basic offline learning """
 
-        self.run_experiment(['-D=tiger', '--learn=true_dynamics_offline'])
-        self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--learn=true_dynamics_offline'])
-        self.run_experiment(['-D=chain', '--domain_size=4', '--learn=true_dynamics_offline'])
-        self.run_experiment(['-D=gridworld', '--domain_size=3', '--learn=true_dynamics_offline'])
+        self.run_experiment(['-D=tiger', '--train_offline=on_true'])
+        self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--train_offline=on_true'])
+        self.run_experiment(['-D=chain', '--domain_size=4', '--train_offline=on_true'])
+        self.run_experiment(['-D=gridworld', '--domain_size=3', '--train_offline=on_true'])
+
+    def test_learning_prior_dynamics_offline(self):
+        """ tests basic offline learning """
+
+        self.run_experiment(['-D=tiger', '--train_offline=on_prior'])
+        # TODO:
+        # self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--train_offline=on_prior'])
+        # self.run_experiment(['-D=chain', '--domain_size=4', '--train_offline=on_true'])
+        # self.run_experiment(['-D=gridworld', '--domain_size=3', '--train_offline=on_true'])
 
 
 if __name__ == '__main__':

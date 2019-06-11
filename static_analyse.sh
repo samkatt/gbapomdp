@@ -7,7 +7,7 @@ less $debug_file;
 rm $debug_file
 
 # other checkers
-for checker in "pylint" "flake8" "pyflakes"; do
+for checker in "pylint" "flake8"; do
 
     echo "running $checker...";
     $checker pobnrl > $debug_file;

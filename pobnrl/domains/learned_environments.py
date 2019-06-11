@@ -7,7 +7,7 @@ from agents.neural_networks import ReplayBuffer
 from agents.neural_networks.neural_pomdps import DynamicsModel
 from environments import ActionSpace
 from environments import Simulator, SimulationResult
-from misc import DiscreteSpace
+from misc import DiscreteSpace, POBNRLogger
 
 
 def generate_replay_buffer(domain: Simulator) -> ReplayBuffer:
@@ -44,7 +44,7 @@ def generate_replay_buffer(domain: Simulator) -> ReplayBuffer:
     return replay_buffer
 
 
-class NeuralEnsemble(Simulator):
+class NeuralEnsemble(Simulator, POBNRLogger):
     """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
     class AugmentedState:
@@ -67,6 +67,8 @@ class NeuralEnsemble(Simulator):
              name: (`str`): name (unique) of this simulator
 
         """
+
+        POBNRLogger.__init__(self)
 
         # settings
         self._batch_size = conf.batch_size
@@ -109,7 +111,10 @@ class NeuralEnsemble(Simulator):
 
         for model in self._models:
 
-            replay_buffer = generate_replay_buffer(simulator_sampler())
+            sim = simulator_sampler()
+            replay_buffer = generate_replay_buffer(sim)
+
+            self.log(POBNRLogger.LogLevel.V3, f'learning net on {sim}')
 
             for _ in range(num_epochs):
 

@@ -8,7 +8,7 @@ from environments import ActionSpace
 from .networks import two_layer_q_net, two_layer_rec_q_net
 from .q_functions import QNetInterface, DQNNet, DRQNNet
 
-from .misc import ReplayBuffer
+from .misc import ReplayBuffer  # NOQA, ignore unused import
 
 
 def create_qnet(

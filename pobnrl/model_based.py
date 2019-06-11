@@ -1,13 +1,14 @@
 """ Run POMCP on partially observable, known, environments """
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from typing import Optional, List
+from typing import Optional, List, Callable
 import numpy as np
 import tensorflow as tf
 
 from agents.model_based_agents import create_learning_agent
-from domains import create_environment, EncodeType
+from domains import create_environment, EncodeType, create_prior
 from domains.learned_environments import NeuralEnsemble
+from environments import Simulator
 from episode import run_episode
 from misc import POBNRLogger, tf_session, tf_run
 
@@ -19,9 +20,6 @@ def main(conf) -> None:
          conf: configurations as namespace from `parse_arguments`
 
     """
-
-    assert conf.learn == 'true_dynamics_offline', \
-        "please set --learn flag correctly"
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
@@ -36,6 +34,7 @@ def main(conf) -> None:
     )
 
     sim = NeuralEnsemble(env, conf=conf, name="ensemble_pomdp")
+    simulator_sampler = create_simulator_sampler(env, conf)
 
     agent = create_learning_agent(sim, conf)
 
@@ -47,11 +46,12 @@ def main(conf) -> None:
         for run in range(conf.runs):
 
             tf_run(init_op)
+            sim.learn_dynamics_offline(
+                simulator_sampler=simulator_sampler,
+                num_epochs=conf.num_pretrain_epochs
+            )
 
             agent.reset()
-
-            if conf.learn == 'true_dynamics_offline':
-                sim.learn_dynamics_offline(lambda: env, conf.num_pretrain_epochs)
 
             tmp_res = np.zeros(conf.episodes)
 
@@ -195,9 +195,9 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
-        "--learn",
-        choices=['true_dynamics_offline'],
-        default='true_dynamics_offline',
+        "--train_offline",
+        choices=['on_true', 'on_prior'],
+        default='on_true',
         help='which, if applicable, type of learning to use'
     )
 
@@ -243,6 +243,31 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline
+
+
+def create_simulator_sampler(env: Simulator, conf) -> Callable[[], Simulator]:
+    """ creates a simulator sampler
+
+    Creates a sample function to generate environments from.
+
+    If conf.train_offline is  'on_true', then this function will just
+    return the environment, otherwise it will return a sample from the prior
+
+    Args:
+         env: (`pobnrl.environments.Simulator`):
+         conf:
+
+    RETURNS (`Callable[[],` `pobnrl.environments.Simulator` `]`):
+
+    """
+
+    if conf.train_offline == 'on_true':
+        return lambda: env
+
+    assert conf.train_offline == 'on_prior', f'unknown train type {conf.train_offline}'
+
+    prior = create_prior(conf.domain, conf.domain_size, EncodeType.DEFAULT)
+    return prior.sample
 
 
 if __name__ == '__main__':

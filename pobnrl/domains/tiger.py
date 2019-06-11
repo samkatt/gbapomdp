@@ -245,3 +245,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
             return observation[0]
 
         return self._obs_space.index_of(observation) - 1
+
+    def __repr__(self) -> str:
+        encoding_descr = "one_hot" if self._use_one_hot_obs else "default"
+        return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_prob}"

@@ -7,4 +7,4 @@ Planners pick actions given some belief over the state and simulator
 
 """
 
-from .particle_filters import ParticleFilter
+from .particle_filters import ParticleFilter  # NOQA, ignore unused import
