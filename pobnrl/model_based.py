@@ -51,7 +51,7 @@ def main(conf) -> None:
             agent.reset()
 
             if conf.learn == 'true_dynamics_offline':
-                sim.learn_dynamics_offline(env, conf.num_pretrain_epochs)
+                sim.learn_dynamics_offline(lambda: env, conf.num_pretrain_epochs)
 
             tmp_res = np.zeros(conf.episodes)
 

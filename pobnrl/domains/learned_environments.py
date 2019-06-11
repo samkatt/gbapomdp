@@ -1,5 +1,6 @@
 """ domains either learned or constructed from other domains """
 
+from typing import Callable
 import numpy as np
 
 from agents.neural_networks import ReplayBuffer
@@ -90,18 +91,25 @@ class NeuralEnsemble(Simulator):
             ) for i in range(conf.num_nets)
         ]
 
-    def learn_dynamics_offline(self, simulator: Simulator, num_epochs: int):
+    def learn_dynamics_offline(
+            self,
+            simulator_sampler: Callable[[], Simulator],
+            num_epochs: int):
         """  learn the dynamics function offline, given simulator
 
+        If simulator_sampler returns the true environment (all time), this can
+        be considered 'training on true environment'. If the sampler samples
+        from some distribution, then we are 'training on prior'
+
         Args:
-             simulator: (`pobnrl.environments.Simulator`): simulator to generate interactions from
+             simulator_sampler: (`Callable[[], ` `pobnrl.environments.Simulator` `]`): function to sample environments
              num_epochs: (`int`): number of batch updates
 
         """
 
         for model in self._models:
 
-            replay_buffer = generate_replay_buffer(simulator)
+            replay_buffer = generate_replay_buffer(simulator_sampler())
 
             for _ in range(num_epochs):
 
