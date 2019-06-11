@@ -58,10 +58,9 @@ Systems. 2018.][1]
 
 ### TODO
 
-* get `mypy --strict` working
-* test `https://github.ccs.neu.edu/abaisero/gym-pomdps`
 * move to keras
 * profiling (add numba @jit to functions where applicable for speed ups)
+* get mypy.ini commented out style fixed
 
 #### spaces issue
 
