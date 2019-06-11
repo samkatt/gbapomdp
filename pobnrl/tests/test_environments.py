@@ -134,6 +134,17 @@ class TestTiger(unittest.TestCase):
         np.testing.assert_array_equal(self.env.encode_observation(1), [1])
         np.testing.assert_array_equal(self.env.encode_observation(2), [2])
 
+    def test_tiger_obs_prob(self):
+        """ tests changing the observation probability """
+
+        deterministic_tiger = tiger.Tiger(use_one_hot=False, correct_obs_prob=1.)
+
+        deterministic_tiger.reset()
+
+        step_result = deterministic_tiger.step(action=deterministic_tiger.LISTEN)
+
+        self.assertEqual(step_result.observation[0], deterministic_tiger.state[0])
+
 
 class TestGridWorld(unittest.TestCase):
     """ Tests for GridWorld environment """

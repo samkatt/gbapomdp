@@ -18,14 +18,15 @@ class Tiger(Environment, Simulator, POBNRLogger):
     BAD_DOOR_REWARD = -100
 
     LISTEN_REWARD = -1
-    CORRECT_OBSERVATION_PROB = .85
 
     ELEM_TO_STRING = ["L", "R"]
 
-    def __init__(self, use_one_hot: bool):
+    def __init__(self, use_one_hot: bool, correct_obs_prob=.85):
         """ construct the tiger environment """
 
         POBNRLogger.__init__(self)
+
+        self._correct_obs_prob = correct_obs_prob
 
         self._use_one_hot_obs = use_one_hot
 
@@ -120,7 +121,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         if not listening:
             return self.LISTEN
 
-        return loc if np.random.random() < self.CORRECT_OBSERVATION_PROB else int(not loc)
+        return loc if np.random.random() < self._correct_obs_prob else int(not loc)
 
     def reset(self) -> np.ndarray:
         """ resets internal state and return first observation
