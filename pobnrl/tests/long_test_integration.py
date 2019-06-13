@@ -125,7 +125,7 @@ class TestModelBasedRL(unittest.TestCase):
 
         """
 
-        def_args = ['--num_sims=16', '--num_particles=64', '--runs=2', '--horizon=5', '-v=0', '--episodes=2']
+        def_args = ['--num_sims=16', '--num_particles=64', '--horizon=5', '-v=0', '--episodes=2']
 
         mb_main(mb_parse_arguments(def_args + args))
 
