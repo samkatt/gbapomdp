@@ -73,5 +73,5 @@ class Cartpole(Environment, POBNRLogger):
     @property
     def observation_space(self) -> DiscreteSpace:
         """ the underlying open ai gyme cartpole observation space """
-        raise NotImplementedError
-        # return self._observation_space
+        # FIXME: still haven't really figured out continuous vs discrete diff
+        return self._observation_space  # type: ignore

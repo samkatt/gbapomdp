@@ -18,8 +18,8 @@ class GridWorld(Environment, Simulator, POBNRLogger):
     the state space). The agent has 4 actions, a step in each direction, that
     is carried out succesfully 95% of the time (and is a no-op otherwise),
     except for some 'bad' cells, where the successrate drops to 15%. The
-    observation function is noisy, with some sort of gaussian probability
-    around the agent's real location (that accumulates around the edges).
+    observation function is noisy, with gaussian probability around the agent's
+    real location (that accumulates around the edges).
 
     """
 
