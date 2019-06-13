@@ -130,12 +130,6 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
-        "--random_policy",
-        action='store_true',
-        help="use this flag to pick the random agent controller"
-    )
-
-    parser.add_argument(
         "--num_sims",
         default=512,
         type=int,
