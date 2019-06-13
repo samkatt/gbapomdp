@@ -152,7 +152,9 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         """
 
-        assert 2 >= action >= 0, "expecting action A or B"
+        assert self.action_space.contains(action), f"expecting action A or B, not {action}"
+        assert self.state_space.contains(state), f"state {state} not in space"
+        assert state[1] > 0, f"state {state} is terminal because y == 0"
 
         new_state = state.copy()
 

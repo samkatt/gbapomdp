@@ -145,7 +145,9 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         RETURNS (`pobnrl.environments.SimulationResult`):
 
         """
-        assert 0 <= action < 3
+        assert self.action_space.contains(action), f'action {action} not in space'
+        assert self.state_space.contains(state), f'state {state} not in space'
+        assert state[0] > 0, f'state {state} is terminal because x = 0'
 
         new_state = state.copy()
 

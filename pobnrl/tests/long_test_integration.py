@@ -125,26 +125,42 @@ class TestModelBasedRL(unittest.TestCase):
 
         """
 
-        def_args = ['--num_sims=16', '--num_particles=64', '--horizon=5', '-v=0', '--episodes=2']
+        def_args = [
+            '--num_sims=16',
+            '--num_particles=64',
+            '--horizon=5',
+            '-v=0',
+            '--episodes=2'
+        ]
 
         mb_main(mb_parse_arguments(def_args + args))
 
-    def test_learning_true_dynamics_offline(self):
+    def test_train_on_true(self):
         """ tests basic offline learning """
 
-        self.run_experiment(['-D=tiger', '--train_offline=on_true'])
-        self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--train_offline=on_true'])
-        self.run_experiment(['-D=chain', '--domain_size=4', '--train_offline=on_true'])
-        self.run_experiment(['-D=gridworld', '--domain_size=3', '--train_offline=on_true'])
+        self.run_experiment([
+            '-D=collision_avoidance',
+            '--train_offline=on_true',
+            '--domain_size=3',
+            '--offline_data_sampler=random_policy'
+        ])
 
-    def test_learning_prior_dynamics_offline(self):
+        self.run_experiment([
+            '-D=chain',
+            '--domain_size=4',
+            '--train_offline=on_true',
+            '--offline_data_sampler=random_policy'
+        ])
+
+    def test_train_on_prior(self):
         """ tests basic offline learning """
 
         self.run_experiment(['-D=tiger', '--train_offline=on_prior'])
-        # TODO:
-        # self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--train_offline=on_prior'])
-        # self.run_experiment(['-D=chain', '--domain_size=4', '--train_offline=on_true'])
-        # self.run_experiment(['-D=gridworld', '--domain_size=3', '--train_offline=on_true'])
+
+    def test_sample_uniform_data(self):
+        """ tests the functionality of training on randomly sampled data """
+
+        self.run_experiment(['-D=gridworld', '--domain_size=4'])
 
 
 if __name__ == '__main__':

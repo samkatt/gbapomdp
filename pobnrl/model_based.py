@@ -6,8 +6,10 @@ import numpy as np
 import tensorflow as tf
 
 from agents.model_based_agents import create_learning_agent
+from agents.neural_networks.neural_pomdps import DynamicsModel
 from domains import create_environment, EncodeType, create_prior
 from domains.learned_environments import NeuralEnsemblePOMDP
+from domains.learned_environments import train_from_random_policy, train_from_uniform_steps
 from environments import Simulator
 from episode import run_episode
 from misc import POBNRLogger, tf_session, tf_run
@@ -21,42 +23,36 @@ def main(conf) -> None:
 
     """
 
+    # global init
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
 
-    result_mean = np.zeros(conf.episodes)
-    ret_m2 = np.zeros(conf.episodes)
-
-    env = create_environment(
-        conf.domain,
-        conf.domain_size,
-        EncodeType.DEFAULT
-    )
+    # environment and agent setup
+    env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT)
     assert isinstance(env, Simulator)
 
     sim = NeuralEnsemblePOMDP(env, conf=conf, name="ensemble_pomdp")
-    simulator_sampler = create_simulator_sampler(env, conf)
-
     agent = create_learning_agent(sim, conf)
+    train_method = create_train_method(env, conf)
 
     init_op = tf.global_variables_initializer()
 
+    # results init
+    result_mean = np.zeros(conf.episodes)
+    ret_m2 = np.zeros(conf.episodes)
     logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 
     with tf_session(conf.use_gpu):
         for run in range(conf.runs):
 
             tf_run(init_op)
-            sim.learn_dynamics_offline(
-                simulator_sampler=simulator_sampler,
-                num_epochs=conf.num_pretrain_epochs
-            )
+            sim.train_models(train_method)
 
             agent.reset()
 
             tmp_res = np.zeros(conf.episodes)
-
             logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}")
+
             for episode in range(conf.episodes):
 
                 env.reset()
@@ -197,6 +193,13 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--offline_data_sampler",
+        choices=['uniform', 'random_policy'],
+        default='uniform',
+        help='how to sample trajectories for offline dynamics learning'
+    )
+
+    parser.add_argument(
         "--learning_rate", "--alpha",
         default=1e-4,
         type=float,
@@ -240,29 +243,40 @@ def parse_arguments(args: Optional[List[str]] = None):
     return parser.parse_args(args)  # if args is "", will read cmdline
 
 
-def create_simulator_sampler(env: Simulator, conf) -> Callable[[], Simulator]:
-    """ creates a simulator sampler
+def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]:
+    """ creates a model training method
 
-    Creates a sample function to generate environments from.
-
-    If conf.train_offline is  'on_true', then this function will just
-    return the environment, otherwise it will return a sample from the prior
+    This returns a function that can be called on any
+    `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel` net to be
+    trained
 
     Args:
          env: (`pobnrl.environments.Simulator`):
-         conf:
+         conf: namesapce of program options
 
-    RETURNS (`Callable[[],` `pobnrl.environments.Simulator` `]`):
+    RETURNS (`Callable[[DynamicsModel], None]`): a function that trains an model
 
     """
 
+    # select sampling method
+    if conf.offline_data_sampler == 'random_policy':
+        sample_method = train_from_random_policy
+    elif conf.offline_data_sampler == 'uniform':
+        sample_method = train_from_uniform_steps
+
+    # select train_on_true versus train_on_prior
     if conf.train_offline == 'on_true':
-        return lambda: env
+        def sim_sampler() -> Simulator:
+            return env
+    elif conf.train_offline == 'on_prior':
+        sim_sampler \
+            = create_prior(conf.domain, conf.domain_size, EncodeType.DEFAULT).sample
 
-    assert conf.train_offline == 'on_prior', f'unknown train type {conf.train_offline}'
+    def train_method(net: DynamicsModel):
+        sim = sim_sampler()
+        sample_method(net, sim, conf.num_pretrain_epochs, conf.batch_size)
 
-    prior = create_prior(conf.domain, conf.domain_size, EncodeType.DEFAULT)
-    return prior.sample
+    return train_method
 
 
 if __name__ == '__main__':
