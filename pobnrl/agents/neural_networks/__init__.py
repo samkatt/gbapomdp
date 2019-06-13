@@ -5,7 +5,7 @@ import tensorflow as tf
 from misc import DiscreteSpace
 from environments import ActionSpace
 
-from .networks import two_layer_q_net, two_layer_rec_q_net
+from .networks import simple_fc_nn, simple_fc_rnn
 from .q_functions import QNetInterface, DQNNet, DRQNNet
 
 from .misc import ReplayBuffer  # NOQA, ignore unused import
@@ -32,7 +32,7 @@ def create_qnet(
         return DRQNNet(
             action_space,
             observation_space,
-            two_layer_rec_q_net,
+            simple_fc_rnn,
             tf.train.AdamOptimizer(conf.learning_rate),
             scope,
             conf,
@@ -41,7 +41,7 @@ def create_qnet(
     return DQNNet(
         action_space,
         observation_space,
-        two_layer_q_net,
+        simple_fc_nn,
         tf.train.AdamOptimizer(conf.learning_rate),
         scope,
         conf,

@@ -128,14 +128,14 @@ class DQNNet(QNetInterface, POBNRLogger):
         if conf.prior_function_scale != 0:
             assert conf.prior_function_scale > 0
 
-            prior_vals = networks.two_layer_q_net(
+            prior_vals = networks.simple_fc_nn(
                 self.obs_ph,
                 action_space.n,
                 4,
                 scope=f"{self.name}_prior"
             )
 
-            next_prior_vals = networks.two_layer_q_net(
+            next_prior_vals = networks.simple_fc_nn(
                 self.next_obs_ph,
                 action_space.n,
                 4,
@@ -413,7 +413,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
             rnn_prior_cell = tf.nn.rnn_cell.LSTMCell(4)
 
-            prior_vals, _ = networks.two_layer_rec_q_net(
+            prior_vals, _ = networks.simple_fc_rnn(
                 self.obs_ph,
                 self.seq_lengths_ph,
                 rnn_prior_cell,
@@ -422,7 +422,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 4,
                 scope=f"{self.name}_prior"
             )
-            next_prior_vals, _ = networks.two_layer_rec_q_net(
+            next_prior_vals, _ = networks.simple_fc_rnn(
                 self.next_obs_ph,
                 self.seq_lengths_ph,
                 rnn_prior_cell,

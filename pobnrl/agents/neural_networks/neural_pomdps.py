@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 import tensorflow as tf
 
-from agents.neural_networks import two_layer_q_net
+from agents.neural_networks import simple_fc_nn
 from agents.neural_networks.misc import softmax_sample
 from environments import ActionSpace
 from misc import tf_run, DiscreteSpace
@@ -51,14 +51,14 @@ class DynamicsModel():
             name=f"{name}_input_O"
         )
 
-        self._new_state_logits = two_layer_q_net(
+        self._new_state_logits = simple_fc_nn(
             tf.cast(self._input_t, tf.float32),
             n_out=self._num_state_out,
             n_hidden=conf.network_size,
             scope=f"{name}_T"
         )
 
-        self._observation_logits = two_layer_q_net(
+        self._observation_logits = simple_fc_nn(
             tf.cast(self._input_o, tf.float32),
             n_out=self._num_obs_out,
             n_hidden=conf.network_size,

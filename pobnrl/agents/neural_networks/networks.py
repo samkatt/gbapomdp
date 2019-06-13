@@ -5,7 +5,7 @@ from tensorflow.python.layers.layers import flatten
 import tensorflow as tf
 
 
-def two_layer_q_net(net_input, n_out: int, n_hidden: int, scope: str):
+def simple_fc_nn(net_input, n_out: int, n_hidden: int, scope: str):
     """ Returns Q-values of input using a two-hidden layer architecture
 
     scope must be unique to this network to ensure this works fine
@@ -43,7 +43,7 @@ def two_layer_q_net(net_input, n_out: int, n_hidden: int, scope: str):
     return qvalues
 
 
-def two_layer_rec_q_net(
+def simple_fc_rnn(
         net_input,
         seq_lengths,
         rnn_cell,
