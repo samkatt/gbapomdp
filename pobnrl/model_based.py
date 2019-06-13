@@ -98,7 +98,7 @@ def parse_arguments(args: Optional[List[str]] = None):
     """ converges arguments from commandline (or string) to namespace
 
     Args:
-         args: (`str`): a string of arguments, uses cmdline if None
+         args: (`Optional[List[str]]`): a string of arguments, uses cmdline if None
 
     """
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)

@@ -28,7 +28,7 @@ class POBNRLogger:
     class LogLevel(Enum):
         """ log levels """
         V0 = 1000  # NO messages
-        V1 = 30    # print results
+        V1 = 30    # print results and setup
         V2 = 20    # print episodes
         V3 = 15    # print episode level agent things
         V4 = 10    # print time steps level agent things

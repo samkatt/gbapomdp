@@ -109,12 +109,15 @@ class NeuralEnsemble(Simulator, POBNRLogger):
 
         """
 
-        for model in self._models:
+        for i, model in enumerate(self._models):
 
             sim = simulator_sampler()
             replay_buffer = generate_replay_buffer(sim)
 
-            self.log(POBNRLogger.LogLevel.V3, f'learning net on {sim}')
+            self.log(
+                POBNRLogger.LogLevel.V1,
+                f'Learning offline: learning net {i+1}/{len(self._models)} on {sim}'
+            )
 
             for _ in range(num_epochs):
 
