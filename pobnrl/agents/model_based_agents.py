@@ -5,6 +5,7 @@ from typing import Any, Callable
 import numpy as np
 
 from environments import Simulator, SimulationResult
+from domains import NeuralEnsemblePOMDP
 from misc import POBNRLogger
 
 from .agent import Agent
@@ -146,7 +147,7 @@ class RejectionSamplingBelieveManager(BeliefManager):
         )
 
 
-def create_learning_agent(env: Simulator, conf) -> PrototypeAgent:
+def create_learning_agent(env: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
     """ factory function to construct model based learning agents
 
     Args:
@@ -168,7 +169,6 @@ def create_learning_agent(env: Simulator, conf) -> PrototypeAgent:
         conf.gamma
     )
 
-    # FIXME: refactor the particle reset (keeping model in particle)
     def reset_particle(augmented_state):
         augmented_state.domain_state = env.sample_domain_start_state()
 

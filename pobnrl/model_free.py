@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from agents.model_free_agents import create_agent
 from domains import create_environment, EncodeType
+from environments import Simulator
 from episode import run_episode
 from misc import tf_session, tf_run, POBNRLogger
 
@@ -30,6 +31,8 @@ def main(conf) -> None:
         conf.domain_size,
         EncodeType.ONE_HOT
     )
+
+    assert isinstance(env, Simulator)
 
     agent = create_agent(env.action_space, env.observation_space, conf)
 

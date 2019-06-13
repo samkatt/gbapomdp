@@ -5,8 +5,9 @@ from math import sqrt
 from typing import List, Optional
 import numpy as np
 
-from domains import create_environment, EncodeType
 from agents.model_based_agents import create_planning_agent
+from domains import create_environment, EncodeType
+from environments import Simulator
 from episode import run_episode
 from misc import POBNRLogger
 
@@ -31,6 +32,7 @@ def main(conf) -> None:
     )
 
     sim = env
+    assert isinstance(sim, Simulator)
 
     agent = create_planning_agent(sim, conf)
 

@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from agents.model_based_agents import create_learning_agent
 from domains import create_environment, EncodeType, create_prior
-from domains.learned_environments import NeuralEnsemble
+from domains.learned_environments import NeuralEnsemblePOMDP
 from environments import Simulator
 from episode import run_episode
 from misc import POBNRLogger, tf_session, tf_run
@@ -32,8 +32,9 @@ def main(conf) -> None:
         conf.domain_size,
         EncodeType.DEFAULT
     )
+    assert isinstance(env, Simulator)
 
-    sim = NeuralEnsemble(env, conf=conf, name="ensemble_pomdp")
+    sim = NeuralEnsemblePOMDP(env, conf=conf, name="ensemble_pomdp")
     simulator_sampler = create_simulator_sampler(env, conf)
 
     agent = create_learning_agent(sim, conf)

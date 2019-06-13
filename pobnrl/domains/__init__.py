@@ -10,6 +10,7 @@ from .cartpole import Cartpole
 from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
 from .gridworld import GridWorld
+from .learned_environments import NeuralEnsemblePOMDP  # NOQA, ignore unused import
 from .tiger import Tiger
 
 from .priors import TigerPrior

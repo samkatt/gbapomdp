@@ -44,7 +44,7 @@ def generate_replay_buffer(domain: Simulator) -> ReplayBuffer:
     return replay_buffer
 
 
-class NeuralEnsemble(Simulator, POBNRLogger):
+class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
     """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
     class AugmentedState:
@@ -59,7 +59,7 @@ class NeuralEnsemble(Simulator, POBNRLogger):
             return f'Augmented state: state {self.domain_state} with model {self.model}'
 
     def __init__(self, domain: Simulator, conf, name: str):
-        """ Creates `NeuralEnsemble`
+        """ Creates `NeuralEnsemblePOMDP`
 
         Args:
              domain: (`pobnrl.environments.Simulator`): domain to train interactions from

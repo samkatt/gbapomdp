@@ -16,22 +16,22 @@ Install the required python packages and dependencies
 
 Open AI gym:
 
-```
+```bash
 pip install gym
 ```
 
 OpenCV python:
-```
+```bash
 pip instal opencv-python
 ```
 
 ffmpeg encoding
-```
+```bash
 sudo apt install ffmpeg
 ```
 
 tensorflow
-```
+```bash
 pip install tensorflow
 ```
 
