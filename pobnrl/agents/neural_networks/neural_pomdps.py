@@ -1,4 +1,8 @@
-""" POMDP dynamics as neural networks """
+""" POMDP dynamics as neural networks
+
+TODO: merge with networks
+
+"""
 
 from typing import Tuple
 import numpy as np
@@ -7,7 +11,7 @@ import tensorflow as tf
 from agents.neural_networks import simple_fc_nn
 from agents.neural_networks.misc import softmax_sample
 from environments import ActionSpace
-from misc import tf_run, DiscreteSpace
+from misc import tf_run, DiscreteSpace, tf_board_write
 
 
 class DynamicsModel():
@@ -103,6 +107,11 @@ class DynamicsModel():
             ) for i in range(self.obs_space.ndim)
         ]
 
+        self.train_diag = tf.summary.merge([
+            tf.summary.scalar(f'{name} obs loss', tf.reduce_mean(obs_losses)),
+            tf.summary.scalar(f'{name} state loss', tf.reduce_mean(state_losses))
+        ])
+
         self._train_op = tf.train.AdamOptimizer(conf.learning_rate).minimize(
             tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
             var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_T") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_O")
@@ -180,8 +189,8 @@ class DynamicsModel():
             for state, action, new_state in zip(states, actions, new_states)
         ])
 
-        tf_run(
-            self._train_op,
+        _, diag = tf_run(
+            [self._train_op, self.train_diag],
             feed_dict={
                 self._input_t: input_t,
                 self._input_o: input_o,
@@ -189,3 +198,5 @@ class DynamicsModel():
                 self._train_obs_ph: obs
             }
         )
+
+        tf_board_write(diag)

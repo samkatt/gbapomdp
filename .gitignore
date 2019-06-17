@@ -4,3 +4,4 @@ doc/*
 *.npy
 videos
 .mypy_cache
+.tensorboard/*

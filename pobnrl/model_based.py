@@ -26,6 +26,7 @@ def main(conf) -> None:
     # global init
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
+    tf.reset_default_graph()
 
     # environment and agent setup
     env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT)
@@ -42,8 +43,14 @@ def main(conf) -> None:
     ret_m2 = np.zeros(conf.episodes)
     logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 
-    with tf_session(conf.use_gpu):
-        for run in range(conf.runs):
+    tensorboard_name = ""
+
+    for run in range(conf.runs):
+
+        if conf.tensorboard_name:
+            tensorboard_name = f'{conf.tensorboard_name}-{run}'
+
+        with tf_session(conf.use_gpu, tensorboard_name):
 
             tf_run(init_op)
             sim.train_models(train_method)
@@ -127,6 +134,12 @@ def parse_arguments(args: Optional[List[str]] = None):
         "--file", "-f",
         default="results.npy",
         help="output file path"
+    )
+
+    parser.add_argument(
+        '--tensorboard_name', '--diag',
+        default="",
+        help="tensorboard directory name, if applicable"
     )
 
     parser.add_argument(

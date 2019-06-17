@@ -37,7 +37,7 @@ def create_environment(
 
     """
 
-    # FIXME: probably cascade the type down into the domains
+    # FIXME: probably cascade the encoding type down into the domains
     if domain_name == "tiger":
         return Tiger(encoding == EncodeType.ONE_HOT)
     if domain_name == "cartpole":

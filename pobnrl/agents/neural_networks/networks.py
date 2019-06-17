@@ -31,13 +31,13 @@ def simple_fc_nn(net_input, n_out: int, n_hidden: int, scope: str):
                 hidden,
                 units=n_hidden,
                 activation=tf.nn.tanh,
-                name=f"{scope}_hidden_{layer}"
+                name=f"{scope}-hidden-{layer}"
             )
 
         qvalues = dense(
             hidden,
             units=n_out,
-            name=f"{scope}_out"
+            name=f"{scope}-out"
         )
 
     return qvalues

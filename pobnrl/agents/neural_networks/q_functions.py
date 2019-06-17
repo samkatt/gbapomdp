@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
-from misc import tf_run, POBNRLogger, DiscreteSpace
+from misc import tf_run, POBNRLogger, DiscreteSpace, tf_board_write
 
 
 class QNetInterface(abc.ABC):
@@ -179,6 +179,10 @@ class DQNNet(QNetInterface, POBNRLogger):
         if conf.clipping:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
+        loss_summary = tf.summary.scalar(f'{self.name} loss', tf.reduce_mean(loss))
+        q_values_summary = tf.summary.histogram(f'{self.name} q-values', q_values)
+
+        self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
         # target update operation
@@ -265,8 +269,8 @@ class DQNNet(QNetInterface, POBNRLogger):
         next_obs = np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)
         next_obs[:, -1] = next_ob
 
-        tf_run(
-            self.train_op,
+        _, diag = tf_run(
+            [self.train_op, self.train_diag],
             feed_dict={
                 self.obs_ph: obs,
                 self.act_ph: action,
@@ -275,6 +279,8 @@ class DQNNet(QNetInterface, POBNRLogger):
                 self.done_mask_ph: terminal
             }
         )
+
+        tf_board_write(diag)
 
     def update_target(self) -> None:
         """ updates the target network """
@@ -469,6 +475,10 @@ class DRQNNet(QNetInterface, POBNRLogger):
         if conf.clipping:
             gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
+        loss_summary = tf.summary.scalar(f'{self.name} loss', tf.reduce_mean(loss))
+        q_values_summary = tf.summary.histogram(f'{self.name} q-values', q_values)
+
+        self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
         self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
         # target update operation
@@ -563,8 +573,8 @@ class DRQNNet(QNetInterface, POBNRLogger):
         next_obs = np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)
         next_obs[np.arange(self.batch_size), seq_lengths - 1] = next_ob
 
-        tf_run(
-            self.train_op,
+        _, diag = tf_run(
+            [self.train_op, self.train_diag],
             feed_dict={
                 self.seq_lengths_ph: seq_lengths,
                 self.obs_ph: obs,
@@ -574,6 +584,8 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 self.done_mask_ph: terminal
             }
         )
+
+        tf_board_write(diag)
 
     def update_target(self) -> None:
         """ updates the target network """

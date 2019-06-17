@@ -21,6 +21,7 @@ def main(conf) -> None:
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger(__name__)
+    tf.reset_default_graph()
 
     result_mean = np.zeros(conf.episodes)
     ret_m2 = np.zeros(conf.episodes)
@@ -37,15 +38,20 @@ def main(conf) -> None:
 
     logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 
-    with tf_session(conf.use_gpu):
-        for run in range(conf.runs):
+    tensorboard_name = ""
+    for run in range(conf.runs):
+
+        if conf.tensorboard_name:
+            tensorboard_name = f'{conf.tensorboard_name}-{run}'
+
+        with tf_session(conf.use_gpu, tensorboard_name):
 
             tf_run(init_op)
             agent.reset()
 
             tmp_res = np.zeros(conf.episodes)
 
-            logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}")
+            logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}/{conf.runs}")
             for episode in range(conf.episodes):
 
                 obs = env.reset()
@@ -55,7 +61,8 @@ def main(conf) -> None:
 
                 logger.log(
                     POBNRLogger.LogLevel.V1,
-                    f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
+                    f"run {run}/{conf.runs} episode {episode}/{conf.episodes}:"
+                    f" avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
                 )
 
             # update mean and variance
@@ -120,6 +127,12 @@ def parse_arguments(args: Optional[List[str]] = None):
         "--file", "-f",
         default="results.npy",
         help="output file path"
+    )
+
+    parser.add_argument(
+        '--tensorboard_name', '--diag',
+        default="",
+        help="tensorboard directory name, if applicable"
     )
 
     parser.add_argument(

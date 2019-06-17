@@ -244,7 +244,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         if not self._use_one_hot_obs:
             return observation[0]
 
-        return self._obs_space.index_of(observation) - 1
+        return int(self._obs_space.index_of(observation) - 1)
 
     def __repr__(self) -> str:
         encoding_descr = "one_hot" if self._use_one_hot_obs else "default"
