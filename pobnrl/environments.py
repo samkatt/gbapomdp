@@ -60,7 +60,7 @@ class ActionSpace(DiscreteSpace):
         return super().contains(np.array([action]))
 
 
-class GymSpace():
+class GymSpace(Space):
     """ wrapper for open ai gym spaces """
 
     def __init__(self, wrapped_space: gym.Space):

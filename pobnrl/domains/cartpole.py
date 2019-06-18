@@ -6,7 +6,7 @@ import gym
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace, GymSpace
-from misc import Space, POBNRLogger
+from misc import POBNRLogger
 
 
 class Cartpole(Environment, POBNRLogger):
@@ -71,7 +71,6 @@ class Cartpole(Environment, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> Space:
+    def observation_space(self) -> GymSpace:
         """ the underlying open ai gyme cartpole observation space """
-        # FIXME: not working together yet
-        return self._observation_space  # type: ignore
+        return self._observation_space
