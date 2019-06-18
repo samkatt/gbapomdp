@@ -4,7 +4,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import Simulator, SimulationResult
-from misc import DiscreteSpace, POBNRLogger
+from misc import Space, DiscreteSpace, POBNRLogger
 
 
 class ChainDomain(Environment, Simulator, POBNRLogger):
@@ -46,7 +46,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         if self._one_hot_observations:
             self._observation_space = DiscreteSpace([2] * self.size * self.size)
         else:
-            self._observation_space = self.state_space  # (x,y)
+            self._observation_space = self._state_space  # (x,y)
 
         self._action_mapping = np.random.binomial(1, .5, self.size)
         self._state = self.sample_start_state()
@@ -77,7 +77,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         self._state = state
 
     @property
-    def state_space(self) -> DiscreteSpace:
+    def state_space(self) -> Space:
         """ `pobnrl.misc.DiscreteSpace`([size,size])"""
         return self._state_space
 
@@ -87,7 +87,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ a `pobnrl.misc.DiscreteSpace`, depends on `one_hot_observation` flag for `this`"""
         return self._observation_space
 
@@ -255,7 +255,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         assert np.all(self.size > observation) and np.all(observation >= 0)
 
         if not self._one_hot_observations:
-            return self.observation_space.index_of(observation)
+            return self._observation_space.index_of(observation)
 
         # one-hot
 

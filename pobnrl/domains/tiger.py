@@ -4,7 +4,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import Simulator, SimulationResult
-from misc import DiscreteSpace, POBNRLogger
+from misc import Space, DiscreteSpace, POBNRLogger
 
 
 class Tiger(Environment, Simulator, POBNRLogger):
@@ -56,7 +56,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         self._state = state
 
     @property
-    def state_space(self) -> DiscreteSpace:
+    def state_space(self) -> Space:
         """ a `pobnrl.misc.DiscreteSpace`([2]) space """
         return self._state_space
 
@@ -66,7 +66,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ a `pobnrl.misc.DiscreteSpace`([1,1]) space if one-hot, otherwise [3]"""
         return self._obs_space
 

@@ -7,7 +7,7 @@ from agents.neural_networks import ReplayBuffer
 from agents.neural_networks.neural_pomdps import DynamicsModel
 from environments import ActionSpace
 from environments import Simulator, SimulationResult
-from misc import DiscreteSpace, POBNRLogger
+from misc import Space, DiscreteSpace, POBNRLogger
 
 
 def train_from_random_policy(
@@ -108,6 +108,11 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_action_space = domain.action_space
         self.domain_obs_space = domain.observation_space
 
+        assert isinstance(self.domain_obs_space, DiscreteSpace),\
+            f"current limited to learning discrete POMDPs, not {domain}"
+        assert isinstance(domain.state_space, DiscreteSpace),\
+            f"current limited to learning discrete POMDPs, not {domain}"
+
         self.sample_domain_start_state = domain.sample_start_state
         self.domain_obs2index = domain.obs2index
 
@@ -118,21 +123,15 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             DynamicsModel(
                 domain.state_space,
                 domain.action_space,
-                domain.observation_space,
+                self.domain_obs_space,
                 conf,
                 f"dynamic_model_{i}"
             ) for i in range(conf.num_nets)
         ]
 
     @property
-    def state_space(self) -> DiscreteSpace:
-        """ No method should want to know `this` state space
-
-        Args:
-
-        RETURNS (`pobnrl.misc.DiscreteSpace`):
-
-        """
+    def state_space(self) -> Space:
+        """ No method should want to know `this` state space, raises error """
         raise NotImplementedError
 
     @property
@@ -147,12 +146,12 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         return self.domain_action_space
 
     @property
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ returns `this` observation space
 
         Args:
 
-        RETURNS (`pobnrl.misc.DiscreteSpace`):
+        RETURNS (`pobnrl.misc.Space`):
 
         """
         return self.domain_obs_space

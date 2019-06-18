@@ -5,7 +5,7 @@ from typing import Callable, Deque
 import numpy as np
 
 from environments import ActionSpace
-from misc import DiscreteSpace
+from misc import Space
 from agents.misc import epsilon_greedy, PiecewiseSchedule
 from agents.misc import ExplorationSchedule, FixedExploration
 
@@ -263,13 +263,13 @@ class EnsembleAgent(Agent):
 
 def create_agent(
         action_space: ActionSpace,
-        observation_space: DiscreteSpace,
+        observation_space: Space,
         conf) -> Agent:
     """ factory function to construct model-free learning agents
 
     Args:
          action_space: (`pobnrl.environments.ActionSpace`): of environment
-         observation_space: (`pobnrl.misc.DiscreteSpace`) of environment
+         observation_space: (`pobnrl.misc.Space`) of environment
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.agent.Agent`)

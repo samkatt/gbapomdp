@@ -5,7 +5,7 @@ import abc
 import gym
 import numpy as np
 
-from misc import DiscreteSpace
+from misc import Space, DiscreteSpace
 
 
 class ActionSpace(DiscreteSpace):
@@ -163,7 +163,7 @@ class Environment(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ returns size of domain observation space
 
         RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space
@@ -194,7 +194,7 @@ class Simulator(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def state_space(self) -> DiscreteSpace:
+    def state_space(self) -> Space:
         """ the (discrete) state space of the POMDP
 
         Args:
@@ -214,7 +214,7 @@ class Simulator(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ returns size of domain observation space
 
         RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space

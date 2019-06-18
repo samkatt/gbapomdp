@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
-from misc import POBNRLogger, DiscreteSpace
+from misc import POBNRLogger, Space
 from tf_api import tf_run, tf_board_write
 
 
@@ -66,7 +66,7 @@ class DQNNet(QNetInterface, POBNRLogger):
     def __init__(
             self,
             action_space: ActionSpace,
-            obs_space: DiscreteSpace,
+            obs_space: Space,
             q_func: Callable[[np.ndarray, int, int], tf.Tensor],
             optimizer: tf.train.Optimizer,
             name: str,
@@ -77,7 +77,7 @@ class DQNNet(QNetInterface, POBNRLogger):
 
         Args:
              action_space: (`pobnrl.environments.ActionSpace`): of environment
-             obs_space: (`pobnrl.misc.DiscreteSpace`): of environment
+             obs_space: (`pobnrl.misc.Space`): of environment
              q_func: (`Callable`): the actual Q-function (non-recurrent)
              optimizer: the tf.optimizer to use for learning
              name: (`str`): name of the network (used for scoping)
@@ -322,7 +322,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
     def __init__(
             self,
             action_space: ActionSpace,
-            obs_space: DiscreteSpace,
+            obs_space: Space,
             rec_q_func: Callable,  # type: ignore
             optimizer,
             name: str,
@@ -333,7 +333,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
         Args:
              action_space: (`pobnrl.environments.ActionSpace`): output size of the network
-             obs_space: (`pobnrl.misc.DiscreteSpace`): of eenvironments
+             obs_space: (`pobnrl.misc.Space`): of eenvironments
              rec_q_func: (`Callable`): the (recurrent) Q function
              optimizer: the tf.optimizer optimizer to use for learning
              name: (`str`): name of the network (used for scoping)

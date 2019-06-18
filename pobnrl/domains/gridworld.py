@@ -8,7 +8,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import Simulator, SimulationResult
-from misc import DiscreteSpace, POBNRLogger
+from misc import Space, DiscreteSpace, POBNRLogger
 
 
 class GridWorld(Environment, Simulator, POBNRLogger):
@@ -181,7 +181,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         self._state = np.array([agent_x, agent_y, goal_index])
 
     @property
-    def state_space(self) -> DiscreteSpace:
+    def state_space(self) -> Space:
         """ `pobnrl.misc.DiscreteSpace`([size,size,num_goals]) """
         return self._state_space
 
@@ -191,7 +191,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
         return self._obs_space
 
@@ -398,7 +398,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
             f"{observation} not in {self.observation_space}"
 
         if not self._one_hot_goal_encoding:
-            return self.observation_space.index_of(observation)
+            return self._obs_space.index_of(observation)
 
         # one-hot goal encoding:
         assert np.sum(observation[2:]) == 1, "only 1 goal may be true"

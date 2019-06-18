@@ -1,11 +1,8 @@
-""" miscellaneous functions
-
-TODO: create math class?
-
-"""
+""" miscellaneous functions """
 
 from enum import Enum
 from typing import List, Union
+import abc
 import logging
 
 import numpy as np
@@ -102,7 +99,23 @@ class POBNRLogger:
         return lvl.value >= cls._level.value
 
 
-class DiscreteSpace():
+class Space(abc.ABC):
+    """ some mathematical space """
+
+    @abc.abstractproperty
+    def ndim(self) -> int:
+        """ returns number of dimensions of the space """
+
+    @abc.abstractmethod
+    def sample(self) -> np.ndarray:
+        """ samples from the space """
+
+    @abc.abstractmethod
+    def contains(self, elem: np.ndarray) -> bool:
+        """ returns whether `elem` is in this space """
+
+
+class DiscreteSpace(Space):
     """ DiscreteSpace discrete uninterupted space of some shape """
 
     def __init__(self, size: Union[List[int], np.ndarray]):
@@ -151,7 +164,7 @@ class DiscreteSpace():
         return elem.shape == (self.ndim,) and \
             (elem >= 0).all() and (elem < self.size).all()
 
-    def sample(self) -> np.array:
+    def sample(self) -> np.ndarray:
         """ returns a sample from the space at random
 
         RETURNS (`np.array`): a sample in the space of this

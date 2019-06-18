@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-from misc import DiscreteSpace
+from misc import Space
 from environments import ActionSpace
 
 from .networks import simple_fc_nn, simple_fc_rnn
@@ -13,14 +13,14 @@ from .misc import ReplayBuffer  # NOQA, ignore unused import
 
 def create_qnet(
         action_space: ActionSpace,
-        observation_space: DiscreteSpace,
+        observation_space: Space,
         scope: str,
         conf) -> QNetInterface:
     """ factory for creating Q networks / policies
 
     Args:
          action_space: (`pobnrl.environments.ActionSpace`): of environment
-         observation_space: (`pobnrl.misc.DiscreteSpace`): of environment
+         observation_space: (`pobnrl.misc.Space`): of environment
          scope: (`str`): name of agent (learning scope)
          conf: (`namespace`): configurations (see -h)
 

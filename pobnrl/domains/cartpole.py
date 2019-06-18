@@ -6,7 +6,7 @@ import gym
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace, GymSpace
-from misc import DiscreteSpace, POBNRLogger
+from misc import Space, POBNRLogger
 
 
 class Cartpole(Environment, POBNRLogger):
@@ -71,7 +71,7 @@ class Cartpole(Environment, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> DiscreteSpace:
+    def observation_space(self) -> Space:
         """ the underlying open ai gyme cartpole observation space """
-        # FIXME: still haven't really figured out continuous vs discrete diff
+        # FIXME: wrap gym spaces
         return self._observation_space  # type: ignore
