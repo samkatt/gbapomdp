@@ -4,7 +4,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import Simulator, SimulationResult
-from misc import Space, DiscreteSpace, POBNRLogger
+from misc import DiscreteSpace, POBNRLogger
 
 
 class CollisionAvoidance(Environment, Simulator, POBNRLogger):
@@ -75,7 +75,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         self._state = state
 
     @property
-    def state_space(self) -> Space:
+    def state_space(self) -> DiscreteSpace:
         """ `pobnrl.misc.DiscreteSpace`([size,size,size]) """
         return self._state_space
 
@@ -85,7 +85,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> Space:
+    def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([size,size,size]) space """
         return self._obs_space
 

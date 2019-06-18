@@ -73,5 +73,5 @@ class Cartpole(Environment, POBNRLogger):
     @property
     def observation_space(self) -> Space:
         """ the underlying open ai gyme cartpole observation space """
-        # FIXME: wrap gym spaces
+        # FIXME: not working together yet
         return self._observation_space  # type: ignore

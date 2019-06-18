@@ -8,7 +8,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import Simulator, SimulationResult
-from misc import Space, DiscreteSpace, POBNRLogger
+from misc import DiscreteSpace, POBNRLogger
 
 
 class GridWorld(Environment, Simulator, POBNRLogger):
@@ -181,7 +181,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         self._state = np.array([agent_x, agent_y, goal_index])
 
     @property
-    def state_space(self) -> Space:
+    def state_space(self) -> DiscreteSpace:
         """ `pobnrl.misc.DiscreteSpace`([size,size,num_goals]) """
         return self._state_space
 
@@ -191,7 +191,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> Space:
+    def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
         return self._obs_space
 

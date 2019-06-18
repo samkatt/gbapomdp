@@ -58,7 +58,6 @@ Systems. 2018.][1]
 
 ### TODO
 
-* use scoping properly
 * move to keras
 * profiling (add numba @jit to functions where applicable for speed ups)
 * get mypy.ini commented out style fixed

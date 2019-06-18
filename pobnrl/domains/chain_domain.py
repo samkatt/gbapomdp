@@ -4,7 +4,7 @@ import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
 from environments import Simulator, SimulationResult
-from misc import Space, DiscreteSpace, POBNRLogger
+from misc import DiscreteSpace, POBNRLogger
 
 
 class ChainDomain(Environment, Simulator, POBNRLogger):
@@ -77,7 +77,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         self._state = state
 
     @property
-    def state_space(self) -> Space:
+    def state_space(self) -> DiscreteSpace:
         """ `pobnrl.misc.DiscreteSpace`([size,size])"""
         return self._state_space
 
@@ -87,7 +87,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         return self._action_space
 
     @property
-    def observation_space(self) -> Space:
+    def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`, depends on `one_hot_observation` flag for `this`"""
         return self._observation_space
 

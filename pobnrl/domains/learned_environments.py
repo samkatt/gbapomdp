@@ -146,7 +146,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         return self.domain_action_space
 
     @property
-    def observation_space(self) -> Space:
+    def observation_space(self) -> DiscreteSpace:
         """ returns `this` observation space
 
         Args:
@@ -154,6 +154,8 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         RETURNS (`pobnrl.misc.Space`):
 
         """
+        assert isinstance(self.domain_obs_space, DiscreteSpace),\
+            f"current limited to learning discrete POMDPs, not {self.domain_obs_space}"
         return self.domain_obs_space
 
     def sample_start_state(self) -> 'AugmentedState':
