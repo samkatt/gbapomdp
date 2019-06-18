@@ -1,11 +1,19 @@
 """environments interface """
 
+from enum import Enum
+
 from collections import namedtuple
 import abc
 import gym
 import numpy as np
 
 from misc import Space, DiscreteSpace
+
+
+class EncodeType(Enum):
+    """ AgentType """
+    DEFAULT = 0
+    ONE_HOT = 1
 
 
 class ActionSpace(DiscreteSpace):

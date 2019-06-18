@@ -1,8 +1,6 @@
 """ all the domains in which an agent can act """
 
-from enum import Enum
-
-from environments import Environment
+from environments import Environment, EncodeType
 
 from .priors import Prior  # NOQA, ignore unused import
 
@@ -16,12 +14,6 @@ from .tiger import Tiger
 from .priors import TigerPrior
 
 
-class EncodeType(Enum):
-    """ AgentType """
-    DEFAULT = 0
-    ONE_HOT = 1
-
-
 def create_environment(
         domain_name: str,
         domain_size: int,
@@ -31,23 +23,22 @@ def create_environment(
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
-         encoding: (`EncodeType`): the encoding
+         encoding: (`pobnrl.environments.EncodeType`): the encoding
 
     RETURNS (`pobnrl.environments.Environment`)
 
     """
 
-    # FIXME: probably cascade the encoding type down into the domains
     if domain_name == "tiger":
-        return Tiger(encoding == EncodeType.ONE_HOT)
+        return Tiger(encoding)
     if domain_name == "cartpole":
         return Cartpole()
     if domain_name == "gridworld":
-        return GridWorld(domain_size, encoding == EncodeType.ONE_HOT)
+        return GridWorld(domain_size, encoding)
     if domain_name == "collision_avoidance":
         return CollisionAvoidance(domain_size)
     if domain_name == "chain":
-        return ChainDomain(domain_size, encoding == EncodeType.ONE_HOT)
+        return ChainDomain(domain_size, encoding)
 
     raise ValueError('unknown domain ' + domain_name)
 
@@ -69,4 +60,4 @@ def create_prior(
 
     assert domain_name == "tiger", f'currently only suppert tiger, not {domain_name}'
 
-    return TigerPrior(encoding == EncodeType.ONE_HOT)
+    return TigerPrior(encoding)

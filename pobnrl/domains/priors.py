@@ -4,7 +4,7 @@ import abc
 
 from numpy.random import dirichlet
 
-from environments import Simulator
+from environments import Simulator, EncodeType
 
 from .tiger import Tiger
 
@@ -29,10 +29,10 @@ class TigerPrior(Prior):
 
     """
 
-    def __init__(self, use_one_hot: bool):
-        """ initiate the prior, `use_one_hot = True` will make observation one-hot encoded"""
+    def __init__(self, encoding: EncodeType):
+        """ initiate the prior, will make observation one-hot encoded"""
 
-        self._use_one_hot = use_one_hot
+        self._encoding = encoding
 
     def sample(self) -> Simulator:
         """ returns a Tiger instance with some correct observation prob
@@ -45,4 +45,4 @@ class TigerPrior(Prior):
         """
         sampled_observation_prob = dirichlet([6, 4])[0]
 
-        return Tiger(use_one_hot=self._use_one_hot, correct_obs_prob=sampled_observation_prob)
+        return Tiger(encoding=self._encoding, correct_obs_prob=sampled_observation_prob)

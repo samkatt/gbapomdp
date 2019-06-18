@@ -3,7 +3,7 @@
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import Simulator, SimulationResult
+from environments import Simulator, SimulationResult, EncodeType
 from misc import DiscreteSpace, POBNRLogger
 
 
@@ -21,14 +21,20 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     ELEM_TO_STRING = ["L", "R"]
 
-    def __init__(self, use_one_hot: bool, correct_obs_prob=.85):
-        """ construct the tiger environment """
+    def __init__(self, encoding: EncodeType, correct_obs_prob: float = .85):
+        """  construct the tiger environment
+
+        Args:
+             encoding_type: (`EncodeType`):
+             correct_obs_prob: (`float`):
+
+        """
 
         POBNRLogger.__init__(self)
 
         self._correct_obs_prob = correct_obs_prob
 
-        self._use_one_hot_obs = use_one_hot
+        self._use_one_hot_obs = encoding == EncodeType.ONE_HOT
 
         self._state_space = DiscreteSpace([2])
         self._action_space = ActionSpace(3)

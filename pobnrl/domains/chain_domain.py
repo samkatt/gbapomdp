@@ -3,7 +3,7 @@
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import Simulator, SimulationResult
+from environments import Simulator, SimulationResult, EncodeType
 from misc import DiscreteSpace, POBNRLogger
 
 
@@ -24,11 +24,12 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
     """
 
-    def __init__(self, size: int, one_hot_observations):
+    def __init__(self, size: int, encoding: EncodeType):
         """ construct the chain environment
 
         Args:
              size: (`int`): size of the grid
+             encoding: (`pobnrl.environments.EncodeType`)
 
         """
 
@@ -38,7 +39,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         self._size = size
         self._move_cost = .01 / self.size
-        self._one_hot_observations = one_hot_observations
+        self._one_hot_observations = encoding == EncodeType.ONE_HOT
 
         self._state_space = DiscreteSpace([self.size, self.size])
         self._action_space = ActionSpace(2)

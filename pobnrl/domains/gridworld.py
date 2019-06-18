@@ -7,7 +7,7 @@ import random
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
-from environments import Simulator, SimulationResult
+from environments import Simulator, SimulationResult, EncodeType
 from misc import DiscreteSpace, POBNRLogger
 
 
@@ -48,7 +48,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         # required to keep lightweight implementation of namedtuple
         __slots__ = ()
 
-    def __init__(self, domain_size: int, one_hot_goal_encoding):
+    def __init__(self, domain_size: int, encoding: EncodeType):
         """ creates a gridworld of provided size and verbosity
 
         Args:
@@ -62,7 +62,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
         # confs
         self._size = domain_size
-        self._one_hot_goal_encoding = one_hot_goal_encoding
+        self._one_hot_goal_encoding = encoding == EncodeType.ONE_HOT
 
         # generate multinomial probabilities for the observation function (1-D)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]

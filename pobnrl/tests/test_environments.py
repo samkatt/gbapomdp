@@ -6,6 +6,7 @@ import random
 
 import numpy as np
 
+from environments import EncodeType
 from domains import gridworld, tiger, collision_avoidance, chain_domain
 
 
@@ -14,10 +15,10 @@ class TestTiger(unittest.TestCase):
 
     def setUp(self):
         """ creates a tiger member """
-        self.one_hot_env = tiger.Tiger(use_one_hot=True)
+        self.one_hot_env = tiger.Tiger(EncodeType.ONE_HOT)
         self.one_hot_env.reset()
 
-        self.env = tiger.Tiger(use_one_hot=False)
+        self.env = tiger.Tiger(EncodeType.DEFAULT)
         self.env.reset()
 
     def test_reset(self):
@@ -137,7 +138,7 @@ class TestTiger(unittest.TestCase):
     def test_tiger_obs_prob(self):
         """ tests changing the observation probability """
 
-        deterministic_tiger = tiger.Tiger(use_one_hot=False, correct_obs_prob=1.)
+        deterministic_tiger = tiger.Tiger(EncodeType.DEFAULT, correct_obs_prob=1.)
 
         deterministic_tiger.reset()
 
@@ -151,7 +152,7 @@ class TestGridWorld(unittest.TestCase):
 
     def test_reset(self):
         """ Tests Gridworld.reset() """
-        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
+        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
         observation = env.reset()
 
         np.testing.assert_array_equal(env.state[0], [0, 0])
@@ -161,14 +162,14 @@ class TestGridWorld(unittest.TestCase):
             [1, 0, 0]
         ])
 
-        env = gridworld.GridWorld(3, one_hot_goal_encoding=False)
+        env = gridworld.GridWorld(3, EncodeType.DEFAULT)
         observation = env.reset()
         self.assertIn(observation[2], [0, 1, 2])
 
     def test_sample_start_state(self):  # pylint: disable=no-self-use
         """ tests sampling start states """
 
-        env = gridworld.GridWorld(5, one_hot_goal_encoding=True)
+        env = gridworld.GridWorld(5, EncodeType.ONE_HOT)
 
         start_states = [env.sample_start_state() for _ in range(10)]
 
@@ -178,7 +179,7 @@ class TestGridWorld(unittest.TestCase):
     def test_step(self):
         """ Tests Gridworld.step() """
 
-        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
+        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
         env.reset()
 
         goal = env.state[2]
@@ -220,7 +221,7 @@ class TestGridWorld(unittest.TestCase):
 
     def test_space(self):
         """ Tests Gridworld.spaces """
-        env = gridworld.GridWorld(5, one_hot_goal_encoding=True)
+        env = gridworld.GridWorld(5, EncodeType.ONE_HOT)
 
         action_space = env.action_space
         np.testing.assert_array_equal(action_space.size, [4])
@@ -231,7 +232,7 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(observation_space.ndim, 2 + len(env.goals))
 
         # regular (not one-hot) goal encoding
-        env = gridworld.GridWorld(5, one_hot_goal_encoding=False)
+        env = gridworld.GridWorld(5, EncodeType.DEFAULT)
         observation_space = env.observation_space
         self.assertEqual(observation_space.n, 25 * len(env.goals))
         self.assertEqual(observation_space.ndim, 3)
@@ -248,7 +249,7 @@ class TestGridWorld(unittest.TestCase):
 
         """
 
-        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
+        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
 
         # test bound_in_grid
         np.testing.assert_array_equal(
@@ -275,7 +276,7 @@ class TestGridWorld(unittest.TestCase):
         # Gridworld.goals
         self.assertListEqual(env.goals, list_of_goals)
 
-        larger_env = gridworld.GridWorld(7, one_hot_goal_encoding=True)
+        larger_env = gridworld.GridWorld(7, EncodeType.ONE_HOT)
         self.assertEqual(len(larger_env.goals), 10)
 
         # Gridworld.state
@@ -326,7 +327,7 @@ class TestGridWorld(unittest.TestCase):
         """ tests obs2index """
 
         # one-hot goal encoding
-        env = gridworld.GridWorld(3, one_hot_goal_encoding=True)
+        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
 
         obs = np.array([0, 0, 1, 0, 0])
 
@@ -355,7 +356,7 @@ class TestGridWorld(unittest.TestCase):
     def test_observation_projection_regular_encoding(self):
         """ tests obs2index for regular encodings """
 
-        env = gridworld.GridWorld(3, one_hot_goal_encoding=False)
+        env = gridworld.GridWorld(3, EncodeType.DEFAULT)
 
         obs = np.array([0, 0, 0])
 
@@ -509,14 +510,14 @@ class TestChainDomain(unittest.TestCase):
 
     def test_reset(self):  # pylint: disable=no-self-use
         """ tests ChainDomain.reset """
-        domain = chain_domain.ChainDomain(size=4, one_hot_observations=True)
+        domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 3])
         np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0])
 
-        domain = chain_domain.ChainDomain(size=10, one_hot_observations=True)
+        domain = chain_domain.ChainDomain(size=10, encoding=EncodeType.ONE_HOT)
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 9])
@@ -531,20 +532,20 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(obs, expected_obs.reshape(100))
 
         # compact observation representation
-        domain = chain_domain.ChainDomain(5, one_hot_observations=False)
+        domain = chain_domain.ChainDomain(5, encoding=EncodeType.DEFAULT)
         obs = domain.reset()
         np.testing.assert_array_equal(obs, [0, 4])
 
     def test_sample_start_state(self):  # pylint: disable=no-self-use
         """ tests sampling start states """
 
-        env = chain_domain.ChainDomain(4, one_hot_observations=False)
+        env = chain_domain.ChainDomain(4, encoding=EncodeType.DEFAULT)
         np.testing.assert_array_equal(env.sample_start_state(), [0, 3])
 
     def test_space(self):
         """ tests ChainDomain.spaces """
 
-        domain = chain_domain.ChainDomain(size=3, one_hot_observations=False)
+        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.DEFAULT)
 
         action_space = domain.action_space
 
@@ -556,7 +557,7 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(observation_space.size, [3, 3])
         self.assertEqual(observation_space.ndim, 2)
 
-        domain = chain_domain.ChainDomain(size=3, one_hot_observations=True)
+        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.ONE_HOT)
         observation_space = domain.observation_space
 
         self.assertEqual(observation_space.n, 2 ** 9)
@@ -566,7 +567,7 @@ class TestChainDomain(unittest.TestCase):
     def test_state(self):
         """ tests ChainDomain.state """
 
-        domain = chain_domain.ChainDomain(size=3, one_hot_observations=False)
+        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.DEFAULT)
         domain.reset()
 
         np.testing.assert_array_equal(domain.state, [0, 2])
@@ -578,7 +579,7 @@ class TestChainDomain(unittest.TestCase):
     def test_step(self):
         """ tests ChainDomain.step """
 
-        domain = chain_domain.ChainDomain(size=3, one_hot_observations=True)
+        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.ONE_HOT)
 
         # test if all effects go right
         step = domain.step(domain._action_mapping[0])  # pylint: disable=protected-access
@@ -622,18 +623,18 @@ class TestChainDomain(unittest.TestCase):
         """
 
         for size in 3, 9:
-            domain = chain_domain.ChainDomain(size=size, one_hot_observations=False)
+            domain = chain_domain.ChainDomain(size=size, encoding=EncodeType.DEFAULT)
             self.assertEqual(domain.size, size)
 
         # compact observation state2observation
-        domain = chain_domain.ChainDomain(size=4, one_hot_observations=False)
+        domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.DEFAULT)
 
         np.testing.assert_array_equal(domain.state2observation(np.array([0, 0])), [0, 0])
         np.testing.assert_array_equal(domain.state2observation(np.array([2, 0])), [2, 0])
         np.testing.assert_array_equal(domain.state2observation(np.array([2, 3])), [2, 3])
 
         # one hot state2observation
-        domain = chain_domain.ChainDomain(size=4, one_hot_observations=True)
+        domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
 
         expected_obs = np.zeros((4, 4))
         expected_obs[0, 0] = 1
@@ -660,7 +661,7 @@ class TestChainDomain(unittest.TestCase):
         """ tests obs2index """
 
         # regular compact obsevation
-        env = chain_domain.ChainDomain(size=4, one_hot_observations=False)
+        env = chain_domain.ChainDomain(size=4, encoding=EncodeType.DEFAULT)
 
         self.assertEqual(env.obs2index(np.array([0, 0])), 0)
         self.assertEqual(env.obs2index(np.array([1, 0])), 1)
@@ -670,7 +671,7 @@ class TestChainDomain(unittest.TestCase):
         self.assertEqual(env.obs2index(np.array([2, 3])), 14)
 
         # one-hot observation
-        env = chain_domain.ChainDomain(size=4, one_hot_observations=True)
+        env = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
 
         def one_hot(obs):
             encoding = np.zeros((4, 4))

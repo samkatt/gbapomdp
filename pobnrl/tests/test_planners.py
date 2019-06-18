@@ -8,6 +8,7 @@ import numpy as np
 
 from agents.planning.pouct import POUCT, TreeNode
 from domains import Tiger
+from environments import EncodeType
 
 
 class TestPOUCTNode(unittest.TestCase):
@@ -159,7 +160,7 @@ class TestPOUCT(unittest.TestCase):
     def test_ucb_table(self):
         """ tests the values in a ucb table """
 
-        domain = Tiger(use_one_hot=True)
+        domain = Tiger(EncodeType.DEFAULT)
 
         table = POUCT(  # pylint: disable=protected-access
             domain,
