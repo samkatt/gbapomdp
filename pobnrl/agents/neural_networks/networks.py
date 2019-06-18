@@ -5,11 +5,8 @@ from tensorflow.python.layers.layers import flatten
 import tensorflow as tf
 
 
-def simple_fc_nn(net_input, n_out: int, n_hidden: int, scope: str):
-    """ Returns Q-values of input using a two-hidden layer architecture
-
-    scope must be unique to this network to ensure this works fine
-    (tensorflow).
+def simple_fc_nn(net_input, n_out: int, n_hidden: int):
+    """ construct a fully connected nn of a two-hidden layer architecture
 
     Assumes size of input is [batch size, history len, net_input...]
 
@@ -17,30 +14,32 @@ def simple_fc_nn(net_input, n_out: int, n_hidden: int, scope: str):
          net_input: the input of the network (observation)
          n_out: (`int`): # of actions
          n_hidden: (`int`): # of units per layer
-         scope: (`str`): scope (unique, for tensorflow)
 
     """
 
     hidden = flatten(net_input)  # concat all inputs but keep batch dimension
 
     # it should be possible to call this multiple times
-    with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+    with tf.variable_scope(
+            tf.get_default_graph().get_name_scope(),
+            reuse=tf.AUTO_REUSE):
 
-        for layer in range(2):  # 2 hidden layers
-            hidden = dense(
-                hidden,
-                units=n_hidden,
-                activation=tf.nn.tanh,
-                name=f"{scope}-hidden-{layer}"
-            )
+        with tf.variable_scope('hidden'):
+            for layer in range(2):  # 2 hidden layers
+                hidden = dense(
+                    hidden,
+                    units=n_hidden,
+                    activation=tf.nn.tanh,
+                    name=str(layer)
+                )
 
-        qvalues = dense(
+        out = dense(
             hidden,
             units=n_out,
-            name=f"{scope}-out"
+            name="out"
         )
 
-    return qvalues
+    return out
 
 
 def simple_fc_rnn(
@@ -49,9 +48,8 @@ def simple_fc_rnn(
         rnn_cell,
         init_rnn_state,
         n_out: int,
-        n_hidden: int,
-        scope: str):
-    """ Returns Q-values of input using a two-hidden (rec) layer architecture
+        n_hidden: int):
+    """ constructs a fully connected rnn of a two-hidden layer architecture
 
     scope must be unique to this network to ensure this works fine
     (tensorflow).
@@ -61,10 +59,10 @@ def simple_fc_rnn(
     Args:
          net_input: the input of the network (observation)
          seq_lengths: the length of each batch
+         rnn_cell: the actual rnn component (cell) of the rec layer
          init_rnn_state: state of the recurrent layer
          n_out: (`int`): # of actions
          n_hidden: (`int`): # of units per layer
-         scope: (`str`): scope (unique, for tensorflow)
 
     """
 
@@ -81,15 +79,18 @@ def simple_fc_rnn(
     )
 
     # it should be possible to call this multiple times
-    with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
+    with tf.variable_scope(
+            tf.get_default_graph().get_name_scope(),
+            reuse=tf.AUTO_REUSE):
 
-        for layer in range(2):  # 2 hidden layers
-            hidden = dense(
-                hidden,
-                units=n_hidden,
-                activation=tf.nn.tanh,
-                name=f"{scope}_hidden_{layer}"
-            )
+        with tf.variable_scope('hidden'):
+            for layer in range(2):  # 2 hidden layers
+                hidden = dense(
+                    hidden,
+                    units=n_hidden,
+                    activation=tf.nn.tanh,
+                    name=str(layer)
+                )
 
         # handlse the history len of each batch as a single sequence
         hidden, new_rec_state = tf.nn.dynamic_rnn(
@@ -98,7 +99,7 @@ def simple_fc_rnn(
             inputs=hidden,
             initial_state=init_rnn_state,
             dtype=tf.float32,
-            scope=f"{scope}_rnn"
+            scope="rnn"
         )
 
         seq_q_mask = tf.stack(
@@ -106,10 +107,10 @@ def simple_fc_rnn(
             axis=-1
         )
 
-        qvalues = dense(
+        out = dense(
             tf.gather_nd(hidden, seq_q_mask),
             units=n_out,
-            name=f"{scope}_out"
+            name="out"
         )
 
-    return qvalues, new_rec_state
+    return out, new_rec_state

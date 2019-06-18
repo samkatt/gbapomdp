@@ -30,7 +30,6 @@ def train_from_random_policy(
 
     """
 
-    # TODO: limit capacity w.r.t. num_epochs and batch_size?
     replay_buffer = _replay_buffer_from_random_policy(sim)
 
     for _ in range(num_epochs):
@@ -94,13 +93,12 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         def __repr__(self) -> str:
             return f'Augmented state: state {self.domain_state} with model {self.model}'
 
-    def __init__(self, domain: Simulator, conf, name: str):
+    def __init__(self, domain: Simulator, conf):
         """ Creates `NeuralEnsemblePOMDP`
 
         Args:
              domain: (`pobnrl.environments.Simulator`): domain to train interactions from
              conf: configurations from program input (`network_size` and `learning_rate`)
-             name: (`str`): name (unique) of this simulator
 
         """
 
@@ -122,7 +120,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 domain.action_space,
                 domain.observation_space,
                 conf,
-                f"{name}_model_{i}"
+                f"dynamic_model_{i}"
             ) for i in range(conf.num_nets)
         ]
 

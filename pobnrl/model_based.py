@@ -12,7 +12,8 @@ from domains.learned_environments import NeuralEnsemblePOMDP
 from domains.learned_environments import train_from_random_policy, train_from_uniform_steps
 from environments import Simulator
 from episode import run_episode
-from misc import POBNRLogger, tf_session, tf_run
+from misc import POBNRLogger
+from tf_api import tf_session, tf_run
 
 
 def main(conf) -> None:
@@ -32,7 +33,7 @@ def main(conf) -> None:
     env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT)
     assert isinstance(env, Simulator)
 
-    sim = NeuralEnsemblePOMDP(env, conf=conf, name="ensemble_pomdp")
+    sim = NeuralEnsemblePOMDP(env, conf=conf)
     agent = create_learning_agent(sim, conf)
     train_method = create_train_method(env, conf)
 

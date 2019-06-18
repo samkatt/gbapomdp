@@ -7,7 +7,8 @@ import tensorflow as tf
 
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
-from misc import tf_run, POBNRLogger, DiscreteSpace, tf_board_write
+from misc import POBNRLogger, DiscreteSpace
+from tf_api import tf_run, tf_board_write
 
 
 class QNetInterface(abc.ABC):
@@ -66,8 +67,8 @@ class DQNNet(QNetInterface, POBNRLogger):
             self,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            q_func: Callable,  # type: ignore
-            optimizer,
+            q_func: Callable[[np.ndarray, int, int], tf.Tensor],
+            optimizer: tf.train.Optimizer,
             name: str,
             conf):
         """ construct the DRQNNet
@@ -84,11 +85,6 @@ class DQNNet(QNetInterface, POBNRLogger):
 
         """
 
-        assert conf.history_len > 0
-        assert conf.batch_size > 0
-        assert conf.network_size > 0
-        assert 1 >= conf.gamma > 0
-
         POBNRLogger.__init__(self)
 
         self.name = name
@@ -103,100 +99,103 @@ class DQNNet(QNetInterface, POBNRLogger):
         input_shape = (self.history_len, obs_space.ndim)
 
         # training operation place holders
-        self.act_ph = tf.placeholder(tf.int32, [None], name=f"{self.name}_actions")
-        self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f"{self.name}_obs")
-        self.rew_ph = tf.placeholder(tf.float32, [None], name=f"{self.name}_rewards")
-        self.done_mask_ph = tf.placeholder(tf.bool, [None], name=f"{self.name}_terminals")
-        self.next_obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name=f"{self.name}_next_obs")
-
-        # define operations to retrieve q and target values
-        self.qvalues_fn = q_func(
-            self.obs_ph,
-            action_space.n,
-            conf.network_size,
-            scope=f"{self.name}_net"
-        )
-
-        next_targets_fn = q_func(
-            self.next_obs_ph,
-            action_space.n,
-            conf.network_size,
-            scope=f"{self.name}_target"
-        )
-
-        # define loss
-        if conf.prior_function_scale != 0:
-            assert conf.prior_function_scale > 0
-
-            prior_vals = networks.simple_fc_nn(
-                self.obs_ph,
-                action_space.n,
-                4,
-                scope=f"{self.name}_prior"
+        with tf.name_scope(self.name):
+            self.act_ph = tf.placeholder(tf.int32, [None], name="actions")
+            self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name="obs")
+            self.rew_ph = tf.placeholder(tf.float32, [None], name="rewards")
+            self.done_mask_ph = tf.placeholder(tf.bool, [None], name="terminals")
+            self.next_obs_ph = tf.placeholder(
+                tf.float32, [None, *input_shape], name=f"{self.name}_next_obs"
             )
 
-            next_prior_vals = networks.simple_fc_nn(
-                self.next_obs_ph,
-                action_space.n,
-                4,
-                scope=f"{self.name}_prior"
+            # define operations to retrieve q and target values
+            with tf.name_scope("net"):
+                self.qvalues_fn = q_func(
+                    self.obs_ph,
+                    action_space.n,
+                    conf.network_size,
+                )
+
+            with tf.name_scope("target"):
+                next_targets_fn = q_func(
+                    self.next_obs_ph,
+                    action_space.n,
+                    conf.network_size,
+                )
+
+            # define loss
+            if conf.prior_function_scale != 0:
+                assert conf.prior_function_scale > 0
+
+                with tf.name_scope("prior"):
+                    prior_vals = networks.simple_fc_nn(
+                        self.obs_ph,
+                        action_space.n,
+                        4,
+                    )
+
+                    next_prior_vals = networks.simple_fc_nn(
+                        self.next_obs_ph,
+                        action_space.n,
+                        4
+                    )
+
+                    scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
+                    scaled_target_prior = tf.scalar_mul(
+                        conf.prior_function_scale, next_prior_vals
+                    )
+
+                self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
+                next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
+
+            action_onehot = tf.stack(
+                [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
             )
 
-            scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
-            scaled_target_prior = tf.scalar_mul(
-                conf.prior_function_scale, next_prior_vals
+            q_values = tf.gather_nd(
+                self.qvalues_fn,
+                action_onehot,
+                name="pick_Q"
             )
 
-            self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
-            next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
+            targets = tf.where(
+                self.done_mask_ph,
+                x=self.rew_ph,
+                y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
+            )
 
-        action_onehot = tf.stack(
-            [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
-        )
+            loss = misc.loss(q_values, targets, conf.loss)
 
-        q_values = tf.gather_nd(
-            self.qvalues_fn,
-            action_onehot,
-            name=f"{self.name}_pick_Q"
-        )
+            net_vars = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES,
+                scope=f'{tf.get_default_graph().get_name_scope()}/net'
+            )
 
-        targets = tf.where(
-            self.done_mask_ph,
-            x=self.rew_ph,
-            y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
-        )
+            gradients, variables = zip(
+                *optimizer.compute_gradients(loss, var_list=net_vars)
+            )
 
-        loss = misc.loss(q_values, targets, conf.loss)
+            if conf.clipping:
+                gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
-        net_vars = tf.get_collection(
-            tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=f"{self.name}_net"
-        )
-        gradients, variables = zip(
-            *optimizer.compute_gradients(loss, var_list=net_vars)
-        )
+            loss_summary = tf.summary.scalar('loss', tf.reduce_mean(loss))
+            q_values_summary = tf.summary.histogram('q-values', q_values)
 
-        if conf.clipping:
-            gradients, _ = tf.clip_by_global_norm(gradients, 5)
+            self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
+            self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
-        loss_summary = tf.summary.scalar(f'{self.name} loss', tf.reduce_mean(loss))
-        q_values_summary = tf.summary.histogram(f'{self.name} q-values', q_values)
+            # target update operation
+            update_target_op = []
+            target_vars = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES,
+                scope=f"{tf.get_default_graph().get_name_scope()}/target"
+            )
 
-        self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
-        self.train_op = optimizer.apply_gradients(zip(gradients, variables))
+            for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
+                                       sorted(target_vars, key=lambda v: v.name)):
+                update_target_op.append(var_target.assign(var))
 
-        # target update operation
-        update_target_op = []
-        target_vars = tf.get_collection(
-            tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=f"{self.name}_target"
-        )
-
-        for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
-                                   sorted(target_vars, key=lambda v: v.name)):
-            update_target_op.append(var_target.assign(var))
-
-        self.update_target_op = tf.group(*update_target_op)
+            self.update_target_op = tf.group(*update_target_op)
 
     def reset(self) -> None:
         """ resets the replay buffer
@@ -326,7 +325,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
             obs_space: DiscreteSpace,
             rec_q_func: Callable,  # type: ignore
             optimizer,
-            name,
+            name: str,
             conf):
         """ construct the DRQNNet
 
@@ -362,137 +361,132 @@ class DRQNNet(QNetInterface, POBNRLogger):
         input_shape = (None, obs_space.ndim)
 
         # training operation place holders
-        self.obs_ph = tf.placeholder(
-            tf.float32, [None, *input_shape], name=f"{self.name}_obs"
-        )
-        self.act_ph = tf.placeholder(
-            tf.int32, [None], name=f"{self.name}_actions"
-        )
-        self.rew_ph = tf.placeholder(
-            tf.float32, [None], name=f"{self.name}_rewards"
-        )
-        self.done_mask_ph = tf.placeholder(
-            tf.bool, [None], name=f"{self.name}_terminals"
-        )
-        self.next_obs_ph = tf.placeholder(
-            tf.float32,
-            [None, *input_shape],
-            name=f"{self.name}_next_obs"
-        )
-
-        rnn_cell = tf.nn.rnn_cell.LSTMCell(conf.network_size)
-        rnn_cell_t = tf.nn.rnn_cell.LSTMCell(conf.network_size)
-
-        self.rnn_state_ph = rnn_cell.zero_state(
-            tf.shape(self.obs_ph)[0], dtype=tf.float32
-        )
-
-        self.seq_lengths_ph = tf.placeholder(
-            tf.int32, [None], name=f"{self.name}_seq_len"
-        )
-
-        # training operation q values and targets
-        self.qvalues_fn, self.rec_state_fn = rec_q_func(
-            self.obs_ph,
-            self.seq_lengths_ph,
-            rnn_cell,
-            self.rnn_state_ph,
-            action_space.n,
-            conf.network_size,
-            scope=f"{self.name}_net"
-        )
-
-        next_targets_fn, _ = rec_q_func(
-            self.next_obs_ph,
-            self.seq_lengths_ph,
-            rnn_cell_t,
-            self.rnn_state_ph,
-            action_space.n,
-            conf.network_size,
-            scope=f"{self.name}_target"
-        )
-
-        # define loss
-
-        if conf.prior_function_scale != 0:
-            assert conf.prior_function_scale > 0
-
-            rnn_prior_cell = tf.nn.rnn_cell.LSTMCell(4)
-
-            prior_vals, _ = networks.simple_fc_rnn(
-                self.obs_ph,
-                self.seq_lengths_ph,
-                rnn_prior_cell,
-                None,
-                action_space.n,
-                4,
-                scope=f"{self.name}_prior"
-            )
-            next_prior_vals, _ = networks.simple_fc_rnn(
-                self.next_obs_ph,
-                self.seq_lengths_ph,
-                rnn_prior_cell,
-                None,
-                action_space.n,
-                4,
-                scope=f"{self.name}_prior"
+        with tf.name_scope(self.name):
+            self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name="obs")
+            self.act_ph = tf.placeholder(tf.int32, [None], name="actions")
+            self.rew_ph = tf.placeholder(tf.float32, [None], name="rewards")
+            self.done_mask_ph = tf.placeholder(tf.bool, [None], name="terminals")
+            self.next_obs_ph = tf.placeholder(
+                tf.float32, [None, *input_shape], name="next_obs"
             )
 
-            scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
-            scaled_target_prior = tf.scalar_mul(
-                conf.prior_function_scale, next_prior_vals
+            rnn_cell = tf.nn.rnn_cell.LSTMCell(conf.network_size)
+            rnn_cell_t = tf.nn.rnn_cell.LSTMCell(conf.network_size)
+
+            self.rnn_state_ph = rnn_cell.zero_state(
+                tf.shape(self.obs_ph)[0], dtype=tf.float32
             )
 
-            self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
-            next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
+            self.seq_lengths_ph = tf.placeholder(
+                tf.int32, [None], name=f"{self.name}_seq_len"
+            )
 
-        action_onehot = tf.stack(
-            [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
-        )
+            # training operation q values and targets
+            with tf.name_scope("net"):
+                self.qvalues_fn, self.rec_state_fn = rec_q_func(
+                    self.obs_ph,
+                    self.seq_lengths_ph,
+                    rnn_cell,
+                    self.rnn_state_ph,
+                    action_space.n,
+                    conf.network_size
+                )
 
-        q_values = tf.gather_nd(
-            self.qvalues_fn,
-            action_onehot,
-            name=f"{self.name}_pick_Q"
-        )
+            with tf.name_scope("target"):
+                next_targets_fn, _ = rec_q_func(
+                    self.next_obs_ph,
+                    self.seq_lengths_ph,
+                    rnn_cell_t,
+                    self.rnn_state_ph,
+                    action_space.n,
+                    conf.network_size
+                )
 
-        targets = tf.where(
-            self.done_mask_ph,
-            x=self.rew_ph,
-            y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
-        )
+            # define loss
 
-        loss = misc.loss(q_values, targets, conf.loss)
+            if conf.prior_function_scale != 0:
 
-        net_vars = tf.get_collection(
-            tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=f"{self.name}_net"
-        )
-        gradients, variables = zip(
-            *optimizer.compute_gradients(loss, var_list=net_vars)
-        )
+                assert conf.prior_function_scale > 0
 
-        if conf.clipping:
-            gradients, _ = tf.clip_by_global_norm(gradients, 5)
+                rnn_prior_cell = tf.nn.rnn_cell.LSTMCell(4)
 
-        loss_summary = tf.summary.scalar(f'{self.name} loss', tf.reduce_mean(loss))
-        q_values_summary = tf.summary.histogram(f'{self.name} q-values', q_values)
+                with tf.name_scope("prior"):
+                    prior_vals, _ = networks.simple_fc_rnn(
+                        self.obs_ph,
+                        self.seq_lengths_ph,
+                        rnn_prior_cell,
+                        None,
+                        action_space.n,
+                        4,
+                    )
 
-        self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
-        self.train_op = optimizer.apply_gradients(zip(gradients, variables))
+                    next_prior_vals, _ = networks.simple_fc_rnn(
+                        self.next_obs_ph,
+                        self.seq_lengths_ph,
+                        rnn_prior_cell,
+                        None,
+                        action_space.n,
+                        4
+                    )
 
-        # target update operation
-        update_target_op = []
-        target_vars = tf.get_collection(
-            tf.GraphKeys.GLOBAL_VARIABLES,
-            scope=f"{self.name}_target"
-        )
+                    scaled_prior = tf.scalar_mul(
+                        conf.prior_function_scale, prior_vals
+                    )
+                    scaled_target_prior = tf.scalar_mul(
+                        conf.prior_function_scale, next_prior_vals
+                    )
 
-        for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
-                                   sorted(target_vars, key=lambda v: v.name)):
-            update_target_op.append(var_target.assign(var))
+                self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
+                next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
 
-        self.update_target_op = tf.group(*update_target_op)
+            action_onehot = tf.stack(
+                [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
+            )
+
+            q_values = tf.gather_nd(
+                self.qvalues_fn,
+                action_onehot,
+                name="pick_Q"
+            )
+
+            targets = tf.where(
+                self.done_mask_ph,
+                x=self.rew_ph,
+                y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
+            )
+
+            loss = misc.loss(q_values, targets, conf.loss)
+
+            net_vars = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES,
+                scope=f'{tf.get_default_graph().get_name_scope()}/net'
+            )
+
+            gradients, variables = zip(
+                *optimizer.compute_gradients(loss, var_list=net_vars)
+            )
+
+            if conf.clipping:
+                gradients, _ = tf.clip_by_global_norm(gradients, 5)
+
+            loss_summary = tf.summary.scalar('loss', tf.reduce_mean(loss))
+            q_values_summary = tf.summary.histogram('q-values', q_values)
+
+            self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
+            self.train_op = optimizer.apply_gradients(zip(gradients, variables))
+
+            # target update operation
+            update_target_op = []
+            target_vars = tf.get_collection(
+                tf.GraphKeys.GLOBAL_VARIABLES,
+                scope=f"{tf.get_default_graph().get_name_scope()}/target"
+            )
+
+            for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
+                                       sorted(target_vars, key=lambda v: v.name)):
+                update_target_op.append(var_target.assign(var))
+
+            self.update_target_op = tf.group(*update_target_op)
 
     def reset(self) -> None:
         """ resets the net internal state and replay buffer

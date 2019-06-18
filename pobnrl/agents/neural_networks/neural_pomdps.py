@@ -1,8 +1,4 @@
-""" POMDP dynamics as neural networks
-
-TODO: merge with networks
-
-"""
+""" POMDP dynamics as neural networks """
 
 from typing import Tuple
 import numpy as np
@@ -11,7 +7,8 @@ import tensorflow as tf
 from agents.neural_networks import simple_fc_nn
 from agents.neural_networks.misc import softmax_sample
 from environments import ActionSpace
-from misc import tf_run, DiscreteSpace, tf_board_write
+from misc import DiscreteSpace
+from tf_api import tf_run, tf_board_write
 
 
 class DynamicsModel():
@@ -42,80 +39,87 @@ class DynamicsModel():
         self._num_state_out = np.sum(self.state_space.size)
         self._num_obs_out = np.sum(self.obs_space.size)
 
-        # feed forward
-        self._input_t = tf.placeholder(
-            tf.int32,
-            shape=[None, self.state_space.ndim + self.action_space.n],
-            name=f"{name}_input_T"
-        )
+        with tf.name_scope(name):
+            # feed forward
+            self._input_t = tf.placeholder(
+                tf.int32,
+                shape=[None, self.state_space.ndim + self.action_space.n],
+                name="input_T"
+            )
 
-        self._input_o = tf.placeholder(
-            tf.int32,
-            shape=[None, 2 * self.state_space.ndim + self.action_space.n],
-            name=f"{name}_input_O"
-        )
+            self._input_o = tf.placeholder(
+                tf.int32,
+                shape=[None, 2 * self.state_space.ndim + self.action_space.n],
+                name="input_O"
+            )
 
-        self._new_state_logits = simple_fc_nn(
-            tf.cast(self._input_t, tf.float32),
-            n_out=self._num_state_out,
-            n_hidden=conf.network_size,
-            scope=f"{name}_T"
-        )
+            with tf.name_scope("T"):
+                self._new_state_logits = simple_fc_nn(
+                    tf.cast(self._input_t, tf.float32),
+                    n_out=self._num_state_out,
+                    n_hidden=conf.network_size
+                )
 
-        self._observation_logits = simple_fc_nn(
-            tf.cast(self._input_o, tf.float32),
-            n_out=self._num_obs_out,
-            n_hidden=conf.network_size,
-            scope=f"{name}_O"
-        )
+            with tf.name_scope("O"):
+                self._observation_logits = simple_fc_nn(
+                    tf.cast(self._input_o, tf.float32),
+                    n_out=self._num_obs_out,
+                    n_hidden=conf.network_size
+                )
 
-        # training data holders
-        self._train_new_states_ph = tf.placeholder(
-            tf.int32,
-            shape=[None, self.state_space.ndim],
-            name=f"{name}_new_state_logits"
-        )
+            # training data holders
+            self._train_new_states_ph = tf.placeholder(
+                tf.int32,
+                shape=[None, self.state_space.ndim],
+                name="new_state_logits"
+            )
 
-        self._train_obs_ph = tf.placeholder(
-            tf.int32,
-            shape=[None, self.obs_space.ndim],
-            name=f"{name}_obs_logits"
-        )
+            self._train_obs_ph = tf.placeholder(
+                tf.int32,
+                shape=[None, self.obs_space.ndim],
+                name="obs_logits"
+            )
 
-        # compute losses
-        state_losses = [
-            tf.nn.sparse_softmax_cross_entropy_with_logits(
-                labels=self._train_new_states_ph[:, i],
-                logits=self._new_state_logits[
-                    :,
-                    sum(self.state_space.size[:i]):
-                    sum(self.state_space.size[:i + 1])
-                ],
-                name=f"{name}_state_loss_{i}"
-            ) for i in range(self.state_space.ndim)
-        ]
+            # compute losses
+            state_losses = [
+                tf.nn.sparse_softmax_cross_entropy_with_logits(
+                    labels=self._train_new_states_ph[:, i],
+                    logits=self._new_state_logits[
+                        :,
+                        sum(self.state_space.size[:i]):
+                        sum(self.state_space.size[:i + 1])
+                    ],
+                    name=f"state_loss_{i}"
+                ) for i in range(self.state_space.ndim)
+            ]
 
-        obs_losses = [
-            tf.nn.sparse_softmax_cross_entropy_with_logits(
-                labels=self._train_obs_ph[:, i],
-                logits=self._observation_logits[
-                    :,
-                    sum(self.obs_space.size[:i]):
-                    sum(self.obs_space.size[:i + 1])
-                ],
-                name=f"{name}_obs_loss_{i}"
-            ) for i in range(self.obs_space.ndim)
-        ]
+            obs_losses = [
+                tf.nn.sparse_softmax_cross_entropy_with_logits(
+                    labels=self._train_obs_ph[:, i],
+                    logits=self._observation_logits[
+                        :,
+                        sum(self.obs_space.size[:i]):
+                        sum(self.obs_space.size[:i + 1])
+                    ],
+                    name=f"obs_loss_{i}"
+                ) for i in range(self.obs_space.ndim)
+            ]
 
-        self.train_diag = tf.summary.merge([
-            tf.summary.scalar(f'{name} obs loss', tf.reduce_mean(obs_losses)),
-            tf.summary.scalar(f'{name} state loss', tf.reduce_mean(state_losses))
-        ])
+            self.train_diag = tf.summary.merge([
+                tf.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
+                tf.summary.scalar('state loss', tf.reduce_mean(state_losses))
+            ])
 
-        self._train_op = tf.train.AdamOptimizer(conf.learning_rate).minimize(
-            tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
-            var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_T") + tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=f"{name}_O")
-        )
+            self._train_op = tf.train.AdamOptimizer(conf.learning_rate).minimize(
+                tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
+                var_list=tf.get_collection(
+                    tf.GraphKeys.GLOBAL_VARIABLES,
+                    scope=f"{tf.get_default_graph().get_name_scope()}/T"
+                ) + tf.get_collection(
+                    tf.GraphKeys.GLOBAL_VARIABLES,
+                    scope=f"{tf.get_default_graph().get_name_scope()}/O"
+                )
+            )
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
         """ The simulation step of this dynamics model: S x A -> S, O
