@@ -3,16 +3,18 @@
 * DiscreteSpace
 * replay buffer
 * softmax sampling
+* random seed
 
 """
 
 import unittest
 
 import numpy as np
+import random
 
 from agents.neural_networks.misc import ReplayBuffer, softmax_sample
 from environments import ActionSpace
-from misc import DiscreteSpace
+from misc import DiscreteSpace, set_random_seed
 
 
 class TestSpaces(unittest.TestCase):
@@ -141,6 +143,33 @@ class TestSoftmax(unittest.TestCase):
         self.assertEqual(softmax_sample(np.array([-10])), 0)
         self.assertEqual(softmax_sample(np.array([-10, 1])), 1)
         self.assertEqual(softmax_sample(np.array([-10, -1])), 1)
+
+
+class TestRandomSeed(unittest.TestCase):
+    """ tests setting the random seed """
+
+    def test_default_behaviour(self) -> None:
+        """ regular sampling """
+
+        random_sample = random.uniform(0, 1)
+        self.assertNotAlmostEqual(random_sample, random.uniform(0, 1))
+
+        random_np_sample = np.random.uniform(0, 1)
+        self.assertNotAlmostEqual(random_np_sample, np.random.uniform(0, 1))
+
+    def test_setting_seed(self) -> None:
+        """ tests whether setting the seed will result in repetitive behaviour """
+
+        seed = random.randint(0, 1000)
+        set_random_seed(seed)
+
+        random_sample = random.uniform(0, 1)
+        random_np_sample = np.random.uniform(0, 1)
+
+        set_random_seed(seed)
+
+        self.assertAlmostEqual(random_sample, random.uniform(0, 1))
+        self.assertAlmostEqual(random_np_sample, np.random.uniform(0, 1))
 
 
 if __name__ == '__main__':

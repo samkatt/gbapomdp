@@ -12,7 +12,7 @@ from domains.learned_environments import NeuralEnsemblePOMDP
 from domains.learned_environments import train_from_random_policy, train_from_uniform_steps
 from environments import Simulator
 from episode import run_episode
-from misc import POBNRLogger
+from misc import POBNRLogger, set_random_seed
 from tf_api import tf_session, tf_run
 
 
@@ -28,6 +28,9 @@ def main(conf) -> None:
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
     tf.reset_default_graph()
+
+    if conf.random_seed:
+        set_random_seed(conf.random_seed)
 
     # environment and agent setup
     env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT)
@@ -252,6 +255,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         "--use_gpu",
         action='store_true',
         help='enables gpu usage'
+    )
+
+    parser.add_argument(
+        "--random_seed", "--seed",
+        default=0,
+        type=int,
+        help='set random seed'
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline

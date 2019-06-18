@@ -4,8 +4,32 @@ from enum import Enum
 from typing import List, Union
 import abc
 import logging
+import random
 
 import numpy as np
+
+
+def set_random_seed(seed: int) -> None:
+    """ sets the random seed of our program
+
+    NOTE that this function is not designed to be able to replicate
+    experiments, this would require more code. This is merely to **ensure
+    experiments are different**. Sometimes you will want to run scripts
+    multiple times to then later aggregate the results: if programs use the
+    current time as random seed then all runs that are started at the same time
+    will result in the similar behaviour. This is to circumvent that.
+
+    Sets `numpy` and `random` seed.
+
+
+    Args:
+         seed: (`int`): what seed to set it to
+
+    RETURNS (`None`):
+
+    """
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 class POBNRLogger:
