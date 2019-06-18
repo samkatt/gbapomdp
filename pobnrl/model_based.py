@@ -232,7 +232,7 @@ def parse_arguments(args: Optional[List[str]] = None):
 
     parser.add_argument(
         "--num_nets",
-        default=4,
+        default=1,
         type=int,
         help='number of learned dynamic models'
     )
