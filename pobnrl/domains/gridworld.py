@@ -48,7 +48,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         # required to keep lightweight implementation of namedtuple
         __slots__ = ()
 
-    def __init__(self, domain_size: int, encoding: EncodeType):
+    def __init__(self, domain_size: int, encoding: EncodeType, with_slow_cells: bool = True):
         """ creates a gridworld of provided size and verbosity
 
         Args:
@@ -65,6 +65,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         self._one_hot_goal_encoding = encoding == EncodeType.ONE_HOT
 
         # generate multinomial probabilities for the observation function (1-D)
+        # TODO: make a function out of this (and test)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]
 
         left_over_p = 1 - self.CORRECT_OBSERVATION_PROB
@@ -80,28 +81,17 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
         # generate slow locations
         self._slow_cells: Set[Tuple[int, int]] = set()
-
-        edge = self._size - 1
-
-        if self._size > 5:  # bottom left side for larger domains
-            self._slow_cells.add((1, 1))
-
-        if self._size == 3:
-            self._slow_cells.add((1, 1))
-        elif self._size < 7:
-            self._slow_cells.add((edge - 1, edge - 2))
-            self._slow_cells.add((edge - 2, edge - 1))
-        else:
-            self._slow_cells.add((edge - 1, edge - 3))
-            self._slow_cells.add((edge - 3, edge - 1))
-            self._slow_cells.add((edge - 2, edge - 2))
+        if with_slow_cells:
+            self._slow_cells = GridWorld.generate_slow_cells(self.size)
 
         # generate goal locations
+        # TODO: make a function out of this (and then test)
         self._goal_cells: List[GridWorld.Goal] = []
 
         goal_edge_start = self._size - 2 if self._size < 5 \
             else self._size - 3 if self._size < 7 else self._size - 4
 
+        edge = self._size - 1
         for pos in range(goal_edge_start, self._size - 1):
             self._goal_cells.append(GridWorld.Goal(  # fill top side
                 pos,
@@ -194,6 +184,17 @@ class GridWorld(Environment, Simulator, POBNRLogger):
     def observation_space(self) -> DiscreteSpace:
         """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
         return self._obs_space
+
+    @property
+    def slow_cells(self) -> Set[Tuple[int, int]]:
+        """ all the cells where the agent is slow on
+
+        Args:
+
+        RETURNS (`Set[Tuple[int, int]]`):
+
+        """
+        return self._slow_cells
 
     def sample_start_state(self) -> np.ndarray:
         """ returns [[0,0], some_goal]
@@ -410,3 +411,32 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         return observation[0] \
             + observation[1] * self.size \
             + self.size * self.size * pow(2, np.argmax(observation[2:]) - 1)
+
+    @staticmethod
+    def generate_slow_cells(size: int) -> Set[Tuple[int, int]]:  # TODO: test this function
+        """ returns a set of cells that the agent are slow on, depending on `size`
+
+        Args:
+             size: (`int`): the size of the grid
+
+        RETURNS (`Set[Tuple[int, int]]`):
+
+        """
+
+        slow_cells: Set[Tuple[int, int]] = set()
+
+        edge = size - 1
+        if size > 5:  # bottom left side for larger domains
+            slow_cells.add((1, 1))
+
+        if size == 3:
+            slow_cells.add((1, 1))
+        elif size < 7:
+            slow_cells.add((edge - 1, edge - 2))
+            slow_cells.add((edge - 2, edge - 1))
+        else:
+            slow_cells.add((edge - 1, edge - 3))
+            slow_cells.add((edge - 3, edge - 1))
+            slow_cells.add((edge - 2, edge - 2))
+
+        return slow_cells

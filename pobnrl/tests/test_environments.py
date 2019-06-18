@@ -381,6 +381,17 @@ class TestGridWorld(unittest.TestCase):
         obs = np.array([1, 2, 2])
         self.assertEqual(env.obs2index(obs), 25)
 
+    def test_no_slow_cells(self) -> None:
+        """ tests creation of gridworld without slow cells """
+
+        gw_no_cells = gridworld.GridWorld(
+            domain_size=5, encoding=EncodeType.DEFAULT, with_slow_cells=False
+        )
+        self.assertFalse(gw_no_cells.slow_cells)
+
+        gw_with_cells = gridworld.GridWorld(domain_size=5, encoding=EncodeType.DEFAULT)
+        self.assertTrue(gw_with_cells.slow_cells)
+
 
 class TestCollisionAvoidance(unittest.TestCase):
     """ Tests Collision Avoidance class """
