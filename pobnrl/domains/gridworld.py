@@ -301,7 +301,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         agent_x, agent_y, goal_index = state
         agent_pos = np.array([agent_x, agent_y])
 
-        if tuple(agent_pos) not in self._slow_cells:
+        if tuple(agent_pos) not in self.slow_cells:
             move_prob = self.MOVE_SUCCESS_PROB
         else:
             move_prob = self.SLOW_MOVE_SUCCESS_PROB
