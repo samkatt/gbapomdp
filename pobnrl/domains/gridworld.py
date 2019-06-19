@@ -65,7 +65,6 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         self._one_hot_goal_encoding = encoding == EncodeType.ONE_HOT
 
         # generate multinomial probabilities for the observation function (1-D)
-        # TODO: make a function out of this (and test)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]
 
         left_over_p = 1 - self.CORRECT_OBSERVATION_PROB
@@ -85,7 +84,6 @@ class GridWorld(Environment, Simulator, POBNRLogger):
             self._slow_cells = GridWorld.generate_slow_cells(self.size)
 
         # generate goal locations
-        # TODO: make a function out of this (and then test)
         self._goal_cells: List[GridWorld.Goal] = []
 
         goal_edge_start = self._size - 2 if self._size < 5 \
@@ -413,7 +411,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
             + self.size * self.size * pow(2, np.argmax(observation[2:]) - 1)
 
     @staticmethod
-    def generate_slow_cells(size: int) -> Set[Tuple[int, int]]:  # TODO: test this function
+    def generate_slow_cells(size: int) -> Set[Tuple[int, int]]:
         """ returns a set of cells that the agent are slow on, depending on `size`
 
         Args:

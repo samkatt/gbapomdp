@@ -7,9 +7,9 @@ import tensorflow as tf
 
 from misc import POBNRLogger
 
+# avoid print statements
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # avoid print statements
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # please, for the love of everything good in this world, don't refer to this
 _SESS: tf.compat.v1.Session = None
