@@ -68,7 +68,7 @@ class DQNNet(QNetInterface, POBNRLogger):
             action_space: ActionSpace,
             obs_space: Space,
             q_func: Callable[[np.ndarray, int, int], tf.Tensor],
-            optimizer: tf.train.Optimizer,
+            optimizer: tf.compat.v1.train.Optimizer,
             name: str,
             conf):
         """ construct the DRQNNet
@@ -100,11 +100,11 @@ class DQNNet(QNetInterface, POBNRLogger):
 
         # training operation place holders
         with tf.name_scope(self.name):
-            self.act_ph = tf.placeholder(tf.int32, [None], name="actions")
-            self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name="obs")
-            self.rew_ph = tf.placeholder(tf.float32, [None], name="rewards")
-            self.done_mask_ph = tf.placeholder(tf.bool, [None], name="terminals")
-            self.next_obs_ph = tf.placeholder(
+            self.act_ph = tf.compat.v1.placeholder(tf.int32, [None], name="actions")
+            self.obs_ph = tf.compat.v1.placeholder(tf.float32, [None, *input_shape], name="obs")
+            self.rew_ph = tf.compat.v1.placeholder(tf.float32, [None], name="rewards")
+            self.done_mask_ph = tf.compat.v1.placeholder(tf.bool, [None], name="terminals")
+            self.next_obs_ph = tf.compat.v1.placeholder(
                 tf.float32, [None, *input_shape], name=f"{self.name}_next_obs"
             )
 
@@ -166,9 +166,9 @@ class DQNNet(QNetInterface, POBNRLogger):
 
             loss = misc.loss(q_values, targets, conf.loss)
 
-            net_vars = tf.get_collection(
-                tf.GraphKeys.GLOBAL_VARIABLES,
-                scope=f'{tf.get_default_graph().get_name_scope()}/net'
+            net_vars = tf.compat.v1.get_collection(
+                tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                scope=f'{tf.compat.v1.get_default_graph().get_name_scope()}/net'
             )
 
             gradients, variables = zip(
@@ -178,17 +178,17 @@ class DQNNet(QNetInterface, POBNRLogger):
             if conf.clipping:
                 gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
-            loss_summary = tf.summary.scalar('loss', tf.reduce_mean(loss))
-            q_values_summary = tf.summary.histogram('q-values', q_values)
+            loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
+            q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-            self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
+            self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
             self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
             # target update operation
             update_target_op = []
-            target_vars = tf.get_collection(
-                tf.GraphKeys.GLOBAL_VARIABLES,
-                scope=f"{tf.get_default_graph().get_name_scope()}/target"
+            target_vars = tf.compat.v1.get_collection(
+                tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/target"
             )
 
             for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
@@ -362,11 +362,11 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
         # training operation place holders
         with tf.name_scope(self.name):
-            self.obs_ph = tf.placeholder(tf.float32, [None, *input_shape], name="obs")
-            self.act_ph = tf.placeholder(tf.int32, [None], name="actions")
-            self.rew_ph = tf.placeholder(tf.float32, [None], name="rewards")
-            self.done_mask_ph = tf.placeholder(tf.bool, [None], name="terminals")
-            self.next_obs_ph = tf.placeholder(
+            self.obs_ph = tf.compat.v1.placeholder(tf.float32, [None, *input_shape], name="obs")
+            self.act_ph = tf.compat.v1.placeholder(tf.int32, [None], name="actions")
+            self.rew_ph = tf.compat.v1.placeholder(tf.float32, [None], name="rewards")
+            self.done_mask_ph = tf.compat.v1.placeholder(tf.bool, [None], name="terminals")
+            self.next_obs_ph = tf.compat.v1.placeholder(
                 tf.float32, [None, *input_shape], name="next_obs"
             )
 
@@ -377,7 +377,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 tf.shape(self.obs_ph)[0], dtype=tf.float32
             )
 
-            self.seq_lengths_ph = tf.placeholder(
+            self.seq_lengths_ph = tf.compat.v1.placeholder(
                 tf.int32, [None], name=f"{self.name}_seq_len"
             )
 
@@ -457,9 +457,9 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
             loss = misc.loss(q_values, targets, conf.loss)
 
-            net_vars = tf.get_collection(
-                tf.GraphKeys.GLOBAL_VARIABLES,
-                scope=f'{tf.get_default_graph().get_name_scope()}/net'
+            net_vars = tf.compat.v1.get_collection(
+                tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                scope=f'{tf.compat.v1.get_default_graph().get_name_scope()}/net'
             )
 
             gradients, variables = zip(
@@ -469,17 +469,17 @@ class DRQNNet(QNetInterface, POBNRLogger):
             if conf.clipping:
                 gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
-            loss_summary = tf.summary.scalar('loss', tf.reduce_mean(loss))
-            q_values_summary = tf.summary.histogram('q-values', q_values)
+            loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
+            q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-            self.train_diag = tf.summary.merge([loss_summary, q_values_summary])
+            self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
             self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
             # target update operation
             update_target_op = []
-            target_vars = tf.get_collection(
-                tf.GraphKeys.GLOBAL_VARIABLES,
-                scope=f"{tf.get_default_graph().get_name_scope()}/target"
+            target_vars = tf.compat.v1.get_collection(
+                tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/target"
             )
 
             for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),

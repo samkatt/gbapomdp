@@ -7,11 +7,13 @@ import tensorflow as tf
 
 from misc import POBNRLogger
 
-tf.logging.set_verbosity(tf.logging.ERROR)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # avoid print statements
+
 
 # please, for the love of everything good in this world, don't refer to this
-_SESS: tf.Session = None
-_TF_BOARD_WRITER: tf.summary.FileWriter = None
+_SESS: tf.compat.v1.Session = None
+_TF_BOARD_WRITER: tf.compat.v1.summary.FileWriter = None
 _NUM_OPERATIONS: int = 0
 
 
@@ -38,20 +40,18 @@ def tf_session(use_gpu: bool, tensorboard_name: str):
 
     assert _SESS is None, "Please initiate tf_wrapper only once"
 
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # avoid print statements
-
     logger = POBNRLogger('tf_session')
     logger.log(POBNRLogger.LogLevel.V1, "initiating tensorflow session")
 
-    tf_config = tf.ConfigProto(
+    tf_config = tf.compat.v1.ConfigProto(
         device_count={'GPU': int(use_gpu)},
         inter_op_parallelism_threads=1,
         intra_op_parallelism_threads=1
     )
 
-    _SESS = tf.Session(config=tf_config)
+    _SESS = tf.compat.v1.Session(config=tf_config)
     if tensorboard_name:
-        _TF_BOARD_WRITER = tf.summary.FileWriter(f'.tensorboard/{tensorboard_name}', _SESS.graph)
+        _TF_BOARD_WRITER = tf.compat.v1.summary.FileWriter(f'.tensorboard/{tensorboard_name}', _SESS.graph)
     _NUM_OPERATIONS = 0
 
     yield _SESS
@@ -75,11 +75,11 @@ def tf_run(operations, **kwargs) -> Any:
     return _SESS.run(operations, **kwargs)
 
 
-def tf_board_write(summary: tf.summary.Summary) -> None:
+def tf_board_write(summary: tf.compat.v1.summary.Summary) -> None:
     """  writes a summary to file for tensorboard
 
     Args:
-         summary: (`tf.summary.Summary`): the thing to write away to tensorboard
+         summary: (`tf.compat.v1.summary.Summary`): the thing to write away to tensorboard
 
     RETURNS (`None`):
 

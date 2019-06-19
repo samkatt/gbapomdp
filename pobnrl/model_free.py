@@ -22,7 +22,7 @@ def main(conf) -> None:
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger(__name__)
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
     result_mean = np.zeros(conf.episodes)
     ret_m2 = np.zeros(conf.episodes)
@@ -35,7 +35,7 @@ def main(conf) -> None:
 
     agent = create_agent(env.action_space, env.observation_space, conf)
 
-    init_op = tf.global_variables_initializer()
+    init_op = tf.compat.v1.global_variables_initializer()
 
     logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 

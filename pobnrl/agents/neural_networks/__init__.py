@@ -33,7 +33,7 @@ def create_qnet(
             action_space,
             observation_space,
             simple_fc_rnn,
-            tf.train.AdamOptimizer(conf.learning_rate),
+            tf.compat.v1.train.AdamOptimizer(conf.learning_rate),
             scope,
             conf,
         )
@@ -42,7 +42,7 @@ def create_qnet(
         action_space,
         observation_space,
         simple_fc_nn,
-        tf.train.AdamOptimizer(conf.learning_rate),
+        tf.compat.v1.train.AdamOptimizer(conf.learning_rate),
         scope,
         conf,
     )

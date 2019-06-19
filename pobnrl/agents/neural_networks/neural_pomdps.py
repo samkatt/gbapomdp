@@ -41,13 +41,13 @@ class DynamicsModel():
 
         with tf.name_scope(name):
             # feed forward
-            self._input_t = tf.placeholder(
+            self._input_t = tf.compat.v1.placeholder(
                 tf.int32,
                 shape=[None, self.state_space.ndim + self.action_space.n],
                 name="input_T"
             )
 
-            self._input_o = tf.placeholder(
+            self._input_o = tf.compat.v1.placeholder(
                 tf.int32,
                 shape=[None, 2 * self.state_space.ndim + self.action_space.n],
                 name="input_O"
@@ -68,13 +68,13 @@ class DynamicsModel():
                 )
 
             # training data holders
-            self._train_new_states_ph = tf.placeholder(
+            self._train_new_states_ph = tf.compat.v1.placeholder(
                 tf.int32,
                 shape=[None, self.state_space.ndim],
                 name="new_state_logits"
             )
 
-            self._train_obs_ph = tf.placeholder(
+            self._train_obs_ph = tf.compat.v1.placeholder(
                 tf.int32,
                 shape=[None, self.obs_space.ndim],
                 name="obs_logits"
@@ -105,19 +105,19 @@ class DynamicsModel():
                 ) for i in range(self.obs_space.ndim)
             ]
 
-            self.train_diag = tf.summary.merge([
-                tf.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
-                tf.summary.scalar('state loss', tf.reduce_mean(state_losses))
+            self.train_diag = tf.compat.v1.summary.merge([
+                tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
+                tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
             ])
 
-            self._train_op = tf.train.AdamOptimizer(conf.learning_rate).minimize(
+            self._train_op = tf.compat.v1.train.AdamOptimizer(conf.learning_rate).minimize(
                 tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
-                var_list=tf.get_collection(
-                    tf.GraphKeys.GLOBAL_VARIABLES,
-                    scope=f"{tf.get_default_graph().get_name_scope()}/T"
-                ) + tf.get_collection(
-                    tf.GraphKeys.GLOBAL_VARIABLES,
-                    scope=f"{tf.get_default_graph().get_name_scope()}/O"
+                var_list=tf.compat.v1.get_collection(
+                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                    scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/T"
+                ) + tf.compat.v1.get_collection(
+                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
+                    scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/O"
                 )
             )
 

@@ -27,7 +27,7 @@ def main(conf) -> None:
     # global init
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
     if conf.random_seed:
         set_random_seed(conf.random_seed)
@@ -40,7 +40,7 @@ def main(conf) -> None:
     agent = create_learning_agent(sim, conf)
     train_method = create_train_method(env, conf)
 
-    init_op = tf.global_variables_initializer()
+    init_op = tf.compat.v1.global_variables_initializer()
 
     # results init
     result_mean = np.zeros(conf.episodes)
