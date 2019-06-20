@@ -367,12 +367,19 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         terminal = self.terminal(self.state, action, sim_step.state)
 
         if self.log_is_on(POBNRLogger.LogLevel.V2):
+            if self._one_hot_goal_encoding:
+                goal_index = np.argmax(self.state[2:])
+            else:
+                goal_index = self.state[2]
+
+            goal = self.goals[goal_index]
+
             self.log(
                 POBNRLogger.LogLevel.V2,
                 f"Agent moved from {self.state[:2]}  to {sim_step.state[:2]}"
                 f" after picking {self.action_to_string[action]} and"
                 f" observed {sim_step.observation[:2]}"
-                f" (goal {self.state[2]})"
+                f" (goal {goal})"
             )
 
         self._state = sim_step.state

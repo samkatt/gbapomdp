@@ -1,7 +1,6 @@
 """ Contains networks """
 
-from tensorflow.python.layers.layers import dense
-from tensorflow.python.layers.layers import flatten
+from tensorflow.keras.layers import Flatten, Dense
 import tensorflow as tf
 
 
@@ -17,27 +16,16 @@ def simple_fc_nn(net_input, n_out: int, n_hidden: int):
 
     """
 
-    hidden = flatten(net_input)  # concat all inputs but keep batch dimension
+    hidden = Flatten()(net_input)  # concat all inputs but keep batch dimension
 
     # it should be possible to call this multiple times
-    with tf.compat.v1.variable_scope(
-            tf.compat.v1.get_default_graph().get_name_scope(),
-            reuse=tf.compat.v1.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("", reuse=tf.compat.v1.AUTO_REUSE):
 
-        with tf.compat.v1.variable_scope('hidden'):
+        with tf.compat.v1.variable_scope('layer'):
             for layer in range(2):  # 2 hidden layers
-                hidden = dense(
-                    hidden,
-                    units=n_hidden,
-                    activation=tf.nn.tanh,
-                    name=str(layer)
-                )
+                hidden = Dense(units=n_hidden, activation='tanh', name=str(layer))(hidden)
 
-        out = dense(
-            hidden,
-            units=n_out,
-            name="out"
-        )
+        out = Dense(units=n_out, name='out')(hidden)
 
     return out
 
@@ -83,16 +71,12 @@ def simple_fc_rnn(
             tf.compat.v1.get_default_graph().get_name_scope(),
             reuse=tf.compat.v1.AUTO_REUSE):
 
-        with tf.compat.v1.variable_scope('hidden'):
+        with tf.compat.v1.variable_scope('layer'):
             for layer in range(2):  # 2 hidden layers
-                hidden = dense(
-                    hidden,
-                    units=n_hidden,
-                    activation=tf.nn.tanh,
-                    name=str(layer)
-                )
+                hidden = Dense(units=n_hidden, activation='tanh', name=str(layer))(hidden)
 
         # handlse the history len of each batch as a single sequence
+        # FIXME: use keras
         hidden, new_rec_state = tf.nn.dynamic_rnn(
             rnn_cell,
             sequence_length=seq_lengths,
@@ -107,10 +91,6 @@ def simple_fc_rnn(
             axis=-1
         )
 
-        out = dense(
-            tf.gather_nd(hidden, seq_q_mask),
-            units=n_out,
-            name="out"
-        )
+        out = Dense(units=n_out, name="out")(tf.gather_nd(hidden, seq_q_mask))
 
     return out, new_rec_state

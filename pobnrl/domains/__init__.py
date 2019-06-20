@@ -11,7 +11,7 @@ from .gridworld import GridWorld
 from .learned_environments import NeuralEnsemblePOMDP  # NOQA, ignore unused import
 from .tiger import Tiger
 
-from .priors import TigerPrior
+from .priors import TigerPrior, GridWorldPrior
 
 
 def create_environment(
@@ -45,7 +45,7 @@ def create_environment(
 
 def create_prior(
         domain_name: str,
-        _domain_size: int,
+        domain_size: int,
         encoding: EncodeType) -> Prior:
     """ create_prior
 
@@ -58,6 +58,9 @@ def create_prior(
 
     """
 
-    assert domain_name == "tiger", f'currently only suppert tiger, not {domain_name}'
+    if domain_name == "tiger":
+        return TigerPrior(encoding)
+    if domain_name == "gridworld":
+        return GridWorldPrior(domain_size, encoding)
 
-    return TigerPrior(encoding)
+    raise ValueError('no known priors for domain ' + domain_name)
