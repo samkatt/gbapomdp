@@ -7,6 +7,7 @@ from numpy.random import dirichlet
 from environments import Simulator, EncodeType
 
 from .tiger import Tiger
+from .gridworld import GridWorld
 
 
 class Prior(abc.ABC):
@@ -46,3 +47,30 @@ class TigerPrior(Prior):
         sampled_observation_prob = dirichlet([6, 4])[0]
 
         return Tiger(encoding=self._encoding, correct_obs_prob=sampled_observation_prob)
+
+
+class GridWorldPrior(Prior):
+    """ a prior that returns gridworlds without slow cells """
+
+    def __init__(self, size: int, encoding: EncodeType):
+        """ creates a prior for the `gridworld` of size and with `encoding`
+
+        Args:
+             size: (`int`):
+             encoding: (`EncodeType`):
+
+        """
+
+        self._grid_size = size
+        self._encoding = encoding
+
+    def sample(self) -> Simulator:
+        """  returns Gridworld of given size and encoding (but no slow cells)
+
+        Args:
+
+        RETURNS (`Simulator`):
+
+        """
+
+        return GridWorld(self._grid_size, self._encoding, with_slow_cells=False)

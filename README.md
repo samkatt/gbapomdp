@@ -58,8 +58,12 @@ Systems. 2018.][1]
 
 ### TODO
 
-* move to keras
-* profiling (add numba @jit to functions where applicable for speed ups)
+* update code
+    - [ ] use keras for rnn
+    - [ ] check with tensorboard whether output makes sense
+* profiling
+    - [ ] profile and see for weird things
+    - [ ] see applicability of numba (@jit)
 * get mypy.ini commented out style fixed
 
 #### spaces issue
