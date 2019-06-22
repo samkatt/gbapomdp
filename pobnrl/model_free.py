@@ -63,7 +63,7 @@ def main(conf) -> None:
                 logger.log(
                     POBNRLogger.LogLevel.V1,
                     f"run {run}/{conf.runs} episode {episode}/{conf.episodes}:"
-                    f" avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
+                    f" avg return: {np.mean(tmp_res[max(0, episode - 25):episode+1])}"
                 )
 
             # update mean and variance

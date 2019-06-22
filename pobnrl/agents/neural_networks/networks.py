@@ -65,9 +65,7 @@ def simple_fc_rnn(
     )
 
     # it should be possible to call this multiple times
-    with tf.compat.v1.variable_scope(
-            tf.compat.v1.get_default_graph().get_name_scope(),
-            reuse=tf.compat.v1.AUTO_REUSE):
+    with tf.compat.v1.variable_scope("", reuse=tf.compat.v1.AUTO_REUSE):
 
         with tf.compat.v1.variable_scope('layer'):
             for layer in range(2):  # 2 hidden layers

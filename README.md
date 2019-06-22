@@ -58,9 +58,6 @@ Systems. 2018.][1]
 
 ### TODO
 
-* update code
-    - [ ] use keras for rnn
-    - [ ] check with tensorboard whether output makes sense
 * profiling
     - [ ] profile and see for weird things
     - [ ] see applicability of numba (@jit)
