@@ -32,8 +32,6 @@ def simple_fc_nn(net_input, n_out: int, n_hidden: int):
 
 def simple_fc_rnn(
         net_input,
-        seq_lengths,
-        rnn_cell,
         init_rnn_state,
         n_out: int,
         n_hidden: int):
@@ -75,22 +73,13 @@ def simple_fc_rnn(
             for layer in range(2):  # 2 hidden layers
                 hidden = Dense(units=n_hidden, activation='tanh', name=str(layer))(hidden)
 
-        # handlse the history len of each batch as a single sequence
-        # FIXME: use keras
-        hidden, new_rec_state = tf.nn.dynamic_rnn(
-            rnn_cell,
-            sequence_length=seq_lengths,
-            inputs=hidden,
-            initial_state=init_rnn_state,
-            dtype=tf.float32,
-            scope="rnn"
-        )
+        hidden = tf.keras.layers.Masking(mask_value=0., name='mask')(hidden)
+        hidden, cell_state_h, cell_state_c = tf.keras.layers.LSTM(
+            units=n_hidden,
+            return_state=True,
+            name="rnn"
+        )(hidden, initial_state=init_rnn_state)
 
-        seq_q_mask = tf.stack(
-            [tf.range(tf.size(seq_lengths)), seq_lengths - 1],
-            axis=-1
-        )
+        out = Dense(units=n_out, name="out")(hidden)
 
-        out = Dense(units=n_out, name="out")(tf.gather_nd(hidden, seq_q_mask))
-
-    return out, new_rec_state
+    return out, [cell_state_h, cell_state_c]

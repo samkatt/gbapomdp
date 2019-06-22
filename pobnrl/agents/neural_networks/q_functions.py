@@ -370,23 +370,14 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 tf.float32, [None, *input_shape], name="next_obs"
             )
 
-            rnn_cell = tf.nn.rnn_cell.LSTMCell(conf.network_size)
-            rnn_cell_t = tf.nn.rnn_cell.LSTMCell(conf.network_size)
-
-            self.rnn_state_ph = rnn_cell.zero_state(
+            self.rnn_state_ph = tf.nn.rnn_cell.LSTMCell(conf.network_size).zero_state(
                 tf.shape(self.obs_ph)[0], dtype=tf.float32
-            )
-
-            self.seq_lengths_ph = tf.compat.v1.placeholder(
-                tf.int32, [None], name=f"{self.name}_seq_len"
             )
 
             # training operation q values and targets
             with tf.name_scope("net"):
                 self.qvalues_fn, self.rec_state_fn = rec_q_func(
                     self.obs_ph,
-                    self.seq_lengths_ph,
-                    rnn_cell,
                     self.rnn_state_ph,
                     action_space.n,
                     conf.network_size
@@ -395,8 +386,6 @@ class DRQNNet(QNetInterface, POBNRLogger):
             with tf.name_scope("target"):
                 next_targets_fn, _ = rec_q_func(
                     self.next_obs_ph,
-                    self.seq_lengths_ph,
-                    rnn_cell_t,
                     self.rnn_state_ph,
                     action_space.n,
                     conf.network_size
@@ -408,13 +397,9 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
                 assert conf.prior_function_scale > 0
 
-                rnn_prior_cell = tf.nn.rnn_cell.LSTMCell(4)
-
                 with tf.name_scope("prior"):
                     prior_vals, _ = networks.simple_fc_rnn(
                         self.obs_ph,
-                        self.seq_lengths_ph,
-                        rnn_prior_cell,
                         None,
                         action_space.n,
                         4,
@@ -422,8 +407,6 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
                     next_prior_vals, _ = networks.simple_fc_rnn(
                         self.next_obs_ph,
-                        self.seq_lengths_ph,
-                        rnn_prior_cell,
                         None,
                         action_space.n,
                         4
@@ -520,7 +503,6 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
         feed_dict = {
             self.obs_ph: obs[-1, None, None],  # cast last ob to shape
-            self.seq_lengths_ph: np.array([1])  # just a single step 'seq'
         }
 
         if self.rnn_state is not None:
@@ -570,7 +552,6 @@ class DRQNNet(QNetInterface, POBNRLogger):
         _, diag = tf_run(
             [self.train_op, self.train_diag],
             feed_dict={
-                self.seq_lengths_ph: seq_lengths,
                 self.obs_ph: obs,
                 self.act_ph: action,
                 self.rew_ph: reward,
