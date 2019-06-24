@@ -178,10 +178,14 @@ class DQNNet(QNetInterface, POBNRLogger):
             if conf.clipping:
                 gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
-            loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
-            q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
+            if conf.tensorboard_name:
+                loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
+                q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-            self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
+                self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
+            else:
+                self.train_diag = tf.no_op('no-diagnostics')
+
             self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
             # target update operation
@@ -453,10 +457,14 @@ class DRQNNet(QNetInterface, POBNRLogger):
             if conf.clipping:
                 gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
-            loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
-            q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
+            if conf.tensorboard_name:
+                loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
+                q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-            self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
+                self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
+            else:
+                self.train_diag = tf.no_op('no-diagnostics')
+
             self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
             # target update operation

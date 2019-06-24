@@ -105,10 +105,13 @@ class DynamicsModel():
                 ) for i in range(self.obs_space.ndim)
             ]
 
-            self.train_diag = tf.compat.v1.summary.merge([
-                tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
-                tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
-            ])
+            if conf.tensorboard_name:
+                self.train_diag = tf.compat.v1.summary.merge([
+                    tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
+                    tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
+                ])
+            else:
+                self.train_diag = tf.no_op('no-diagnostics')
 
             self._train_op = tf.compat.v1.train.AdamOptimizer(conf.learning_rate).minimize(
                 tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),

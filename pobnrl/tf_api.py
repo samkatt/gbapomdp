@@ -1,5 +1,7 @@
 """ interactions with tensorflow """
 
+from tensorflow.python import debug as tf_debug
+
 from contextlib import contextmanager
 from typing import Any
 import os
@@ -50,6 +52,8 @@ def tf_session(use_gpu: bool, tensorboard_name: str):
     )
 
     _SESS = tf.compat.v1.Session(config=tf_config)
+    # _SESS = tf_debug.LocalCLIDebugWrapperSession(_SESS)
+
     if tensorboard_name:
         _TF_BOARD_WRITER = tf.compat.v1.summary.FileWriter(f'.tensorboard/{tensorboard_name}', _SESS.graph)
     _NUM_OPERATIONS = 0
