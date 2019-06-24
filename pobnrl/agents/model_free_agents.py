@@ -5,7 +5,7 @@ from typing import Callable, Deque
 import numpy as np
 
 from environments import ActionSpace
-from misc import Space
+from misc import Space, POBNRLogger
 from agents.misc import epsilon_greedy, PiecewiseSchedule
 from agents.misc import ExplorationSchedule, FixedExploration
 
@@ -14,7 +14,7 @@ from .neural_networks import create_qnet
 from .neural_networks.q_functions import QNetInterface
 
 
-class BaselineAgent(Agent):
+class BaselineAgent(Agent, POBNRLogger):
     """ default single q-net agent implementation"""
 
     def __init__(self,
@@ -33,6 +33,8 @@ class BaselineAgent(Agent):
              conf: (`namespace`) set of configurations (see -h)
 
         """
+
+        POBNRLogger.__init__(self)
 
         assert conf.target_update_freq > 0
         assert conf.train_freq > 0
@@ -89,6 +91,8 @@ class BaselineAgent(Agent):
         q_values = self.q_net.qvalues(np.array(self.last_obs))
 
         epsilon = self.exploration.value(self.timestep)
+        self.log(POBNRLogger.LogLevel.V4, f"Agent's epsilon is {epsilon}")
+
         self.last_action = epsilon_greedy(q_values, epsilon, self.action_space)
 
         return self.last_action
@@ -129,7 +133,7 @@ class BaselineAgent(Agent):
         self.timestep += 1
 
 
-class EnsembleAgent(Agent):
+class EnsembleAgent(Agent, POBNRLogger):
     """ ensemble agent """
 
     def __init__(self,
@@ -148,6 +152,8 @@ class EnsembleAgent(Agent):
             conf: (`namespace`): set of configurations
 
         """
+
+        POBNRLogger.__init__(self)
 
         assert conf.num_nets > 1
         assert conf.target_update_freq > 0
@@ -189,6 +195,12 @@ class EnsembleAgent(Agent):
         for net in self.nets:
             net.reset()
 
+        self.log(
+            POBNRLogger.LogLevel.V3,
+            f"Ensem Agent resets: current policy is {self._current_policy}"
+            f" and {self._storing_nets} are currently active"
+        )
+
     def episode_reset(self, observation: np.ndarray) -> None:
         """ prepares for next episode
 
@@ -208,6 +220,13 @@ class EnsembleAgent(Agent):
         for net in self.nets:
             net.episode_reset()
 
+        self.log(
+            POBNRLogger.LogLevel.V3,
+            f"Ensem Agent preps for new episode: "
+            f"current policy is {self._current_policy}"
+            f" and {self._storing_nets} are currently active"
+        )
+
     def select_action(self) -> int:
         """ returns greedy action from current active policy
 
@@ -218,6 +237,12 @@ class EnsembleAgent(Agent):
         q_values = self._current_policy.qvalues(np.array(self.last_obs))
 
         epsilon = self.exploration.value(self.timestep)
+
+        self.log(
+            POBNRLogger.LogLevel.V4,
+            f"Ensemble Agent's epsilon is {epsilon}"
+        )
+
         self.last_action = epsilon_greedy(q_values, epsilon, self.action_space)
 
         return self.last_action

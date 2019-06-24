@@ -1,5 +1,7 @@
 """ merges multiple `result` files into a single one """
 
+# pylint: disable=invalid-name
+
 import sys
 
 from typing import List, Dict
@@ -98,14 +100,12 @@ def combine_var_and_mean(statistics: List[Dict[str, np.ndarray]]) -> Dict[str, n
     n = stat1['n'] + stat2['n']
     mu = (stat1['mu'] * stat1['n'] + stat2['mu'] * stat2['n']) / n
 
-    var = real2sample((stat1['n'] *
-                       (sample2real(stat1['var'], stat1['n']) +
-                        stat1['mu']**2) +
-                       stat2['n'] *
-                       (sample2real(stat2['var'], stat2['n']) +
-                          stat2['mu']**2)) /
-                      n -
-                      mu**2, n)
+    var = real2sample(
+        (
+            stat1['n'] * (sample2real(stat1['var'], stat1['n']) + stat1['mu']**2)
+            + stat2['n'] * (sample2real(stat2['var'], stat2['n']) + stat2['mu']**2)  # noqa W503
+        ) / n - mu**2, n
+    )
 
     return {'mu': mu, 'var': var, 'n': n}
 

@@ -224,7 +224,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
                 descr = "the agent hears " \
                     + self.ELEM_TO_STRING[self.obs2index(sim_result.observation)]
             else:  # agent is opening door
-                descr = f"the agent opens {self.ELEM_TO_STRING[action]}"
+                descr = f"the agent opens {self.ELEM_TO_STRING[action]} ({reward})"
 
             self.log(
                 POBNRLogger.LogLevel.V2,

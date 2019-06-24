@@ -1,6 +1,6 @@
 """ Neural networks used as Q functions """
 
-from typing import Callable
+from typing import Callable, Optional, List
 import abc
 import numpy as np
 import tensorflow as tf
@@ -228,10 +228,11 @@ class DQNNet(QNetInterface, POBNRLogger):
 
             obs = np.pad(obs, padding, 'constant')
 
-        return tf_run(
-            self.qvalues_fn,
-            feed_dict={self.obs_ph: obs[None]}  # add batch dim
-        )
+        qvals = tf_run(self.qvalues_fn, feed_dict={self.obs_ph: obs[None]})
+
+        self.log(POBNRLogger.LogLevel.V4, f"DQN: {obs} returned Q: {qvals}")
+
+        return qvals
 
     def batch_update(self) -> None:
         """ performs a batch update """
@@ -508,9 +509,21 @@ class DRQNNet(QNetInterface, POBNRLogger):
         if self.rnn_state is not None:
             feed_dict[self.rnn_state_ph] = self.rnn_state
 
+        self.log(
+            POBNRLogger.LogLevel.V4,
+            f"DRQN with obs {obs} "
+            f"and state {self.rnn_to_str(self.rnn_state)}"
+        )
+
         qvals, self.rnn_state = tf_run(
             [self.qvalues_fn, self.rec_state_fn],
             feed_dict=feed_dict
+        )
+
+        self.log(
+            POBNRLogger.LogLevel.V4,
+            f"DRQN: returned Q: {qvals} "
+            f"(first rnn: {self.rnn_to_str(self.rnn_state)})"
         )
 
         return qvals
@@ -594,3 +607,23 @@ class DRQNNet(QNetInterface, POBNRLogger):
             },
             terminal
         )
+
+    def rnn_to_str(self, rnn_state: Optional[List[np.ndarray]]) -> str:
+        """ returns a string representation of the rnn
+
+        If provided rnn is none, then it will attempt to use the rnn_state of `self`
+
+        Args:
+             rnn_state: (`Optional[List[np.ndarray]]`):
+
+        RETURNS (`str`):
+
+        """
+
+        if not rnn_state:
+            rnn_state = self.rnn_state
+
+        if rnn_state:
+            return str(rnn_state[0][0][0])
+
+        return str(rnn_state)
