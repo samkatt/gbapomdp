@@ -9,7 +9,7 @@ from agents.model_based_agents import create_planning_agent
 from domains import create_environment, EncodeType
 from environments import Simulator
 from episode import run_episode
-from misc import POBNRLogger
+from misc import POBNRLogger, set_random_seed
 
 
 def main(conf) -> None:
@@ -22,6 +22,9 @@ def main(conf) -> None:
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
+
+    if conf.random_seed:
+        set_random_seed(conf.random_seed)
 
     ret_mean = ret_m2 = .0
 
@@ -155,6 +158,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         default=512,
         help='number of particles in belief',
         type=int
+    )
+
+    parser.add_argument(
+        "--random_seed", "--seed",
+        default=0,
+        type=int,
+        help='set random seed'
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline
