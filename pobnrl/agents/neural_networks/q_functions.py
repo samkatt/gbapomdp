@@ -182,7 +182,10 @@ class DQNNet(QNetInterface, POBNRLogger):
                 loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
                 q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-                self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
+                grads = [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
+                         for grad in gradients]
+
+                self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary] + grads)
             else:
                 self.train_diag = tf.no_op('no-diagnostics')
 
@@ -461,7 +464,10 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
                 q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-                self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary])
+                grads = [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
+                         for grad in gradients]
+
+                self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary, grads])
             else:
                 self.train_diag = tf.no_op('no-diagnostics')
 
