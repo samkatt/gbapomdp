@@ -105,15 +105,9 @@ class DynamicsModel():
                 ) for i in range(self.obs_space.ndim)
             ]
 
-            if conf.tensorboard_name:
-                self.train_diag = tf.compat.v1.summary.merge([
-                    tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
-                    tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
-                ])
-            else:
-                self.train_diag = tf.no_op('no-diagnostics')
+            optimizer = tf.compat.v1.train.AdamOptimizer(conf.learning_rate)
 
-            self._train_op = tf.compat.v1.train.AdamOptimizer(conf.learning_rate).minimize(
+            grads_and_vars = optimizer.compute_gradients(
                 tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
                 var_list=tf.compat.v1.get_collection(
                     tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
@@ -123,6 +117,18 @@ class DynamicsModel():
                     scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/O"
                 )
             )
+
+            self._train_op = optimizer.apply_gradients(grads_and_vars)
+
+            if conf.tensorboard_name:
+                self.train_diag = tf.compat.v1.summary.merge([
+                    tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
+                    tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
+                ] + [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
+                     for grad, _ in grads_and_vars]
+                )
+            else:
+                self.train_diag = tf.no_op('no-diagnostics')
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
         """ The simulation step of this dynamics model: S x A -> S, O
