@@ -40,70 +40,72 @@ class DynamicsModel():
         self._num_obs_out = np.sum(self.obs_space.size)
 
         with tf.name_scope(name):
-            # feed forward
-            self._input_t = tf.compat.v1.placeholder(
-                tf.int32,
-                shape=[None, self.state_space.ndim + self.action_space.n],
-                name="input_T"
-            )
 
-            self._input_o = tf.compat.v1.placeholder(
-                tf.int32,
-                shape=[None, 2 * self.state_space.ndim + self.action_space.n],
-                name="input_O"
-            )
-
+            # transition model
             with tf.name_scope("T"):
+
+                self._input_t = tf.compat.v1.placeholder(
+                    tf.int32,
+                    shape=[None, self.state_space.ndim + self.action_space.n],
+                    name="input"
+                )
+
                 self._new_state_logits = simple_fc_nn(
                     tf.cast(self._input_t, tf.float32),
                     n_out=self._num_state_out,
                     n_hidden=conf.network_size
                 )
 
+                self._train_new_states_ph = tf.compat.v1.placeholder(
+                    tf.int32,
+                    shape=[None, self.state_space.ndim],
+                    name="logits"
+                )
+
+                state_losses = [
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(
+                        labels=self._train_new_states_ph[:, i],
+                        logits=self._new_state_logits[
+                            :,
+                            sum(self.state_space.size[:i]):
+                            sum(self.state_space.size[:i + 1])
+                        ],
+                        name=f"loss_{i}"
+                    ) for i in range(self.state_space.ndim)
+                ]
+
+            # observation model
             with tf.name_scope("O"):
+
+                self._input_o = tf.compat.v1.placeholder(
+                    tf.int32,
+                    shape=[None, 2 * self.state_space.ndim + self.action_space.n],
+                    name="input_O"
+                )
+
                 self._observation_logits = simple_fc_nn(
                     tf.cast(self._input_o, tf.float32),
                     n_out=self._num_obs_out,
                     n_hidden=conf.network_size
                 )
 
-            # training data holders
-            self._train_new_states_ph = tf.compat.v1.placeholder(
-                tf.int32,
-                shape=[None, self.state_space.ndim],
-                name="new_state_logits"
-            )
+                self._train_obs_ph = tf.compat.v1.placeholder(
+                    tf.int32,
+                    shape=[None, self.obs_space.ndim],
+                    name="logits"
+                )
 
-            self._train_obs_ph = tf.compat.v1.placeholder(
-                tf.int32,
-                shape=[None, self.obs_space.ndim],
-                name="obs_logits"
-            )
-
-            # compute losses
-            state_losses = [
-                tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    labels=self._train_new_states_ph[:, i],
-                    logits=self._new_state_logits[
-                        :,
-                        sum(self.state_space.size[:i]):
-                        sum(self.state_space.size[:i + 1])
-                    ],
-                    name=f"state_loss_{i}"
-                ) for i in range(self.state_space.ndim)
-            ]
-
-            obs_losses = [
-                tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    labels=self._train_obs_ph[:, i],
-                    logits=self._observation_logits[
-                        :,
-                        sum(self.obs_space.size[:i]):
-                        sum(self.obs_space.size[:i + 1])
-                    ],
-                    name=f"obs_loss_{i}"
-                ) for i in range(self.obs_space.ndim)
-            ]
+                obs_losses = [
+                    tf.nn.sparse_softmax_cross_entropy_with_logits(
+                        labels=self._train_obs_ph[:, i],
+                        logits=self._observation_logits[
+                            :,
+                            sum(self.obs_space.size[:i]):
+                            sum(self.obs_space.size[:i + 1])
+                        ],
+                        name=f"loss_{i}"
+                    ) for i in range(self.obs_space.ndim)
+                ]
 
             optimizer = tf.compat.v1.train.AdamOptimizer(conf.learning_rate)
 
@@ -111,21 +113,18 @@ class DynamicsModel():
                 tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
                 var_list=tf.compat.v1.get_collection(
                     tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                    scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/T"
-                ) + tf.compat.v1.get_collection(
-                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                    scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/O"
-                )
-            )
+                    scope=tf.compat.v1.get_default_graph().get_name_scope()
+                ))
 
             self._train_op = optimizer.apply_gradients(grads_and_vars)
 
             if conf.tensorboard_name:
-                self.train_diag = tf.compat.v1.summary.merge([
-                    tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
-                    tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
-                ] + [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
-                     for grad, _ in grads_and_vars]
+                self.train_diag = tf.compat.v1.summary.merge(
+                    [
+                        tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
+                        tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
+                    ] + [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
+                         for grad, _ in grads_and_vars]
                 )
             else:
                 self.train_diag = tf.no_op('no-diagnostics')
