@@ -1,5 +1,6 @@
 """ tiger environment """
 
+from typing import List, Optional
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
@@ -21,18 +22,26 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     ELEM_TO_STRING = ["L", "R"]
 
-    def __init__(self, encoding: EncodeType, correct_obs_prob: float = .85):
+    def __init__(self, encoding: EncodeType, correct_obs_probs: Optional[List[float]] = None):
         """  construct the tiger environment
 
         Args:
              encoding_type: (`EncodeType`):
-             correct_obs_prob: (`float`):
+             correct_obs_probs: (`Optional[List[float]]`):
 
         """
 
+        if not correct_obs_probs:
+            correct_obs_probs = [.85, .85]
+
+        assert 0 <= correct_obs_probs[0] <= 1, \
+            f"observation prob {correct_obs_probs[0]} not a probability"
+        assert 0 <= correct_obs_probs[1] <= 1, \
+            f"observation prob {correct_obs_probs[1]} not a probability"
+
         POBNRLogger.__init__(self)
 
-        self._correct_obs_prob = correct_obs_prob
+        self._correct_obs_probs = correct_obs_probs
 
         self._use_one_hot_obs = encoding == EncodeType.ONE_HOT
 
@@ -127,7 +136,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         if not listening:
             return self.LISTEN
 
-        return loc if np.random.random() < self._correct_obs_prob else int(not loc)
+        return loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)
 
     def reset(self) -> np.ndarray:
         """ resets internal state and return first observation
@@ -254,4 +263,4 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     def __repr__(self) -> str:
         encoding_descr = "one_hot" if self._use_one_hot_obs else "default"
-        return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_prob}"
+        return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_probs}"

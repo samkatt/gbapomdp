@@ -44,9 +44,9 @@ class TigerPrior(Prior):
         RETURNS (`Simulator`):
 
         """
-        sampled_observation_prob = dirichlet([6, 4])[0]
+        sampled_observation_probs = [dirichlet([6, 4])[0], dirichlet([6, 4])[0]]
 
-        return Tiger(encoding=self._encoding, correct_obs_prob=sampled_observation_prob)
+        return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
 
 
 class GridWorldPrior(Prior):

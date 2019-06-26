@@ -32,8 +32,9 @@ class TestTigerPrior(unittest.TestCase):
         tiger = TigerPrior(encoding).sample()
         assert isinstance(tiger, Tiger)
 
-        obs_prob = tiger._correct_obs_prob  # pylint: disable=protected-access
-        self.assertTrue(0 <= obs_prob <= 1)
+        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        self.assertTrue(0 <= obs_probs[0] <= 1)
+        self.assertTrue(0 <= obs_probs[1] <= 1)
 
 
 class TestGridWorldPrior(unittest.TestCase):

@@ -138,7 +138,7 @@ class TestTiger(unittest.TestCase):
     def test_tiger_obs_prob(self):
         """ tests changing the observation probability """
 
-        deterministic_tiger = tiger.Tiger(EncodeType.DEFAULT, correct_obs_prob=1.)
+        deterministic_tiger = tiger.Tiger(EncodeType.DEFAULT, correct_obs_probs=[1., 1.])
 
         deterministic_tiger.reset()
 
