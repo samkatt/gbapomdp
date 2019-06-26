@@ -80,6 +80,4 @@ def simple_fc_rnn(
 
         out = Dense(units=n_out, name="out")(hidden)
 
-        print(out)
-
     return out, [cell_state_h, cell_state_c]
