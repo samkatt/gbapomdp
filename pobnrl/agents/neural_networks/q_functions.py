@@ -127,7 +127,7 @@ class DQNNet(QNetInterface, POBNRLogger):
             if conf.prior_function_scale != 0:
                 assert conf.prior_function_scale > 0
 
-                with tf.name_scope("prior"):
+                with tf.name_scope("prior_function"):
                     prior_vals = networks.simple_fc_nn(
                         self.obs_ph,
                         action_space.n,
@@ -149,7 +149,7 @@ class DQNNet(QNetInterface, POBNRLogger):
                 next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
 
             action_onehot = tf.stack(
-                [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
+                [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1, name='one_hot_actions'
             )
 
             q_values = tf.gather_nd(
@@ -353,6 +353,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
         assert conf.batch_size > 0
         assert conf.network_size > 0
         assert 1 >= conf.gamma > 0
+        assert conf.prior_function_scale >= 0
 
         POBNRLogger.__init__(self)
 
@@ -370,20 +371,18 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
         # training operation place holders
         with tf.name_scope(self.name):
+
             self.obs_ph = tf.compat.v1.placeholder(tf.float32, [None, *input_shape], name="obs")
             self.act_ph = tf.compat.v1.placeholder(tf.int32, [None], name="actions")
-            self.rew_ph = tf.compat.v1.placeholder(tf.float32, [None], name="rewards")
-            self.done_mask_ph = tf.compat.v1.placeholder(tf.bool, [None], name="terminals")
-            self.next_obs_ph = tf.compat.v1.placeholder(
-                tf.float32, [None, *input_shape], name="next_obs"
-            )
 
-            self.rnn_state_ph = tf.nn.rnn_cell.LSTMCell(conf.network_size).zero_state(
-                tf.shape(self.obs_ph)[0], dtype=tf.float32
-            )
+            self.rnn_state_ph \
+                = tf.nn.rnn_cell.LSTMCell(conf.network_size).zero_state(
+                    tf.shape(self.obs_ph)[0], dtype=tf.float32
+                )
 
             # training operation q values and targets
             with tf.name_scope("net"):
+
                 self.qvalues_fn, self.rec_state_fn = rec_q_func(
                     self.obs_ph,
                     self.rnn_state_ph,
@@ -391,100 +390,97 @@ class DRQNNet(QNetInterface, POBNRLogger):
                     conf.network_size
                 )
 
+                action_onehot = tf.stack(
+                    [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
+                )
+
+                net_vars = tf.trainable_variables(scope=tf.get_default_graph().get_name_scope())
+
+                if conf.prior_function_scale:
+                    with tf.name_scope("prior_function"):
+
+                        prior_vals, _ = networks.simple_fc_rnn(
+                            self.obs_ph,
+                            None,   # FIXME: should use rnn state too?!
+                            action_space.n,
+                            4,
+                        )
+
+                        scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
+                        self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
+
+                q_values = tf.gather_nd(self.qvalues_fn, action_onehot, name="pick_Q")
+
+            # target network
             with tf.name_scope("target"):
+
+                self.next_obs_ph = tf.compat.v1.placeholder(
+                    tf.float32, [None, *input_shape], name="next_obs"
+                )
+
                 next_targets_fn, _ = rec_q_func(
                     self.next_obs_ph,
-                    self.rnn_state_ph,
+                    self.rnn_state_ph,  # FIXME: sometimes rnn_state? should not?
                     action_space.n,
                     conf.network_size
                 )
 
-            # define loss
+                target_vars = tf.trainable_variables(scope=tf.get_default_graph().get_name_scope())
 
-            if conf.prior_function_scale != 0:
+                if conf.prior_function_scale:
+                    with tf.name_scope("prior_function"):
 
-                assert conf.prior_function_scale > 0
+                        next_prior_vals, _ = networks.simple_fc_rnn(
+                            self.next_obs_ph,
+                            None,
+                            action_space.n,
+                            4
+                        )
 
-                with tf.name_scope("prior"):
-                    prior_vals, _ = networks.simple_fc_rnn(
-                        self.obs_ph,
-                        None,
-                        action_space.n,
-                        4,
-                    )
+                        scaled_target_prior = tf.scalar_mul(conf.prior_function_scale, next_prior_vals)
+                        next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
 
-                    next_prior_vals, _ = networks.simple_fc_rnn(
-                        self.next_obs_ph,
-                        None,
-                        action_space.n,
-                        4
-                    )
+            with tf.name_scope('compute_target'):
+                self.rew_ph = tf.compat.v1.placeholder(tf.float32, [None], name="rewards")
+                self.done_mask_ph = tf.compat.v1.placeholder(tf.bool, [None], name="terminals")
 
-                    scaled_prior = tf.scalar_mul(
-                        conf.prior_function_scale, prior_vals
-                    )
-                    scaled_target_prior = tf.scalar_mul(
-                        conf.prior_function_scale, next_prior_vals
-                    )
-
-                self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
-                next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
-
-            action_onehot = tf.stack(
-                [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
-            )
-
-            q_values = tf.gather_nd(
-                self.qvalues_fn,
-                action_onehot,
-                name="pick_Q"
-            )
-
-            targets = tf.where(
-                self.done_mask_ph,
-                x=self.rew_ph,
-                y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
-            )
+                targets = tf.where(
+                    self.done_mask_ph,
+                    x=self.rew_ph,
+                    y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
+                )
 
             loss = misc.loss(q_values, targets, conf.loss)
 
-            net_vars = tf.compat.v1.get_collection(
-                tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                scope=f'{tf.compat.v1.get_default_graph().get_name_scope()}/net'
-            )
+            gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=net_vars))
 
-            gradients, variables = zip(
-                *optimizer.compute_gradients(loss, var_list=net_vars)
-            )
-
-            if conf.clipping:
+            if conf.clipping:  # FIXME: always do clipping, just make the default large
                 gradients, _ = tf.clip_by_global_norm(gradients, 5)
 
+            # FIXME: gotta do better than this check
             if conf.tensorboard_name:
                 loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
                 q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
 
-                grads = [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
-                         for grad in gradients]
+                grads = [
+                    tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
+                    for grad in gradients
+                ]
 
                 self.train_diag = tf.compat.v1.summary.merge([loss_summary, q_values_summary, grads])
+
             else:
                 self.train_diag = tf.no_op('no-diagnostics')
 
             self.train_op = optimizer.apply_gradients(zip(gradients, variables))
 
-            # target update operation
-            update_target_op = []
-            target_vars = tf.compat.v1.get_collection(
-                tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                scope=f"{tf.compat.v1.get_default_graph().get_name_scope()}/target"
-            )
+            with tf.name_scope('update_target'):
+                update_target_op = []
+                for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
+                                           sorted(target_vars, key=lambda v: v.name)):
+                    update_target_op.append(var_target.assign(var))
 
-            for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
-                                       sorted(target_vars, key=lambda v: v.name)):
-                update_target_op.append(var_target.assign(var))
-
-            self.update_target_op = tf.group(*update_target_op)
+                self.update_target_op = tf.group(*update_target_op)
 
     def reset(self) -> None:
         """ resets the net internal state and replay buffer
@@ -517,7 +513,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
         assert obs.shape[0] <= self.history_len
 
         feed_dict = {
-            self.obs_ph: obs[-1, None, None],  # cast last ob to shape
+            self.obs_ph: obs[-1, None, None]  # cast last ob to shape
         }
 
         if self.rnn_state is not None:
@@ -550,6 +546,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 POBNRLogger.LogLevel.V2,
                 f"Network {self.name} cannot batch update due to small buf"
             )
+
             return
 
         batch = self.replay_buffer.sample(self.batch_size, self.history_len)

@@ -44,9 +44,9 @@ def loss(q_values, targets, loss_type: str):
 
     # training operation loss
     if loss_type == "rmse":
-        return tf.compat.v1.losses.mean_squared_error(targets, q_values)
+        return tf.compat.v1.losses.mean_squared_error(targets, q_values, scope='rmse_loss')
     if loss_type == "huber":
-        return tf.compat.v1.losses.huber_loss(targets, q_values, delta=10.0)
+        return tf.compat.v1.losses.huber_loss(targets, q_values, delta=10.0, scope='huber_loss')
 
     raise ValueError('Entered unknown value for loss ' + loss_type)
 
