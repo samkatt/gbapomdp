@@ -180,8 +180,9 @@ def parse_arguments(args: Optional[List[str]] = None):
 
     parser.add_argument(
         "--clipping",
-        action='store_true',
-        help="whether or not to use clipping in computing loss"
+        type=float,
+        default=1000,
+        help="the amount of clipping used"
     )
 
     parser.add_argument(

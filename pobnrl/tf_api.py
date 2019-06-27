@@ -77,6 +77,19 @@ def tf_run(operations, **kwargs) -> Any:
     return _SESS.run(operations, **kwargs)
 
 
+def tf_writing_to_board(conf) -> bool:
+    """ returns whether summaries are written to tensorboard
+
+    Args:
+         conf: configurations of the program input
+
+    RETURNS (`bool`):
+
+    """
+
+    return conf.tensorboard_name != ""
+
+
 def tf_board_write(summary: tf.compat.v1.summary.Summary) -> None:
     """  writes a summary to file for tensorboard
 
