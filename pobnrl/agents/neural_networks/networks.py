@@ -19,7 +19,7 @@ def simple_fc_nn(net_input, n_out: int, n_hidden: int):
     hidden = Flatten()(net_input)  # concat all inputs but keep batch dimension
 
     # it should be possible to call this multiple times
-    with tf.compat.v1.variable_scope("", reuse=tf.compat.v1.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(""):
 
         with tf.compat.v1.variable_scope('layer'):
             for layer in range(2):  # 2 hidden layers
@@ -65,7 +65,7 @@ def simple_fc_rnn(
     )
 
     # it should be possible to call this multiple times
-    with tf.compat.v1.variable_scope("", reuse=tf.compat.v1.AUTO_REUSE):
+    with tf.compat.v1.variable_scope(""):
 
         with tf.compat.v1.variable_scope('layer'):
             for layer in range(2):  # 2 hidden layers

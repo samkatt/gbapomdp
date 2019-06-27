@@ -76,7 +76,7 @@ class TestModelFreeAgents(unittest.TestCase):
 
         self.run_experiment(['-D=tiger', '--loss=huber', '--num_nets=3'])
 
-        self.run_experiment(['-D=cartpole', '--clipping', "--horizon=10000"])
+        self.run_experiment(['-D=cartpole', '--clipping=5', "--horizon=10000"])
 
         self.run_experiment(['-D=cartpole', '--use_gpu', "--horizon=10000"])
 
