@@ -392,6 +392,15 @@ class TestGridWorld(unittest.TestCase):
         gw_with_cells = gridworld.GridWorld(domain_size=5, encoding=EncodeType.DEFAULT)
         self.assertTrue(gw_with_cells.slow_cells)
 
+    def test_goals(self) -> None:
+        """ tests the location of goals """
+
+        gw = gridworld.GridWorld(3, EncodeType.DEFAULT)
+
+        for goal in gw.goals:
+            self.assertGreaterEqual(goal.x, 0)
+            self.assertGreaterEqual(goal.y, 0)
+            self.assertGreaterEqual(goal.index, 0)
 
 class TestCollisionAvoidance(unittest.TestCase):
     """ Tests Collision Avoidance class """
