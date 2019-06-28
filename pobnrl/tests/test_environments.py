@@ -402,6 +402,7 @@ class TestGridWorld(unittest.TestCase):
             self.assertGreaterEqual(goal.y, 0)
             self.assertGreaterEqual(goal.index, 0)
 
+
 class TestCollisionAvoidance(unittest.TestCase):
     """ Tests Collision Avoidance class """
 

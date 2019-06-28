@@ -1,5 +1,6 @@
 """ Particle Observable UCT """
 
+from collections import namedtuple
 from typing import List, Dict, Tuple
 import random
 
@@ -9,6 +10,9 @@ from environments import Simulator
 from misc import POBNRLogger
 
 from .particle_filters import ParticleFilter
+
+
+_IterationResult = namedtuple('IterResult', 'ret depth length')
 
 
 class TreeNode():
@@ -142,16 +146,33 @@ class POUCT(POBNRLogger):
 
         root = TreeNode(self.simulator.action_space.n, depth=0)
 
-        # build tree
-        for _ in range(self.num_sims):
-            self._traverse_tree(belief.sample(), root)
+        # diagnostics
+        min_return = float('inf')
+        max_return = -float('inf')
+        tree_depth = 0
+        max_iteration = 0
 
-        self.log(POBNRLogger.LogLevel.V3, f"POUCT: converged to Q: {root.avg_values}")
+        # build tree
+        for run in range(self.num_sims):
+            result = self._traverse_tree(belief.sample(), root)
+
+            self.log(POBNRLogger.LogLevel.V4, f"POUCT iteration {run}: {result}")
+
+            min_return = min(min_return, result.ret)
+            max_return = max(max_return, result.ret)
+            tree_depth = max(tree_depth, result.depth)
+            max_iteration = max(max_iteration, result.length)
+
+        self.log(
+            POBNRLogger.LogLevel.V3,
+            f"POUCT: Q: {root.avg_values}, returns {min_return} to {max_return}"
+            f"tree depth {tree_depth}, longest run {max_iteration}"
+        )
 
         # pick best action from root
         return np.argmax(root.avg_values)
 
-    def _traverse_tree(self, state: np.ndarray, node: TreeNode) -> float:
+    def _traverse_tree(self, state: np.ndarray, node: TreeNode) -> _IterationResult:
         """ Travels down the tree
 
         Picks actions according to UCB, generates transitions according to
@@ -161,15 +182,17 @@ class POUCT(POBNRLogger):
              state: (`np.ndarray`): current state
              node: (`TreeNode`): the current node of the tree
 
-        RETURNS (`float`): return of this traversal
+        RETURNS (`_IterationResult`): return of this traversal
 
         """
 
         if node.depth == self.planning_horizon:
-            return 0
+            return _IterationResult(ret=0, depth=node.depth, length=node.depth)
 
         if node.num_visits == 0:
-            action, ret = self._rollout(state, self.planning_horizon - node.depth)
+            action, ret, length = self._rollout(state, self.planning_horizon - node.depth)
+            iteration_res \
+                = _IterationResult(ret=ret, depth=node.depth, length=length)
 
         else:
 
@@ -191,27 +214,35 @@ class POUCT(POBNRLogger):
                 )
 
             if not terminal:
-                ret = reward + self.discount * self._traverse_tree(
+
+                iteration_res = self._traverse_tree(
                     step.state,
                     node.child(
                         action, self.simulator.obs2index(step.observation)
                     )
                 )
+
+                iteration_res = iteration_res._replace(
+                    ret=reward + self.discount * iteration_res.ret
+                )
+
             else:
-                ret = reward
+                iteration_res = _IterationResult(
+                    ret=reward, depth=node.depth, length=node.depth
+                )
 
-        node.update_value(action, ret)
+        node.update_value(action, iteration_res.ret)
 
-        return ret
+        return iteration_res
 
-    def _rollout(self, state: np.ndarray, hor: int) -> Tuple[int, float]:
+    def _rollout(self, state: np.ndarray, hor: int) -> Tuple[int, float, int]:
         """ A random interaction with the simulator
 
         Args:
              state: (`np.ndarray`): state to rollout from
              hor: (`int`): the length of the rollout
 
-        RETURNS (`Tuple[int, float]`): the (discounted) return of the rollout
+        RETURNS (`Tuple[int, float, int]`): the inital action, (discounted) return of the rollout, and length of rollout
 
         """
 
@@ -221,7 +252,7 @@ class POUCT(POBNRLogger):
         first_action = self.simulator.action_space.sample()
 
         action = first_action
-        for _ in range(hor):
+        for time_step in range(hor):
 
             step = self.simulator.simulation_step(state, action)
             reward = self.simulator.reward(state, action, step.state)
@@ -237,7 +268,7 @@ class POUCT(POBNRLogger):
             action = self.simulator.action_space.sample()
             state = step.state
 
-        return (first_action, ret)
+        return (first_action, ret, time_step)
 
     @staticmethod
     def ucb(
