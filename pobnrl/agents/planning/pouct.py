@@ -165,7 +165,7 @@ class POUCT(POBNRLogger):
 
         self.log(
             POBNRLogger.LogLevel.V3,
-            f"POUCT: Q: {root.avg_values}, returns {min_return} to {max_return}"
+            f"POUCT: Q: {root.avg_values}, returns {min_return} to {max_return} "
             f"tree depth {tree_depth}, longest run {max_iteration}"
         )
 

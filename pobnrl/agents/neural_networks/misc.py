@@ -26,8 +26,11 @@ def softmax_sample(arr: np.array) -> int:
     RETURNS (`int`): between 0 ... len(arr)
 
     """
-    ar_exp = np.exp(arr - arr.max())
-    return np.random.choice(len(arr), p=ar_exp / ar_exp.sum())
+    # require the astype because it will implicitely be cast as
+    # such in np.random.multinomial and rounding may cause it to
+    # become larger than 1, causing issues
+    ar_exp = np.exp(arr - arr.max()).astype('float64')
+    return np.random.multinomial(1, pvals=ar_exp / ar_exp.sum()).argmax()
 
 
 def loss(q_values, targets, loss_type: str):
