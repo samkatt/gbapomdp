@@ -35,6 +35,11 @@ tensorflow
 pip install tensorflow
 ```
 
+typing_extensions 
+```bash
+pip install typing_extensions
+```
+
 ### Run the program
 `main.py` is located in `src`
 

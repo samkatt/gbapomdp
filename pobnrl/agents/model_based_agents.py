@@ -1,11 +1,10 @@
 """ agents that act by learning a model of theenvironments """
 
 from functools import partial
-from typing import Any, Callable
 import numpy as np
 
-from environments import Simulator, SimulationResult
 from domains import NeuralEnsemblePOMDP
+from environments import Simulator
 from misc import POBNRLogger
 
 from .agent import Agent
@@ -17,11 +16,7 @@ from .planning.pouct import POUCT
 class PrototypeAgent(Agent, POBNRLogger):
     """ default model-based agent """
 
-    def __init__(
-            self,
-            planner: POUCT,
-            belief_manager: BeliefManager
-    ):
+    def __init__(self, planner: POUCT, belief_manager: BeliefManager):
         """ creates this agent with planner and belief manager
 
         Args:
@@ -85,110 +80,93 @@ class PrototypeAgent(Agent, POBNRLogger):
         self._belief_manager.update(self._last_action, observation)
 
 
-class RejectionSamplingBelieveManager(BeliefManager):
-    """ believe manager that uses rejection sampling """
-
-    def __init__(  # type: ignore
-            self,
-            num_particles: int,
-            sim: Simulator,
-            reset_particle_f: Callable[[Any], Any] = None):
-        """ creates a believe manager based on rejection sampling
-
-        Args:
-             num_particles: (`int`): the number of particles in the filter
-             sim: (`pobnrl.environments.Simulator`): the simulator to update particles
-             reset_particle_f: (`Callable[[Any], Any]`): how to reset particles
-
-        """
-
-        super().__init__(
-            num_particles=num_particles,
-            filter_type=FlatFilter,
-            sample_particle_f=sim.sample_start_state,
-            update_belief_f=partial(self.update_belief, env=sim),
-            reset_particle_f=reset_particle_f
-        )
-
-    @staticmethod
-    def update_belief(
-            particle_filter: ParticleFilter,
-            action: int,
-            observation: np.ndarray,
-            env: Simulator) -> ParticleFilter:
-        """ Applies belief rejection sampling
-
-        Will update the belief by simulating a step in the simulator and using
-        rejection sampling on the observation
-
-        Args:
-        particle_filter: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): current belief
-        env: (`pobnrl.environments.Simulator`): simulator as a dynamic model
-        action: (`int`): taken action
-        observation: (`np.ndarray`): perceived observation
-
-        RETURNS (`pobnrl.agents.planning.particle_filters.ParticleFilter`): new belief
-
-        """
-
-        update_step = partial(env.simulation_step, action=action)
-
-        def extract_state(interaction: SimulationResult) -> Any:
-            return interaction.state
-
-        def observation_equals(interaction: SimulationResult) -> bool:
-            return np.all(interaction.observation == observation)
-
-        return rejection_sampling(
-            particle_filter,
-            process_sample_f=update_step,
-            accept_f=observation_equals,
-            extract_particle_f=extract_state,
-        )
-
-
-def create_learning_agent(env: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
-    """ factory function to construct model based learning agents
+def belief_rejection_sampling(
+        sim: Simulator,
+        belief: ParticleFilter,
+        action: int,
+        observation: np.ndarray) -> ParticleFilter:
+    """ performs rejection sampling on the belief given action and observation
 
     Args:
-         env: (`pobnrl.environments.Simulator`) simulator
-         conf: (`namespace`) configurations
+         sim: the simulator used to simulate steps
+         belief: (`ParticleFilter`): belief at t
+         action: (`int`): chosen action
+         observation: (`np.ndarray`): perceived observation
 
-    RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
+    RETURNS (`ParticleFilter`): belief at t+1
+
+    """
+
+    return rejection_sampling(
+        belief,
+        process_sample_f=partial(sim.simulation_step, action=action),
+        accept_f=lambda interaction: np.all(interaction.observation == observation),
+        extract_particle_f=lambda interaction: interaction.state,
+    )
+
+
+def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefManager:
+    """ returns a belief manager for the learning context
+
+    return rejection sampling belief manager by setting the belief manager
+    functionality correctly
+
+    Args:
+         sim: (`NeuralEnsemblePOMDP`): the simulator of the agent
+         conf: program argument configurations
+
+    RETURNS (`BeliefManager`): rejection sampling belief manager (for now)
 
     """
 
     if conf.belief != 'rejection_sampling':
         raise ValueError(f'belief must be rejection_sampling, not {conf.belief}')
 
+    def reset_particle(augmented_state: NeuralEnsemblePOMDP.AugmentedState):
+        augmented_state.domain_state = sim.sample_domain_start_state()
+
+    # return belief manager with rejection sampling functionality as defined above
+    return BeliefManager(
+        num_particles=conf.num_particles,
+        filter_type=FlatFilter,
+        sample_particle_f=sim.sample_start_state,
+        update_belief_f=partial(belief_rejection_sampling, sim=sim),
+        reset_particle_f=reset_particle
+    )
+
+
+def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
+    """ factory function to construct model based learning agents
+
+    Args:
+         sim: (`pobnrl.environments.Simulator`) simulator
+         conf: (`namespace`) configurations
+
+    RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
+
+    """
+
     planner = POUCT(
-        env,
+        sim,
         conf.num_sims,
         conf.exploration,
         conf.horizon,
         conf.gamma
     )
 
-    def reset_particle(augmented_state):
-        augmented_state.domain_state = env.sample_domain_start_state()
-
-    believe_manager = RejectionSamplingBelieveManager(
-        num_particles=conf.num_particles,
-        sim=env,
-        reset_particle_f=reset_particle
-    )
+    belief_manager = _create_learning_belief_manager(sim, conf)
 
     return PrototypeAgent(
         planner,
-        believe_manager
+        belief_manager,
     )
 
 
-def create_planning_agent(env: Simulator, conf) -> PrototypeAgent:
+def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
 
     Args:
-         env: (`pobnrl.environments.Simulator`) simulator
+         sim: (`pobnrl.environments.Simulator`) simulator
          conf: (`namespace`) configurations
 
     RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
@@ -199,16 +177,18 @@ def create_planning_agent(env: Simulator, conf) -> PrototypeAgent:
         raise ValueError('belief must be rejection_sampling')
 
     planner = POUCT(
-        env,
+        sim,
         conf.num_sims,
         conf.exploration,
         conf.horizon,
         conf.gamma
     )
 
-    believe_manager = RejectionSamplingBelieveManager(
-        conf.num_particles,
-        env
+    believe_manager = BeliefManager(
+        num_particles=conf.num_particles,
+        filter_type=FlatFilter,
+        sample_particle_f=sim.sample_start_state,
+        update_belief_f=partial(belief_rejection_sampling, sim=sim)
     )
 
     return PrototypeAgent(

@@ -1,15 +1,16 @@
-""" beliefs are distributions over states
+""" particle filters represent beliefs over the state space as a bag of particles
 
 Contains:
-    * beliefs (particle filters)
+    * particle filters
     * update functions (rejection sampling, importance sampling)
     * belief managers
 """
 
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Optional
 import abc
 import random
 
+from typing_extensions import Protocol
 import numpy as np
 
 from misc import POBNRLogger
@@ -269,26 +270,46 @@ def importance_sampling(
     return particle_filter
 
 
+class BeliefUpdate(Protocol):
+    """ Defines the signature of a update function for a particle """
+
+    def __call__(
+            self,
+            particle_filter: ParticleFilter,
+            action: int,
+            observation: int) -> ParticleFilter:
+        """ function call signature for particle update functions
+
+        Args:
+             particle_filter: (`ParticleFilter`):
+             action: (`int`):
+             observation: (`int`):
+
+        RETURNS (`ParticleFilter`):
+
+        """
+
+
 class BeliefManager(POBNRLogger):
     """ manages a belief """
 
-    def __init__(  # type: ignore
+    def __init__(
             self,
             num_particles: int,
             filter_type: Callable[[], ParticleFilter],
             sample_particle_f: Callable[[], Any],
-            update_belief_f: Callable[[ParticleFilter, int, int], ParticleFilter],
-            reset_particle_f: Callable[[Any], None] = None):
+            update_belief_f: BeliefUpdate,
+            reset_particle_f: Optional[Callable[[Any], None]] = None):
         """ Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
 
         Args:
              num_particles: (`int`): number of particles to hold
-             filter_type: (`Callable[[],` `ParticleFilter` `],`) particle filter constructor
+             filter_type: (`Callable[[],` `ParticleFilter` ` ]`): particle filter constructor
              sample_particle_f: (`Callable[[], Any]`): function that samples particles
-             update_belief_f: (`Callable[[` `ParticleFilter`, `int, int],` `ParticleFilter` `]`): how to update the belief
-             reset_particle_f: ('Callable[[Any], None]'): how to reset a particle to start state (defaults to `sample_particle_f`)
+             update_belief_f: (`BeliefUpdate`): how to update the belief
+             reset_particle_f: (`Optional[Callable[[Any], None]]`): how to reset a particle to start state (defaults to `sample_particle_f`)
         """
 
         POBNRLogger.__init__(self)
@@ -298,7 +319,11 @@ class BeliefManager(POBNRLogger):
 
         self._sample_particle_f = sample_particle_f
         self._update = update_belief_f
-        self._reset_particle_f = reset_particle_f if reset_particle_f is not None else lambda _: self._sample_particle_f()
+
+        if reset_particle_f:
+            self._reset_particle_f = reset_particle_f
+        else:
+            self._reset_particle_f = lambda _: self._sample_particle_f()
 
         self._belief = self._filter_type()
 
@@ -332,7 +357,7 @@ class BeliefManager(POBNRLogger):
 
         """
 
-        self._belief = self._update(self._belief, action, observation)
+        self._belief = self._update(particle_filter=self._belief, action=action, observation=observation)
 
         if self.log_is_on(POBNRLogger.LogLevel.V4):
             self.log(POBNRLogger.LogLevel.V4, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
