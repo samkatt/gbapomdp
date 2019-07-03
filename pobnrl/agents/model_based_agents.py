@@ -32,6 +32,15 @@ class PrototypeAgent(Agent, POBNRLogger):
 
         self._last_action = -1
 
+    @property
+    def current_belief(self) -> ParticleFilter:
+        """ get the current belief of the agent
+
+        RETURNS (`ParticleFilter`):
+
+        """
+        return self._belief_manager.particle_filter
+
     def reset(self) -> None:
         """ resets belief """
 
@@ -82,14 +91,14 @@ class PrototypeAgent(Agent, POBNRLogger):
 
 def belief_rejection_sampling(
         sim: Simulator,
-        belief: ParticleFilter,
+        particle_filter: ParticleFilter,
         action: int,
         observation: np.ndarray) -> ParticleFilter:
-    """ performs rejection sampling on the belief given action and observation
+    """ performs rejection sampling on the particle_filter given action and observation
 
     Args:
          sim: the simulator used to simulate steps
-         belief: (`ParticleFilter`): belief at t
+         particle_filter: (`ParticleFilter`): belief at t
          action: (`int`): chosen action
          observation: (`np.ndarray`): perceived observation
 
@@ -98,7 +107,7 @@ def belief_rejection_sampling(
     """
 
     return rejection_sampling(
-        belief,
+        particle_filter,
         process_sample_f=partial(sim.simulation_step, action=action),
         accept_f=lambda interaction: np.all(interaction.observation == observation),
         extract_particle_f=lambda interaction: interaction.state,
