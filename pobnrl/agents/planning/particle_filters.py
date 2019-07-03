@@ -88,6 +88,24 @@ class FlatFilter(ParticleFilter):
     def __repr__(self) -> str:
         return f"FlatFilter of size {self.size}"
 
+    @classmethod
+    def create_from_process(cls, sample_process: Callable[[], Any], size: int) -> 'FlatFilter':
+        """ create a flat filter through some sampling process
+
+        Args:
+             sample_process: (`Callable[[], Any]`): function to generate samples
+             size: (`int`): number of particles
+
+        RETURNS (`FlatFilter`):
+
+        """
+        flatfilter = cls()
+
+        for _ in range(size):
+            flatfilter.add_particle(sample_process())
+
+        return flatfilter
+
 
 class WeightedParticle():
     """ a particle associated with a weight """
@@ -295,46 +313,38 @@ class BeliefManager(POBNRLogger):
 
     def __init__(
             self,
-            num_particles: int,
-            filter_type: Callable[[], ParticleFilter],
-            sample_particle_f: Callable[[], Any],
+            reset_f: Callable[[], ParticleFilter],
             update_belief_f: BeliefUpdate,
-            reset_particle_f: Optional[Callable[[Any], None]] = None):
+            episode_reset_f: Optional[Callable[[ParticleFilter], ParticleFilter]] = None):
         """ Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
 
         Args:
-             num_particles: (`int`): number of particles to hold
-             filter_type: (`Callable[[],` `ParticleFilter` ` ]`): particle filter constructor
-             sample_particle_f: (`Callable[[], Any]`): function that samples particles
-             update_belief_f: (`BeliefUpdate`): how to update the belief
-             reset_particle_f: (`Optional[Callable[[Any], None]]`): how to reset a particle to start state (defaults to `sample_particle_f`)
+             reset_f: (`Callable[[], ParticleFilter]`): the function to call to reset the belief
+             update_belief_f: (`BeliefUpdate`): the function to call to update the belief
+             episode_reset_f: (`Optional[Callable[[` `ParticleFilter` `], `ParticleFilter` ]]`): the episode reset function to call
+
+        Default value for `episode_reset_f` is to do the same as `reset_f`
+
         """
 
         POBNRLogger.__init__(self)
 
-        self._size = num_particles
-        self._filter_type = filter_type
-
-        self._sample_particle_f = sample_particle_f
+        self._reset = reset_f
         self._update = update_belief_f
 
-        if reset_particle_f:
-            self._reset_particle_f = reset_particle_f
+        if episode_reset_f:
+            self._episode_reset = episode_reset_f
         else:
-            self._reset_particle_f = lambda _: self._sample_particle_f()
+            self._episode_reset = lambda _: self._reset()
 
-        self._belief = self._filter_type()
+        self._belief = self._reset()
 
     def reset(self) -> None:
         """ resets by sampling new belief """
 
-        self._belief = self._filter_type()
-
-        # simply sample new states
-        for _ in range(self._size):
-            self._belief.add_particle(self._sample_particle_f())
+        self._belief = self._reset()
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset to {self._belief}")
@@ -342,8 +352,7 @@ class BeliefManager(POBNRLogger):
     def episode_reset(self) -> None:
         """ resets the belief for a new episode """
 
-        for particle in self._belief:
-            self._reset_particle_f(particle)
+        self._belief = self._episode_reset(self.particle_filter)
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset for new episode {self._belief}")

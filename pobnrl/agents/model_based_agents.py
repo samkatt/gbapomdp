@@ -1,5 +1,6 @@
 """ agents that act by learning a model of theenvironments """
 
+from collections import Counter
 from functools import partial
 import numpy as np
 
@@ -32,18 +33,8 @@ class PrototypeAgent(Agent, POBNRLogger):
 
         self._last_action = -1
 
-    @property
-    def current_belief(self) -> ParticleFilter:
-        """ get the current belief of the agent
-
-        RETURNS (`ParticleFilter`):
-
-        """
-        return self._belief_manager.particle_filter
-
     def reset(self) -> None:
         """ resets belief """
-
         self._belief_manager.reset()
 
     def episode_reset(self, _observation: np.ndarray) -> None:
@@ -131,16 +122,29 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
     if conf.belief != 'rejection_sampling':
         raise ValueError(f'belief must be rejection_sampling, not {conf.belief}')
 
-    def reset_particle(augmented_state: NeuralEnsemblePOMDP.AugmentedState):
-        augmented_state.domain_state = sim.sample_domain_start_state()
+    logger = POBNRLogger('BeliefManager')
+
+    def reset_belief(p_filter: ParticleFilter) -> ParticleFilter:
+        for particle in p_filter:
+            particle.domain_state = sim.sample_domain_start_state()
+
+        if logger.log_is_on(POBNRLogger.LogLevel.V2):
+
+            logger.log(
+                logger.LogLevel.V2,
+                str(sorted(Counter([particle.model for particle in p_filter]).items(), key=lambda x: id(x[0])))
+            )
+
+        return p_filter
 
     # return belief manager with rejection sampling functionality as defined above
     return BeliefManager(
-        num_particles=conf.num_particles,
-        filter_type=FlatFilter,
-        sample_particle_f=sim.sample_start_state,
+        reset_f=partial(
+            FlatFilter.create_from_process,
+            sample_process=sim.sample_start_state, size=conf.num_particles
+        ),
         update_belief_f=partial(belief_rejection_sampling, sim=sim),
-        reset_particle_f=reset_particle
+        episode_reset_f=reset_belief
     )
 
 
@@ -194,9 +198,10 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
     )
 
     believe_manager = BeliefManager(
-        num_particles=conf.num_particles,
-        filter_type=FlatFilter,
-        sample_particle_f=sim.sample_start_state,
+        reset_f=partial(
+            FlatFilter.create_from_process,
+            sample_process=sim.sample_start_state, size=conf.num_particles
+        ),
         update_belief_f=partial(belief_rejection_sampling, sim=sim)
     )
 
