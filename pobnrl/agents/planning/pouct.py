@@ -150,7 +150,7 @@ class POUCT(POBNRLogger):
         min_return = float('inf')
         max_return = -float('inf')
         tree_depth = 0
-        max_iteration = 0
+        longest_iteration = 0
 
         # build tree
         for run in range(self.num_sims):
@@ -161,12 +161,12 @@ class POUCT(POBNRLogger):
             min_return = min(min_return, result.ret)
             max_return = max(max_return, result.ret)
             tree_depth = max(tree_depth, result.depth)
-            max_iteration = max(max_iteration, result.length)
+            longest_iteration = max(longest_iteration, result.length)
 
         self.log(
             POBNRLogger.LogLevel.V3,
             f"POUCT: Q: {root.avg_values}, returns {min_return} to {max_return} "
-            f"tree depth {tree_depth}, longest run {max_iteration}"
+            f"tree depth {tree_depth}, longest run {longest_iteration}"
         )
 
         # pick best action from root
@@ -192,7 +192,7 @@ class POUCT(POBNRLogger):
         if node.num_visits == 0:
             action, ret, length = self._rollout(state, self.planning_horizon - node.depth)
             iteration_res \
-                = _IterationResult(ret=ret, depth=node.depth, length=length)
+                = _IterationResult(ret=ret, depth=node.depth, length=length+node.depth)
 
         else:
 
