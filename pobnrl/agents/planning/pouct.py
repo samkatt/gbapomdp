@@ -192,7 +192,7 @@ class POUCT(POBNRLogger):
         if node.num_visits == 0:
             action, ret, length = self._rollout(state, self.planning_horizon - node.depth)
             iteration_res \
-                = _IterationResult(ret=ret, depth=node.depth, length=length+node.depth)
+                = _IterationResult(ret=ret, depth=node.depth, length=length + node.depth)
 
         else:
 
