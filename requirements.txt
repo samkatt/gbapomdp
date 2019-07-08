@@ -1,0 +1,4 @@
+gym
+opencv-python
+tensorflow
+typing_extensions

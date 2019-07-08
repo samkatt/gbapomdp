@@ -10,34 +10,15 @@ documentation that one would typically expect from open source projects.
 ## Use
 
 ### Installation
-Install the required python packages and dependencies
-
-#### Known dependencies
-
-Open AI gym:
+Install the required python packages and dependencies:
 
 ```bash
-pip install gym
-```
-
-OpenCV python:
-```bash
-pip instal opencv-python
+pip install -r requirements.txt
 ```
 
 ffmpeg encoding
 ```bash
 sudo apt install ffmpeg
-```
-
-tensorflow
-```bash
-pip install tensorflow
-```
-
-typing_extensions 
-```bash
-pip install typing_extensions
 ```
 
 ### Run the program
