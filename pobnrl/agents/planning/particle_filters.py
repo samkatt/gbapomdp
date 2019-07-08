@@ -48,6 +48,31 @@ class ParticleFilter(abc.ABC):
     def __iter__(self):
         """ returns an iterator """
 
+    @staticmethod
+    def resample(p_filter: 'ParticleFilter', constructor: Callable[[], 'ParticleFilter'], num: int = 0) -> 'ParticleFilter':
+        """ performs a resample
+
+        Args:
+             p_filter: (`ParticleFilter`): the filter to resample from
+             constructor: (`Callable[[], ` `ParticleFilter` ` ]`): constructor of new particle filter
+             num: (`int`): set to `p_filter` size if not provided
+
+        RETURNS (`ParticleFilter`):
+
+        """
+
+        assert num >= 0, f"cannot resample less than 0 ({num}) samples"
+
+        if num == 0:
+            num = p_filter.size
+
+        new_filter = constructor()
+
+        for _ in range(num):
+            new_filter.add_particle(p_filter.sample().particle)
+
+        return new_filter
+
 
 class FlatFilter(ParticleFilter):
     """ a filter where particles have no weights """
@@ -110,7 +135,7 @@ class FlatFilter(ParticleFilter):
 class WeightedParticle():
     """ a particle associated with a weight """
 
-    def __init__(self, value: Any, weight: float):
+    def __init__(self, value: Any, weight: float = 1):
         """ creates a particle `value` of weight `weight`
 
         Args:
