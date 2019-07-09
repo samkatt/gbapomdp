@@ -52,6 +52,8 @@ class ParticleFilter(abc.ABC):
     def resample(p_filter: 'ParticleFilter', constructor: Callable[[], 'ParticleFilter'], num: int = 0) -> 'ParticleFilter':
         """ performs a resample
 
+        TODO: remove `constructor` and replace construction with type(p_filter)()
+
         Args:
              p_filter: (`ParticleFilter`): the filter to resample from
              constructor: (`Callable[[], ` `ParticleFilter` ` ]`): constructor of new particle filter

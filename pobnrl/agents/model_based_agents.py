@@ -1,4 +1,4 @@
-""" agents that act by learning a model of theenvironments """
+""" agents that act by learning a model of the environments """
 
 from collections import Counter
 from functools import partial
@@ -105,6 +105,44 @@ def belief_rejection_sampling(
     )
 
 
+def reset_belief(
+        p_filter: ParticleFilter,
+        logger: POBNRLogger,
+        sim: NeuralEnsemblePOMDP) -> ParticleFilter:
+    """ resets the belief in between episodes
+
+    In between episodes the (state) belief has to be reset to represent the
+    initial POMDP state distribution. This is done here by resetting the POMDP
+    state of each particle to some initial POMDP state.
+
+    Args:
+         p_filter: (`ParticleFilter`): belief to reset
+         logger: (`POBNRLogger`): used for logging diagnostics
+         sim: (`NeuralEnsemblePOMDP`): the simulator used to sample states
+
+    RETURNS (`ParticleFilter`):
+
+    """
+
+    for particle in p_filter:
+        particle.domain_state = sim.sample_domain_start_state()
+
+    tmp = Counter([particle.model for particle in p_filter])
+
+    sim.diagnose_distribution(tmp)
+
+    if logger.log_is_on(POBNRLogger.LogLevel.V3):
+
+        logger.log(
+            logger.LogLevel.V3,
+            f'Model density:'
+            f'{sorted(Counter([particle.model for particle in p_filter]).items(), key=lambda x: id(x[0]))}\n'
+            f'States {str(Counter([x.domain_state[0] for x in p_filter]))}'
+        )
+
+    return p_filter
+
+
 def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefManager:
     """ returns a belief manager for the learning context
 
@@ -122,29 +160,15 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
     if conf.belief != 'rejection_sampling':
         raise ValueError(f'belief must be rejection_sampling, not {conf.belief}')
 
-    logger = POBNRLogger('BeliefManager')
-
-    def reset_belief(p_filter: ParticleFilter) -> ParticleFilter:
-        for particle in p_filter:
-            particle.domain_state = sim.sample_domain_start_state()
-
-        if logger.log_is_on(POBNRLogger.LogLevel.V2):
-
-            logger.log(
-                logger.LogLevel.V2,
-                str(sorted(Counter([particle.model for particle in p_filter]).items(), key=lambda x: id(x[0])))
-            )
-
-        return p_filter
-
     # return belief manager with rejection sampling functionality as defined above
     return BeliefManager(
         reset_f=partial(
             FlatFilter.create_from_process,
-            sample_process=sim.sample_start_state, size=conf.num_particles
+            sample_process=sim.sample_start_state,
+            size=conf.num_particles
         ),
         update_belief_f=partial(belief_rejection_sampling, sim=sim),
-        episode_reset_f=reset_belief
+        episode_reset_f=partial(reset_belief, logger=POBNRLogger('BeliefManager'), sim=sim)
     )
 
 
