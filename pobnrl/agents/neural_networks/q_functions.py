@@ -159,10 +159,11 @@ class DQNNet(QNetInterface, POBNRLogger):
 
             with tf.name_scope('compute_target'):
 
-                targets = tf.where(
+                targets = tf.compat.v2.where(
                     self.done_mask_ph,
                     x=self.rew_ph,
-                    y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
+                    # y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
+                    y=self.rew_ph
                 )
 
             loss = misc.loss(q_values, targets, conf.loss)
@@ -366,9 +367,9 @@ class DRQNNet(QNetInterface, POBNRLogger):
             self.rew_ph = tf.compat.v1.placeholder(tf.float32, [None], name="rewards")
             self.done_mask_ph = tf.compat.v1.placeholder(tf.bool, [None], name="terminals")
 
-            self.rnn_state_ph\
-                = tf.nn.rnn_cell.LSTMCell(conf.network_size).zero_state(
-                    tf.shape(self.obs_ph)[0], dtype=tf.float32
+            self.rnn_state_ph_c, self.rnn_state_ph_h\
+                = tf.keras.layers.LSTMCell(conf.network_size).get_initial_state(
+                    batch_size=tf.shape(self.obs_ph)[0], dtype=tf.float32
                 )
 
             # training operation q values and targets
@@ -376,7 +377,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
                 self.qvalues_fn, self.rec_state_fn = rec_q_func(
                     self.obs_ph,
-                    self.rnn_state_ph,
+                    [self.rnn_state_ph_c, self.rnn_state_ph_h],
                     action_space.n,
                     conf.network_size
                 )
@@ -396,8 +397,8 @@ class DRQNNet(QNetInterface, POBNRLogger):
                             self.obs_ph,
                             # FIXME: currently the prior rnn state is **NOT**
                             # being maintained. This is a **BUG**
-                            tf.nn.rnn_cell.LSTMCell(4).zero_state(
-                                tf.shape(self.obs_ph)[0], dtype=tf.float32
+                            tf.keras.layers.LSTMCell(4).get_initial_state(
+                                batch_size=tf.shape(self.obs_ph)[0], dtype=tf.float32
                             ),
                             action_space.n,
                             4
@@ -419,8 +420,8 @@ class DRQNNet(QNetInterface, POBNRLogger):
                     self.next_obs_ph,
                     # this network is only used during training
                     # so the initial rnn state will always be 'zero state'
-                    tf.nn.rnn_cell.LSTMCell(conf.network_size).zero_state(
-                        tf.shape(self.next_obs_ph)[0], dtype=tf.float32
+                    tf.keras.layers.LSTMCell(conf.network_size).get_initial_state(
+                        batch_size=tf.shape(self.next_obs_ph)[0], dtype=tf.float32
                     ),
                     action_space.n,
                     conf.network_size
@@ -435,8 +436,8 @@ class DRQNNet(QNetInterface, POBNRLogger):
                             self.next_obs_ph,
                             # this network is only used during training
                             # so the initial rnn state will always be 'zero state'
-                            tf.nn.rnn_cell.LSTMCell(4).zero_state(
-                                tf.shape(self.next_obs_ph)[0], dtype=tf.float32
+                            tf.keras.layers.LSTMCell(4).get_initial_state(
+                                batch_size=tf.shape(self.next_obs_ph)[0], dtype=tf.float32
                             ),
                             action_space.n,
                             4
@@ -517,7 +518,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
         }
 
         if self.rnn_state is not None:
-            feed_dict[self.rnn_state_ph] = self.rnn_state
+            feed_dict[self.rnn_state_ph_c], feed_dict[self.rnn_state_ph_h] = self.rnn_state
 
         self.log(
             POBNRLogger.LogLevel.V4,

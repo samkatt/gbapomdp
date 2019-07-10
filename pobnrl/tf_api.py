@@ -7,8 +7,9 @@ import tensorflow as tf
 
 from misc import POBNRLogger
 
-# avoid print statements
+# avoid print statements about tf libraries using deprecated functions
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+# reporting of info on CPU & GPU level
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # please, for the love of everything good in this world, don't refer to this
