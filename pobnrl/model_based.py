@@ -47,12 +47,9 @@ def main(conf) -> None:
     ret_m2 = np.zeros(conf.episodes)
     logger.log(POBNRLogger.LogLevel.V1, f"Running {agent} experiment on {env}")
 
-    tensorboard_name = ""
-
     for run in range(conf.runs):
 
-        if conf.tensorboard_name:
-            tensorboard_name = f'{conf.tensorboard_name}-{run}'
+        tensorboard_name = f'{conf.tensorboard_name}-{run}' if conf.tensorboard_name else ""
 
         with tf_session(conf.use_gpu, tensorboard_name):
 

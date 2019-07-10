@@ -189,14 +189,10 @@ class DQNNet(QNetInterface, POBNRLogger):
                 q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
                 global_norm_summary = tf.compat.v1.summary.scalar('global norm', global_norm)
 
-                grads = [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
-                         for grad in gradients]
-
                 self.train_diag = tf.compat.v1.summary.merge([
                     loss_summary,
                     q_values_summary,
                     global_norm_summary,
-                    grads
                 ], name="diagnostics")
 
     def reset(self) -> None:
@@ -480,16 +476,10 @@ class DRQNNet(QNetInterface, POBNRLogger):
                 q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
                 global_norm_summary = tf.compat.v1.summary.scalar('global-norm', global_norm)
 
-                grads = [
-                    tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
-                    for grad in gradients
-                ]
-
                 self.train_diag = tf.compat.v1.summary.merge([
                     loss_summary,
                     q_values_summary,
                     global_norm_summary,
-                    grads
                 ], name="diagnostics")
 
     def reset(self) -> None:

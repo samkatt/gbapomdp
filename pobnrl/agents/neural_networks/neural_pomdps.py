@@ -8,7 +8,7 @@ from agents.neural_networks import simple_fc_nn
 from agents.neural_networks.misc import softmax_sample
 from environments import ActionSpace
 from misc import DiscreteSpace
-from tf_api import tf_run, tf_board_write
+from tf_api import tf_run, tf_board_write, tf_writing_to_board
 
 
 class DynamicsModel():
@@ -118,13 +118,12 @@ class DynamicsModel():
 
             self._train_op = optimizer.apply_gradients(grads_and_vars)
 
-            if conf.tensorboard_name:
+            if tf_writing_to_board(conf):
                 self.train_diag = tf.compat.v1.summary.merge(
                     [
                         tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
                         tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
-                    ] + [tf.compat.v1.summary.scalar(grad.name, tf.sqrt(tf.reduce_mean(tf.square(grad))))
-                         for grad, _ in grads_and_vars]
+                    ]
                 )
             else:
                 self.train_diag = tf.no_op('no-diagnostics')
