@@ -85,7 +85,7 @@ class DynamicsModel():
                 )
 
             # observation model
-            with tf.name_scope("O"):
+            with tf.name_scope("observation_model"):
 
                 input_o = tf.concat(
                     [self._input_states_ph, self._input_actions_ph, self._input_new_states_ph],
