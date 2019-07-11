@@ -49,14 +49,11 @@ class ParticleFilter(abc.ABC):
         """ returns an iterator """
 
     @staticmethod
-    def resample(p_filter: 'ParticleFilter', constructor: Callable[[], 'ParticleFilter'], num: int = 0) -> 'ParticleFilter':
-        """ performs a resample
-
-        TODO: remove `constructor` and replace construction with type(p_filter)()
+    def resample(p_filter: 'ParticleFilter', num: int = 0) -> 'ParticleFilter':
+        """ resamples given particle filter
 
         Args:
              p_filter: (`ParticleFilter`): the filter to resample from
-             constructor: (`Callable[[], ` `ParticleFilter` ` ]`): constructor of new particle filter
              num: (`int`): set to `p_filter` size if not provided
 
         RETURNS (`ParticleFilter`):
@@ -68,7 +65,7 @@ class ParticleFilter(abc.ABC):
         if num == 0:
             num = p_filter.size
 
-        new_filter = constructor()
+        new_filter = type(p_filter)()
 
         for _ in range(num):
             new_filter.add_particle(p_filter.sample().particle)

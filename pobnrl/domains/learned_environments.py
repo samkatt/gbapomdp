@@ -134,7 +134,6 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             ) for i in range(conf.num_nets)
         ]
 
-        # diagnostics (TODO: can be call without tensors?)
         self._diagnostics = tf_writing_to_board(conf)
         self._created_custom_tf_layout = False
         with tf.name_scope('ensemble_diagnostics'):
