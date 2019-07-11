@@ -12,25 +12,8 @@ import random
 
 from collections import deque
 from typing import Deque, List, Any
-import numpy as np
 
 import tensorflow as tf
-
-
-def softmax_sample(arr: np.array) -> int:
-    """ returns a soft(arg)max sample from `arr`
-
-    Args:
-         arr: (`np.array`): a 1-dimensional numpy array to sample from
-
-    RETURNS (`int`): between 0 ... len(arr)
-
-    """
-    # require the astype because it will implicitely be cast as
-    # such in np.random.multinomial and rounding may cause it to
-    # become larger than 1, causing issues
-    ar_exp = np.exp(arr - arr.max()).astype('float64')
-    return np.random.multinomial(1, pvals=ar_exp / ar_exp.sum()).argmax()
 
 
 def loss(q_values, targets, loss_type: str):

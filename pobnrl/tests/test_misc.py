@@ -12,7 +12,7 @@ import unittest
 import numpy as np
 import random
 
-from agents.neural_networks.misc import ReplayBuffer, softmax_sample
+from agents.neural_networks.misc import ReplayBuffer
 from environments import ActionSpace
 from misc import DiscreteSpace, set_random_seed
 
@@ -124,25 +124,6 @@ class TestReplayBuffer(unittest.TestCase):
 
         replay_buffer.store((), True)
         self.assertEqual(replay_buffer.size, 5)
-
-
-class TestSoftmax(unittest.TestCase):
-    """ tests the softmax sampling method """
-
-    def test_simple(self):
-        """ some super easy stuff """
-
-        self.assertEqual(softmax_sample(np.array([1])), 0)
-        self.assertEqual(softmax_sample(np.array([25])), 0)
-        self.assertEqual(softmax_sample(np.array([0, 5])), 1)
-        self.assertEqual(softmax_sample(np.array([100, 0])), 0)
-
-    def test_negative(self):
-        """ tests with negative numbers """
-
-        self.assertEqual(softmax_sample(np.array([-10])), 0)
-        self.assertEqual(softmax_sample(np.array([-10, 1])), 1)
-        self.assertEqual(softmax_sample(np.array([-10, -1])), 1)
 
 
 class TestRandomSeed(unittest.TestCase):

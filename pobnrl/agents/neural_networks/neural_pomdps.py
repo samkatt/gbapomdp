@@ -5,7 +5,6 @@ import numpy as np
 import tensorflow as tf
 
 from agents.neural_networks import simple_fc_nn
-from agents.neural_networks.misc import softmax_sample
 from environments import ActionSpace
 from misc import DiscreteSpace
 from tf_api import tf_run, tf_board_write, tf_writing_to_board
@@ -34,78 +33,101 @@ class DynamicsModel():
 
         self.state_space = state_space
         self.action_space = action_space
-        self.obs_space = obs_space
-
-        self._num_state_out = np.sum(self.state_space.size)
-        self._num_obs_out = np.sum(self.obs_space.size)
 
         with tf.name_scope(name):
 
-            # transition model
-            with tf.name_scope("T"):
+            self._input_states_ph = tf.compat.v1.placeholder(
+                tf.int32, shape=[None, self.state_space.ndim], name="input_states"
+            )
 
-                self._input_t = tf.compat.v1.placeholder(
-                    tf.int32,
-                    shape=[None, self.state_space.ndim + self.action_space.n],
-                    name="input"
+            self._input_actions_ph = tf.compat.v1.placeholder(
+                tf.int32, shape=[None, self.action_space.n], name="input_actions"
+            )
+
+            self._input_new_states_ph = tf.compat.v1.placeholder(
+                tf.int32, shape=[None, self.state_space.ndim], name="new_state_targets"
+            )
+
+            with tf.name_scope("transition_model"):
+
+                input_t = tf.concat(
+                    [self._input_states_ph, self._input_actions_ph], axis=1, name='input_T'
                 )
 
-                self._new_state_logits = simple_fc_nn(
-                    tf.cast(self._input_t, tf.float32),
-                    n_out=self._num_state_out,
+                new_state_logits = simple_fc_nn(
+                    tf.cast(input_t, tf.float32),
+                    n_out=np.sum(self.state_space.size),
                     n_hidden=conf.network_size
-                )
-
-                self._train_new_states_ph = tf.compat.v1.placeholder(
-                    tf.int32,
-                    shape=[None, self.state_space.ndim],
-                    name="logits"
                 )
 
                 state_losses = [
                     tf.nn.sparse_softmax_cross_entropy_with_logits(
-                        labels=self._train_new_states_ph[:, i],
-                        logits=self._new_state_logits[
+                        labels=self._input_new_states_ph[:, i],
+                        logits=new_state_logits[
                             :,
                             sum(self.state_space.size[:i]):
                             sum(self.state_space.size[:i + 1])
                         ],
-                        name=f"loss_{i}"
+                        name=f"state_loss_{i}"
                     ) for i in range(self.state_space.ndim)
                 ]
+
+                self._sample_states = tf.concat(
+                    [
+                        tf.random.categorical(
+                            new_state_logits[:, sum(state_space.size[:i]):sum(state_space.size[:i + 1])],
+                            num_samples=1,
+                            name=f'sample_state_feature_{i}')
+                        for i in range(state_space.ndim)
+                    ],
+                    axis=1,
+                    name='combine_new_state_features'
+                )
 
             # observation model
             with tf.name_scope("O"):
 
-                self._input_o = tf.compat.v1.placeholder(
-                    tf.int32,
-                    shape=[None, 2 * self.state_space.ndim + self.action_space.n],
+                input_o = tf.concat(
+                    [self._input_states_ph, self._input_actions_ph, self._input_new_states_ph],
+                    axis=1,
                     name="input_O"
                 )
 
-                self._observation_logits = simple_fc_nn(
-                    tf.cast(self._input_o, tf.float32),
-                    n_out=self._num_obs_out,
+                observation_logits = simple_fc_nn(
+                    tf.cast(input_o, tf.float32),
+                    n_out=np.sum(obs_space.size),
                     n_hidden=conf.network_size
                 )
 
                 self._train_obs_ph = tf.compat.v1.placeholder(
                     tf.int32,
-                    shape=[None, self.obs_space.ndim],
-                    name="logits"
+                    shape=[None, obs_space.ndim],
+                    name="observation_targets"
                 )
 
                 obs_losses = [
                     tf.nn.sparse_softmax_cross_entropy_with_logits(
                         labels=self._train_obs_ph[:, i],
-                        logits=self._observation_logits[
+                        logits=observation_logits[
                             :,
-                            sum(self.obs_space.size[:i]):
-                            sum(self.obs_space.size[:i + 1])
+                            sum(obs_space.size[:i]):
+                            sum(obs_space.size[:i + 1])
                         ],
-                        name=f"loss_{i}"
-                    ) for i in range(self.obs_space.ndim)
+                        name=f"observation_loss_{i}"
+                    ) for i in range(obs_space.ndim)
                 ]
+
+                self._sample_observations = tf.concat(
+                    [
+                        tf.random.categorical(
+                            observation_logits[:, sum(obs_space.size[:i]):sum(obs_space.size[:i + 1])],
+                            num_samples=1,
+                            name=f'sample_obs_feature_{i}')
+                        for i in range(obs_space.ndim)
+                    ],
+                    axis=1,
+                    name='combine_obs_features'
+                )
 
             optimizer = tf.compat.v1.train.AdamOptimizer(conf.learning_rate)
 
@@ -142,37 +164,27 @@ class DynamicsModel():
         assert self.state_space.contains(state), f"{state} not in {self.state_space}"
         assert self.action_space.contains(action), f"{action} not in {self.action_space}"
 
-        new_state_logits = tf_run(
-            self._new_state_logits,
-            feed_dict={self._input_t: np.array([*state, *self.action_space.one_hot(action)])[None]}
-        )[0]  # squeeze batch_size dimension
+        state = state[None]
+        action = self.action_space.one_hot(action)[None]
 
-        new_state = [  # softmax sample of each dimension
-            softmax_sample(
-                new_state_logits[sum(self.state_space.size[:i]):
-                                 sum(self.state_space.size[:i + 1])]
-            )
-            for i in range(self.state_space.ndim)
-        ]
+        new_state = tf_run(
+            self._sample_states,
+            feed_dict={
+                self._input_states_ph: state,
+                self._input_actions_ph: action
+            }
+        )
 
-        observation_logits = tf_run(
-            self._observation_logits,
-            feed_dict={self._input_o: np.array([
-                *state,
-                *self.action_space.one_hot(action),
-                *new_state
-            ])[None]}
-        )[0]  # squeeze batch_size dim
+        observation = tf_run(
+            self._sample_observations,
+            feed_dict={
+                self._input_states_ph: state,
+                self._input_actions_ph: action,
+                self._input_new_states_ph: new_state
+            }
+        )
 
-        obs = [  # softmax sample of each dimension
-            softmax_sample(
-                observation_logits[sum(self.obs_space.size[:i]):
-                                   sum(self.obs_space.size[:i + 1])]
-            )
-            for i in range(self.obs_space.ndim)
-        ]
-
-        return np.array(new_state), np.array(obs)
+        return new_state[0], observation[0]
 
     def batch_update(
             self,
@@ -190,22 +202,14 @@ class DynamicsModel():
 
         """
 
-        input_t = np.array([
-            [*state, *self.action_space.one_hot(action).astype(int)]
-            for state, action in zip(states, actions)
-        ])
-
-        input_o = np.array([
-            [*state, *self.action_space.one_hot(action).astype(int), *new_state]
-            for state, action, new_state in zip(states, actions, new_states)
-        ])
+        actions = [self.action_space.one_hot(a) for a in actions]
 
         _, diag = tf_run(
             [self._train_op, self.train_diag],
             feed_dict={
-                self._input_t: input_t,
-                self._input_o: input_o,
-                self._train_new_states_ph: new_states,
+                self._input_states_ph: states,
+                self._input_actions_ph: actions,
+                self._input_new_states_ph: new_states,
                 self._train_obs_ph: obs
             }
         )
