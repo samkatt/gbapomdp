@@ -89,6 +89,10 @@ class TreeNode():
         self.avg_values[child] += \
             (value - self.avg_values[child]) / self.children_visits[child]
 
+    def __repr__(self) -> str:
+        """ prints out value and counts for each child """
+        return str({c: v for c, v in zip(self.children_visits, self.avg_values)})
+
 
 class POUCT(POBNRLogger):
     """ MCTS for POMDPs using UCB """
@@ -165,7 +169,7 @@ class POUCT(POBNRLogger):
 
         self.log(
             POBNRLogger.LogLevel.V3,
-            f"POUCT: Q: {root.avg_values}, returns {min_return} to {max_return} "
+            f"POUCT: Q: {root}, returns {min_return} to {max_return} "
             f"tree depth {tree_depth}, longest run {longest_iteration}"
         )
 

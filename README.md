@@ -40,7 +40,7 @@ Systems. 2018.][1]
   in `doc/pobnrl` folder
 * static analysis & formatting: Run `./static_analyse.sh` in root and check
   whether the code is formatted correctly
-* testing: Run `./run_tests.sh` in root and check whether all pass
+* testing: Run `./run_tests.sh` and `./run_tests_integration.sh` in root and check that all pass
 
 ### TODO
 
