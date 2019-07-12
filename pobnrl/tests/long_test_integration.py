@@ -117,7 +117,7 @@ class TestModelBasedRL(unittest.TestCase):
     """ tests the model_base.py entry point """
 
     @staticmethod
-    def run_experiment(args):
+    def run_experiment(args) -> None:
         """ runs an experiment with args as configuration
 
         Adds some default arguments to the experiment
@@ -163,6 +163,11 @@ class TestModelBasedRL(unittest.TestCase):
         """ tests the functionality of training on randomly sampled data """
 
         self.run_experiment(['-D=gridworld', '--domain_size=4'])
+
+    def test_importance_sampling(self) -> None:
+        """ tests whether importance sampling works """
+
+        self.run_experiment(['-D=gridworld', '--domain_size=3', '-B=importance_sampling'])
 
 
 if __name__ == '__main__':

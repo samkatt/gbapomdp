@@ -129,6 +129,17 @@ class DynamicsModel():
                     name='combine_obs_features'
                 )
 
+                self._observation_probabilities = tf.concat(
+                    [
+                        tf.math.softmax(
+                            observation_logits[:, sum(obs_space.size[:i]):sum(obs_space.size[:i + 1])],
+                            name=f'obs_feature_probability_{i}')
+                        for i in range(obs_space.ndim)
+                    ],
+                    axis=1,
+                    name='combine_obs_probabilities'
+                )
+
             optimizer = tf.compat.v1.train.AdamOptimizer(conf.learning_rate)
 
             grads_and_vars = optimizer.compute_gradients(
@@ -164,16 +175,11 @@ class DynamicsModel():
         assert self.state_space.contains(state), f"{state} not in {self.state_space}"
         assert self.action_space.contains(action), f"{action} not in {self.action_space}"
 
+        new_state = self.sample_state(state, action)
+
         state = state[None]
         action = self.action_space.one_hot(action)[None]
-
-        new_state = tf_run(
-            self._sample_states,
-            feed_dict={
-                self._input_states_ph: state,
-                self._input_actions_ph: action
-            }
-        )
+        new_state = new_state[None]
 
         observation = tf_run(
             self._sample_observations,
@@ -215,3 +221,55 @@ class DynamicsModel():
         )
 
         tf_board_write(diag)
+
+    def sample_state(self, state: np.ndarray, action: int) -> np.ndarray:
+        """ samples new state given current and action
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+
+        RETURNS (`np.ndarray`):
+
+        """
+
+        state = state[None]
+        action = self.action_space.one_hot(action)[None]
+
+        return tf_run(
+            self._sample_states,
+            feed_dict={self._input_states_ph: state, self._input_actions_ph: action}
+        )[0]
+
+    def observation_prob(
+            self,
+            state: np.ndarray,
+            action: int,
+            new_state: np.ndarray,
+            observation: np.ndarray) -> float:
+        """ Returns the observation probability of a transition
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+             observation: (`np.ndarray`):
+
+        RETURNS (`float`):
+
+        """
+
+        state = state[None]
+        action = self.action_space.one_hot(action)[None]
+        new_state = new_state[None]
+
+        observation_probs = tf_run(
+            self._observation_probabilities,
+            feed_dict={
+                self._input_states_ph: state,
+                self._input_actions_ph: action,
+                self._input_new_states_ph: new_state,
+            }
+        )
+
+        return np.prod([prob[i] for i, prob in zip(observation, observation_probs)])

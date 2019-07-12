@@ -111,20 +111,19 @@ class TestBeliefUpdates(unittest.TestCase):
 
         wfilter1 = importance_sampling(wfilter, self.increment, self.one)
 
-        for particle in wfilter1:
-            self.assertEqual(particle.weight, .5)
+        for particle in wfilter1._particles:  # pylint: disable=protected-access
             self.assertEqual(particle.value, 2)
 
         wfilter1.add_weighted_particle(WeightedParticle(value=10, weight=5))
         wfilter2 = importance_sampling(wfilter1, self.increment, self.over_one)
 
-        for particle in wfilter2:
+        for particle in wfilter2._particles:  # pylint: disable=protected-access
             self.assertIn(particle.value, [11, 3])
 
             if particle.value == 11:
-                self.assertEqual(particle.weight, 5 * (1 / 11))
+                self.assertEqual(particle.weight, 1 / 11)
             else:
-                self.assertAlmostEqual(particle.weight, .5 * (1 / 3))
+                self.assertAlmostEqual(particle.weight, 1 / 3)
 
 
 class TestResampling(unittest.TestCase):
@@ -151,7 +150,7 @@ class TestResampling(unittest.TestCase):
         self.assertIsInstance(new_filter, WeightedFilter)
         self.assertEqual(new_filter.size, 2)
         for part in new_filter:
-            self.assertEqual(part.value, 3)
+            self.assertEqual(part, 3)
 
         # 2 particles of which one with 0 weight weighted filter
         weighted_filter.add_weighted_particle(WeightedParticle(100, .0))
@@ -160,7 +159,7 @@ class TestResampling(unittest.TestCase):
         self.assertIsInstance(new_filter, WeightedFilter)
         self.assertEqual(new_filter.size, 10)
         for part in new_filter:
-            self.assertEqual(part.value, 3)
+            self.assertEqual(part, 3)
 
 
 if __name__ == '__main__':

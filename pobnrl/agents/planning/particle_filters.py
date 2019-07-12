@@ -48,11 +48,33 @@ class ParticleFilter(abc.ABC):
     def __iter__(self):
         """ returns an iterator """
 
+    @classmethod
+    def create_from_process(
+            cls,
+            sample_process: Callable[[], Any],
+            size: int) -> 'ParticleFilter':
+        """ create a flat filter through some sampling process
+
+        Args:
+             sample_process: (`Callable[[], Any]`): function to generate samples
+             size: (`int`): number of particles
+
+        RETURNS (`FlatFilter`):
+
+        """
+
+        new_filter = cls()
+
+        for _ in range(size):
+            new_filter.add_particle(sample_process())
+
+        return new_filter
+
 
 class FlatFilter(ParticleFilter):
     """ a filter where particles have no weights """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ create a flat filter """
 
         self._particles: List[Any] = []
@@ -87,24 +109,6 @@ class FlatFilter(ParticleFilter):
 
     def __repr__(self) -> str:
         return f"FlatFilter of size {self.size}"
-
-    @classmethod
-    def create_from_process(cls, sample_process: Callable[[], Any], size: int) -> 'FlatFilter':
-        """ create a flat filter through some sampling process
-
-        Args:
-             sample_process: (`Callable[[], Any]`): function to generate samples
-             size: (`int`): number of particles
-
-        RETURNS (`FlatFilter`):
-
-        """
-        flatfilter = cls()
-
-        for _ in range(size):
-            flatfilter.add_particle(sample_process())
-
-        return flatfilter
 
 
 class WeightedParticle():
@@ -170,7 +174,7 @@ class WeightedParticle():
 class WeightedFilter(ParticleFilter):
     """ a filter where particles are associated with a weight """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ create a weighted filter """
 
         self._total_weight = .0
@@ -237,7 +241,10 @@ class WeightedFilter(ParticleFilter):
 
     def __iter__(self):
         """ iterate over samples in filter """
-        return iter(self._particles)
+        return (p.value for p in self._particles)
+
+    def __repr__(self) -> str:
+        return f'WeightedFilter of {self.size} particles and {self._total_weight} total weight'
 
 
 def rejection_sampling(
@@ -294,14 +301,16 @@ def importance_sampling(
 
     """
 
-    for sample in particle_filter:
+    new_filter = WeightedFilter()
+    for _ in range(particle_filter.size):
 
-        result = process_sample_f(sample.value)
+        result = process_sample_f(particle_filter.sample())
+        weight = weight_f(result)
+        sample = extract_particle_f(result)
 
-        sample.weight *= weight_f(result)
-        sample.value = extract_particle_f(result)
+        new_filter.add_weighted_particle(WeightedParticle(sample, weight))
 
-    return particle_filter
+    return new_filter
 
 
 def resample(p_filter: 'ParticleFilter', num: int = 0) -> 'ParticleFilter':
@@ -317,7 +326,7 @@ def resample(p_filter: 'ParticleFilter', num: int = 0) -> 'ParticleFilter':
 
     assert num >= 0, f"cannot resample less than 0 ({num}) samples"
 
-    if num == 0:
+    if not num:
         num = p_filter.size
 
     new_filter = type(p_filter)()
@@ -408,8 +417,8 @@ class BeliefManager(POBNRLogger):
 
         self._belief = self._update(particle_filter=self._belief, action=action, observation=observation)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V4):
-            self.log(POBNRLogger.LogLevel.V4, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
+        if self.log_is_on(POBNRLogger.LogLevel.V3):
+            self.log(POBNRLogger.LogLevel.V3, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
 
     @property
     def particle_filter(self) -> ParticleFilter:
