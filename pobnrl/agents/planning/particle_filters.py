@@ -48,30 +48,6 @@ class ParticleFilter(abc.ABC):
     def __iter__(self):
         """ returns an iterator """
 
-    @staticmethod
-    def resample(p_filter: 'ParticleFilter', num: int = 0) -> 'ParticleFilter':
-        """ resamples given particle filter
-
-        Args:
-             p_filter: (`ParticleFilter`): the filter to resample from
-             num: (`int`): set to `p_filter` size if not provided
-
-        RETURNS (`ParticleFilter`):
-
-        """
-
-        assert num >= 0, f"cannot resample less than 0 ({num}) samples"
-
-        if num == 0:
-            num = p_filter.size
-
-        new_filter = type(p_filter)()
-
-        for _ in range(num):
-            new_filter.add_particle(p_filter.sample().particle)
-
-        return new_filter
-
 
 class FlatFilter(ParticleFilter):
     """ a filter where particles have no weights """
@@ -200,11 +176,27 @@ class WeightedFilter(ParticleFilter):
         self._total_weight = .0
         self._particles: List[WeightedParticle] = []
 
-    def add_particle(self, particle: WeightedParticle):
-        """ adds a (weightedfilter.)particle to the filter
+    def add_particle(self, particle: Any) -> None:
+        """ adds a particle to the filter
 
         Args:
-             particle: (`WeightedParticle`): weighted particle to be added
+             particle: (`Any`): particle to be added
+             weight: (`float`): weight of particle to be added
+
+        RETURNS (`None`):
+
+        """
+
+        self._total_weight += 1.
+        self._particles.append(WeightedParticle(particle, 1.))
+
+    def add_weighted_particle(self, particle: WeightedParticle) -> None:
+        """ adds a `WeightedParticle` to the filter
+
+        Args:
+             particle: (`WeightedParticle`): to particle to be added
+
+        RETURNS (`None`):
 
         """
         if particle.weight < 0:
@@ -310,6 +302,30 @@ def importance_sampling(
         sample.value = extract_particle_f(result)
 
     return particle_filter
+
+
+def resample(p_filter: 'ParticleFilter', num: int = 0) -> 'ParticleFilter':
+    """ resamples given particle filter
+
+    Args:
+         p_filter: (`ParticleFilter`): the filter to resample from
+         num: (`int`): set to `p_filter` size if not provided
+
+    RETURNS (`ParticleFilter`):
+
+    """
+
+    assert num >= 0, f"cannot resample less than 0 ({num}) samples"
+
+    if num == 0:
+        num = p_filter.size
+
+    new_filter = type(p_filter)()
+
+    for _ in range(num):
+        new_filter.add_particle(p_filter.sample())
+
+    return new_filter
 
 
 class BeliefUpdate(Protocol):

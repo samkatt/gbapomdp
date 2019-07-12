@@ -4,6 +4,7 @@ import unittest
 
 from agents.planning.particle_filters import FlatFilter, WeightedFilter, WeightedParticle
 from agents.planning.particle_filters import rejection_sampling, importance_sampling
+from agents.planning.particle_filters import resample
 
 
 class TestFilters(unittest.TestCase):
@@ -46,13 +47,13 @@ class TestFilters(unittest.TestCase):
         wfilter = WeightedFilter()
         self.assertRaises(IndexError, wfilter.sample)
 
-        wfilter.add_particle(WeightedParticle(5, 1))
+        wfilter.add_particle(5)
         self.assertEqual(wfilter.sample(), 5)
 
-        wfilter.add_particle(WeightedParticle(5, 1))
+        wfilter.add_weighted_particle(WeightedParticle(5, 1))
         self.assertEqual(wfilter.sample(), 5)
 
-        wfilter.add_particle(WeightedParticle(1, 10000000))
+        wfilter.add_weighted_particle(WeightedParticle(1, 10000000))
         self.assertEqual(wfilter.sample(), 1)
 
 
@@ -106,7 +107,7 @@ class TestBeliefUpdates(unittest.TestCase):
 
         wfilter = WeightedFilter()
         for _ in range(5):
-            wfilter.add_particle(WeightedParticle(value=1, weight=.5))
+            wfilter.add_weighted_particle(WeightedParticle(value=1, weight=.5))
 
         wfilter1 = importance_sampling(wfilter, self.increment, self.one)
 
@@ -114,7 +115,7 @@ class TestBeliefUpdates(unittest.TestCase):
             self.assertEqual(particle.weight, .5)
             self.assertEqual(particle.value, 2)
 
-        wfilter1.add_particle(WeightedParticle(value=10, weight=5))
+        wfilter1.add_weighted_particle(WeightedParticle(value=10, weight=5))
         wfilter2 = importance_sampling(wfilter1, self.increment, self.over_one)
 
         for particle in wfilter2:
@@ -124,6 +125,42 @@ class TestBeliefUpdates(unittest.TestCase):
                 self.assertEqual(particle.weight, 5 * (1 / 11))
             else:
                 self.assertAlmostEqual(particle.weight, .5 * (1 / 3))
+
+
+class TestResampling(unittest.TestCase):
+    """ tests particle_filters.resample """
+
+    def test_basic(self) -> None:
+        """ some basic easy test with 1 particle """
+
+        # 1 particle flat filter
+        flat_filter = FlatFilter()
+        flat_filter.add_particle(5)
+        new_filter = resample(flat_filter, 3)
+
+        self.assertIsInstance(new_filter, FlatFilter)
+        self.assertEqual(new_filter.size, 3)
+        for part in new_filter:
+            self.assertEqual(part, 5)
+
+        # 1 particle weighted filter
+        weighted_filter = WeightedFilter()
+        weighted_filter.add_weighted_particle(WeightedParticle(3, .2))
+        new_filter = resample(weighted_filter, 2)
+
+        self.assertIsInstance(new_filter, WeightedFilter)
+        self.assertEqual(new_filter.size, 2)
+        for part in new_filter:
+            self.assertEqual(part.value, 3)
+
+        # 2 particles of which one with 0 weight weighted filter
+        weighted_filter.add_weighted_particle(WeightedParticle(100, .0))
+        new_filter = resample(weighted_filter, 10)
+
+        self.assertIsInstance(new_filter, WeightedFilter)
+        self.assertEqual(new_filter.size, 10)
+        for part in new_filter:
+            self.assertEqual(part.value, 3)
 
 
 if __name__ == '__main__':
