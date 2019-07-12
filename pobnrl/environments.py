@@ -56,16 +56,16 @@ class ActionSpace(DiscreteSpace):
     def __repr__(self):
         return f"ActionSpace of size {self.n}"
 
-    def contains(self, action: int) -> bool:
+    def contains(self, elem: int) -> bool:
         """ returns whether `this` contains action
 
         Args:
-             action: (`int`): an action
+             elem: (`int`): an action
 
         RETURNS (`bool`): true if in `this`
 
         """
-        return super().contains(np.array([action]))
+        return super().contains(np.array([elem]))
 
 
 class GymSpace(Space):

@@ -1,6 +1,7 @@
 """ agents that learn a Q function directly """
 
 from collections import deque
+from functools import partial
 from typing import Callable, Deque
 import numpy as np
 
@@ -172,7 +173,8 @@ class EnsembleAgent(Agent, POBNRLogger):
         self.last_obs: Deque[np.ndarray] = deque([], conf.history_len)
 
         self.nets = np.array(
-            [qnet_constructor('ensemble_net_' + str(i))
+            # (scope not known to mypy, ignore the warning
+            [qnet_constructor(scope='ensemble_net_' + str(i))  # type: ignore
              for i in range(conf.num_nets)]
         )
 
@@ -304,16 +306,15 @@ def create_agent(
     if conf.random_policy:
         return RandomAgent(action_space)
 
-    if 1 >= conf.exploration >= 0:
+    if 0 <= conf.exploration <= 1:
         exploration_schedule: ExplorationSchedule = FixedExploration(conf.exploration)
     else:
         exploration_schedule = PiecewiseSchedule(
             [(0, 1.0), (2e4, 0.1), (1e5, 0.05)], outside_value=0.05
         )
 
+    # single-net agent
     if conf.num_nets == 1:
-        # single-net agent
-
         return BaselineAgent(
             create_qnet(
                 action_space,
@@ -327,17 +328,13 @@ def create_agent(
         )
 
     # num_nets > 1: ensemble agent
-
-    def qnet_constructor(name: str):
-        return create_qnet(
-            action_space,
-            observation_space,
-            name,
-            conf
-        )
-
     return EnsembleAgent(
-        qnet_constructor,
+        partial(
+            create_qnet,
+            action_space=action_space,
+            observation_space=observation_space,
+            conf=conf
+        ),
         action_space,
         exploration_schedule,
         conf,
