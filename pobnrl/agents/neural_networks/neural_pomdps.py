@@ -33,6 +33,7 @@ class DynamicsModel():
 
         self.state_space = state_space
         self.action_space = action_space
+        self.obs_space = obs_space
 
         with tf.name_scope(name):
 
@@ -95,13 +96,13 @@ class DynamicsModel():
 
                 observation_logits = simple_fc_nn(
                     tf.cast(input_o, tf.float32),
-                    n_out=np.sum(obs_space.size),
+                    n_out=np.sum(self.obs_space.size),
                     n_hidden=conf.network_size
                 )
 
                 self._train_obs_ph = tf.compat.v1.placeholder(
                     tf.int32,
-                    shape=[None, obs_space.ndim],
+                    shape=[None, self.obs_space.ndim],
                     name="observation_targets"
                 )
 
@@ -110,20 +111,20 @@ class DynamicsModel():
                         labels=self._train_obs_ph[:, i],
                         logits=observation_logits[
                             :,
-                            sum(obs_space.size[:i]):
-                            sum(obs_space.size[:i + 1])
+                            sum(self.obs_space.size[:i]):
+                            sum(self.obs_space.size[:i + 1])
                         ],
                         name=f"observation_loss_{i}"
-                    ) for i in range(obs_space.ndim)
+                    ) for i in range(self.obs_space.ndim)
                 ]
 
                 self._sample_observations = tf.concat(
                     [
                         tf.random.categorical(
-                            observation_logits[:, sum(obs_space.size[:i]):sum(obs_space.size[:i + 1])],
+                            observation_logits[:, sum(self.obs_space.size[:i]):sum(self.obs_space.size[:i + 1])],
                             num_samples=1,
                             name=f'sample_obs_feature_{i}')
-                        for i in range(obs_space.ndim)
+                        for i in range(self.obs_space.ndim)
                     ],
                     axis=1,
                     name='combine_obs_features'
@@ -132,9 +133,9 @@ class DynamicsModel():
                 self._observation_probabilities = tf.concat(
                     [
                         tf.math.softmax(
-                            observation_logits[:, sum(obs_space.size[:i]):sum(obs_space.size[:i + 1])],
+                            observation_logits[:, sum(self.obs_space.size[:i]):sum(self.obs_space.size[:i + 1])],
                             name=f'obs_feature_probability_{i}')
-                        for i in range(obs_space.ndim)
+                        for i in range(self.obs_space.ndim)
                     ],
                     axis=1,
                     name='combine_obs_probabilities'
@@ -270,6 +271,10 @@ class DynamicsModel():
                 self._input_actions_ph: action,
                 self._input_new_states_ph: new_state,
             }
-        )
+        )[0]
 
-        return np.prod([prob[i] for i, prob in zip(observation, observation_probs)])
+        # cherry pick the probabilities of each feature and take the product
+        return np.prod([
+            observation_probs[sum(self.obs_space.size[:i]) + observation[i]]
+            for i in range(self.obs_space.ndim)
+        ])
