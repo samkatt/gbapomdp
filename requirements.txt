@@ -2,3 +2,6 @@ gym
 opencv-python
 tensorflow
 typing_extensions
+pdoc
+matplotlib
+more_itertools
