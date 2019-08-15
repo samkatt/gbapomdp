@@ -69,8 +69,8 @@ class GridWorldPrior(Prior):
     def sample(self) -> Simulator:
         """  returns Gridworld of given size and encoding with a random set of slow cells
 
-        The slow cells are sampled uniformly, meaning that each location has a
-        .5 chance of being a slow cell
+        The slow cells are sampled with 1/3 chance, meaning that each location
+        has a .333 chance of being a slow cell
 
         """
 
@@ -78,7 +78,7 @@ class GridWorldPrior(Prior):
 
         for i in range(self._grid_size):
             for j in range(self._grid_size):
-                if random.choice([True, False]):
+                if random.random() < 1 / 3:
                     slow_cells.add((i, j))
 
         return GridWorld(self._grid_size, self._encoding, slow_cells)
