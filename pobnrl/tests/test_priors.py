@@ -4,7 +4,7 @@ import unittest
 
 import random
 
-from domains import Tiger
+from domains import Tiger, GridWorld
 from domains.priors import TigerPrior, GridWorldPrior
 from environments import EncodeType
 
@@ -49,8 +49,18 @@ class TestGridWorldPrior(unittest.TestCase):
         default_sample = GridWorldPrior(size=5, encoding=EncodeType.DEFAULT).sample()
         self.assertEqual(default_sample.observation_space.ndim, 3)
 
-    def test_no_slow_cells(self) -> None:
+    def test_default_slow_cells(self) -> None:
         """ tests Gridworlds sampled from prior have no slow cells """
 
-        gridworld = GridWorldPrior(size=4, encoding=EncodeType.DEFAULT).sample()
-        self.assertFalse(gridworld.slow_cells)
+        sample_gridworld_1 = GridWorldPrior(size=4, encoding=EncodeType.DEFAULT).sample()
+        sample_gridworld_2 = GridWorldPrior(size=4, encoding=EncodeType.DEFAULT).sample()
+
+        assert isinstance(sample_gridworld_1, GridWorld)
+        assert isinstance(sample_gridworld_2, GridWorld)
+
+        print(sample_gridworld_1.slow_cells)
+        print(sample_gridworld_2.slow_cells)
+
+        self.assertTrue(sample_gridworld_1.slow_cells, "may **rarely** be empty")
+        self.assertTrue(sample_gridworld_2.slow_cells, "may **rarely** be empty")
+        self.assertTrue(sample_gridworld_1.slow_cells != sample_gridworld_2.slow_cells, "may **rarely** be true")

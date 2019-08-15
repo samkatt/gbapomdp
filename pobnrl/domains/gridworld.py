@@ -1,7 +1,7 @@
 """ gridworld environment """
 
 from collections import namedtuple
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Optional
 import random
 
 import numpy as np
@@ -48,11 +48,17 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         # required to keep lightweight implementation of namedtuple
         __slots__ = ()
 
-    def __init__(self, domain_size: int, encoding: EncodeType, with_slow_cells: bool = True):
+    def __init__(
+            self,
+            domain_size: int,
+            encoding: EncodeType,
+            slow_cells: Optional[Set[Tuple[int, int]]] = None):
         """ creates a gridworld of provided size and verbosity
 
         Args:
              domain_size: (`int`): the size (assumed odd) of the grid
+             encoding: (`EncodeType`): the observation encoding
+             slow_cells: (`Set[Tuple[int, int]]`): the cells that are slow (default assignment if left None)
 
         """
 
@@ -79,9 +85,8 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         self.obs_mult = np.array(obs_mult)
 
         # generate slow locations
-        self._slow_cells: Set[Tuple[int, int]] = set()
-        if with_slow_cells:
-            self._slow_cells = GridWorld.generate_slow_cells(self.size)
+        self._slow_cells \
+            = slow_cells if slow_cells is not None else GridWorld.generate_slow_cells(self.size)
 
         # generate goal locations
         self._goal_cells: List[GridWorld.Goal] = []

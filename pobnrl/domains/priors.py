@@ -1,6 +1,8 @@
 """ priors over the domains """
 
+from typing import Tuple, Set
 import abc
+import random
 
 from numpy.random import dirichlet
 
@@ -65,12 +67,18 @@ class GridWorldPrior(Prior):
         self._encoding = encoding
 
     def sample(self) -> Simulator:
-        """  returns Gridworld of given size and encoding (but no slow cells)
+        """  returns Gridworld of given size and encoding with a random set of slow cells
 
-        Args:
-
-        RETURNS (`Simulator`):
+        The slow cells are sampled uniformly, meaning that each location has a
+        .5 chance of being a slow cell
 
         """
 
-        return GridWorld(self._grid_size, self._encoding, with_slow_cells=False)
+        slow_cells: Set[Tuple[int, int]] = set()
+
+        for i in range(self._grid_size):
+            for j in range(self._grid_size):
+                if random.choice([True, False]):
+                    slow_cells.add((i, j))
+
+        return GridWorld(self._grid_size, self._encoding, slow_cells)
