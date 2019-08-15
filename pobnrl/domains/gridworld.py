@@ -88,8 +88,6 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         self._slow_cells \
             = slow_cells if slow_cells is not None else GridWorld.generate_slow_cells(self.size)
 
-        import pdb; pdb.set_trace()
-
         # generate goal locations
         self._goal_cells: List[GridWorld.Goal] = []
 
