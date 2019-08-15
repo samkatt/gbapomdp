@@ -58,9 +58,6 @@ class TestGridWorldPrior(unittest.TestCase):
         assert isinstance(sample_gridworld_1, GridWorld)
         assert isinstance(sample_gridworld_2, GridWorld)
 
-        print(sample_gridworld_1.slow_cells)
-        print(sample_gridworld_2.slow_cells)
-
         self.assertTrue(sample_gridworld_1.slow_cells, "may **rarely** be empty")
         self.assertTrue(sample_gridworld_2.slow_cells, "may **rarely** be empty")
         self.assertTrue(sample_gridworld_1.slow_cells != sample_gridworld_2.slow_cells, "may **rarely** be true")
