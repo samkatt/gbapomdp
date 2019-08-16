@@ -1,11 +1,12 @@
 """ tests the functionality of priors """
 
+import random
 import unittest
 
-import random
+import numpy as np
 
-from domains import Tiger, GridWorld
-from domains.priors import TigerPrior, GridWorldPrior
+from domains import Tiger, GridWorld, CollisionAvoidance
+from domains.priors import TigerPrior, GridWorldPrior, CollisionAvoidancePrior
 from environments import EncodeType
 
 
@@ -61,3 +62,21 @@ class TestGridWorldPrior(unittest.TestCase):
         self.assertTrue(sample_gridworld_1.slow_cells, "may **rarely** be empty")
         self.assertTrue(sample_gridworld_2.slow_cells, "may **rarely** be empty")
         self.assertTrue(sample_gridworld_1.slow_cells != sample_gridworld_2.slow_cells, "may **rarely** be true")
+
+
+class TestCollisionAvoidancePrior(unittest.TestCase):
+    """ tests the prior on the collection avoidance environment """
+
+    def test_default(self) -> None:
+        """ tests the default prior """
+
+        sampled_domain = CollisionAvoidancePrior(3).sample()
+
+        assert isinstance(sampled_domain, CollisionAvoidance)
+
+        block_pol = sampled_domain._block_policy  # pylint: protected-access
+
+        np.testing.assert_array_less(block_pol, 1)
+        np.testing.assert_array_less(0, block_pol)
+
+        self.assertAlmostEqual(np.sum(block_pol), 1)

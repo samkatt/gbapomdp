@@ -1,5 +1,6 @@
 """ collision avoidance environment """
 
+from typing import Tuple, Optional
 import numpy as np
 
 from environments import Environment, EnvironmentInteraction, ActionSpace
@@ -28,7 +29,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
     action_to_move = [-1, 0, 1]
     action_to_string = ["DOWN", "STAY", "UP"]
 
-    def __init__(self, domain_size: int):
+    def __init__(self, domain_size: int, obstacle_policy: Optional[Tuple[float, float, float]] = None):
         """ constructs a Collision Avoidance domain of specified size
 
         Args:
@@ -43,6 +44,10 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
         self._size = domain_size
         self._mid = int(self._size / 2)
+        self._block_policy = obstacle_policy if obstacle_policy else (.25, .5, .25)
+
+        assert abs(np.sum(self._block_policy) - 1) < .0001, \
+            f"block policy {self._block_policy} must be a proper distribution"
 
         self._state_space = DiscreteSpace([self._size, self._size, self._size])
         self._action_space = ActionSpace(3)
@@ -158,13 +163,13 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         )
 
         # move obstacle
-        if np.random.random() < self.BLOCK_MOVE_PROB:
-            if np.random.random() < .5:
-                new_state[2] += 1
-            else:
-                new_state[2] -= 1
+        prob = np.random.uniform()
+        if prob < self._block_policy[0]:
+            new_state[2] -= 1
+        if prob - self._block_policy[0] > self._block_policy[1]:
+            new_state[2] += 1
 
-            new_state[2] = self.bound_in_grid(new_state[2])
+        new_state[2] = self.bound_in_grid(new_state[2])
 
         # observation
         obs = self.generate_observation(new_state)

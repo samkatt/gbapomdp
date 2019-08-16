@@ -11,7 +11,7 @@ from .gridworld import GridWorld
 from .learned_environments import NeuralEnsemblePOMDP  # NOQA, ignore unused import
 from .tiger import Tiger
 
-from .priors import TigerPrior, GridWorldPrior
+from .priors import TigerPrior, GridWorldPrior, CollisionAvoidancePrior
 
 
 def create_environment(
@@ -62,5 +62,7 @@ def create_prior(
         return TigerPrior(encoding)
     if domain_name == "gridworld":
         return GridWorldPrior(domain_size, encoding)
+    if domain_name == 'collision_avoidance':
+        return CollisionAvoidancePrior(domain_size)
 
     raise ValueError('no known priors for domain ' + domain_name)

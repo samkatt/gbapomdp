@@ -466,6 +466,24 @@ class TestCollisionAvoidance(unittest.TestCase):
         should_be_rew = -1000 if env.state[2] == 5 else 0
         self.assertEqual(step.reward, should_be_rew)
 
+        up_env = collision_avoidance.CollisionAvoidance(7, (0, 0, 1))
+        up_env.step(1)
+        self.assertEqual(up_env.state[2], 4)
+        up_env.step(1)
+        self.assertEqual(up_env.state[2], 5)
+        up_env.step(1)
+        up_env.step(1)
+        self.assertEqual(up_env.state[2], 6)
+
+        down_env = collision_avoidance.CollisionAvoidance(7, (1, 0, 0))
+        down_env.step(1)
+        self.assertEqual(down_env.state[2], 2)
+        down_env.step(1)
+        self.assertEqual(down_env.state[2], 1)
+        down_env.step(1)
+        down_env.step(1)
+        self.assertEqual(down_env.state[2], 0)
+
     def test_utils(self):
         """ Tests misc functionality in Collision Avoidance
 

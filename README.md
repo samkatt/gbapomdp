@@ -45,8 +45,8 @@ Systems. 2018.][1]
 ### TODO
 
 * profiling
-    - [ ] profile and see for weird things
-    - [ ] see applicability of numba (@jit)
+    - (TODO) profile and see for weird things
+    - (TODO) see applicability of numba (@jit)
 * get mypy.ini commented out style fixed
 
 #### spaces issue

@@ -10,6 +10,7 @@ from environments import Simulator, EncodeType
 
 from .tiger import Tiger
 from .gridworld import GridWorld
+from .collision_avoidance import CollisionAvoidance
 
 
 class Prior(abc.ABC):
@@ -33,7 +34,12 @@ class TigerPrior(Prior):
     """
 
     def __init__(self, encoding: EncodeType):
-        """ initiate the prior, will make observation one-hot encoded"""
+        """ initiate the prior, will make observation one-hot encoded
+
+        Args:
+             encoding: (`pobnrl.environments.EncodeType`):
+
+        """
 
         self._encoding = encoding
 
@@ -43,7 +49,7 @@ class TigerPrior(Prior):
         This prior over the observation probability is a Dirichlet with alpha
         [6,4]
 
-        RETURNS (`Simulator`):
+        RETURNS (`pobnrl.environments.Simulator`):
 
         """
         sampled_observation_probs = [dirichlet([6, 4])[0], dirichlet([6, 4])[0]]
@@ -52,14 +58,19 @@ class TigerPrior(Prior):
 
 
 class GridWorldPrior(Prior):
-    """ a prior that returns gridworlds without slow cells """
+    """ a prior that returns gridworlds without slow cells
+
+    The slow cells are sampled with 1/3 chance, meaning that each location has
+    a .333 chance of being a slow cell
+
+    """
 
     def __init__(self, size: int, encoding: EncodeType):
         """ creates a prior for the `gridworld` of size and with `encoding`
 
         Args:
              size: (`int`):
-             encoding: (`EncodeType`):
+             encoding: (`pobnrl.environments.EncodeType`):
 
         """
 
@@ -67,12 +78,7 @@ class GridWorldPrior(Prior):
         self._encoding = encoding
 
     def sample(self) -> Simulator:
-        """  returns Gridworld of given size and encoding with a random set of slow cells
-
-        The slow cells are sampled with 1/3 chance, meaning that each location
-        has a .333 chance of being a slow cell
-
-        """
+        """  samples a `pobnrl.domains.gridworld.GridWorld` Gridworld of given size and encoding with a random set of slow cells """
 
         slow_cells: Set[Tuple[int, int]] = set()
 
@@ -82,3 +88,27 @@ class GridWorldPrior(Prior):
                     slow_cells.add((i, j))
 
         return GridWorld(self._grid_size, self._encoding, slow_cells)
+
+
+class CollisionAvoidancePrior(Prior):
+    """ a prior that returns collision avoidance with various obstacle behaviours
+
+    The obstacle behaviour (accross all states) is sampled uniformly
+
+    """
+
+    def __init__(self, size: int):
+        """ creates a `pobnrl.domains.collision_avoidance.CollisionAvoidance` prior of `size`
+
+        Args:
+             size: (`int`):
+        """
+
+        self._size = size
+
+    def sample(self) -> Simulator:
+        """  returns `pobnrl.domains.collision_avoidance.CollisionAvoidance` with random obstacle behavior """
+
+        sampled_behaviour = tuple(dirichlet([1, 1, 1]))
+
+        return CollisionAvoidance(self._size, sampled_behaviour)  # type: ignore
