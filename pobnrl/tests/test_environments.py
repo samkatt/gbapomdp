@@ -197,6 +197,7 @@ class TestGridWorld(unittest.TestCase):
         # test step up
         step = env.step(env.NORTH)
 
+        self.assertIsInstance(step.observation[0], np.int64)
         self.assertIn(env.state[:2].tolist(), [[0, 0], [0, 1]])
         self.assertFalse(step.terminal)
         self.assertEqual(step.reward, 0)
@@ -429,6 +430,7 @@ class TestCollisionAvoidance(unittest.TestCase):
 
         env.reset()
         step = env.step(1)
+        self.assertIsInstance(step.observation[0], np.int64)
         self.assertEqual(env.state[0], 5)
         self.assertEqual(env.state[1], 3)
         self.assertFalse(step.terminal)
