@@ -109,6 +109,6 @@ class CollisionAvoidancePrior(Prior):
     def sample(self) -> Simulator:
         """  returns `pobnrl.domains.collision_avoidance.CollisionAvoidance` with random obstacle behavior """
 
-        sampled_behaviour = tuple(dirichlet([1, 1, 1]))
+        sampled_behaviour = tuple(dirichlet([.5, .9, .5]))
 
         return CollisionAvoidance(self._size, sampled_behaviour)  # type: ignore
