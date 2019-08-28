@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from agents.neural_networks import misc, networks
+from agents.neural_networks.utils import update_variables
 from environments import ActionSpace
 from misc import POBNRLogger, Space
 from tf_api import tf_run, tf_board_write, tf_writing_to_board
@@ -173,13 +174,7 @@ class DQNNet(QNetInterface, POBNRLogger):
 
             self.train_op = optimizer.apply_gradients(zip(clipped_gradients, variables))
 
-            with tf.name_scope('update_target'):
-                update_target_op = []
-                for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
-                                           sorted(target_vars, key=lambda v: v.name)):
-                    update_target_op.append(var_target.assign(var))
-
-                self.update_target_op = tf.group(*update_target_op)
+            self.update_target_op = update_variables(target_vars, net_vars)
 
             if not tf_writing_to_board(conf):
                 self.train_diag = tf.no_op('no-diagnostics')
@@ -461,13 +456,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
             self.train_op = optimizer.apply_gradients(zip(clipped_gradients, variables))
 
-            with tf.name_scope('update_target'):
-                update_target_op = []
-                for var, var_target in zip(sorted(net_vars, key=lambda v: v.name),
-                                           sorted(target_vars, key=lambda v: v.name)):
-                    update_target_op.append(var_target.assign(var))
-
-                self.update_target_op = tf.group(*update_target_op)
+            self.update_target_op = update_variables(target_vars, net_vars)
 
             if not tf_writing_to_board(conf):
                 self.train_diag = tf.no_op('no-diagnostics')
