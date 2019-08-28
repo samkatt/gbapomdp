@@ -163,8 +163,7 @@ class DQNNet(QNetInterface, POBNRLogger):
                 targets = tf.compat.v2.where(
                     self.done_mask_ph,
                     x=self.rew_ph,
-                    # y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
-                    y=self.rew_ph
+                    y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
                 )
 
             loss = misc.loss(q_values, targets, conf.loss)

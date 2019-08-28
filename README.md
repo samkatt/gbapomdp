@@ -22,11 +22,11 @@ sudo apt install ffmpeg
 ```
 
 ### Run the program
-`main.py` is located in `src`
+Main scripts, `pouct_planning.py`, `model_based.py` and `model_free.py` are located in `pobnrl`
 
 ```bash
-python main.py -D cartpole -v --network_size med
-python -h
+python {script} -D tiger -v 2
+python {script} -h
 ```
 
 ## Relevant literature
@@ -44,10 +44,9 @@ Systems. 2018.][1]
 
 ### TODO
 
-* profiling
-    - (TODO) profile and see for weird things
-    - (TODO) see applicability of numba (@jit)
-* get mypy.ini commented out style fixed
+* move to pytorch
+* revisit static analysis
+* profile (numba)
 
 #### spaces issue
 
