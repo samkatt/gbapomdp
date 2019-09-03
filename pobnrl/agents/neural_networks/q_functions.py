@@ -2,8 +2,11 @@
 
 from typing import Callable, Optional, List
 import abc
+import copy
 import numpy as np
 import tensorflow as tf
+import torch
+import torch.optim
 
 from agents.neural_networks import misc, networks
 from agents.neural_networks.utils import update_variables
@@ -59,6 +62,161 @@ class QNetInterface(abc.ABC):
              next_observation: (`np.ndarray`): shape depends on env
              terminal: (`bool`): whether transition was terminal
         """
+
+
+class QNet(QNetInterface, POBNRLogger):
+    """ interface to all Q networks """
+
+    def __init__(
+            self,
+            action_space: ActionSpace,
+            obs_space: Space,
+            conf):
+
+        POBNRLogger.__init__(self)
+
+        assert conf.history_len > 0, f'invalid history len ({conf.history_len}) < 1'
+        assert conf.batch_size > 0, f'invalid batch size ({conf.batch_size}) < 1'
+        assert 1 >= conf.gamma > 0, f'invalid gamma ({conf.gamma})'
+        assert conf.learning_rate < .2, f'invalid learning rate ({conf.learning_rate}) < .2'
+
+        self.history_len = conf.history_len
+        self.batch_size = conf.batch_size
+        self.gamma = conf.gamma
+
+        self.replay_buffer = misc.ReplayBuffer()
+
+        self.net = networks.Net(
+            obs_space.ndim * self.history_len,
+            action_space.n,
+            conf.network_size
+        )
+        self.net.random_init_parameters()
+
+        self.target_net = copy.deepcopy(self.net)
+
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
+        self.criterion = misc.loss_criterion(conf.loss)
+
+    def reset(self) -> None:
+        """ resets the network and buffer """
+
+        self.replay_buffer.clear()
+
+        self.net.random_init_parameters()
+        self.update_target()  # set target equal to net
+
+    def episode_reset(self) -> None:
+        """ empty """
+
+    def qvalues(self, obs: np.ndarray) -> np.ndarray:
+        """ returns the Q-values associated with the obs
+
+        Args:
+             obs: (`np.ndarray`): the net input
+
+        RETURNS (`np.ndarray`): q-value for each action
+
+        """
+
+        assert obs.ndim >= 2, \
+            f'observation ({obs.ndim}) should be history len by obs size'
+        assert obs.shape[0] <= self.history_len, \
+            f'first dimension of observation ({obs.shape[0]}) must be < {self.history_len}'
+
+        # pad observation if necessary
+
+        if not len(obs) == self.history_len:
+            padding = [(0, 0) for _ in range(len(obs[0].shape) + 1)]
+            padding[0] = (self.history_len - len(obs), 0)
+
+            obs = np.pad(obs, padding, 'constant')
+
+        with torch.no_grad():
+            qvals = self.net(torch.from_numpy(obs).reshape(1, -1).float()).numpy()
+            self.log(POBNRLogger.LogLevel.V4, f"DQN: {obs} returned Q: {qvals}")
+            return qvals
+
+    def batch_update(self) -> None:
+        """ performs a batch update """
+
+        if self.replay_buffer.size < self.batch_size:
+            self.log(
+                POBNRLogger.LogLevel.V2,
+                f"cannot batch update due to small buf"
+            )
+            return
+
+        batch = self.replay_buffer.sample(self.batch_size, self.history_len)
+
+        # TODO: this is ugly and must be improved on
+        # may consider storing this, instead of fishing from batch..?
+        obs_shape = batch[0][0]['obs'].shape
+        seq_lengths = np.array([len(trace) for trace in batch])
+
+        # initiate all with padding values
+        reward = torch.zeros(self.batch_size)
+        terminal = torch.zeros(self.batch_size, dtype=torch.bool)
+        action = torch.zeros(self.batch_size, dtype=torch.long)
+        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape)
+        next_ob = torch.zeros((self.batch_size, *obs_shape))
+
+        for i, seq in enumerate(batch):
+            obs[i][:seq_lengths[i]] = torch.Tensor([step['obs'] for step in seq])
+            reward[i] = seq[-1]['reward']
+            terminal[i] = seq[-1]['terminal']
+            action[i] = seq[-1]['action'].item()
+            next_ob[i] = torch.from_numpy(seq[-1]['next_obs'])
+
+        # due to padding on the left side, we can simply append the *1*
+        # next  observation to the original sequence and remove the first
+        next_obs = torch.from_numpy(np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)).float()
+        next_obs[:, -1] = next_ob
+
+        q_values = self.net(obs.reshape(self.batch_size, -1)).gather(1, action.unsqueeze(1)).squeeze()
+
+        target_values = reward + self.gamma * torch.where(
+            terminal,
+            torch.zeros(self.batch_size),
+            self.target_net(next_obs.reshape(self.batch_size, -1)).max(1)[0]
+        )
+        loss = self.criterion(q_values, target_values)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+    def update_target(self) -> None:
+        """ updates the target network """
+        self.target_net.load_state_dict(self.net.state_dict())
+
+    def record_transition(
+            self,
+            observation: np.ndarray,
+            action: int,
+            reward: float,
+            next_observation: np.ndarray,
+            terminal: bool) -> None:
+        """ notifies this of provided transition
+
+        Args:
+             observation: (`np.ndarray`): shape depends on env
+             action: (`int`): the taken action
+             reward: (`float`): the resulting reward
+             next_observation: (`np.ndarray`): shape depends on env
+             terminal: (`bool`): whether transition was terminal
+        """
+
+        self.replay_buffer.store(
+            {
+                'obs': observation,
+                'action': action,
+                'reward': reward,
+                'terminal': terminal,
+                'next_obs': next_observation
+            },
+            terminal
+        )
 
 
 class DQNNet(QNetInterface, POBNRLogger):

@@ -3,6 +3,10 @@
 from tensorflow.keras.layers import Flatten, Dense
 import tensorflow as tf
 
+import torch
+import torch.nn
+import torch.functional
+
 
 def simple_fc_nn(net_input, n_out: int, n_hidden: int):
     """ construct a fully connected nn of a two-hidden layer architecture
@@ -81,3 +85,50 @@ def simple_fc_rnn(
         out = Dense(units=n_out, name="out")(hidden)
 
     return out, [cell_state_h, cell_state_c]
+
+
+class Net(torch.nn.Module):  # type: ignore
+    """ a standard 3-layer neural network """
+
+    def __init__(
+            self,
+            input_size: int,
+            output_size: int,
+            layer_size: int,
+            prior_scaling: float = 0):
+
+        super(Net, self).__init__()
+
+        self.prior_scaling = prior_scaling
+        self.prior = torch.nn.Linear(input_size, output_size)
+        self.prior.requires_grad_(False)
+
+        self.layer_1 = torch.nn.Linear(input_size, layer_size)
+        self.layer_2 = torch.nn.Linear(layer_size, layer_size)
+
+        self.out = torch.nn.Linear(layer_size, output_size)
+
+    def forward(self, net_input: torch.Tensor) -> torch.Tensor:
+        """ forward passes through the network
+
+        Args:
+             net_input: (`torch.Tensor`):
+
+        """
+        activations = torch.functional.F.tanh(self.layer_1(net_input))
+        activations = torch.functional.F.tanh(self.layer_2(activations))
+        return self.out(activations) + self.prior_scaling * self.prior(net_input)
+
+    def random_init_parameters(self) -> None:
+        """ randomly resets / initiates parameters
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        self.layer_1.reset_parameters()
+        self.layer_2.reset_parameters()
+        self.out.reset_parameters()
+        self.prior.reset_parameters()
