@@ -215,7 +215,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         assert self.state_space.contains(new_state)
         assert self.action_space.contains(action)
 
-        return new_state[0] == 0
+        return bool(new_state[0] == 0)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ updates the state and return observed transitions

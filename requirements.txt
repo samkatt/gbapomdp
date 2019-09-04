@@ -1,6 +1,6 @@
 gym
 opencv-python
-tensorflow
+pytorch
 typing_extensions
 pdoc
 matplotlib

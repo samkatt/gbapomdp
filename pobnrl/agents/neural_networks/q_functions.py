@@ -302,7 +302,7 @@ class RecQNet(QNetInterface, POBNRLogger):
             )
 
             qvals, self.rnn_state = self.net(
-                torch.from_numpy(obs).reshape(1, 1, -1).float(),
+                torch.from_numpy(obs[-1]).reshape(1, 1, -1).float(),
                 self.rnn_state
             )
 
