@@ -1,17 +1,14 @@
 """ Neural networks used as Q functions """
 
-from typing import Callable, Optional, List
+from typing import Optional, List
 import abc
 import copy
 import numpy as np
-import tensorflow as tf
 import torch
 
 from agents.neural_networks import misc, networks
-from agents.neural_networks.utils import update_variables
 from environments import ActionSpace
 from misc import POBNRLogger, Space
-from tf_api import tf_run, tf_board_write, tf_writing_to_board
 
 
 class QNetInterface(abc.ABC):
@@ -140,10 +137,7 @@ class QNet(QNetInterface, POBNRLogger):
         """ performs a batch update """
 
         if self.replay_buffer.size < self.batch_size:
-            self.log(
-                POBNRLogger.LogLevel.V2,
-                f"cannot batch update due to small buf"
-            )
+            self.log(POBNRLogger.LogLevel.V2, "cannot batch update due to small buf")
             return
 
         batch = self.replay_buffer.sample(self.batch_size, self.history_len)
@@ -169,6 +163,7 @@ class QNet(QNetInterface, POBNRLogger):
 
         # due to padding on the left side, we can simply append the *1*
         # next  observation to the original sequence and remove the first
+        # TODO: torch.cat?
         next_obs = torch.from_numpy(np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)).float()
         next_obs[:, -1] = next_ob
 
@@ -218,16 +213,13 @@ class QNet(QNetInterface, POBNRLogger):
         )
 
 
-class DRQNNet(QNetInterface, POBNRLogger):
+class RecQNet(QNetInterface, POBNRLogger):
     """ a network based on DRQN that can return q values and update """
 
     def __init__(
             self,
             action_space: ActionSpace,
             obs_space: Space,
-            rec_q_func: Callable,  # type: ignore
-            optimizer,
-            name: str,
             conf):
         """ construct the DRQNNet
 
@@ -243,151 +235,41 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
         """
 
+        assert conf.history_len > 0, f'invalid history len ({conf.history_len}) < 1'
+        assert conf.batch_size > 0, f'invalid batch size ({conf.batch_size}) < 1'
+        assert 1 >= conf.gamma > 0, f'invalid gamma ({conf.gamma})'
+        assert conf.learning_rate < .2, f'invalid learning rate ({conf.learning_rate}) < .2'
+
         POBNRLogger.__init__(self)
 
-        self.name = name
         self.history_len = conf.history_len
         self.batch_size = conf.batch_size
+        self.gamma = conf.gamma
 
         self.replay_buffer = misc.ReplayBuffer()
         self.rnn_state = None
 
-        # shape of network input: variable in first dimension because
-        # we sometimes provide complete sequences (for batch updates)
-        # and sometimes just the last observation
-        input_shape = (None, obs_space.ndim)
+        self.net = networks.RecNet(
+            obs_space.ndim,
+            action_space.n,
+            conf.network_size
+        )
 
-        # training operation place holders
-        with tf.name_scope(self.name):
+        self.net.random_init_parameters()
 
-            self.obs_ph = tf.compat.v1.placeholder(tf.float32, [None, *input_shape], name="obs")
-            self.act_ph = tf.compat.v1.placeholder(tf.int32, [None], name="actions")
+        self.target_net = copy.deepcopy(self.net)
 
-            self.next_obs_ph = tf.compat.v1.placeholder(
-                tf.float32, [None, *input_shape], name="next_obs"
-            )
-            self.rew_ph = tf.compat.v1.placeholder(tf.float32, [None], name="rewards")
-            self.done_mask_ph = tf.compat.v1.placeholder(tf.bool, [None], name="terminals")
-
-            self.rnn_state_ph_c, self.rnn_state_ph_h\
-                = tf.keras.layers.LSTMCell(conf.network_size).get_initial_state(
-                    batch_size=tf.shape(self.obs_ph)[0], dtype=tf.float32
-                )
-
-            # training operation q values and targets
-            with tf.name_scope("net"):
-
-                self.qvalues_fn, self.rec_state_fn = rec_q_func(
-                    self.obs_ph,
-                    [self.rnn_state_ph_c, self.rnn_state_ph_h],
-                    action_space.n,
-                    conf.network_size
-                )
-
-                net_vars = tf.compat.v1.trainable_variables(scope=tf.compat.v1.get_default_graph().get_name_scope())
-
-                if conf.prior_function_scale:
-
-                    self.log(
-                        POBNRLogger.LogLevel.V0,
-                        "Prior functions with DRQN currently is **BUGGY**!"
-                    )
-
-                    with tf.name_scope("prior_function"):
-
-                        prior_vals, _ = networks.simple_fc_rnn(
-                            self.obs_ph,
-                            # FIXME: currently the prior rnn state is **NOT**
-                            # being maintained. This is a **BUG**
-                            tf.keras.layers.LSTMCell(4).get_initial_state(
-                                batch_size=tf.shape(self.obs_ph)[0], dtype=tf.float32
-                            ),
-                            action_space.n,
-                            4
-                        )
-
-                        scaled_prior = tf.scalar_mul(conf.prior_function_scale, prior_vals)
-                        self.qvalues_fn = tf.add(self.qvalues_fn, scaled_prior)
-
-                action_onehot = tf.stack(
-                    [tf.range(tf.size(self.act_ph)), self.act_ph], axis=-1
-                )
-
-                q_values = tf.gather_nd(self.qvalues_fn, action_onehot, name="pick_Q")
-
-            # target network
-            with tf.name_scope("target"):
-
-                next_targets_fn, _ = rec_q_func(
-                    self.next_obs_ph,
-                    # this network is only used during training
-                    # so the initial rnn state will always be 'zero state'
-                    tf.keras.layers.LSTMCell(conf.network_size).get_initial_state(
-                        batch_size=tf.shape(self.next_obs_ph)[0], dtype=tf.float32
-                    ),
-                    action_space.n,
-                    conf.network_size
-                )
-
-                target_vars = tf.compat.v1.trainable_variables(scope=tf.compat.v1.get_default_graph().get_name_scope())
-
-                if conf.prior_function_scale:
-                    with tf.name_scope("prior_function"):
-
-                        next_prior_vals, _ = networks.simple_fc_rnn(
-                            self.next_obs_ph,
-                            # this network is only used during training
-                            # so the initial rnn state will always be 'zero state'
-                            tf.keras.layers.LSTMCell(4).get_initial_state(
-                                batch_size=tf.shape(self.next_obs_ph)[0], dtype=tf.float32
-                            ),
-                            action_space.n,
-                            4
-                        )
-
-                        scaled_target_prior = tf.scalar_mul(conf.prior_function_scale, next_prior_vals)
-                        next_targets_fn = tf.add(next_targets_fn, scaled_target_prior)
-
-            with tf.name_scope('compute_target'):
-
-                targets = tf.where(
-                    self.done_mask_ph,
-                    x=self.rew_ph,
-                    y=self.rew_ph + (conf.gamma * tf.reduce_max(next_targets_fn, axis=-1))
-                )
-
-            loss = misc.loss(q_values, targets, conf.loss)
-
-            gradients, variables = zip(*optimizer.compute_gradients(loss, var_list=net_vars))
-            clipped_gradients, global_norm = tf.clip_by_global_norm(gradients, conf.clipping, name='clipping')
-
-            self.train_op = optimizer.apply_gradients(zip(clipped_gradients, variables))
-
-            self.update_target_op = update_variables(target_vars, net_vars)
-
-            if not tf_writing_to_board(conf):
-                self.train_diag = tf.no_op('no-diagnostics')
-
-            else:
-                loss_summary = tf.compat.v1.summary.scalar('loss', tf.reduce_mean(loss))
-                q_values_summary = tf.compat.v1.summary.histogram('q-values', q_values)
-                global_norm_summary = tf.compat.v1.summary.scalar('global-norm', global_norm)
-
-                self.train_diag = tf.compat.v1.summary.merge([
-                    loss_summary,
-                    q_values_summary,
-                    global_norm_summary,
-                ], name="diagnostics")
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
+        self.criterion = misc.loss_criterion(conf.loss)
 
     def reset(self) -> None:
-        """ resets the net internal state and replay buffer
-
-        Weights are controlled in tensorflow and reset outside of this scope
-
-        """
+        """ resets the net internal state, network parameters, and replay buffer """
 
         self.replay_buffer.clear()
         self.rnn_state = None
+
+        self.net.random_init_parameters()
+        self.update_target()
 
     def episode_reset(self) -> None:
         """ resets the net internal state """
@@ -406,32 +288,31 @@ class DRQNNet(QNetInterface, POBNRLogger):
 
         """
 
-        assert obs.ndim >= 2, "observation expected to be len x shape"
-        assert obs.shape[0] <= self.history_len
+        assert obs.ndim >= 2, \
+            f'observation ({obs.ndim}) should be history len by obs size'
+        assert obs.shape[0] <= self.history_len, \
+            f'first dimension of observation ({obs.shape[0]}) must be < {self.history_len}'
 
-        feed_dict = {
-            self.obs_ph: obs[-1, None, None]  # cast last ob to shape
-        }
+        with torch.no_grad():
 
-        if self.rnn_state is not None:
-            feed_dict[self.rnn_state_ph_c], feed_dict[self.rnn_state_ph_h] = self.rnn_state
+            self.log(
+                POBNRLogger.LogLevel.V4,
+                f"DRQN with obs {obs} "
+                f"and state {self.rnn_to_str(self.rnn_state)}"
+            )
 
-        self.log(
-            POBNRLogger.LogLevel.V4,
-            f"DRQN with obs {obs} "
-            f"and state {self.rnn_to_str(self.rnn_state)}"
-        )
+            qvals, self.rnn_state = self.net(
+                torch.from_numpy(obs).reshape(1, 1, -1).float(),
+                self.rnn_state
+            )
 
-        qvals, self.rnn_state = tf_run(
-            [self.qvalues_fn, self.rec_state_fn],
-            feed_dict=feed_dict
-        )
+            qvals = qvals.squeeze().numpy()
 
-        self.log(
-            POBNRLogger.LogLevel.V4,
-            f"DRQN: returned Q: {qvals} "
-            f"(first rnn: {self.rnn_to_str(self.rnn_state)})"
-        )
+            self.log(
+                POBNRLogger.LogLevel.V4,
+                f"DRQN: returned Q: {qvals} "
+                f"(first rnn: {self.rnn_to_str(self.rnn_state)})"
+            )
 
         return qvals
 
@@ -441,7 +322,7 @@ class DRQNNet(QNetInterface, POBNRLogger):
         if self.replay_buffer.size < self.batch_size:
             self.log(
                 POBNRLogger.LogLevel.V2,
-                f"Network {self.name} cannot batch update due to small buf"
+                f"Network cannot batch update due to small buf"
             )
 
             return
@@ -453,39 +334,53 @@ class DRQNNet(QNetInterface, POBNRLogger):
         seq_lengths = np.array([len(trace) for trace in batch])
 
         # initiate all with padding values
-        reward = np.zeros(self.batch_size)
-        terminal = np.zeros(self.batch_size).astype(bool)
-        action = np.zeros(self.batch_size).astype(int)
-        obs = np.zeros((self.batch_size, self.history_len) + obs_shape)
-        next_ob = np.zeros((self.batch_size, *obs_shape))
+        reward = torch.zeros(self.batch_size)
+        terminal = torch.zeros(self.batch_size, dtype=torch.bool)
+        action = torch.zeros(self.batch_size, dtype=torch.long)
+        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape)
+        next_ob = torch.zeros((self.batch_size, *obs_shape))
 
         for i, seq in enumerate(batch):
-            obs[i][:seq_lengths[i]] = [step['obs'] for step in seq]
+            obs[i][:seq_lengths[i]] = torch.as_tensor([step['obs'] for step in seq])
             reward[i] = seq[-1]['reward']
             terminal[i] = seq[-1]['terminal']
-            action[i] = seq[-1]['action']
-            next_ob[i] = seq[-1]['next_obs']
+            action[i] = seq[-1]['action'].item()
+            next_ob[i] = torch.from_numpy(seq[-1]['next_obs'])
 
         # next_obs are being appened where the sequence ended
-        next_obs = np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)
+        next_obs = torch.cat(
+            (obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)),
+            dim=1,
+        )
         next_obs[np.arange(self.batch_size), seq_lengths - 1] = next_ob
 
-        _, diag = tf_run(
-            [self.train_op, self.train_diag],
-            feed_dict={
-                self.obs_ph: obs,
-                self.act_ph: action,
-                self.rew_ph: reward,
-                self.next_obs_ph: next_obs,
-                self.done_mask_ph: terminal
-            }
+        # BxhxA
+        q_values, _ = self.net(obs.reshape(self.batch_size, self.history_len, -1))
+        # BxA
+        q_values = q_values[np.arange(self.batch_size), seq_lengths - 1]
+        # B
+        q_values = q_values.gather(1, action.unsqueeze(1)).squeeze()
+
+        # BxhxA
+        expected_return, _ = self.target_net(next_obs.reshape(self.batch_size, self.history_len, -1))
+        # B
+        expected_return = expected_return[np.arange(self.batch_size), seq_lengths - 1].max(1)[0]
+
+        target_values = reward + self.gamma * torch.where(
+            terminal,
+            torch.zeros(self.batch_size),
+            expected_return
         )
 
-        tf_board_write(diag)
+        loss = self.criterion(q_values, target_values)
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
     def update_target(self) -> None:
         """ updates the target network """
-        tf_run(self.update_target_op)
+        self.target_net.load_state_dict(self.net.state_dict())
 
     def record_transition(
             self,

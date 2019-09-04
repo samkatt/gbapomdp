@@ -138,14 +138,14 @@ class EnsembleAgent(Agent, POBNRLogger):
     """ ensemble agent """
 
     def __init__(self,
-                 qnet_constructor: Callable[[str], QNetInterface],
+                 qnet_constructor: Callable[[], QNetInterface],
                  action_space: ActionSpace,
                  exploration: ExplorationSchedule,
                  conf):
         """ initialize network
 
         Args:
-            qnet_constructor: (`Callable`[[`str`], `pobnrl.agents.neural_networks.q_functions.QNetInterface`]): \
+            qnet_constructor: (`Callable`[[], `pobnrl.agents.neural_networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
             action_space: (`pobnrl.environments.ActionSpace`): of environment
             exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
@@ -172,11 +172,7 @@ class EnsembleAgent(Agent, POBNRLogger):
         self.last_action = -1
         self.last_obs: Deque[np.ndarray] = deque([], conf.history_len)
 
-        self.nets = np.array(
-            # (scope not known to mypy, ignore the warning
-            [qnet_constructor(scope='ensemble_net_' + str(i))  # type: ignore
-             for i in range(conf.num_nets)]
-        )
+        self.nets = np.array([qnet_constructor() for i in range(conf.num_nets)])
 
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
         self._current_policy = np.random.choice(self.nets)
@@ -319,7 +315,6 @@ def create_agent(
             create_qnet(
                 action_space=action_space,
                 observation_space=observation_space,
-                scope='agent',
                 conf=conf
             ),
             action_space,

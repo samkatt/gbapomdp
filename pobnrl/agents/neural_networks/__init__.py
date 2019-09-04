@@ -1,12 +1,10 @@
 """ All types of Neural nets used by agent as models """
 
-import tensorflow as tf
-
 from misc import Space
 from environments import ActionSpace
 
-from .networks import Net, simple_fc_rnn  # NOQA, ignore unused import
-from .q_functions import QNetInterface, QNet, DRQNNet
+from .networks import Net, RecNet  # NOQA, ignore unused import
+from .q_functions import QNetInterface, QNet, RecQNet
 
 from .misc import ReplayBuffer  # NOQA, ignore unused import
 
@@ -14,7 +12,6 @@ from .misc import ReplayBuffer  # NOQA, ignore unused import
 def create_qnet(
         action_space: ActionSpace,
         observation_space: Space,
-        scope: str,
         conf) -> QNetInterface:
     """ factory for creating Q networks / policies
 
@@ -29,12 +26,9 @@ def create_qnet(
     """
 
     if conf.recurrent:
-        return DRQNNet(
+        return RecQNet(
             action_space,
             observation_space,
-            simple_fc_rnn,
-            tf.compat.v1.train.AdamOptimizer(conf.learning_rate),
-            scope,
             conf,
         )
 
