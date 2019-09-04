@@ -5,8 +5,8 @@ import tensorflow as tf
 from misc import Space
 from environments import ActionSpace
 
-from .networks import simple_fc_nn, simple_fc_rnn
-from .q_functions import QNetInterface, DQNNet, DRQNNet
+from .networks import Net, simple_fc_rnn  # NOQA, ignore unused import
+from .q_functions import QNetInterface, QNet, DRQNNet
 
 from .misc import ReplayBuffer  # NOQA, ignore unused import
 
@@ -38,11 +38,8 @@ def create_qnet(
             conf,
         )
 
-    return DQNNet(
+    return QNet(
         action_space,
         observation_space,
-        simple_fc_nn,
-        tf.compat.v1.train.AdamOptimizer(conf.learning_rate),
-        scope,
         conf,
     )

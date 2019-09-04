@@ -209,7 +209,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         assert self.state_space.contains(new_state)
         assert self.action_space.contains(action)
 
-        return action != self.LISTEN
+        return bool(action != self.LISTEN)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the tiger environment given action

@@ -12,7 +12,7 @@ from agents.misc import ExplorationSchedule, FixedExploration
 
 from .agent import Agent, RandomAgent
 from .neural_networks import create_qnet
-from .neural_networks.q_functions import QNetInterface, QNet  # FIXME: abstract away
+from .neural_networks.q_functions import QNetInterface
 
 
 class BaselineAgent(Agent, POBNRLogger):
@@ -73,7 +73,7 @@ class BaselineAgent(Agent, POBNRLogger):
         stores the observation and resets its Q-network
 
         Args:
-             observation: (`np.ndarray`): stored and later given to QNet
+             observation: (`np.ndarray`): stored and later given to qnet
 
         """
 
@@ -209,7 +209,7 @@ class EnsembleAgent(Agent, POBNRLogger):
         stores the observation and resets its Q-network and resets its models
 
         Args:
-             observation: (`np.ndarray`):  stored and later given to QNet
+             observation: (`np.ndarray`):  stored and later given to qnet
 
         """
 
@@ -316,13 +316,12 @@ def create_agent(
     # single-net agent
     if conf.num_nets == 1:
         return BaselineAgent(
-            # create_qnet(
-                # action_space,
-                # observation_space,
-                # 'q_net',
-                # conf
-            # ),
-            QNet(action_space, observation_space, conf),
+            create_qnet(
+                action_space=action_space,
+                observation_space=observation_space,
+                scope='agent',
+                conf=conf
+            ),
             action_space,
             exploration_schedule,
             conf

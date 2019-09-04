@@ -153,6 +153,7 @@ class DiscreteSpace(Space):
         self.size = np.array(size).astype(int)
         self.num_elements: int = np.prod(self.size)
         self._indexing_steps = np.array([np.prod(self.size[:i]) for i in range(len(self.size))]).astype(int)
+        self.dim_cumsum = np.concatenate([[0], np.cumsum(self.size)])
 
     @property
     def n(self) -> int:  # pylint: disable=invalid-name

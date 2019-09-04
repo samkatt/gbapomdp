@@ -22,19 +22,19 @@ from torch.nn.modules.loss import _Loss as TorchLoss
 class RMSELoss(TorchLoss):
     """ custom RMSELoss criterion in pytorch """
 
-    def forward(  # type: ignore
+    def forward(
             self,
-            input: torch.Tensor,  # pylint: disable=redefined-builtin
+            prediction: torch.Tensor,
             target: torch.Tensor):
-        """ forward pass, returns loss of rmse(input, target)
+        """ forward pass, returns loss of rmse(prediction, target)
 
         Args:
-             input: (`torch.Tensor`):
+             prediction: (`torch.Tensor`):
              target: (`torch.Tensor`):
 
         """
         return torch.sqrt(
-            torch.nn.functional.mse_loss(input, target, reduction=self.reduction)
+            torch.nn.functional.mse_loss(prediction, target, reduction=self.reduction)
         )
 
 

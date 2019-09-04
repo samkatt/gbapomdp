@@ -1,13 +1,13 @@
 """ POMDP dynamics as neural networks """
 
+from itertools import chain
 from typing import Tuple
 import numpy as np
-import tensorflow as tf
+import torch
 
-from agents.neural_networks import simple_fc_nn
+from agents.neural_networks import Net
 from environments import ActionSpace
 from misc import DiscreteSpace
-from tf_api import tf_run, tf_board_write, tf_writing_to_board
 
 
 class DynamicsModel():
@@ -18,8 +18,7 @@ class DynamicsModel():
             state_space: DiscreteSpace,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            conf,
-            name: str):
+            conf):
         """ Creates a dynamic model
 
         Args:
@@ -27,7 +26,6 @@ class DynamicsModel():
              action_space: (`pobnrl.environments.ActionSpace`):
              obs_space: (`pobnrl.misc.DiscreteSpace`):
              conf: configurations from program input
-             name: (`str`): name of this model (unique)
 
         """
 
@@ -35,132 +33,23 @@ class DynamicsModel():
         self.action_space = action_space
         self.obs_space = obs_space
 
-        with tf.name_scope(name):
+        self.net_t = Net(
+            input_size=self.state_space.ndim + self.action_space.n,
+            output_size=np.sum(self.state_space.size),
+            layer_size=conf.network_size
+        )
 
-            self._input_states_ph = tf.compat.v1.placeholder(
-                tf.int32, shape=[None, self.state_space.ndim], name="input_states"
-            )
+        self.net_o = Net(
+            input_size=self.state_space.ndim * 2 + self.action_space.n,
+            output_size=np.sum(self.obs_space.size),
+            layer_size=conf.network_size
+        )
 
-            self._input_actions_ph = tf.compat.v1.placeholder(
-                tf.int32, shape=[None, self.action_space.n], name="input_actions"
-            )
-
-            self._input_new_states_ph = tf.compat.v1.placeholder(
-                tf.int32, shape=[None, self.state_space.ndim], name="new_state_targets"
-            )
-
-            with tf.name_scope("transition_model"):
-
-                input_t = tf.concat(
-                    [self._input_states_ph, self._input_actions_ph], axis=1, name='input_T'
-                )
-
-                new_state_logits = simple_fc_nn(
-                    tf.cast(input_t, tf.float32),
-                    n_out=np.sum(self.state_space.size),
-                    n_hidden=conf.network_size
-                )
-
-                state_losses = [
-                    tf.nn.sparse_softmax_cross_entropy_with_logits(
-                        labels=self._input_new_states_ph[:, i],
-                        logits=new_state_logits[
-                            :,
-                            sum(self.state_space.size[:i]):
-                            sum(self.state_space.size[:i + 1])
-                        ],
-                        name=f"state_loss_{i}"
-                    ) for i in range(self.state_space.ndim)
-                ]
-
-                self._sample_states = tf.concat(
-                    [
-                        tf.random.categorical(
-                            new_state_logits[:, sum(state_space.size[:i]):sum(state_space.size[:i + 1])],
-                            num_samples=1,
-                            name=f'sample_state_feature_{i}')
-                        for i in range(state_space.ndim)
-                    ],
-                    axis=1,
-                    name='combine_new_state_features'
-                )
-
-            # observation model
-            with tf.name_scope("observation_model"):
-
-                input_o = tf.concat(
-                    [self._input_states_ph, self._input_actions_ph, self._input_new_states_ph],
-                    axis=1,
-                    name="input_O"
-                )
-
-                observation_logits = simple_fc_nn(
-                    tf.cast(input_o, tf.float32),
-                    n_out=np.sum(self.obs_space.size),
-                    n_hidden=conf.network_size
-                )
-
-                self._train_obs_ph = tf.compat.v1.placeholder(
-                    tf.int32,
-                    shape=[None, self.obs_space.ndim],
-                    name="observation_targets"
-                )
-
-                obs_losses = [
-                    tf.nn.sparse_softmax_cross_entropy_with_logits(
-                        labels=self._train_obs_ph[:, i],
-                        logits=observation_logits[
-                            :,
-                            sum(self.obs_space.size[:i]):
-                            sum(self.obs_space.size[:i + 1])
-                        ],
-                        name=f"observation_loss_{i}"
-                    ) for i in range(self.obs_space.ndim)
-                ]
-
-                self._sample_observations = tf.concat(
-                    [
-                        tf.random.categorical(
-                            observation_logits[:, sum(self.obs_space.size[:i]):sum(self.obs_space.size[:i + 1])],
-                            num_samples=1,
-                            name=f'sample_obs_feature_{i}')
-                        for i in range(self.obs_space.ndim)
-                    ],
-                    axis=1,
-                    name='combine_obs_features'
-                )
-
-                self._observation_probabilities = tf.concat(
-                    [
-                        tf.math.softmax(
-                            observation_logits[:, sum(self.obs_space.size[:i]):sum(self.obs_space.size[:i + 1])],
-                            name=f'obs_feature_probability_{i}')
-                        for i in range(self.obs_space.ndim)
-                    ],
-                    axis=1,
-                    name='combine_obs_probabilities'
-                )
-
-            optimizer = tf.compat.v1.train.AdamOptimizer(conf.learning_rate)
-
-            grads_and_vars = optimizer.compute_gradients(
-                tf.reduce_mean(tf.stack([*state_losses, *obs_losses], axis=0)),
-                var_list=tf.compat.v1.get_collection(
-                    tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
-                    scope=tf.compat.v1.get_default_graph().get_name_scope()
-                ))
-
-            self._train_op = optimizer.apply_gradients(grads_and_vars)
-
-            if tf_writing_to_board(conf):
-                self.train_diag = tf.compat.v1.summary.merge(
-                    [
-                        tf.compat.v1.summary.scalar('obs loss', tf.reduce_mean(obs_losses)),
-                        tf.compat.v1.summary.scalar('state loss', tf.reduce_mean(state_losses))
-                    ]
-                )
-            else:
-                self.train_diag = tf.no_op('no-diagnostics')
+        self.optimizer = torch.optim.Adam(
+            chain(self.net_t.parameters(), self.net_o.parameters()),
+            lr=conf.learning_rate
+        )
+        self.criterion = torch.nn.CrossEntropyLoss()
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
         """ The simulation step of this dynamics model: S x A -> S, O
@@ -176,105 +65,132 @@ class DynamicsModel():
         assert self.state_space.contains(state), f"{state} not in {self.state_space}"
         assert self.action_space.contains(action), f"{action} not in {self.action_space}"
 
-        new_state = self.sample_state(state, action)
+        next_state = self.sample_state(state, action)
+        observation = self.sample_observation(state, action, next_state)
 
-        state = state[None]
-        action = self.action_space.one_hot(action)[None]
-        new_state = new_state[None]
-
-        observation = tf_run(
-            self._sample_observations,
-            feed_dict={
-                self._input_states_ph: state,
-                self._input_actions_ph: action,
-                self._input_new_states_ph: new_state
-            }
-        )
-
-        return new_state[0], observation[0]
+        return next_state, observation
 
     def batch_update(
             self,
             states: np.ndarray,
             actions: np.ndarray,
-            new_states: np.ndarray,
+            next_states: np.ndarray,
             obs: np.ndarray) -> None:
         """ performs a batch update (single gradient descent step)
 
         Args:
              states: (`np.ndarray`): (batch_size, state_shape) array of states
              actions: (`np.ndarray`): (batch_size,) array of actions
-             new_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
+             next_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
              obs: (`np.ndarray`): (batch_size, obs_shape) array of observations
 
         """
 
         actions = [self.action_space.one_hot(a) for a in actions]
 
-        _, diag = tf_run(
-            [self._train_op, self.train_diag],
-            feed_dict={
-                self._input_states_ph: states,
-                self._input_actions_ph: actions,
-                self._input_new_states_ph: new_states,
-                self._train_obs_ph: obs
-            }
-        )
+        state_action_pairs = torch.from_numpy(np.concatenate(
+            [states, actions], axis=1
+        )).float()
 
-        tf_board_write(diag)
+        state_action_state_triplets = torch.from_numpy(np.concatenate(
+            [states, actions, next_states], axis=1
+        )).float()
+
+        next_state_logits = self.net_t(state_action_pairs)
+        observation_logits = self.net_o(state_action_state_triplets)
+
+        state_loss = torch.stack([
+            self.criterion(
+                next_state_logits[:, self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]],
+                torch.from_numpy(next_states[:, i])
+            )
+            for i in range(self.state_space.ndim)]).sum()
+
+        observation_loss = torch.stack([
+            self.criterion(
+                observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
+                torch.from_numpy(obs[:, i]))
+            for i in range(self.obs_space.ndim)]).sum()
+
+        self.optimizer.zero_grad()
+        (state_loss + observation_loss).backward()
+        self.optimizer.step()
 
     def sample_state(self, state: np.ndarray, action: int) -> np.ndarray:
-        """ samples new state given current and action
+        """ samples next state given current and action
 
         Args:
-             state: (`np.ndarray`):
-             action: (`int`):
+             state: (`np.ndarray`): current state
+             action: (`int`): taken action
 
-        RETURNS (`np.ndarray`):
+        RETURNS (`np.ndarray`): next state
 
         """
 
-        state = state[None]
-        action = self.action_space.one_hot(action)[None]
+        state_action = torch.from_numpy(np.concatenate(
+            [state, self.action_space.one_hot(action)]
+        )).float()
+        logits = self.net_t(state_action)
 
-        return tf_run(
-            self._sample_states,
-            feed_dict={self._input_states_ph: state, self._input_actions_ph: action}
-        )[0]
+        # sample value for each dimension iteratively
+        return np.array([
+            torch.multinomial(
+                torch.distributions.utils.logits_to_probs(
+                    logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
+                ),
+                1).item() for i in range(self.state_space.ndim)
+        ], dtype=int)
+
+    def sample_observation(self, state: np.ndarray, action: int, next_state: np.ndarray) -> np.ndarray:
+        """ samples an observation given state - action - next state triple
+
+        Args:
+             state: (`np.ndarray`): state at t
+             action: (`int`): taken action at t
+             next_state: (`np.ndarray`): state t + 1
+
+        RETURNS (`np.ndarray`): observation at t + 1
+
+        """
+
+        state_action_state = torch.from_numpy(np.concatenate(
+            [state, self.action_space.one_hot(action), next_state]
+        )).float()
+        logits = self.net_o(state_action_state)
+
+        # sample value for each dimension iteratively
+        return np.array([
+            torch.multinomial(
+                torch.distributions.utils.logits_to_probs(
+                    logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
+                ),
+                1).item() for i in range(self.obs_space.ndim)
+        ], dtype=int)
 
     def observation_prob(
             self,
             state: np.ndarray,
             action: int,
-            new_state: np.ndarray,
+            next_state: np.ndarray,
             observation: np.ndarray) -> float:
         """ Returns the observation probability of a transition
 
         Args:
              state: (`np.ndarray`):
              action: (`int`):
-             new_state: (`np.ndarray`):
+             next_state: (`np.ndarray`):
              observation: (`np.ndarray`):
 
         RETURNS (`float`):
 
         """
 
-        state = state[None]
-        action = self.action_space.one_hot(action)[None]
-        new_state = new_state[None]
+        state_action_state = torch.from_numpy(np.concatenate(
+            [state, self.action_space.one_hot(action), next_state]
+        )).float()
+        logits = self.net_o(state_action_state)
 
-        observation_probs = tf_run(
-            self._observation_probabilities,
-            feed_dict={
-                self._input_states_ph: state,
-                self._input_actions_ph: action,
-                self._input_new_states_ph: new_state,
-            }
-        )[0]
-
-        # cherry pick the probabilities of each feature and take the product
         return np.prod([
-            observation_probs[sum(self.obs_space.size[:i]) + observation[i]]
-            for i in range(self.obs_space.ndim)
-        ])
+            torch.distributions.utils.logits_to_probs(
+                logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
+            )[observation[i]].item() for i in range(self.obs_space.ndim)])

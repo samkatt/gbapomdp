@@ -129,8 +129,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 domain.state_space,
                 domain.action_space,
                 self.domain_obs_space,
-                conf,
-                f"dynamic_model_{i}"
+                conf
             ) for i in range(conf.num_nets)
         ]
 
