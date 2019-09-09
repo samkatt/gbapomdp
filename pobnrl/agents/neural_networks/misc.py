@@ -13,9 +13,7 @@ import random
 from collections import deque
 from typing import Deque, List, Any
 
-import tensorflow as tf
-import torch.functional
-import torch.nn
+import torch
 from torch.nn.modules.loss import _Loss as TorchLoss
 
 
@@ -52,27 +50,6 @@ def loss_criterion(loss_type: str) -> TorchLoss:
         return RMSELoss()
     if loss_type == "huber":
         return torch.nn.SmoothL1Loss()
-
-    raise ValueError('Entered unknown value for loss ' + loss_type)
-
-
-def loss(q_values, targets, loss_type: str):
-    """ computes the loss over qval versus targets given configurations
-
-    Returns the loss over Q-values, given their target and type of loss
-
-    Args:
-         q_values: q-value estimates
-         targets: target q-value estimates
-         loss_type: (`str`): is "rmse" or "huber" to what loss to use
-
-    """
-
-    # training operation loss
-    if loss_type == "rmse":
-        return tf.compat.v1.losses.mean_squared_error(targets, q_values, scope='rmse_loss')
-    if loss_type == "huber":
-        return tf.compat.v1.losses.huber_loss(targets, q_values, delta=10.0, scope='huber_loss')
 
     raise ValueError('Entered unknown value for loss ' + loss_type)
 

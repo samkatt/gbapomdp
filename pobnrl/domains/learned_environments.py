@@ -1,18 +1,13 @@
 """ domains either learned or constructed from other domains """
 
-from typing import Counter, Callable
+from typing import Callable
 import numpy as np
-import tensorflow as tf
-
-import tensorboard
-from tensorboard.plugins.custom_scalar import layout_pb2
 
 from agents.neural_networks import ReplayBuffer
 from agents.neural_networks.neural_pomdps import DynamicsModel
 from environments import ActionSpace
 from environments import Simulator, SimulationResult
 from misc import Space, DiscreteSpace, POBNRLogger
-from tf_api import tf_writing_to_board, tf_board_write, tf_run
 
 
 def train_from_random_policy(
@@ -133,34 +128,6 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             ) for i in range(conf.num_nets)
         ]
 
-        self._diagnostics = tf_writing_to_board(conf)
-        self._created_custom_tf_layout = False
-        with tf.name_scope('ensemble_diagnostics'):
-
-            self._model_counts = tf.compat.v1.placeholder(
-                tf.float32, [conf.num_nets], name='member-counts'
-            )
-
-            if self._diagnostics:
-
-                model_weight_cumsum \
-                    = tf.compat.v1.cumsum(self._model_counts, name='member-weight-cumsum')
-                num_active_models \
-                    = tf.compat.v1.count_nonzero(self._model_counts, name='active-members')
-                self._model_summary = tf.compat.v1.summary.merge(
-                    [
-                        tf.compat.v1.summary.scalar(
-                            f'member-weight-cumsum-{i}',
-                            model_weight_cumsum[i]) for i in range(conf.num_nets)
-                    ] + [
-                        tf.compat.v1.summary.scalar('active-models-summary', num_active_models)
-                    ],
-                    name='model-summary'
-                )
-
-            else:
-                self._model_summary = tf.no_op('no_model-summary')
-
     @property
     def state_space(self) -> Space:
         """ No method should want to know `this` state space, raises error """
@@ -280,45 +247,6 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             )
 
             train_net_f(model)
-
-    def diagnose_distribution(self, counts: Counter[DynamicsModel]) -> None:
-        """ Produce diagnostics (on tensorboard, if enabled) on given counted models
-
-        Args:
-             counts: (`Counter[DynamicsModel]`): Models and their counts
-
-        RETURNS (`None`):
-
-        """
-
-        if self._diagnostics:
-
-            # aggregate the counts of models (base case: 0)
-            model_counts = {model: 0 for model in self._models}
-
-            for model, count in counts.items():
-                model_counts[model] = count
-
-            if not self._created_custom_tf_layout:
-
-                self._created_custom_tf_layout = True
-
-                layout_summary = tensorboard.summary.v1.custom_scalar_pb(
-                    layout_pb2.Layout(category=[layout_pb2.Category(
-                        title='Model distribution',
-                        chart=[layout_pb2.Chart(
-                            title='Model distribution',
-                            multiline=layout_pb2.MultilineChartContent(tag=[r'ensemble_diagnostics/member-weight-cumsum-*'])
-                        )])]))
-
-                tf_board_write(layout_summary)
-
-            model_summary = tf_run(
-                self._model_summary,
-                feed_dict={self._model_counts: [model_counts[m] for m in sorted(model_counts, key=id)]}
-            )
-
-            tf_board_write(model_summary)
 
 
 def _replay_buffer_from_random_policy(domain: Simulator) -> ReplayBuffer:

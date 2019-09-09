@@ -3,7 +3,6 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from typing import Optional, List, Callable
 import numpy as np
-import tensorflow as tf
 
 from agents.model_based_agents import create_learning_agent
 from agents.neural_networks.neural_pomdps import DynamicsModel
@@ -13,7 +12,6 @@ from domains.learned_environments import train_from_random_policy, train_from_un
 from environments import Simulator
 from episode import run_episode
 from misc import POBNRLogger, set_random_seed
-from tf_api import tf_session, tf_run
 
 
 def main(conf) -> None:
@@ -27,7 +25,6 @@ def main(conf) -> None:
     # global init
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
-    tf.compat.v1.reset_default_graph()
 
     if conf.random_seed:
         set_random_seed(conf.random_seed)
@@ -40,8 +37,6 @@ def main(conf) -> None:
     agent = create_learning_agent(sim, conf)
     train_method = create_train_method(env, conf)
 
-    init_op = tf.compat.v1.global_variables_initializer()
-
     # results init
     result_mean = np.zeros(conf.episodes)
     ret_m2 = np.zeros(conf.episodes)
@@ -49,54 +44,49 @@ def main(conf) -> None:
 
     for run in range(conf.runs):
 
-        tensorboard_name = f'{conf.tensorboard_name}-{run}' if conf.tensorboard_name else ""
+        sim.train_models(train_method)
 
-        with tf_session(conf.use_gpu, tensorboard_name):
+        agent.reset()
 
-            tf_run(init_op)
-            sim.train_models(train_method)
+        tmp_res = np.zeros(conf.episodes)
+        logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}")
 
-            agent.reset()
+        for episode in range(conf.episodes):
 
-            tmp_res = np.zeros(conf.episodes)
-            logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}")
+            env.reset()
+            agent.episode_reset(None)
 
-            for episode in range(conf.episodes):
+            tmp_res[episode] = run_episode(env, agent, conf)
 
-                env.reset()
-                agent.episode_reset(None)
-
-                tmp_res[episode] = run_episode(env, agent, conf)
-
-                logger.log(
-                    POBNRLogger.LogLevel.V1,
-                    f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
-                )
-
-            # update mean and variance
-            delta = tmp_res - result_mean
-            result_mean += delta / (run + 1)
-            delta_2 = tmp_res - result_mean
-            ret_m2 += delta * delta_2
-
-            ret_var = np.zeros(conf.episodes) if run < 2 else ret_m2 / (run - 1)
-            stder = np.zeros(conf.episodes) if run < 2 else np.sqrt(ret_var / run)
-
-            # process results into rows of for each episode
-            # return avg, return var, return #, return stder
-            summary = np.transpose([
-                result_mean,
-                ret_var,
-                [run + 1] * conf.episodes,
-                stder
-            ])
-
-            np.savetxt(
-                conf.file,
-                summary,
-                delimiter=', ',
-                header=f"{conf}\nreturn mean, return var, return count, return stder"
+            logger.log(
+                POBNRLogger.LogLevel.V1,
+                f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
             )
+
+        # update mean and variance
+        delta = tmp_res - result_mean
+        result_mean += delta / (run + 1)
+        delta_2 = tmp_res - result_mean
+        ret_m2 += delta * delta_2
+
+        ret_var = np.zeros(conf.episodes) if run < 2 else ret_m2 / (run - 1)
+        stder = np.zeros(conf.episodes) if run < 2 else np.sqrt(ret_var / run)
+
+        # process results into rows of for each episode
+        # return avg, return var, return #, return stder
+        summary = np.transpose([
+            result_mean,
+            ret_var,
+            [run + 1] * conf.episodes,
+            stder
+        ])
+
+        np.savetxt(
+            conf.file,
+            summary,
+            delimiter=', ',
+            header=f"{conf}\nreturn mean, return var, return count, return stder"
+        )
 
 
 def parse_arguments(args: Optional[List[str]] = None):
@@ -135,12 +125,6 @@ def parse_arguments(args: Optional[List[str]] = None):
         "--file", "-f",
         default="results.npy",
         help="output file path"
-    )
-
-    parser.add_argument(
-        '--tensorboard_name', '--diag',
-        default="",
-        help="tensorboard directory name, if applicable"
     )
 
     parser.add_argument(

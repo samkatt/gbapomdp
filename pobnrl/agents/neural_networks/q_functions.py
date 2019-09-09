@@ -228,8 +228,6 @@ class RecQNet(QNetInterface, POBNRLogger):
         Args:
              action_space: (`pobnrl.environments.ActionSpace`): output size of the network
              obs_space: (`pobnrl.misc.Space`): of eenvironments
-             rec_q_func: (`Callable`): the (recurrent) Q function
-             optimizer: the tf.optimizer optimizer to use for learning
              name: (`str`): name of the network (used for scoping)
              conf: (`namespace`): configurations
 

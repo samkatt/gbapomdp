@@ -102,8 +102,6 @@ def episode_reset_belief(
     for particle in p_filter:
         particle.domain_state = sim.sample_domain_start_state()
 
-    sim.diagnose_distribution(Counter([particle.model for particle in p_filter]))
-
     if logger.log_is_on(POBNRLogger.LogLevel.V3):
 
         logger.log(
