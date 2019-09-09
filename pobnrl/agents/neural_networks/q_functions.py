@@ -427,6 +427,6 @@ class RecQNet(QNetInterface, POBNRLogger):
             rnn_state = self.rnn_state
 
         if rnn_state:
-            return str(rnn_state[0][0][0])
+            return f'1st state: {rnn_state[0][0][0][0][0]}, prior: {rnn_state[1][0][0][0][0]}'
 
         return str(rnn_state)
