@@ -151,11 +151,11 @@ class QNet(QNetInterface, POBNRLogger):
         reward = torch.zeros(self.batch_size)
         terminal = torch.zeros(self.batch_size, dtype=torch.bool)
         action = torch.zeros(self.batch_size, dtype=torch.long)
-        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape)
-        next_ob = torch.zeros((self.batch_size, *obs_shape))
+        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape, dtype=torch.float)
+        next_ob = torch.zeros((self.batch_size, *obs_shape), dtype=torch.float)
 
         for i, seq in enumerate(batch):
-            obs[i][:seq_lengths[i]] = torch.as_tensor([step['obs'] for step in seq], dtype=torch.int)
+            obs[i][:seq_lengths[i]] = torch.as_tensor([step['obs'] for step in seq])
             reward[i] = seq[-1]['reward']
             terminal[i] = seq[-1]['terminal']
             action[i] = seq[-1]['action'].item()
@@ -163,8 +163,7 @@ class QNet(QNetInterface, POBNRLogger):
 
         # due to padding on the left side, we can simply append the *1*
         # next  observation to the original sequence and remove the first
-        # TODO: torch.cat?
-        next_obs = torch.from_numpy(np.concatenate((obs[:, 1:], np.zeros((self.batch_size, 1) + obs_shape)), axis=1)).float()
+        next_obs = torch.cat((obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)), dim=1)
         next_obs[:, -1] = next_ob
 
         q_values = self.net(obs.reshape(self.batch_size, -1)).gather(1, action.unsqueeze(1)).squeeze()
@@ -335,8 +334,8 @@ class RecQNet(QNetInterface, POBNRLogger):
         reward = torch.zeros(self.batch_size)
         terminal = torch.zeros(self.batch_size, dtype=torch.bool)
         action = torch.zeros(self.batch_size, dtype=torch.long)
-        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape)
-        next_ob = torch.zeros((self.batch_size, *obs_shape))
+        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape, dtype=torch.float)
+        next_ob = torch.zeros((self.batch_size, *obs_shape), dtype=torch.float)
 
         for i, seq in enumerate(batch):
             obs[i][:seq_lengths[i]] = torch.as_tensor([step['obs'] for step in seq])
@@ -346,10 +345,7 @@ class RecQNet(QNetInterface, POBNRLogger):
             next_ob[i] = torch.from_numpy(seq[-1]['next_obs'])
 
         # next_obs are being appened where the sequence ended
-        next_obs = torch.cat(
-            (obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)),
-            dim=1,
-        )
+        next_obs = torch.cat((obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)), dim=1)
         next_obs[np.arange(self.batch_size), seq_lengths - 1] = next_ob
 
         # BxhxA
