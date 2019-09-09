@@ -74,7 +74,7 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
 
         assert isinstance(sampled_domain, CollisionAvoidance)
 
-        block_pol = sampled_domain._block_policy  # pylint: protected-access
+        block_pol = sampled_domain._block_policy  # pylint: disable=protected-access
 
         np.testing.assert_array_less(block_pol, 1)
         np.testing.assert_array_less(0, block_pol)

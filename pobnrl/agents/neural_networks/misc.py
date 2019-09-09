@@ -23,7 +23,7 @@ class RMSELoss(TorchLoss):
     def forward(
             self,
             prediction: torch.Tensor,
-            target: torch.Tensor):
+            target: torch.Tensor) -> torch.Tensor:
         """ forward pass, returns loss of rmse(prediction, target)
 
         Args:

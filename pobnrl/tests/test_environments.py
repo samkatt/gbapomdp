@@ -557,7 +557,6 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(domain.state, [0, 3])
         np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
                                             0, 0, 0, 0, 0, 0, 0, 0])
-
         domain = chain_domain.ChainDomain(size=10, encoding=EncodeType.ONE_HOT)
 
         obs = domain.reset()

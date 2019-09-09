@@ -23,7 +23,7 @@ class Net(torch.nn.Module):  # type: ignore
 
         self.prior_scaling = prior_scaling
         self.prior = torch.nn.Linear(input_size, output_size)
-        self.prior.requires_grad_(False)
+        self.prior.requires_grad_(False)  # type: ignore
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
@@ -70,7 +70,7 @@ class RecNet(torch.nn.Module):  # type: ignore
 
         self.prior_scaling = prior_scaling
         self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True)
-        self.prior.requires_grad_(False)
+        self.prior.requires_grad_(False)  # type: ignore
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)

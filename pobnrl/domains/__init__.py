@@ -2,7 +2,7 @@
 
 from environments import Environment, EncodeType
 
-from .priors import Prior  # NOQA, ignore unused import
+from .priors import Prior
 
 from .cartpole import Cartpole
 from .chain_domain import ChainDomain
