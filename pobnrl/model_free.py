@@ -7,7 +7,7 @@ import numpy as np
 from agents.model_free_agents import create_agent
 from domains import create_environment, EncodeType
 from episode import run_episode
-from misc import POBNRLogger
+from misc import POBNRLogger, init_torch_logger, log_tensorboard
 
 
 def main(conf) -> None:
@@ -36,6 +36,7 @@ def main(conf) -> None:
 
     for run in range(conf.runs):
 
+        init_torch_logger(f'{conf.tensorboard_logdir}-{run}')
         agent.reset()
 
         tmp_res = np.zeros(conf.episodes)
@@ -53,6 +54,8 @@ def main(conf) -> None:
                 f"run {run}/{conf.runs} episode {episode}/{conf.episodes}: "
                 f"avg return: {np.mean(tmp_res[max(0, episode - 25):episode+1])}"
             )
+
+            log_tensorboard(f'return', tmp_res[episode], episode)
 
         # update return mean and variance
         delta = tmp_res - result_mean
@@ -238,6 +241,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         "--use_gpu",
         action='store_true',
         help='enables gpu usage'
+    )
+
+    parser.add_argument(
+        '--tensorboard_logdir',
+        default='',
+        type=str,
+        help='the log directory for tensorboard'
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline

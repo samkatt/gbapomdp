@@ -12,7 +12,8 @@ from .misc import ReplayBuffer  # NOQA, ignore unused import
 def create_qnet(
         action_space: ActionSpace,
         observation_space: Space,
-        conf) -> QNetInterface:
+        conf,
+        name: str) -> QNetInterface:
     """ factory for creating Q networks / policies
 
     Args:
@@ -20,6 +21,7 @@ def create_qnet(
          observation_space: (`pobnrl.misc.Space`): of environment
          scope: (`str`): name of agent (learning scope)
          conf: (`namespace`): configurations (see -h)
+         name: (`str`): name of net
 
     RETURNS (`pobnrl.agents.neural_networks.q_functions.QNetInterface`):
 
@@ -30,10 +32,12 @@ def create_qnet(
             action_space,
             observation_space,
             conf,
+            name
         )
 
     return QNet(
         action_space,
         observation_space,
         conf,
+        name
     )

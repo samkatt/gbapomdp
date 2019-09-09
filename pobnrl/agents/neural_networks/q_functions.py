@@ -8,7 +8,7 @@ import torch
 
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
-from misc import POBNRLogger, Space
+from misc import POBNRLogger, Space, log_tensorboard
 
 
 class QNetInterface(abc.ABC):
@@ -67,7 +67,18 @@ class QNet(QNetInterface, POBNRLogger):
             self,
             action_space: ActionSpace,
             obs_space: Space,
-            conf):
+            conf,
+            name: str):
+        """ constructs a QNet
+
+        Args:
+             action_space: (`pobnrl.environments.ActionSpace`): output size of the network
+             obs_space: (`pobnrl.misc.Space`): of eenvironments
+             name: (`str`): name of the network (used for scoping)
+             conf: (`namespace`): configurations
+             name: (`str`): name of the QNet
+
+        """
 
         POBNRLogger.__init__(self)
 
@@ -76,6 +87,7 @@ class QNet(QNetInterface, POBNRLogger):
         assert 1 >= conf.gamma > 0, f'invalid gamma ({conf.gamma})'
         assert conf.learning_rate < .2, f'invalid learning rate ({conf.learning_rate}) < .2'
 
+        self.name = name
         self.history_len = conf.history_len
         self.batch_size = conf.batch_size
         self.gamma = conf.gamma
@@ -93,11 +105,14 @@ class QNet(QNetInterface, POBNRLogger):
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
         self.criterion = misc.loss_criterion(conf.loss)
+        
+        self.num_batches = 0
 
     def reset(self) -> None:
         """ resets the network and buffer """
 
         self.replay_buffer.clear()
+        self.num_batches = 0
 
         self.net.random_init_parameters()
         self.update_target()  # set target equal to net
@@ -179,6 +194,22 @@ class QNet(QNetInterface, POBNRLogger):
         loss.backward()
         self.optimizer.step()
 
+        log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
+
+        log_tensorboard(
+            f'weights/{self.name}',
+            torch.cat([p.view(-1) for p in self.net.parameters()], dim=0),
+            self.num_batches
+        )
+
+        log_tensorboard(
+            f'q-vals/{self.name}',
+            q_values.view(-1),
+            self.num_batches
+        )
+
+        self.num_batches += 1
+
     def update_target(self) -> None:
         """ updates the target network """
         self.target_net.load_state_dict(self.net.state_dict())
@@ -219,16 +250,16 @@ class RecQNet(QNetInterface, POBNRLogger):
             self,
             action_space: ActionSpace,
             obs_space: Space,
-            conf):
-        """ construct the DRQNNet
-
-        Assumes the rec_q_func provided is a recurrent Q function
+            conf,
+            name: str):
+        """ constructs a recurrent q-network
 
         Args:
              action_space: (`pobnrl.environments.ActionSpace`): output size of the network
              obs_space: (`pobnrl.misc.Space`): of eenvironments
              name: (`str`): name of the network (used for scoping)
              conf: (`namespace`): configurations
+             name: (`str`): name of the QNet
 
         """
 
@@ -239,6 +270,7 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         POBNRLogger.__init__(self)
 
+        self.name = name
         self.history_len = conf.history_len
         self.batch_size = conf.batch_size
         self.gamma = conf.gamma
@@ -259,10 +291,13 @@ class RecQNet(QNetInterface, POBNRLogger):
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
         self.criterion = misc.loss_criterion(conf.loss)
 
+        self.num_batches = 0
+
     def reset(self) -> None:
         """ resets the net internal state, network parameters, and replay buffer """
 
         self.replay_buffer.clear()
+        self.num_batches = 0
         self.rnn_state = None
 
         self.net.random_init_parameters()
@@ -371,6 +406,22 @@ class RecQNet(QNetInterface, POBNRLogger):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
+
+        log_tensorboard(
+            f'weights/{self.name}',
+            torch.cat([p.view(-1) for p in self.net.parameters()], dim=0),
+            self.num_batches
+        )
+
+        log_tensorboard(
+            f'q-vals/{self.name}',
+            q_values.view(-1),
+            self.num_batches
+        )
+
+        self.num_batches += 1
 
     def update_target(self) -> None:
         """ updates the target network """

@@ -4,10 +4,11 @@ from itertools import chain
 from typing import Tuple
 import numpy as np
 import torch
+import torch.distributions.utils
 
 from agents.neural_networks import Net
 from environments import ActionSpace
-from misc import DiscreteSpace
+from misc import DiscreteSpace, log_tensorboard
 
 
 class DynamicsModel():
@@ -18,7 +19,8 @@ class DynamicsModel():
             state_space: DiscreteSpace,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            conf):
+            conf,
+            name: str):
         """ Creates a dynamic model
 
         Args:
@@ -26,8 +28,11 @@ class DynamicsModel():
              action_space: (`pobnrl.environments.ActionSpace`):
              obs_space: (`pobnrl.misc.DiscreteSpace`):
              conf: configurations from program input
+             name: (`str`): name of the network
 
         """
+
+        self.name = name
 
         self.state_space = state_space
         self.action_space = action_space
@@ -50,6 +55,8 @@ class DynamicsModel():
             lr=conf.learning_rate
         )
         self.criterion = torch.nn.CrossEntropyLoss()
+
+        self.num_batches = 0
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
         """ The simulation step of this dynamics model: S x A -> S, O
@@ -116,6 +123,23 @@ class DynamicsModel():
         (state_loss + observation_loss).backward()
         self.optimizer.step()
 
+        log_tensorboard(f'observation_loss/{self.name}', observation_loss.item(), self.num_batches)
+        log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
+
+        # log_tensorboard(
+        # f'observation_weights/{self.name}',
+        # torch.cat([p.view(-1) for p in self.net_o.parameters()], dim=0),
+        # self.num_batches
+        # )
+
+        # log_tensorboard(
+        # f'transition_weights/{self.name}',
+        # torch.cat([p.view(-1) for p in self.net_t.parameters()], dim=0),
+        # self.num_batches
+        # )
+
+        self.num_batches += 1
+
     def sample_state(self, state: np.ndarray, action: int) -> np.ndarray:
         """ samples next state given current and action
 
@@ -135,7 +159,7 @@ class DynamicsModel():
         # sample value for each dimension iteratively
         return np.array([
             torch.multinomial(
-                torch.distributions.utils.logits_to_probs(  # type: ignore
+                torch.distributions.utils.logits_to_probs(
                     logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
                 ),
                 1).item() for i in range(self.state_space.ndim)
@@ -161,7 +185,7 @@ class DynamicsModel():
         # sample value for each dimension iteratively
         return np.array([
             torch.multinomial(
-                torch.distributions.utils.logits_to_probs(  # type: ignore
+                torch.distributions.utils.logits_to_probs(
                     logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
                 ),
                 1).item() for i in range(self.obs_space.ndim)
@@ -191,6 +215,12 @@ class DynamicsModel():
         logits = self.net_o(state_action_state)
 
         return np.prod([
-            torch.distributions.utils.logits_to_probs(  # type: ignore
+            torch.distributions.utils.logits_to_probs(
                 logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
             )[observation[i]].item() for i in range(self.obs_space.ndim)])
+
+    def reset(self) -> None:
+        """ resets the networks """
+        self.net_t.random_init_parameters()
+        self.net_o.random_init_parameters()
+        self.num_batches = 0

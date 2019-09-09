@@ -1,10 +1,11 @@
 """ miscellaneous functions """
 
 from enum import Enum
-from typing import List, Union
+from typing import List, Union, Optional
 import abc
 import logging
 import random
+import torch.utils.tensorboard
 
 import numpy as np
 
@@ -121,6 +122,39 @@ class POBNRLogger:
         """
 
         return lvl.value >= cls._level.value
+
+
+_TENSORBOARD_WRITER: Optional[torch.utils.tensorboard.writer.SummaryWriter] = None
+
+
+def init_torch_logger(log_dir: str) -> None:
+    """ initiates torch logger (tensorboard)
+
+    Args:
+         log_dir: (`str`):
+
+    """
+
+    global _TENSORBOARD_WRITER  # pylint: disable=global-statement
+    _TENSORBOARD_WRITER = torch.utils.tensorboard.SummaryWriter(log_dir=f'.tensorboard/{log_dir}')
+
+
+def log_tensorboard(tag: str, val: Union[float, np.ndarray], step: int) -> None:
+    """ logs a scalar to tensorboard
+
+    Args:
+         tag: (`str`):
+         val: (`Union[float, np.ndarray]`): either a scalar or a histogram
+         step: (`int`):
+
+    """
+
+    if _TENSORBOARD_WRITER:
+
+        if np.isscalar(val):
+            _TENSORBOARD_WRITER.add_scalar(tag, val, step)
+        else:
+            _TENSORBOARD_WRITER.add_histogram(tag, val, step)
 
 
 class Space(abc.ABC):

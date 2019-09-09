@@ -124,7 +124,8 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 domain.state_space,
                 domain.action_space,
                 self.domain_obs_space,
-                conf
+                conf,
+                f'model {i}'
             ) for i in range(conf.num_nets)
         ]
 
@@ -240,6 +241,8 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """
 
         for i, model in enumerate(self._models):
+
+            model.reset()
 
             self.log(
                 POBNRLogger.LogLevel.V1,

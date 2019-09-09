@@ -11,7 +11,7 @@ from domains.learned_environments import NeuralEnsemblePOMDP
 from domains.learned_environments import train_from_random_policy, train_from_uniform_steps
 from environments import Simulator
 from episode import run_episode
-from misc import POBNRLogger, set_random_seed
+from misc import POBNRLogger, set_random_seed, init_torch_logger
 
 
 def main(conf) -> None:
@@ -44,6 +44,7 @@ def main(conf) -> None:
 
     for run in range(conf.runs):
 
+        init_torch_logger(conf.tensorboard_logdir + '-' + run)
         sim.train_models(train_method)
 
         agent.reset()
@@ -243,6 +244,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         default=0,
         type=int,
         help='set random seed'
+    )
+
+    parser.add_argument(
+        '--tensorboard_logdir',
+        default='',
+        type=str,
+        help='the log directory for tensorboard'
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline

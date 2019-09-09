@@ -138,7 +138,7 @@ class EnsembleAgent(Agent, POBNRLogger):
     """ ensemble agent """
 
     def __init__(self,
-                 qnet_constructor: Callable[[], QNetInterface],
+                 qnet_constructor: Callable[[str], QNetInterface],
                  action_space: ActionSpace,
                  exploration: ExplorationSchedule,
                  conf):
@@ -172,7 +172,7 @@ class EnsembleAgent(Agent, POBNRLogger):
         self.last_action = -1
         self.last_obs: Deque[np.ndarray] = deque([], conf.history_len)
 
-        self.nets = np.array([qnet_constructor() for i in range(conf.num_nets)])
+        self.nets = np.array([qnet_constructor(f'net {i}') for i in range(conf.num_nets)])
 
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
         self._current_policy = np.random.choice(self.nets)
@@ -315,7 +315,8 @@ def create_agent(
             create_qnet(
                 action_space=action_space,
                 observation_space=observation_space,
-                conf=conf
+                conf=conf,
+                name='net'
             ),
             action_space,
             exploration_schedule,
