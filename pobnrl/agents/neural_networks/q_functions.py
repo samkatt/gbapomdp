@@ -97,15 +97,15 @@ class QNet(QNetInterface, POBNRLogger):
         self.net = networks.Net(
             obs_space.ndim * self.history_len,
             action_space.n,
-            conf.network_size
+            conf.network_size,
+            conf.prior_function_scale
         )
-        self.net.random_init_parameters()
 
         self.target_net = copy.deepcopy(self.net)
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
         self.criterion = misc.loss_criterion(conf.loss)
-        
+
         self.num_batches = 0
 
     def reset(self) -> None:
@@ -144,7 +144,7 @@ class QNet(QNetInterface, POBNRLogger):
             obs = np.pad(obs, padding, 'constant')
 
         with torch.no_grad():
-            qvals = self.net(torch.from_numpy(obs).reshape(1, -1).float()).numpy()
+            qvals = self.net(torch.from_numpy(obs).view(1, -1).float()).numpy()
             self.log(POBNRLogger.LogLevel.V4, f"DQN: {obs} returned Q: {qvals}")
             return qvals
 
@@ -181,12 +181,12 @@ class QNet(QNetInterface, POBNRLogger):
         next_obs = torch.cat((obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)), dim=1)
         next_obs[:, -1] = next_ob
 
-        q_values = self.net(obs.reshape(self.batch_size, -1)).gather(1, action.unsqueeze(1)).squeeze()
+        q_values = self.net(obs.view(self.batch_size, -1)).gather(1, action.unsqueeze(1)).squeeze()
 
         target_values = reward + self.gamma * torch.where(
             terminal,
             torch.zeros(self.batch_size),
-            self.target_net(next_obs.reshape(self.batch_size, -1)).max(1)[0]
+            self.target_net(next_obs.view(self.batch_size, -1)).max(1)[0]
         )
         loss = self.criterion(q_values, target_values)
 
@@ -281,10 +281,9 @@ class RecQNet(QNetInterface, POBNRLogger):
         self.net = networks.RecNet(
             obs_space.ndim,
             action_space.n,
-            conf.network_size
+            conf.network_size,
+            conf.prior_function_scale
         )
-
-        self.net.random_init_parameters()
 
         self.target_net = copy.deepcopy(self.net)
 
@@ -301,7 +300,7 @@ class RecQNet(QNetInterface, POBNRLogger):
         self.rnn_state = None
 
         self.net.random_init_parameters()
-        self.update_target()
+        self.update_target()  # set target equal to net
 
     def episode_reset(self) -> None:
         """ resets the net internal state """
@@ -334,7 +333,7 @@ class RecQNet(QNetInterface, POBNRLogger):
             )
 
             qvals, self.rnn_state = self.net(
-                torch.from_numpy(obs[-1]).reshape(1, 1, -1).float(),
+                torch.from_numpy(obs[-1]).view(1, 1, -1).float(),
                 self.rnn_state
             )
 
@@ -384,14 +383,14 @@ class RecQNet(QNetInterface, POBNRLogger):
         next_obs[np.arange(self.batch_size), seq_lengths - 1] = next_ob
 
         # BxhxA
-        q_values, _ = self.net(obs.reshape(self.batch_size, self.history_len, -1))
+        q_values, _ = self.net(obs.view(self.batch_size, self.history_len, -1))
         # BxA
         q_values = q_values[np.arange(self.batch_size), seq_lengths - 1]
         # B
         q_values = q_values.gather(1, action.unsqueeze(1)).squeeze()
 
         # BxhxA
-        expected_return, _ = self.target_net(next_obs.reshape(self.batch_size, self.history_len, -1))
+        expected_return, _ = self.target_net(next_obs.view(self.batch_size, self.history_len, -1))
         # B
         expected_return = expected_return[np.arange(self.batch_size), seq_lengths - 1].max(1)[0]
 

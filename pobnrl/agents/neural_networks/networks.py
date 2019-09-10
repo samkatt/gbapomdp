@@ -22,6 +22,7 @@ class Net(torch.nn.Module):  # type: ignore
         super(Net, self).__init__()
 
         self.prior_scaling = prior_scaling
+
         self.prior = torch.nn.Linear(input_size, output_size)
         self.prior.requires_grad_(False)  # type: ignore
 
@@ -29,6 +30,8 @@ class Net(torch.nn.Module):  # type: ignore
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
 
         self.out = torch.nn.Linear(layer_size, output_size)
+
+        self.random_init_parameters()
 
     def forward(self, net_input: torch.Tensor) -> torch.Tensor:
         """ forward passes through the network
@@ -57,7 +60,7 @@ class Net(torch.nn.Module):  # type: ignore
 
 
 class RecNet(torch.nn.Module):  # type: ignore
-    """ a standard 3-layer neural network """
+    """ a standard 3-layer recurrent neural network """
 
     def __init__(
             self,
@@ -77,6 +80,8 @@ class RecNet(torch.nn.Module):  # type: ignore
 
         self.rnn_layer = torch.nn.LSTM(layer_size, layer_size, batch_first=True)
         self.out = torch.nn.Linear(layer_size, output_size)
+
+        self.random_init_parameters()
 
     def forward(
             self,
