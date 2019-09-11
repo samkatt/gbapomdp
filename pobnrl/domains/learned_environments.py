@@ -242,14 +242,22 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
         for i, model in enumerate(self._models):
 
-            model.reset()
-
             self.log(
                 POBNRLogger.LogLevel.V1,
                 f'Training Dynamics Neural Ensemble member {i+1}/{len(self._models)}'
             )
 
             train_net_f(model)
+
+    def reset(self) -> None:
+        """ resets the trained models
+
+        RETURNS (`None`):
+
+        """
+
+        for model in self._models:
+            model.reset()
 
 
 def _replay_buffer_from_random_policy(domain: Simulator) -> ReplayBuffer:
