@@ -7,7 +7,8 @@ import numpy as np
 from agents.model_free_agents import create_agent
 from domains import create_environment, EncodeType
 from episode import run_episode
-from misc import POBNRLogger, init_torch_logger, log_tensorboard
+from misc import POBNRLogger
+import pytorch_api
 
 
 def main(conf) -> None:
@@ -17,6 +18,8 @@ def main(conf) -> None:
          conf: configurations as namespace from `parse_arguments`
 
     """
+
+    pytorch_api.set_device(conf.use_gpu)
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger(__name__)
@@ -36,7 +39,9 @@ def main(conf) -> None:
 
     for run in range(conf.runs):
 
-        init_torch_logger(f'{conf.tensorboard_logdir}-{run}')
+        if conf.tensorboard_logdir:
+            pytorch_api.set_tensorboard_logging(f'{conf.tensorboard_logdir}-{run}')
+
         agent.reset()
 
         tmp_res = np.zeros(conf.episodes)
@@ -55,7 +60,7 @@ def main(conf) -> None:
                 f"avg return: {np.mean(tmp_res[max(0, episode - 25):episode+1])}"
             )
 
-            log_tensorboard(f'return', tmp_res[episode], episode)
+            pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
 
         # update return mean and variance
         delta = tmp_res - result_mean

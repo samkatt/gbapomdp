@@ -3,6 +3,8 @@
 from typing import Tuple, List
 import torch
 
+# TODO: improve performance by not doing prior if not necessary
+
 
 class Net(torch.nn.Module):  # type: ignore
     """ a standard 3-layer neural network """
@@ -72,6 +74,7 @@ class RecNet(torch.nn.Module):  # type: ignore
         super(RecNet, self).__init__()
 
         self.prior_scaling = prior_scaling
+
         self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True)
         self.prior.requires_grad_(False)  # type: ignore
 

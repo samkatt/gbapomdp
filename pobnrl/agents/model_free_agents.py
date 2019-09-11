@@ -172,7 +172,7 @@ class EnsembleAgent(Agent, POBNRLogger):
         self.last_action = -1
         self.last_obs: Deque[np.ndarray] = deque([], conf.history_len)
 
-        self.nets = np.array([qnet_constructor(f'net {i}') for i in range(conf.num_nets)])
+        self.nets = np.array([qnet_constructor(name=f'net {i}') for i in range(conf.num_nets)])
 
         self._storing_nets = self.nets[np.random.rand(len(self.nets)) > .5]
         self._current_policy = np.random.choice(self.nets)

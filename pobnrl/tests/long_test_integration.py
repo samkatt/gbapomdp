@@ -62,6 +62,9 @@ class TestModelFreeAgents(unittest.TestCase):
              '--history_len=3']
         )
 
+        # gpu
+        self.run_experiment(['-D=cartpole', '--recurrent', '--use_gpu', '-H 201'])
+
         # ensemble agent
         self.run_experiment(
             ['-D=gridworld',

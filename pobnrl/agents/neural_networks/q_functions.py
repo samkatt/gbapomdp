@@ -2,13 +2,13 @@
 
 from typing import Optional, List
 import abc
-import copy
 import numpy as np
 import torch
 
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
-from misc import POBNRLogger, Space, log_tensorboard
+from misc import POBNRLogger, Space
+from pytorch_api import log_tensorboard, device
 
 
 class QNetInterface(abc.ABC):
@@ -96,12 +96,19 @@ class QNet(QNetInterface, POBNRLogger):
 
         self.net = networks.Net(
             obs_space.ndim * self.history_len,
-            action_space.n,
+            int(action_space.n),
             conf.network_size,
             conf.prior_function_scale
-        )
+        ).to(device())
 
-        self.target_net = copy.deepcopy(self.net)
+        self.target_net = networks.Net(
+            obs_space.ndim * self.history_len,
+            int(action_space.n),
+            conf.network_size,
+            conf.prior_function_scale
+        ).to(device())
+
+        self.update_target()  # make sure paramters are set equal
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
         self.criterion = misc.loss_criterion(conf.loss)
@@ -144,7 +151,7 @@ class QNet(QNetInterface, POBNRLogger):
             obs = np.pad(obs, padding, 'constant')
 
         with torch.no_grad():
-            qvals = self.net(torch.from_numpy(obs).view(1, -1).float()).numpy()
+            qvals = self.net(torch.from_numpy(obs).view(1, -1).float().to(device())).cpu().numpy()
             self.log(POBNRLogger.LogLevel.V4, f"DQN: {obs} returned Q: {qvals}")
             return qvals
 
@@ -163,11 +170,11 @@ class QNet(QNetInterface, POBNRLogger):
         seq_lengths = np.array([len(trace) for trace in batch])
 
         # initiate all with padding values
-        reward = torch.zeros(self.batch_size)
-        terminal = torch.zeros(self.batch_size, dtype=torch.bool)
-        action = torch.zeros(self.batch_size, dtype=torch.long)
-        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape, dtype=torch.float)
-        next_ob = torch.zeros((self.batch_size, *obs_shape), dtype=torch.float)
+        reward = torch.zeros(self.batch_size, device=device())
+        terminal = torch.zeros(self.batch_size, dtype=torch.bool, device=device())
+        action = torch.zeros(self.batch_size, dtype=torch.long, device=device())
+        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape, dtype=torch.float, device=device())
+        next_ob = torch.zeros((self.batch_size, *obs_shape), dtype=torch.float, device=device())
 
         for i, seq in enumerate(batch):
             obs[i][:seq_lengths[i]] = torch.as_tensor([step['obs'] for step in seq])
@@ -178,16 +185,21 @@ class QNet(QNetInterface, POBNRLogger):
 
         # due to padding on the left side, we can simply append the *1*
         # next  observation to the original sequence and remove the first
-        next_obs = torch.cat((obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)), dim=1)
+        next_obs = torch.cat(
+            (
+                obs[:, 1:],
+                torch.zeros((self.batch_size, 1) + obs_shape, device=device())
+            ), dim=1)
         next_obs[:, -1] = next_ob
 
         q_values = self.net(obs.view(self.batch_size, -1)).gather(1, action.unsqueeze(1)).squeeze()
 
         target_values = reward + self.gamma * torch.where(
             terminal,
-            torch.zeros(self.batch_size),
+            torch.tensor(0., device=device()),
             self.target_net(next_obs.view(self.batch_size, -1)).max(1)[0]
         )
+
         loss = self.criterion(q_values, target_values)
 
         self.optimizer.zero_grad()
@@ -196,6 +208,7 @@ class QNet(QNetInterface, POBNRLogger):
 
         log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
 
+        # TODO: optimize by first checkign if logging?
         log_tensorboard(
             f'weights/{self.name}',
             torch.cat([p.view(-1) for p in self.net.parameters()], dim=0),
@@ -280,12 +293,19 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         self.net = networks.RecNet(
             obs_space.ndim,
-            action_space.n,
+            int(action_space.n),
             conf.network_size,
             conf.prior_function_scale
-        )
+        ).to(device())
 
-        self.target_net = copy.deepcopy(self.net)
+        self.target_net = networks.RecNet(
+            obs_space.ndim,
+            int(action_space.n),
+            conf.network_size,
+            conf.prior_function_scale
+        ).to(device())
+
+        self.update_target()  # make sure paramters are set equal
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
         self.criterion = misc.loss_criterion(conf.loss)
@@ -333,11 +353,11 @@ class RecQNet(QNetInterface, POBNRLogger):
             )
 
             qvals, self.rnn_state = self.net(
-                torch.from_numpy(obs[-1]).view(1, 1, -1).float(),
+                torch.from_numpy(obs[-1]).view(1, 1, -1).to(device()).float(),
                 self.rnn_state
             )
 
-            qvals = qvals.squeeze().numpy()
+            qvals = qvals.squeeze().cpu().numpy()
 
             self.log(
                 POBNRLogger.LogLevel.V4,
@@ -365,11 +385,11 @@ class RecQNet(QNetInterface, POBNRLogger):
         seq_lengths = np.array([len(trace) for trace in batch])
 
         # initiate all with padding values
-        reward = torch.zeros(self.batch_size)
-        terminal = torch.zeros(self.batch_size, dtype=torch.bool)
-        action = torch.zeros(self.batch_size, dtype=torch.long)
-        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape, dtype=torch.float)
-        next_ob = torch.zeros((self.batch_size, *obs_shape), dtype=torch.float)
+        reward = torch.zeros(self.batch_size, device=device())
+        terminal = torch.zeros(self.batch_size, dtype=torch.bool, device=device())
+        action = torch.zeros(self.batch_size, dtype=torch.long, device=device())
+        obs = torch.zeros((self.batch_size, self.history_len) + obs_shape, dtype=torch.float, device=device())
+        next_ob = torch.zeros((self.batch_size, *obs_shape), dtype=torch.float, device=device())
 
         for i, seq in enumerate(batch):
             obs[i][:seq_lengths[i]] = torch.as_tensor([step['obs'] for step in seq])
@@ -379,7 +399,7 @@ class RecQNet(QNetInterface, POBNRLogger):
             next_ob[i] = torch.from_numpy(seq[-1]['next_obs'])
 
         # next_obs are being appened where the sequence ended
-        next_obs = torch.cat((obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape)), dim=1)
+        next_obs = torch.cat((obs[:, 1:], torch.zeros((self.batch_size, 1) + obs_shape, device=device())), dim=1)
         next_obs[np.arange(self.batch_size), seq_lengths - 1] = next_ob
 
         # BxhxA
@@ -396,7 +416,7 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         target_values = reward + self.gamma * torch.where(
             terminal,
-            torch.zeros(self.batch_size),
+            torch.tensor(0., device=device()),
             expected_return
         )
 
@@ -406,6 +426,7 @@ class RecQNet(QNetInterface, POBNRLogger):
         loss.backward()
         self.optimizer.step()
 
+        # TODO: check if logging for performance
         log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
 
         log_tensorboard(
@@ -424,6 +445,7 @@ class RecQNet(QNetInterface, POBNRLogger):
 
     def update_target(self) -> None:
         """ updates the target network """
+
         self.target_net.load_state_dict(self.net.state_dict())
 
     def record_transition(

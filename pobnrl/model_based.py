@@ -11,7 +11,8 @@ from domains.learned_environments import NeuralEnsemblePOMDP
 from domains.learned_environments import train_from_random_policy, train_from_uniform_steps
 from environments import Simulator
 from episode import run_episode
-from misc import POBNRLogger, set_random_seed, init_torch_logger
+from misc import POBNRLogger, set_random_seed
+import pytorch_api
 
 
 def main(conf) -> None:
@@ -22,7 +23,8 @@ def main(conf) -> None:
 
     """
 
-    # global init
+    pytorch_api.set_device(conf.use_gpu)
+
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger('model based main')
 
@@ -44,7 +46,9 @@ def main(conf) -> None:
 
     for run in range(conf.runs):
 
-        init_torch_logger(conf.tensorboard_logdir + '-' + run)
+        if conf.tensorboard_logdir:
+            pytorch_api.set_tensorboard_logging(f'{conf.tensorboard_logdir}-{run}')
+
         sim.train_models(train_method)
 
         agent.reset()
@@ -63,6 +67,8 @@ def main(conf) -> None:
                 POBNRLogger.LogLevel.V1,
                 f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
             )
+
+            pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
 
         # update mean and variance
         delta = tmp_res - result_mean

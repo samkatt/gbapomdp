@@ -8,7 +8,8 @@ import torch.distributions.utils
 
 from agents.neural_networks import Net
 from environments import ActionSpace
-from misc import DiscreteSpace, log_tensorboard
+from misc import DiscreteSpace
+from pytorch_api import log_tensorboard, device
 
 
 class DynamicsModel():
@@ -42,13 +43,13 @@ class DynamicsModel():
             input_size=self.state_space.ndim + self.action_space.n,
             output_size=np.sum(self.state_space.size),
             layer_size=conf.network_size
-        )
+        ).to(device())
 
         self.net_o = Net(
             input_size=self.state_space.ndim * 2 + self.action_space.n,
             output_size=np.sum(self.obs_space.size),
             layer_size=conf.network_size
-        )
+        ).to(device())
 
         self.optimizer = torch.optim.Adam(
             chain(self.net_t.parameters(), self.net_o.parameters()),
@@ -94,14 +95,16 @@ class DynamicsModel():
         """
 
         actions = [self.action_space.one_hot(a) for a in actions]
+        next_states = torch.from_numpy(next_states).to(device())
+        obs = torch.from_numpy(obs).to(device())
 
         state_action_pairs = torch.from_numpy(np.concatenate(
             [states, actions], axis=1
-        )).float()
+        )).to(device()).float()
 
         state_action_state_triplets = torch.from_numpy(np.concatenate(
             [states, actions, next_states], axis=1
-        )).float()
+        )).to(device()).float()
 
         next_state_logits = self.net_t(state_action_pairs)
         observation_logits = self.net_o(state_action_state_triplets)
@@ -109,14 +112,14 @@ class DynamicsModel():
         state_loss = torch.stack([
             self.criterion(
                 next_state_logits[:, self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]],
-                torch.from_numpy(next_states[:, i])
+                next_states[:, i]
             )
             for i in range(self.state_space.ndim)]).sum()
 
         observation_loss = torch.stack([
             self.criterion(
                 observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
-                torch.from_numpy(obs[:, i]))
+                obs[:, i])
             for i in range(self.obs_space.ndim)]).sum()
 
         self.optimizer.zero_grad()
@@ -125,18 +128,6 @@ class DynamicsModel():
 
         log_tensorboard(f'observation_loss/{self.name}', observation_loss.item(), self.num_batches)
         log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
-
-        # log_tensorboard(
-        # f'observation_weights/{self.name}',
-        # torch.cat([p.view(-1) for p in self.net_o.parameters()], dim=0),
-        # self.num_batches
-        # )
-
-        # log_tensorboard(
-        # f'transition_weights/{self.name}',
-        # torch.cat([p.view(-1) for p in self.net_t.parameters()], dim=0),
-        # self.num_batches
-        # )
 
         self.num_batches += 1
 
@@ -153,17 +144,19 @@ class DynamicsModel():
 
         state_action = torch.from_numpy(np.concatenate(
             [state, self.action_space.one_hot(action)]
-        )).float()
-        logits = self.net_t(state_action)
+        )).to(device()).float()
 
         # sample value for each dimension iteratively
-        return np.array([
-            torch.multinomial(
-                torch.distributions.utils.logits_to_probs(
-                    logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
-                ),
-                1).item() for i in range(self.state_space.ndim)
-        ], dtype=int)
+        with torch.no_grad():
+            logits = self.net_t(state_action)
+
+            return np.array([
+                torch.multinomial(
+                    torch.distributions.utils.logits_to_probs(
+                        logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
+                    ),
+                    1).item() for i in range(self.state_space.ndim)
+            ], dtype=int)
 
     def sample_observation(self, state: np.ndarray, action: int, next_state: np.ndarray) -> np.ndarray:
         """ samples an observation given state - action - next state triple
@@ -179,17 +172,19 @@ class DynamicsModel():
 
         state_action_state = torch.from_numpy(np.concatenate(
             [state, self.action_space.one_hot(action), next_state]
-        )).float()
-        logits = self.net_o(state_action_state)
+        )).to(device()).float()
 
-        # sample value for each dimension iteratively
-        return np.array([
-            torch.multinomial(
-                torch.distributions.utils.logits_to_probs(
-                    logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
-                ),
-                1).item() for i in range(self.obs_space.ndim)
-        ], dtype=int)
+        with torch.no_grad():
+            logits = self.net_o(state_action_state)
+
+            # sample value for each dimension iteratively
+            return np.array([
+                torch.multinomial(
+                    torch.distributions.utils.logits_to_probs(
+                        logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
+                    ),
+                    1).item() for i in range(self.obs_space.ndim)
+            ], dtype=int)
 
     def observation_prob(
             self,
@@ -211,13 +206,16 @@ class DynamicsModel():
 
         state_action_state = torch.from_numpy(np.concatenate(
             [state, self.action_space.one_hot(action), next_state]
-        )).float()
-        logits = self.net_o(state_action_state)
+        )).to(device()).float()
 
-        return np.prod([
-            torch.distributions.utils.logits_to_probs(
-                logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
-            )[observation[i]].item() for i in range(self.obs_space.ndim)])
+        with torch.no_grad():
+            logits = self.net_o(state_action_state)
+
+            return np.prod([
+                torch.distributions.utils.logits_to_probs(
+                    logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
+                )[observation[i]].item() for i in range(self.obs_space.ndim)
+            ])
 
     def reset(self) -> None:
         """ resets the networks """
