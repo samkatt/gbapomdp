@@ -1,7 +1,8 @@
 gym
 opencv-python
-pytorch
+torch
 typing_extensions
 pdoc
 matplotlib
 more_itertools
+tensorboard
