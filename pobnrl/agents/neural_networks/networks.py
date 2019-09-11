@@ -25,7 +25,7 @@ class Net(torch.nn.Module):  # type: ignore
         self.prior = torch.nn.Linear(input_size, output_size) if prior_scaling != 0 else None
 
         if self.prior:
-            self.prior.requires_grad_(False)  # type: ignore
+            self.prior.requires_grad_(False)
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
@@ -82,7 +82,7 @@ class RecNet(torch.nn.Module):  # type: ignore
         self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True) if prior_scaling != 0 else None
 
         if self.prior:
-            self.prior.requires_grad_(False)  # type: ignore
+            self.prior.requires_grad_(False)
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
@@ -101,16 +101,19 @@ class RecNet(torch.nn.Module):  # type: ignore
 
         TODO: use packing
 
+        Will pass the network input with optional hidden state and return the output plus new hidden state
+
         Args:
              net_input: (`torch`):
              Tensor:
-             hidden: (`Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]`): hidden state of `this`
+             hidden: (`Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]]`): hidden state of `this`
 
-        RETURNS (`Tuple[torch.Tensor, Tuple[torch.Tensor,Optional[torch.Tensor]]]`):
+        RETURNS (`Tuple[torch.Tensor, Tuple[Tuple[torch.Tensor,torch.Tensor],Optional[Tuple[torch.Tensor,torch.Tensor]]]]`):
 
         """
 
-        hidden_net, hidden_prior = [None, None]
+        hidden_net: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
+        hidden_prior: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
 
         if hidden:
             hidden_net, hidden_prior = hidden
@@ -119,18 +122,22 @@ class RecNet(torch.nn.Module):  # type: ignore
         activations = torch.tanh(self.layer_2(activations))
         activations, hidden_net = self.rnn_layer(activations, hidden_net)
 
+        assert hidden_net
+
         if self.prior:
 
             prior, hidden_prior = self.prior(net_input, hidden_prior)
+
+            assert hidden_prior
 
             return (
                 self.out(activations) + self.prior_scaling * prior,
                 (hidden_net, hidden_prior)
             )
 
-        assert hidden_prior is None
-
         # no prior
+        assert not hidden_prior
+
         return (
             self.out(activations),
             (hidden_net, None)

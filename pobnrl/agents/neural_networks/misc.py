@@ -17,7 +17,7 @@ import torch
 from torch.nn.modules.loss import _Loss as TorchLoss
 
 
-class RMSELoss(TorchLoss):
+class RMSELoss(TorchLoss):  # type: ignore
     """ custom RMSELoss criterion in pytorch """
 
     def forward(

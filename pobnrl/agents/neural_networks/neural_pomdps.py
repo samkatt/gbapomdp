@@ -152,7 +152,7 @@ class DynamicsModel():
 
             return np.array([
                 torch.multinomial(
-                    torch.distributions.utils.logits_to_probs(  # type: ignore
+                    torch.distributions.utils.logits_to_probs(
                         logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
                     ),
                     1).item() for i in range(self.state_space.ndim)
@@ -180,7 +180,7 @@ class DynamicsModel():
             # sample value for each dimension iteratively
             return np.array([
                 torch.multinomial(
-                    torch.distributions.utils.logits_to_probs(  # type: ignore
+                    torch.distributions.utils.logits_to_probs(
                         logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
                     ),
                     1).item() for i in range(self.obs_space.ndim)
@@ -212,7 +212,7 @@ class DynamicsModel():
             logits = self.net_o(state_action_state)
 
             return np.prod([
-                torch.distributions.utils.logits_to_probs(  # type: ignore
+                torch.distributions.utils.logits_to_probs(
                     logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
                 )[observation[i]].item() for i in range(self.obs_space.ndim)
             ])
