@@ -5,6 +5,8 @@ from functools import partial
 from typing import Callable, Deque
 import numpy as np
 
+from mypy_extensions import NamedArg
+
 from environments import ActionSpace
 from misc import Space, POBNRLogger
 from agents.misc import epsilon_greedy, PiecewiseSchedule
@@ -138,7 +140,7 @@ class EnsembleAgent(Agent, POBNRLogger):
     """ ensemble agent """
 
     def __init__(self,
-                 qnet_constructor: Callable[[str], QNetInterface],
+                 qnet_constructor: Callable[[NamedArg(str, 'name')], QNetInterface],
                  action_space: ActionSpace,
                  exploration: ExplorationSchedule,
                  conf):

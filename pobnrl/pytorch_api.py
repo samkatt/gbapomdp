@@ -20,7 +20,8 @@ def set_tensorboard_logging(log_dir: str) -> None:
     """
 
     global _TENSORBOARD_WRITER  # pylint: disable=global-statement
-    _TENSORBOARD_WRITER = torch.utils.tensorboard.SummaryWriter(log_dir=f'.tensorboard/{log_dir}')
+    _TENSORBOARD_WRITER \
+        = torch.utils.tensorboard.SummaryWriter(log_dir=f'.tensorboard/{log_dir}')  # type: ignore
 
 
 def set_device(use_gpu: bool) -> None:
@@ -59,6 +60,6 @@ def log_tensorboard(tag: str, val: Union[float, np.ndarray], step: int) -> None:
     if _TENSORBOARD_WRITER:
 
         if np.isscalar(val):
-            _TENSORBOARD_WRITER.add_scalar(tag, val, step)
+            _TENSORBOARD_WRITER.add_scalar(tag, val, step)  # type: ignore
         else:
-            _TENSORBOARD_WRITER.add_histogram(tag, val, step)
+            _TENSORBOARD_WRITER.add_histogram(tag, val, step)  # type: ignore

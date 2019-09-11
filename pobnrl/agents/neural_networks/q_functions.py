@@ -196,7 +196,7 @@ class QNet(QNetInterface, POBNRLogger):
 
         target_values = reward + self.gamma * torch.where(
             terminal,
-            torch.tensor(0., device=device()),
+            torch.zeros(1, device=device()),
             self.target_net(next_obs.view(self.batch_size, -1)).max(1)[0]
         )
 
@@ -207,20 +207,7 @@ class QNet(QNetInterface, POBNRLogger):
         self.optimizer.step()
 
         log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
-
-        # TODO: optimize by first checkign if logging?
-        log_tensorboard(
-            f'weights/{self.name}',
-            torch.cat([p.view(-1) for p in self.net.parameters()], dim=0),
-            self.num_batches
-        )
-
-        log_tensorboard(
-            f'q-vals/{self.name}',
-            q_values.view(-1),
-            self.num_batches
-        )
-
+        log_tensorboard(f'q-vals/{self.name}', q_values.view(-1), self.num_batches)
         self.num_batches += 1
 
     def update_target(self) -> None:
@@ -380,6 +367,7 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         batch = self.replay_buffer.sample(self.batch_size, self.history_len)
 
+        # TODO: this is ugly and must be improved on
         # may consider storing this, instead of fishing from batch..?
         obs_shape = batch[0][0]['obs'].shape
         seq_lengths = np.array([len(trace) for trace in batch])
@@ -416,7 +404,7 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         target_values = reward + self.gamma * torch.where(
             terminal,
-            torch.tensor(0., device=device()),
+            torch.zeros(1, device=device()),
             expected_return
         )
 
@@ -426,21 +414,8 @@ class RecQNet(QNetInterface, POBNRLogger):
         loss.backward()
         self.optimizer.step()
 
-        # TODO: check if logging for performance
         log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
-
-        log_tensorboard(
-            f'weights/{self.name}',
-            torch.cat([p.view(-1) for p in self.net.parameters()], dim=0),
-            self.num_batches
-        )
-
-        log_tensorboard(
-            f'q-vals/{self.name}',
-            q_values.view(-1),
-            self.num_batches
-        )
-
+        log_tensorboard(f'q-vals/{self.name}', q_values.view(-1), self.num_batches)
         self.num_batches += 1
 
     def update_target(self) -> None:
@@ -493,6 +468,9 @@ class RecQNet(QNetInterface, POBNRLogger):
             rnn_state = self.rnn_state
 
         if rnn_state:
-            return f'1st state: {rnn_state[0][0][0][0][0]}, prior: {rnn_state[1][0][0][0][0]}'
+            hidden_state_descr = 'None' if not rnn_state[0] else str(rnn_state[0][0][0][0][0])
+            prior_descr = 'None' if not rnn_state[1] else str(rnn_state[1][0][0][0][0])
+
+            return f'hidden state: {hidden_state_descr}, prior state: {prior_descr}'
 
         return str(rnn_state)

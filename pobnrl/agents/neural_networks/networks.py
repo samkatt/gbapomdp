@@ -1,9 +1,7 @@
 """ Contains networks """
 
-from typing import Tuple, List
+from typing import Tuple, Optional
 import torch
-
-# TODO: improve performance by not doing prior if not necessary
 
 
 class Net(torch.nn.Module):  # type: ignore
@@ -24,9 +22,10 @@ class Net(torch.nn.Module):  # type: ignore
         super(Net, self).__init__()
 
         self.prior_scaling = prior_scaling
+        self.prior = torch.nn.Linear(input_size, output_size) if prior_scaling != 0 else None
 
-        self.prior = torch.nn.Linear(input_size, output_size)
-        self.prior.requires_grad_(False)  # type: ignore
+        if self.prior:
+            self.prior.requires_grad_(False)  # type: ignore
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
@@ -44,7 +43,11 @@ class Net(torch.nn.Module):  # type: ignore
         """
         activations = torch.tanh(self.layer_1(net_input))
         activations = torch.tanh(self.layer_2(activations))
-        return self.out(activations) + self.prior_scaling * self.prior(net_input)
+
+        if self.prior:
+            return self.out(activations) + self.prior_scaling * self.prior(net_input)
+
+        return self.out(activations)
 
     def random_init_parameters(self) -> None:
         """ randomly resets / initiates parameters
@@ -58,7 +61,9 @@ class Net(torch.nn.Module):  # type: ignore
         self.layer_1.reset_parameters()
         self.layer_2.reset_parameters()
         self.out.reset_parameters()
-        self.prior.reset_parameters()
+
+        if self.prior:
+            self.prior.reset_parameters()
 
 
 class RecNet(torch.nn.Module):  # type: ignore
@@ -74,9 +79,10 @@ class RecNet(torch.nn.Module):  # type: ignore
         super(RecNet, self).__init__()
 
         self.prior_scaling = prior_scaling
+        self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True) if prior_scaling != 0 else None
 
-        self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True)
-        self.prior.requires_grad_(False)  # type: ignore
+        if self.prior:
+            self.prior.requires_grad_(False)  # type: ignore
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
@@ -89,27 +95,45 @@ class RecNet(torch.nn.Module):  # type: ignore
     def forward(
             self,
             net_input: torch.Tensor,
-            hidden=None) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+            hidden: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]] = None
+    ) -> Tuple[torch.Tensor, Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]]:
         """ forward passes through the network
 
+        TODO: use packing
+
         Args:
-             net_input: (`torch.Tensor`):
-             hidden: (`torch.Tensor`): hidden state
+             net_input: (`torch`):
+             Tensor:
+             hidden: (`Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]`): hidden state of `this`
+
+        RETURNS (`Tuple[torch.Tensor, Tuple[torch.Tensor,Optional[torch.Tensor]]]`):
 
         """
 
-        hidden_net, hidden_prior = hidden if hidden else [None, None]
+        hidden_net, hidden_prior = [None, None]
 
-        prior, hidden_prior = self.prior(net_input, hidden_prior)
+        if hidden:
+            hidden_net, hidden_prior = hidden
 
         activations = torch.tanh(self.layer_1(net_input))
         activations = torch.tanh(self.layer_2(activations))
-        # TODO: use packing
         activations, hidden_net = self.rnn_layer(activations, hidden_net)
 
+        if self.prior:
+
+            prior, hidden_prior = self.prior(net_input, hidden_prior)
+
+            return (
+                self.out(activations) + self.prior_scaling * prior,
+                (hidden_net, hidden_prior)
+            )
+
+        assert hidden_prior is None
+
+        # no prior
         return (
-            self.out(activations) + self.prior_scaling * prior,
-            [hidden_net, hidden_prior]
+            self.out(activations),
+            (hidden_net, None)
         )
 
     def random_init_parameters(self) -> None:
@@ -124,5 +148,7 @@ class RecNet(torch.nn.Module):  # type: ignore
         self.layer_1.reset_parameters()
         self.layer_2.reset_parameters()
         self.out.reset_parameters()
-        self.prior.reset_parameters()
         self.rnn_layer.reset_parameters()
+
+        if self.prior:
+            self.prior.reset_parameters()
