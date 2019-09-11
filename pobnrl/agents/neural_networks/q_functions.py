@@ -152,7 +152,10 @@ class QNet(QNetInterface, POBNRLogger):
 
         with torch.no_grad():
             qvals = self.net(torch.from_numpy(obs).view(1, -1).float().to(device())).cpu().numpy()
-            self.log(POBNRLogger.LogLevel.V4, f"DQN: {obs} returned Q: {qvals}")
+
+            if self.log_is_on(POBNRLogger.LogLevel.V4):
+                self.log(POBNRLogger.LogLevel.V4, f"DQN: {obs} returned Q: {qvals}")
+
             return qvals
 
     def batch_update(self) -> None:
@@ -333,11 +336,12 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         with torch.no_grad():
 
-            self.log(
-                POBNRLogger.LogLevel.V4,
-                f"DRQN with obs {obs} "
-                f"and state {self.rnn_to_str(self.rnn_state)}"
-            )
+            if self.log_is_on(POBNRLogger.LogLevel.V4):
+                self.log(
+                    POBNRLogger.LogLevel.V4,
+                    f"DRQN with obs {obs} "
+                    f"and state {self.rnn_to_str(self.rnn_state)}"
+                )
 
             qvals, self.rnn_state = self.net(
                 torch.from_numpy(obs[-1]).view(1, 1, -1).to(device()).float(),
@@ -346,11 +350,12 @@ class RecQNet(QNetInterface, POBNRLogger):
 
             qvals = qvals.squeeze().cpu().numpy()
 
-            self.log(
-                POBNRLogger.LogLevel.V4,
-                f"DRQN: returned Q: {qvals} "
-                f"(first rnn: {self.rnn_to_str(self.rnn_state)})"
-            )
+            if self.log_is_on(POBNRLogger.LogLevel.V4):
+                self.log(
+                    POBNRLogger.LogLevel.V4,
+                    f"DRQN: returned Q: {qvals} "
+                    f"(first rnn: {self.rnn_to_str(self.rnn_state)})"
+                )
 
         return qvals
 
