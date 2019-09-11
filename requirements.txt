@@ -6,3 +6,5 @@ pdoc
 matplotlib
 more_itertools
 tensorboard
+mypy_extensions
+numpy<1.17
