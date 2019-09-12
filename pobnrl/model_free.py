@@ -7,7 +7,7 @@ import numpy as np
 from agents.model_free_agents import create_agent
 from domains import create_environment, EncodeType
 from episode import run_episode
-from misc import POBNRLogger
+from misc import POBNRLogger, set_random_seed
 import pytorch_api
 
 
@@ -23,6 +23,9 @@ def main(conf) -> None:
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger(__name__)
+
+    if conf.random_seed:
+        set_random_seed(conf.random_seed)
 
     result_mean = np.zeros(conf.episodes)
     ret_m2 = np.zeros(conf.episodes)
@@ -253,6 +256,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         default='',
         type=str,
         help='the log directory for tensorboard'
+    )
+
+    parser.add_argument(
+        "--random_seed", "--seed",
+        default=0,
+        type=int,
+        help='set random seed'
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline
