@@ -209,7 +209,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         assert self.state_space.contains(new_state)
         assert self.action_space.contains(action)
 
-        return new_state[1] == 0
+        return bool(new_state[1] == 0)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ performs a step in the domain depending on action

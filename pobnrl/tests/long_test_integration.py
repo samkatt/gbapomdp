@@ -32,7 +32,7 @@ class TestModelFreeAgents(unittest.TestCase):
         self.run_experiment(['--domain_size=3', '-D=cartpole', "--horizon=10000"])
         self.run_experiment(['--domain_size=3', '-D=gridworld'])
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
-        self.run_experiment(['--domain_size=5', '-D=chain'])
+        self.run_experiment(['--domain_size=5', '-D=chain', '--episodes=35'])
 
     def test_ensemble(self):
         """ run the ensemble agent """
