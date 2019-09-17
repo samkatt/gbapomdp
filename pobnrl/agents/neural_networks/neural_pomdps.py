@@ -2,7 +2,9 @@
 
 from itertools import chain
 from typing import Tuple
+import copy
 import numpy as np
+import re
 import torch
 import torch.distributions.utils
 
@@ -20,7 +22,8 @@ class DynamicsModel():
             state_space: DiscreteSpace,
             action_space: ActionSpace,
             obs_space: DiscreteSpace,
-            conf,
+            network_size: int,
+            learning_rate: float,
             name: str):
         """ Creates a dynamic model
 
@@ -28,7 +31,8 @@ class DynamicsModel():
              state_space: (`pobnrl.misc.DiscreteSpace`):
              action_space: (`pobnrl.environments.ActionSpace`):
              obs_space: (`pobnrl.misc.DiscreteSpace`):
-             conf: configurations from program input
+             network_size: (`int`): number of nodes in hidden layers
+             learning_rate: (`float`): learning rate of the optimizer
              name: (`str`): name of the network
 
         """
@@ -42,22 +46,23 @@ class DynamicsModel():
         self.net_t = Net(
             input_size=self.state_space.ndim + self.action_space.n,
             output_size=np.sum(self.state_space.size),
-            layer_size=conf.network_size
+            layer_size=network_size
         ).to(device())
 
         self.net_o = Net(
             input_size=self.state_space.ndim * 2 + self.action_space.n,
             output_size=np.sum(self.obs_space.size),
-            layer_size=conf.network_size
+            layer_size=network_size
         ).to(device())
 
         self.optimizer = torch.optim.Adam(
             chain(self.net_t.parameters(), self.net_o.parameters()),
-            lr=conf.learning_rate
+            lr=learning_rate
         )
         self.criterion = torch.nn.CrossEntropyLoss()
 
         self.num_batches = 0
+        self.learning_rate = learning_rate  # hard to extract from self.optimizer
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
         """ The simulation step of this dynamics model: S x A -> S, O
@@ -222,3 +227,39 @@ class DynamicsModel():
         self.net_t.random_init_parameters()
         self.net_o.random_init_parameters()
         self.num_batches = 0
+
+    def copy(self) -> 'DynamicsModel':
+        """ copies self
+
+        Takes care of which members to copy deep and afterwards links pytorch
+        optimizer with the correct parameters
+
+        Args:
+
+        RETURNS (`DynamicsModel`):
+
+        """
+
+        copied_model = self
+
+        # deep copy models
+        copied_model.net_o = copy.deepcopy(self.net_o)
+        copied_model.net_t = copy.deepcopy(self.net_t)
+
+        # point optimizer to correct parameters
+        copied_model.optimizer = torch.optim.Adam(
+            chain(copied_model.net_t.parameters(), copied_model.net_o.parameters()),
+            self.learning_rate
+        )
+
+        # some magic to maintain name consistency
+        name_splits = re.split(r'(\d+)', self.name)
+        if len(name_splits) == 1:
+            copied_model.name = f'{name_splits[0]}-copy-1'
+        else:
+            assert len(name_splits) == 3, f'not sure how we got to network name {self.name}'
+
+            # increment copy count by 1
+            copied_model.name = f'{name_splits[0]}{int(name_splits[1]) + 1}'
+
+        return copied_model

@@ -146,7 +146,7 @@ class DiscreteSpace(Space):
         """ initiates a discrete space of size size
 
         Args:
-             size: (`List[int]`): is a list of dimension ranges
+             size: (`Union[List[int], np.ndarray]`): is a list of dimension ranges
 
         """
 
