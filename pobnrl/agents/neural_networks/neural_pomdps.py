@@ -3,8 +3,9 @@
 from itertools import chain
 from typing import Tuple
 import copy
-import numpy as np
 import re
+
+import numpy as np
 import torch
 import torch.distributions.utils
 
@@ -242,24 +243,24 @@ class DynamicsModel():
 
         copied_model = self
 
-        # deep copy models
         copied_model.net_o = copy.deepcopy(self.net_o)
         copied_model.net_t = copy.deepcopy(self.net_t)
 
-        # point optimizer to correct parameters
         copied_model.optimizer = torch.optim.Adam(
             chain(copied_model.net_t.parameters(), copied_model.net_o.parameters()),
             self.learning_rate
         )
 
-        # some magic to maintain name consistency
-        name_splits = re.split(r'(\d+)', self.name)
+        # some magic to maintain name consistency:
+        # create (name)-copy-1 or increment counter if already available
+
+        name_splits = re.split(r'(-copy-\d+)', self.name)
         if len(name_splits) == 1:
             copied_model.name = f'{name_splits[0]}-copy-1'
         else:
             assert len(name_splits) == 3, f'not sure how we got to network name {self.name}'
 
-            # increment copy count by 1
-            copied_model.name = f'{name_splits[0]}{int(name_splits[1]) + 1}'
+            i = int(re.split(r'(\d+)', name_splits[1])[1]) + 1
+            copied_model.name = f'{name_splits[0]}-copy-{i}'
 
         return copied_model
