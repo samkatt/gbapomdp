@@ -10,6 +10,7 @@ import torch
 import torch.distributions.utils
 
 from agents.neural_networks import Net
+from agents.neural_networks.misc import perturb
 from environments import ActionSpace
 from misc import DiscreteSpace
 from pytorch_api import log_tensorboard, device
@@ -228,6 +229,19 @@ class DynamicsModel():
         self.net_t.random_init_parameters()
         self.net_o.random_init_parameters()
         self.num_batches = 0
+
+    def perturb_parameters(self, stdev: float = .1) -> None:
+        """ perturb parameters of model
+
+        Args:
+             stdev: (`float`): the standard deviation of the pertubation
+
+        RETURNS (`None`):
+
+        """
+
+        for param in chain(self.net_t.parameters(), self.net_o.parameters()):
+            param = perturb(param, stdev)
 
     def copy(self) -> 'DynamicsModel':
         """ copies self

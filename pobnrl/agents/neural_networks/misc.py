@@ -1,10 +1,10 @@
 """ Contains miscelaneous functionality for neural networks
 
-Actual networks to compute Q values
-
 ReplayBuffer: stores interactions
 
 Loss calculations
+
+Tensor / parameter transormations
 
 """
 
@@ -52,6 +52,17 @@ def loss_criterion(loss_type: str) -> TorchLoss:
         return torch.nn.SmoothL1Loss()
 
     raise ValueError('Entered unknown value for loss ' + loss_type)
+
+
+def perturb(tensor: torch.Tensor, stdev: float):
+    """ returns a perturbed version (with provided `stdev`) of `tensor`
+
+    Args:
+         tensor: (`torch.Tensor`): the mean of the returned pertubation
+         stdev: (`float`): the standard deviation
+
+    """
+    return torch.normal(tensor, stdev)
 
 
 class ReplayBuffer():

@@ -1,13 +1,18 @@
-""" runs tests on the neural pomdp package """
+""" runs tests on the neural networks """
 
 import unittest
+
+import torch
+import numpy as np
 
 from environments import ActionSpace
 from misc import DiscreteSpace
 from agents.neural_networks.neural_pomdps import DynamicsModel
+from agents.neural_networks.misc import perturb
 
 
 class TestDynamicModel(unittest.TestCase):
+    """ Test unit fo the `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
 
     def test_copy(self) -> None:
         """ tests the copy function of the `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`
@@ -48,6 +53,30 @@ class TestDynamicModel(unittest.TestCase):
 
         nested_copied_model = copied_model.copy()
         self.assertEqual(nested_copied_model.name, 'some-model-3-copy-2')
+
+
+class TestMisc(unittest.TestCase):
+    """ Tests `pobnrl.agents.neural_networks.misc` """
+
+    def test_perturbations(self) -> None:  # pylint: disable=no-self-use
+        """ tests `pobnrl.agents.neural_networks.misc.perturb`
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        tensor = torch.rand((5, 3))
+
+        perturbed_tensor = perturb(tensor, 1)
+
+        np.testing.assert_raises(
+            AssertionError,
+            np.testing.assert_array_equal,
+            tensor.numpy(),
+            perturbed_tensor.numpy()
+        )
 
 
 if __name__ == '__main__':
