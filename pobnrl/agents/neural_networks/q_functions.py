@@ -167,7 +167,7 @@ class QNet(QNetInterface, POBNRLogger):
 
         batch = self.replay_buffer.sample(self.batch_size, self.history_len)
 
-        # TODO: this is ugly and must be improved on
+        # XXX: currently large part of the computation
         # may consider storing this, instead of fishing from batch..?
         obs_shape = batch[0][0]['obs'].shape
         seq_lengths = np.array([len(trace) for trace in batch])
@@ -372,7 +372,7 @@ class RecQNet(QNetInterface, POBNRLogger):
 
         batch = self.replay_buffer.sample(self.batch_size, self.history_len)
 
-        # TODO: this is ugly and must be improved on
+        # XXX: currently large part of the computation
         # may consider storing this, instead of fishing from batch..?
         obs_shape = batch[0][0]['obs'].shape
         seq_lengths = np.array([len(trace) for trace in batch])
