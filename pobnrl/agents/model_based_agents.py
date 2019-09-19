@@ -9,7 +9,8 @@ from environments import Simulator
 from misc import POBNRLogger
 
 from .agent import Agent
-from .planning.particle_filters import BeliefManager, rejection_sampling, importance_sampling
+
+from .planning.belief import BeliefManager, rejection_sampling, importance_sampling
 from .planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
 from .planning.pouct import POUCT
 
@@ -140,12 +141,7 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
                 sample_process=sim.sample_start_state,
                 size=conf.num_particles
             ),
-            update_belief_f=lambda particle_filter, action, observation: rejection_sampling(
-                particle_filter,
-                process_sample_f=partial(sim.simulation_step, action=action),
-                accept_f=lambda interaction: np.all(interaction.observation == observation),
-                extract_particle_f=lambda interaction: interaction.state,
-            ),
+            update_belief_f=partial(rejection_sampling, sim=sim),
             episode_reset_f=partial(
                 episode_reset_belief,
                 logger=POBNRLogger('BeliefManager'),
@@ -161,12 +157,7 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
                 sample_process=sim.sample_start_state,
                 size=conf.num_particles
             ),
-            update_belief_f=lambda particle_filter, action, observation: importance_sampling(
-                particle_filter,
-                process_sample_f=lambda part: {'particle': part, 'new_state': part.model.sample_state(part.domain_state, action)},
-                weight_f=lambda x: x['particle'].model.observation_prob(x['particle'].domain_state, action, x['new_state'], observation),
-                extract_particle_f=lambda x: NeuralEnsemblePOMDP.AugmentedState(x['new_state'], x['particle'].model)
-            ),
+            update_belief_f=partial(importance_sampling, sim=sim),
             episode_reset_f=partial(
                 episode_reset_belief,
                 logger=POBNRLogger('BeliefManager'),
@@ -231,12 +222,7 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
             FlatFilter.create_from_process,
             sample_process=sim.sample_start_state, size=conf.num_particles
         ),
-        update_belief_f=lambda particle_filter, action, observation: rejection_sampling(
-            particle_filter,
-            process_sample_f=partial(sim.simulation_step, action=action),
-            accept_f=lambda interaction: np.all(interaction.observation == observation),
-            extract_particle_f=lambda interaction: interaction.state,
-        ),
+        update_belief_f=partial(rejection_sampling, sim=sim)
     )
 
     return PrototypeAgent(
