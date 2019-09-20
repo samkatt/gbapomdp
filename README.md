@@ -44,9 +44,9 @@ Systems. 2018.][1]
 
 ### TODO
 
-* move to pytorch
 * revisit static analysis
 * profile (numba)
+* move scripts in a /bin directory
 
 #### spaces issue
 

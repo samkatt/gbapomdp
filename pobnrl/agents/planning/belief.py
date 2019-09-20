@@ -1,12 +1,16 @@
 """ contains algorithms and classes for maintaining beliefs """
 
 from typing import Callable, Optional
+from functools import partial
 
 from typing_extensions import Protocol
 import numpy as np
 
 from misc import POBNRLogger
 from environments import Simulator
+
+from agents.neural_networks.neural_pomdps import DynamicsModel
+from domains.learned_environments import NeuralEnsemblePOMDP
 
 from .particle_filters import ParticleFilter, WeightedFilter, WeightedParticle
 
@@ -109,6 +113,17 @@ def rejection_sampling(
         action: np.ndarray,
         observation: np.ndarray,
         sim: Simulator) -> ParticleFilter:
+    """ performs vanilla rejection sampling as belief update
+
+    Args:
+         belief: (`ParticleFilter`):
+         action: (`np.ndarray`):
+         observation: (`np.ndarray`):
+         sim: (`Simulator`):
+
+    RETURNS (`ParticleFilter`):
+
+    """
 
     next_belief = type(belief)()
 
@@ -124,23 +139,185 @@ def rejection_sampling(
 
 
 def importance_sampling(
-        belief: WeightedFilter,
+        belief: ParticleFilter,
         action: np.ndarray,
-        observation: np.ndarray,
-        sim: Simulator) -> WeightedFilter:
+        observation: np.ndarray) -> WeightedFilter:
+    """ applies importance sampling **with resampling** as belief update
+
+    Assumes belief is over state and models, i.e.
+    `pobnrl.domains.learned_environments.NeuralEnsemblePOMDP.AugmentedState`
+
+    Args:
+         belief: (`ParticleFilter`):
+         action: (`np.ndarray`):
+         observation: (`np.ndarray`):
+
+    RETURNS (`WeightedFilter`):
+
+    """
 
     next_belief = WeightedFilter()
 
     for _ in range(belief.size):
 
-        # XXX: with resampling here
+        # This step functions as the resampling step
         state = belief.sample()
 
-        transition = sim.simulation_step(state, action)
-        weight = state.model.observation_prob(  # XXX assumes particles are AugmentedStates
-            state.domain_state, action, transition.state.domain_state, observation
+        next_domain_state = state.model.sample_state(state.domain_state, action)
+
+        weight = state.model.observation_prob(
+            state.domain_state, action, next_domain_state, observation
         )
 
-        next_belief.add_weighted_particle(WeightedParticle(transition.state, weight))
+        next_belief.add_weighted_particle(WeightedParticle(
+            NeuralEnsemblePOMDP.AugmentedState(next_domain_state, state.model),
+            weight
+        ))
 
     return next_belief
+
+
+class ModelUpdate(Protocol):
+    """ Defines the signature of a model update function
+
+    These functions are used to **augment** the importance sampling update.
+    I.e. this function will enable the model to be updated
+
+    """
+
+    def __call__(
+            self,
+            model: DynamicsModel,
+            state: np.ndarray,
+            action: np.ndarray,
+            next_state: np.ndarray,
+            observation: np.ndarray) -> None:
+        pass
+
+
+def perturb_parameters(
+        model: DynamicsModel,
+        state: np.ndarray,  # pylint: disable=unused-argument
+        action: np.ndarray,  # pylint: disable=unused-argument
+        next_state: np.ndarray,  # pylint: disable=unused-argument
+        observation: np.ndarray,  # pylint: disable=unused-argument
+        stdev: float) -> None:
+    """ A type of belief update: applies gaussian noise to model parameters
+
+    Args:
+         model: (`DynamicsModel`):
+         _: (`np.ndarray`): ignored
+         __: (`np.ndarray`): ignored
+         ___: (`np.ndarray`): ignored
+         _____: (`np.ndarray`): ignored
+         stdev: (`float`): the standard deviation of the applied noise
+
+    RETURNS (`None`):
+
+    """
+
+    model.perturb_parameters(stdev)
+
+
+def backprop_update(
+        model: DynamicsModel,
+        state: np.ndarray,
+        action: np.ndarray,
+        next_state: np.ndarray,
+        observation: np.ndarray) -> None:
+    """ A type of belief update: applies a simple backprop call to the model
+
+    Args:
+         model: (`DynamicsModel`):
+         state: (`np.ndarray`):
+         action: (`np.ndarray`):
+         next_state: (`np.ndarray`):
+         observation: (`np.ndarray`):
+
+    RETURNS (`None`):
+
+    """
+
+    # `batch_update` expects batch_size x ... size. [None] adds a dimension
+    model.batch_update(state[None], action[None], next_state[None], observation[None])
+
+
+def augmented_importance_sampling(
+        belief: ParticleFilter,
+        action: np.ndarray,
+        observation: np.ndarray,
+        update_model: ModelUpdate) -> WeightedFilter:
+    """ Core algorithm for this project. Updates the model during belief update
+
+    Assuming a belief p(state, dynamics), this function will compute an
+    importance sampling belief update. It differs from `importance_sampling` in
+    that it also updates the models. The specific update that is applied is
+    determined by the `update_model` parameter.
+
+    Args:
+         belief: (`ParticleFilter`):
+         action: (`np.ndarray`):
+         observation: (`np.ndarray`):
+         update_model: (`ModelUpdate`):
+
+    RETURNS (`WeightedFilter`):
+
+    """
+
+    next_belief = WeightedFilter()
+
+    for _ in range(belief.size):
+
+        # This step functions as the resampling step
+        state = belief.sample()
+        next_model = state.model.copy()
+
+        next_domain_state = state.model.sample_state(state.domain_state, action)
+        update_model(
+            model=next_model,
+            state=state.domain_state,
+            action=action,
+            next_state=next_domain_state,
+            observation=observation
+        )
+
+        weight = next_model.observation_prob(
+            state.domain_state, action, next_domain_state, observation
+        )
+
+        next_belief.add_weighted_particle(WeightedParticle(
+            NeuralEnsemblePOMDP.AugmentedState(next_domain_state, next_model),
+            weight
+        ))
+
+    return next_belief
+
+
+def importance_sample_factory(perturb_stdev: float, backprop: bool) -> BeliefUpdate:
+    """ returns an importance sampling method depending on the configurations
+
+    Args:
+         perturb_stdev: (`float`): the amount of param perturbation during updates
+         backprop: (`bool`): whether to apply backprop during update
+
+    RETURNS (`BeliefUpdate`):
+
+    """
+
+    # basic, no enhancements
+    if perturb_stdev == 0 and not backprop:
+        return importance_sampling
+
+    assert backprop or perturb_stdev != 0, \
+        f'Simultaneous backprop and perturbance is not supported'
+
+    if backprop:
+        return partial(augmented_importance_sampling, update_model=backprop_update)
+
+    if not perturb_stdev == 0:
+        return partial(
+            augmented_importance_sampling,
+            update_model=partial(perturb_parameters, stdev=perturb_stdev)
+        )
+
+    raise AssertionError('This code cannot be reached, silly pylint')

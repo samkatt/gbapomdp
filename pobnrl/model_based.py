@@ -260,6 +260,19 @@ def parse_arguments(args: Optional[List[str]] = None):
         help='the log directory for tensorboard'
     )
 
+    parser.add_argument(
+        '--perturb_stdev',
+        default=0,
+        type=float,
+        help='the amount of parameter pertubation applies during belief updates'
+    )
+
+    parser.add_argument(
+        '--backprop',
+        action='store_true',
+        help='whether to apply backprop during belief updates'
+    )
+
     return parser.parse_args(args)  # if args is "", will read cmdline
 
 

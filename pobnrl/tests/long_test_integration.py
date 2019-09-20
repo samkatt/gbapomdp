@@ -63,7 +63,8 @@ class TestModelFreeAgents(unittest.TestCase):
         )
 
         # gpu
-        self.run_experiment(['-D=cartpole', '--recurrent', '--use_gpu', '-H 201'])
+        # FIXME: uncomment with GPU is working
+        # self.run_experiment(['-D=cartpole', '--recurrent', '--use_gpu', '-H 201'])
 
         # ensemble agent
         self.run_experiment(
@@ -81,7 +82,9 @@ class TestModelFreeAgents(unittest.TestCase):
 
         self.run_experiment(['-D=cartpole', '--clipping=5', "--horizon=10000"])
 
-        self.run_experiment(['-D=cartpole', '--use_gpu', "--horizon=10000"])
+        # gpu
+        # FIXME: uncomment with GPU is working
+        # self.run_experiment(['-D=cartpole', '--use_gpu', "--horizon=10000"])
 
 
 class TestPOMCP(unittest.TestCase):
@@ -171,6 +174,40 @@ class TestModelBasedRL(unittest.TestCase):
         """ tests whether importance sampling works """
 
         self.run_experiment(['-D=gridworld', '--domain_size=3', '-B=importance_sampling'])
+
+
+class TestModelUpdates(unittest.TestCase):
+    """ tests the augmented importance sampling methods (perturb, backprop, etc) """
+
+    @staticmethod
+    def run_experiment(args) -> None:
+        """ runs an experiment with args as configuration
+
+        Adds some default arguments to the experiment
+
+        Args:
+             args: ['--arg=val', ...] the argument to run
+
+        """
+
+        def_args = [
+            '--num_sims=16',
+            '--num_particles=64',
+            '--horizon=5',
+            '-v=0',
+            '--episodes=2',
+            '-B=importance_sampling'
+        ]
+
+        mb_main(mb_parse_arguments(def_args + args))
+
+    def test_perturb(self) -> None:
+        """ tests the `perturb_stdev` parameter """
+        self.run_experiment(['-D=tiger', '--perturb_stdev=.01'])
+
+    def test_backprop(self) -> None:
+        """ tests the backprop-during-belief-update functionality """
+        self.run_experiment(['-D=gridworld', '--domain_size=3', '--backprop'])
 
 
 if __name__ == '__main__':

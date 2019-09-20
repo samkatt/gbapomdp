@@ -10,7 +10,7 @@ from misc import POBNRLogger
 
 from .agent import Agent
 
-from .planning.belief import BeliefManager, rejection_sampling, importance_sampling
+from .planning.belief import BeliefManager, rejection_sampling, importance_sample_factory
 from .planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
 from .planning.pouct import POUCT
 
@@ -157,7 +157,9 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
                 sample_process=sim.sample_start_state,
                 size=conf.num_particles
             ),
-            update_belief_f=partial(importance_sampling, sim=sim),
+            update_belief_f=importance_sample_factory(
+                conf.perturb_stdev, conf.backprop
+            ),
             episode_reset_f=partial(
                 episode_reset_belief,
                 logger=POBNRLogger('BeliefManager'),
