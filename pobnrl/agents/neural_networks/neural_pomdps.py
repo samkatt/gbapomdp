@@ -255,7 +255,7 @@ class DynamicsModel():
 
         """
 
-        copied_model = self
+        copied_model = copy.copy(self)
 
         copied_model.net_o = copy.deepcopy(self.net_o)
         copied_model.net_t = copy.deepcopy(self.net_t)

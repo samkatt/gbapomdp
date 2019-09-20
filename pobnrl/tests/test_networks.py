@@ -33,6 +33,9 @@ class TestDynamicModel(unittest.TestCase):
         )
 
         copied_model = test_model.copy()
+        self.assertEqual(test_model.name, 'test')
+        self.assertNotEqual(test_model.net_t, copied_model.net_t)
+
         self.assertEqual(copied_model.name, 'test-copy-1')
 
         nested_copied_model = copied_model.copy()
