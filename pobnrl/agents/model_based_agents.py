@@ -170,7 +170,8 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
                 episode_reset_belief,
                 logger=POBNRLogger('BeliefManager'),
                 sim=sim
-            )
+            ),
+            belief_analyzer=analyser
         )
 
     raise ValueError(f"belief must be 'rejection_sampling' or 'importance_sampling', not {conf.belief}")

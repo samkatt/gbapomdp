@@ -22,13 +22,13 @@ def tiger_observation_model_analyse(
     """
     # hear correct for state 0
     probs_0 = np.array([
-        belief.sample().part.model.observation_prob([0], 2, [0], [0])
+        belief.sample().model.observation_prob([0], 2, [0], [0])
         for _ in range(100)
     ])
 
     # hear correct for state 1
     probs_1 = np.array([
-        belief.sample().part.model.observation_prob([1], 2, [1], [1])
+        belief.sample().model.observation_prob([1], 2, [1], [1])
         for _ in range(100)
     ])
 
