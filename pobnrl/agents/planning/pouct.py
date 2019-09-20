@@ -6,10 +6,9 @@ import random
 
 import numpy as np
 
+from agents.planning.particle_filters import ParticleFilter
 from environments import Simulator
 from misc import POBNRLogger
-
-from .particle_filters import ParticleFilter
 
 
 _IterationResult = namedtuple('IterResult', 'ret depth length')

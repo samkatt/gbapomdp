@@ -13,7 +13,7 @@ from agents.neural_networks import Net
 from agents.neural_networks.misc import perturb
 from environments import ActionSpace
 from misc import DiscreteSpace
-from pytorch_api import log_tensorboard, device
+from pytorch_api import log_tensorboard, device, tensorboard_logging
 
 
 class DynamicsModel():
@@ -133,8 +133,9 @@ class DynamicsModel():
         (state_loss + observation_loss).backward()
         self.optimizer.step()
 
-        log_tensorboard(f'observation_loss/{self.name}', observation_loss.item(), self.num_batches)
-        log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
+        if tensorboard_logging():
+            log_tensorboard(f'observation_loss/{self.name}', observation_loss.item(), self.num_batches)
+            log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
 

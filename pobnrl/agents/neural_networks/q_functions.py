@@ -8,7 +8,7 @@ import torch
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
 from misc import POBNRLogger, Space
-from pytorch_api import log_tensorboard, device
+from pytorch_api import log_tensorboard, device, tensorboard_logging
 
 
 class QNetInterface(abc.ABC):
@@ -209,8 +209,9 @@ class QNet(QNetInterface, POBNRLogger):
         loss.backward()
         self.optimizer.step()
 
-        log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
-        log_tensorboard(f'q-vals/{self.name}', q_values.view(-1), self.num_batches)
+        if tensorboard_logging():
+            log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
+            log_tensorboard(f'q-vals/{self.name}', q_values.view(-1), self.num_batches)
         self.num_batches += 1
 
     def update_target(self) -> None:
@@ -419,8 +420,9 @@ class RecQNet(QNetInterface, POBNRLogger):
         loss.backward()
         self.optimizer.step()
 
-        log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
-        log_tensorboard(f'q-vals/{self.name}', q_values.view(-1), self.num_batches)
+        if tensorboard_logging():
+            log_tensorboard(f'qloss/{self.name}', loss.item(), self.num_batches)
+            log_tensorboard(f'q-vals/{self.name}', q_values.view(-1), self.num_batches)
         self.num_batches += 1
 
     def update_target(self) -> None:

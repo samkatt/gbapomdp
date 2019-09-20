@@ -6,11 +6,10 @@ import random
 
 from numpy.random import dirichlet
 
+from domains.collision_avoidance import CollisionAvoidance
+from domains.gridworld import GridWorld
+from domains.tiger import Tiger
 from environments import Simulator, EncodeType
-
-from .tiger import Tiger
-from .gridworld import GridWorld
-from .collision_avoidance import CollisionAvoidance
 
 
 class Prior(abc.ABC):

@@ -1,6 +1,6 @@
 """ contains algorithms and classes for maintaining beliefs """
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Union, Tuple, List
 from functools import partial
 
 from typing_extensions import Protocol
@@ -8,11 +8,11 @@ import numpy as np
 
 from misc import POBNRLogger
 from environments import Simulator
+from pytorch_api import log_tensorboard, tensorboard_logging
 
 from agents.neural_networks.neural_pomdps import DynamicsModel
+from agents.planning.particle_filters import ParticleFilter, WeightedFilter, WeightedParticle
 from domains.learned_environments import NeuralEnsemblePOMDP
-
-from .particle_filters import ParticleFilter, WeightedFilter, WeightedParticle
 
 
 class BeliefUpdate(Protocol):
@@ -35,6 +35,38 @@ class BeliefUpdate(Protocol):
         """
 
 
+class BeliefAnalysis(Protocol):
+    """ defines the protocol for analyzing a belief """
+
+    def __call__(self, belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
+        """ anylsis `belief` and return some tagged value
+
+        Returns a tuple with 2 values. 1 is a tag/description term of the
+        analysis, whereas the 2nd is the values as a result of the analysis
+
+        Args:
+             belief: (`ParticleFilter`):
+
+        RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+        """
+
+
+def noop_analysis(
+        belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:  # pylint: disable=unused-argument
+    """  default, no-op analysis
+
+    returns a simple non-like thing
+
+    Args:
+         belief: (`ParticleFilter`):
+
+    RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+    """
+    return [('', 0)]
+
+
 class BeliefManager(POBNRLogger):
     """ manages a belief """
 
@@ -42,7 +74,8 @@ class BeliefManager(POBNRLogger):
             self,
             reset_f: Callable[[], ParticleFilter],
             update_belief_f: BeliefUpdate,
-            episode_reset_f: Optional[Callable[[ParticleFilter], ParticleFilter]] = None):
+            episode_reset_f: Optional[Callable[[ParticleFilter], ParticleFilter]] = None,
+            belief_analyzer: BeliefAnalysis = noop_analysis):
         """ Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
@@ -57,9 +90,11 @@ class BeliefManager(POBNRLogger):
         """
 
         POBNRLogger.__init__(self)
+        self.episode = 0
 
         self._reset = reset_f
         self._update = update_belief_f
+        self._analyse = belief_analyzer
 
         if episode_reset_f:
             self._episode_reset = episode_reset_f
@@ -76,6 +111,8 @@ class BeliefManager(POBNRLogger):
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset to {self._belief}")
 
+        self.episode = 0
+
     def episode_reset(self) -> None:
         """ resets the belief for a new episode """
 
@@ -83,6 +120,12 @@ class BeliefManager(POBNRLogger):
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset for new episode {self._belief}")
+
+        if tensorboard_logging():
+            for tag, val in self._analyse(self._belief):
+                log_tensorboard(tag, val, self.episode)
+
+        self.episode += 1
 
     def update(self, action: int, observation: np.ndarray):
         """ updates belief given action and observation

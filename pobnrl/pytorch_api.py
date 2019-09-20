@@ -57,9 +57,21 @@ def log_tensorboard(tag: str, val: Union[float, np.ndarray], step: int) -> None:
 
     """
 
-    if _TENSORBOARD_WRITER:
+    assert tensorboard_logging(), 'please first verify logging is on'
+    assert _TENSORBOARD_WRITER
 
-        if np.isscalar(val):
-            _TENSORBOARD_WRITER.add_scalar(tag, val, step)
-        else:
-            _TENSORBOARD_WRITER.add_histogram(tag, val, step)
+    if np.isscalar(val):
+        _TENSORBOARD_WRITER.add_scalar(tag, val, step)
+    else:
+        _TENSORBOARD_WRITER.add_histogram(tag, val, step)
+
+
+def tensorboard_logging() -> bool:
+    """ returns whether we are logging to tensorboard_logging
+
+    Args:
+
+    RETURNS (`bool`):
+
+    """
+    return _TENSORBOARD_WRITER is not None

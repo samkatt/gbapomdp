@@ -63,7 +63,8 @@ def main(conf) -> None:
                 f"avg return: {np.mean(tmp_res[max(0, episode - 25):episode+1])}"
             )
 
-            pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
+            if pytorch_api.tensorboard_logging():
+                pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
 
         # update return mean and variance
         delta = tmp_res - result_mean

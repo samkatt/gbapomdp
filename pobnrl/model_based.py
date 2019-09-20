@@ -69,7 +69,8 @@ def main(conf) -> None:
                 f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
             )
 
-            pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
+            if pytorch_api.tensorboard_logging():
+                pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
 
         # update mean and variance
         delta = tmp_res - result_mean
@@ -271,6 +272,12 @@ def parse_arguments(args: Optional[List[str]] = None):
         '--backprop',
         action='store_true',
         help='whether to apply backprop during belief updates'
+    )
+
+    parser.add_argument(
+        '--analyse_belief',
+        action='store_true',
+        help='set this if you want to produce belief analysis over time on tensorboard'
     )
 
     return parser.parse_args(args)  # if args is "", will read cmdline

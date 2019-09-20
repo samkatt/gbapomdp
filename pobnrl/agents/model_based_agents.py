@@ -4,15 +4,14 @@ from collections import Counter
 from functools import partial
 import numpy as np
 
+from agents.agent import Agent
+from agents.planning.belief import BeliefManager, rejection_sampling, importance_sample_factory, noop_analysis
+from agents.planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
+from agents.planning.pouct import POUCT
+from analysis.augmented_beliefs import analyzer_factory
 from domains import NeuralEnsemblePOMDP
 from environments import Simulator
 from misc import POBNRLogger
-
-from .agent import Agent
-
-from .planning.belief import BeliefManager, rejection_sampling, importance_sample_factory
-from .planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
-from .planning.pouct import POUCT
 
 
 class PrototypeAgent(Agent, POBNRLogger):
@@ -103,6 +102,7 @@ def episode_reset_belief(
     for particle in p_filter:
         particle.domain_state = sim.sample_domain_start_state()
 
+    # TODO: abstract this away somehow
     if logger.log_is_on(POBNRLogger.LogLevel.V3):
 
         logger.log(
@@ -132,6 +132,11 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
 
     """
 
+    if conf.analyse_belief:
+        analyser = analyzer_factory(conf.domain)
+    else:
+        analyser = noop_analysis
+
     if conf.belief == 'rejection_sampling':
 
         # return a rejection sampling belief manager:
@@ -146,7 +151,8 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
                 episode_reset_belief,
                 logger=POBNRLogger('BeliefManager'),
                 sim=sim
-            )
+            ),
+            belief_analyzer=analyser
         )
 
     if conf.belief == 'importance_sampling':

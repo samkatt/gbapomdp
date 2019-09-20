@@ -7,14 +7,13 @@ import numpy as np
 
 from mypy_extensions import NamedArg
 
+from agents.agent import Agent, RandomAgent
+from agents.misc import ExplorationSchedule, FixedExploration
+from agents.misc import epsilon_greedy, PiecewiseSchedule
+from agents.neural_networks import create_qnet
+from agents.neural_networks.q_functions import QNetInterface
 from environments import ActionSpace
 from misc import Space, POBNRLogger
-from agents.misc import epsilon_greedy, PiecewiseSchedule
-from agents.misc import ExplorationSchedule, FixedExploration
-
-from .agent import Agent, RandomAgent
-from .neural_networks import create_qnet
-from .neural_networks.q_functions import QNetInterface
 
 
 class BaselineAgent(Agent, POBNRLogger):
