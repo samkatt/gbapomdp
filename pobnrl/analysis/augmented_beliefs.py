@@ -38,6 +38,44 @@ def tiger_observation_model_analyse(
     ]
 
 
+def count_unique_models(
+        belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
+    """ returns number of unique models from 100 samples
+
+    Args:
+         belief: (`ParticleFilter`):
+
+    RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+    """
+
+    num_unique = len({belief.sample().model for _ in range(100)})
+
+    return [('unique_models_per_100', num_unique)]
+
+
+def chain_analysis(to_chain: List[BeliefAnalysis]) -> BeliefAnalysis:
+    """ chains `BeliefAnalysis` into a single call
+
+    Args:
+         to_chain: (`List[BeliefAnalysis]`):
+
+    RETURNS (`BeliefAnalysis`):
+
+    """
+
+    def chain(belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
+
+        chained_analysis: List[Tuple[str, Union[float, np.ndarray]]] = []
+
+        for analysis in to_chain:
+            chained_analysis.extend(analysis(belief))
+
+        return chained_analysis
+
+    return chain
+
+
 def analyzer_factory(domain: str) -> BeliefAnalysis:
     """ factory for belief analysers
 
@@ -49,10 +87,7 @@ def analyzer_factory(domain: str) -> BeliefAnalysis:
     """
 
     if domain == 'tiger':
-        return tiger_observation_model_analyse
+        return chain_analysis([tiger_observation_model_analyse, count_unique_models])
 
-    POBNRLogger(__name__).log(
-        POBNRLogger.LogLevel.V0, f'cannot initiated analyser for {domain}'
-    )
-
-    return noop_analysis
+    # default analysis
+    return count_unique_models

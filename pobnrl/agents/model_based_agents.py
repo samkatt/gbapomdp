@@ -107,11 +107,6 @@ def episode_reset_belief(
 
         logger.log(
             logger.LogLevel.V3,
-            f'Model density:'
-            f'{sorted(Counter([particle.model for particle in p_filter]).items(), key=lambda x: id(x[0]))}'
-        )
-        logger.log(
-            logger.LogLevel.V3,
             f'States after reset {str(Counter([x.domain_state[0] for x in p_filter]))}'
         )
 
