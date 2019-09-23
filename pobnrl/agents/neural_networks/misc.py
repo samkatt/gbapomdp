@@ -54,13 +54,14 @@ def loss_criterion(loss_type: str) -> TorchLoss:
     raise ValueError('Entered unknown value for loss ' + loss_type)
 
 
-def perturb(tensor: torch.Tensor, stdev: float):
+def perturb(tensor: torch.Tensor, stdev: float) -> torch.Tensor:
     """ returns a perturbed version (with provided `stdev`) of `tensor`
 
     Args:
          tensor: (`torch.Tensor`): the mean of the returned pertubation
          stdev: (`float`): the standard deviation
 
+    RETURNS (`torch.Tensor`):
     """
     return torch.normal(tensor, stdev)
 

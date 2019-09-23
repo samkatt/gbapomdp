@@ -241,8 +241,9 @@ class DynamicsModel():
 
         """
 
-        for param in chain(self.net_t.parameters(), self.net_o.parameters()):
-            param = perturb(param, stdev)
+        with torch.no_grad():
+            for param in chain(self.net_t.parameters(), self.net_o.parameters()):
+                param.set_(perturb(param, stdev))  # XXX: not sure if most natural way
 
     def copy(self) -> 'DynamicsModel':
         """ copies self
