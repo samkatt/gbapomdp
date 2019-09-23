@@ -4,8 +4,7 @@ from typing import Union, Tuple, List
 import numpy as np
 
 from agents.planning.particle_filters import ParticleFilter
-from agents.planning.belief import BeliefAnalysis, noop_analysis
-from misc import POBNRLogger
+from agents.planning.belief import BeliefAnalysis
 
 
 def tiger_observation_model_analyse(
