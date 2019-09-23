@@ -63,8 +63,7 @@ class TestModelFreeAgents(unittest.TestCase):
         )
 
         # gpu
-        # FIXME: uncomment with GPU is working
-        # self.run_experiment(['-D=cartpole', '--recurrent', '--use_gpu', '-H 201'])
+        self.run_experiment(['-D=cartpole', '--recurrent', '--use_gpu', '-H 201'])
 
         # ensemble agent
         self.run_experiment(
@@ -83,8 +82,7 @@ class TestModelFreeAgents(unittest.TestCase):
         self.run_experiment(['-D=cartpole', '--clipping=5', "--horizon=10000"])
 
         # gpu
-        # FIXME: uncomment with GPU is working
-        # self.run_experiment(['-D=cartpole', '--use_gpu', "--horizon=10000"])
+        self.run_experiment(['-D=cartpole', '--use_gpu', "--horizon=10000"])
 
 
 class TestPOMCP(unittest.TestCase):
