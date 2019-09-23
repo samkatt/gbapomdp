@@ -274,12 +274,6 @@ def parse_arguments(args: Optional[List[str]] = None):
         help='whether to apply backprop during belief updates'
     )
 
-    parser.add_argument(
-        '--analyse_belief',
-        action='store_true',
-        help='set this if you want to produce belief analysis over time on tensorboard'
-    )
-
     return parser.parse_args(args)  # if args is "", will read cmdline
 
 

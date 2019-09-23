@@ -127,10 +127,7 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
 
     """
 
-    if conf.analyse_belief:
-        analyser = analyzer_factory(conf.domain)
-    else:
-        analyser = noop_analysis
+    analyser = analyzer_factory(conf.domain)
 
     if conf.belief == 'rejection_sampling':
 
