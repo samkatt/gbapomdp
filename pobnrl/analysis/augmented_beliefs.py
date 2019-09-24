@@ -7,7 +7,7 @@ from agents.planning.particle_filters import ParticleFilter
 from agents.planning.belief import BeliefAnalysis
 
 
-def tiger_observation_model_analyse(
+def tiger_model_analysis(
         belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ inspects the belief over the observation model
 
@@ -20,20 +20,34 @@ def tiger_observation_model_analyse(
 
     """
     # hear correct for state 0
-    probs_0 = np.array([
+    hear_correct_0 = np.array([
         belief.sample().model.observation_prob([0], 2, [0], [0])
         for _ in range(100)
     ])
 
     # hear correct for state 1
-    probs_1 = np.array([
+    hear_correct_1 = np.array([
         belief.sample().model.observation_prob([1], 2, [1], [1])
         for _ in range(100)
     ])
 
+    # tiger stays left when opening
+    stay_left_prob = np.array([
+        belief.sample().model.state_transition__prob([0], 2, [0])
+        for _ in range(100)
+    ])
+
+    # tiger stays left when opening
+    stay_right_prob = np.array([
+        belief.sample().model.state_transition__prob([1], 2, [1])
+        for _ in range(100)
+    ])
+
     return [
-        ('correct-observe-left', probs_0),
-        ('correct-observe-right', probs_1),
+        ('correct-observe-left', hear_correct_0),
+        ('correct-observe-right', hear_correct_1),
+        ('correct-transition-left', stay_left_prob),
+        ('correct-transition-right', stay_right_prob),
     ]
 
 
@@ -86,7 +100,7 @@ def analyzer_factory(domain: str) -> BeliefAnalysis:
     """
 
     if domain == 'tiger':
-        return chain_analysis([tiger_observation_model_analyse, count_unique_models])
+        return chain_analysis([tiger_model_analysis, count_unique_models])
 
     # default analysis
     return count_unique_models

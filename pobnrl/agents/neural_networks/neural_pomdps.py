@@ -194,6 +194,35 @@ class DynamicsModel():
                     1).item() for i in range(self.obs_space.ndim)
             ], dtype=int)
 
+    def state_transition__prob(
+            self,
+            state: np.ndarray,
+            action: int,
+            next_state: np.ndarray) -> float:
+        """ Returns the probability of the state transition
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             next_state: (`np.ndarrray`):
+
+        RETURNS (`float`):
+
+        """
+
+        state_action_pair = torch.from_numpy(np.concatenate(
+            [state, self.action_space.one_hot(action)]
+        )).to(device()).float()
+
+        with torch.no_grad():
+            logits = self.net_t(state_action_pair)
+
+            return np.prod([
+                torch.distributions.utils.logits_to_probs(
+                    logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
+                )[next_state[i]].item() for i in range(self.state_space.ndim)
+            ])
+
     def observation_prob(
             self,
             state: np.ndarray,
