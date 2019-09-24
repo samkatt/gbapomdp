@@ -126,6 +126,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 self.domain_obs_space,
                 conf.network_size,
                 conf.learning_rate,
+                conf.dropout_rate,
                 f'model {i}'
             ) for i in range(conf.num_nets)
         ]

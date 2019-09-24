@@ -273,6 +273,12 @@ def parse_arguments(args: Optional[List[str]] = None):
         action='store_true',
         help='whether to apply backprop during belief updates'
     )
+    parser.add_argument(
+        '--dropout_rate',
+        type=float,
+        help='dropout rate',
+        default=0
+    )
 
     return parser.parse_args(args)  # if args is "", will read cmdline
 

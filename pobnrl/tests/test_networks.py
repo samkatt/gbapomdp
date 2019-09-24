@@ -30,6 +30,7 @@ class TestDynamicModel(unittest.TestCase):
             obs_space=DiscreteSpace([1]),
             network_size=5,
             learning_rate=.01,
+            dropout_rate=0.5,
             name='test'
         )
 
@@ -49,6 +50,7 @@ class TestDynamicModel(unittest.TestCase):
             obs_space=DiscreteSpace([1]),
             network_size=5,
             learning_rate=.01,
+            dropout_rate=.5,
             name='some-model-3'
         )
 

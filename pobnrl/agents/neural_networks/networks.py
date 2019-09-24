@@ -19,6 +19,7 @@ class Net(torch.nn.Module):  # type: ignore
         assert output_size > 0
         assert layer_size > 0
         assert prior_scaling >= 0
+        assert 0 <= dropout_rate < 1
 
         super().__init__()
 

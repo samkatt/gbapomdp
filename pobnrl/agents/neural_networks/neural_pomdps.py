@@ -26,6 +26,7 @@ class DynamicsModel():
             obs_space: DiscreteSpace,
             network_size: int,
             learning_rate: float,
+            dropout_rate: float,
             name: str):
         """ Creates a dynamic model
 
@@ -35,6 +36,7 @@ class DynamicsModel():
              obs_space: (`pobnrl.misc.DiscreteSpace`):
              network_size: (`int`): number of nodes in hidden layers
              learning_rate: (`float`): learning rate of the optimizer
+             dropout_rate: (`float`): dropout rate of the layers
              name: (`str`): name of the network
 
         """
@@ -48,13 +50,15 @@ class DynamicsModel():
         self.net_t = Net(
             input_size=self.state_space.ndim + self.action_space.n,
             output_size=np.sum(self.state_space.size),
-            layer_size=network_size
+            layer_size=network_size,
+            dropout_rate=dropout_rate,
         ).to(device())
 
         self.net_o = Net(
             input_size=self.state_space.ndim * 2 + self.action_space.n,
             output_size=np.sum(self.obs_space.size),
-            layer_size=network_size
+            layer_size=network_size,
+            dropout_rate=dropout_rate,
         ).to(device())
 
         self.optimizer = torch.optim.Adam(
