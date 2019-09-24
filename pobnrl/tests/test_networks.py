@@ -2,13 +2,14 @@
 
 import unittest
 
-import torch
 import numpy as np
+import torch
 
+from agents.neural_networks.misc import perturb
+from agents.neural_networks.networks import Net
+from agents.neural_networks.neural_pomdps import DynamicsModel
 from environments import ActionSpace
 from misc import DiscreteSpace
-from agents.neural_networks.neural_pomdps import DynamicsModel
-from agents.neural_networks.misc import perturb
 
 
 class TestDynamicModel(unittest.TestCase):
@@ -80,6 +81,21 @@ class TestMisc(unittest.TestCase):
             tensor.numpy(),
             perturbed_tensor.numpy()
         )
+
+
+class TestNetwork(unittest.TestCase):
+    """ tests some properties of the network """
+
+    def test_dropout(self) -> None:
+        """ some basic sanity checks of dropout functionality """
+
+        net_input = torch.tensor([.1, 4., -.2])
+
+        no_dropout = Net(input_size=3, output_size=2, layer_size=10, prior_scaling=0, dropout_rate=0)
+        self.assertTrue(torch.eq(no_dropout(net_input), no_dropout(net_input)).all())
+
+        no_dropout = Net(input_size=3, output_size=2, layer_size=10, prior_scaling=0, dropout_rate=.5)
+        self.assertFalse(torch.eq(no_dropout(net_input), no_dropout(net_input)).all())
 
 
 if __name__ == '__main__':
