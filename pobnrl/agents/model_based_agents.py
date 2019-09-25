@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 
 from agents.agent import Agent
-from agents.planning.belief import BeliefManager, rejection_sampling, importance_sample_factory, noop_analysis
+from agents.planning.belief import BeliefManager, rejection_sampling, importance_sample_factory
 from agents.planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
 from agents.planning.pouct import POUCT
 from analysis.augmented_beliefs import analyzer_factory
