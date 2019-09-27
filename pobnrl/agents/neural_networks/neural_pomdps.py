@@ -16,6 +16,7 @@ from misc import DiscreteSpace
 from pytorch_api import log_tensorboard, device, tensorboard_logging
 
 
+# TODO: add logging functionality
 class DynamicsModel():
     """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
 
@@ -65,10 +66,30 @@ class DynamicsModel():
             chain(self.net_t.parameters(), self.net_o.parameters()),
             lr=learning_rate
         )
+
         self.criterion = torch.nn.CrossEntropyLoss()
 
         self.num_batches = 0
         self.learning_rate = learning_rate  # hard to extract from self.optimizer
+
+    def set_learning_rate(self, learning_rate: float) -> None:
+        """ (re)sets the optimizer's learning rate
+
+        Will re-create the optimizer, thus losing its current state
+
+        Args:
+             learning_rate: (`float`):
+
+        RETURNS (`None`):
+
+        """
+        assert 0 < learning_rate < 1, f'learning rate must be [0,1], not {learning_rate}'
+
+        self.optimizer = torch.optim.Adam(
+            chain(self.net_t.parameters(), self.net_o.parameters()),
+            lr=learning_rate
+        )
+        self.learning_rate = learning_rate
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
         """ The simulation step of this dynamics model: S x A -> S, O
@@ -263,6 +284,11 @@ class DynamicsModel():
         self.net_t.random_init_parameters()
         self.net_o.random_init_parameters()
         self.num_batches = 0
+
+        self.optimizer = torch.optim.Adam(
+            chain(self.net_t.parameters(), self.net_o.parameters()),
+            lr=self.learning_rate
+        )
 
     def perturb_parameters(self, stdev: float = .1) -> None:
         """ perturb parameters of model

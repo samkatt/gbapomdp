@@ -232,11 +232,14 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """
         return self.domain_obs2index(observation)
 
-    def train_models(self, train_net_f: Callable[[DynamicsModel], None]) -> None:
-        """ train the ensemble with `train_net_f`
+    def reset(self, train_net_f: Callable[[DynamicsModel], None], learning_rate: float) -> None:
+        """ resets the ensemble and re-trains them according
+
+        After training, the learning rate is reset to .001 for online updating
 
         Args:
-             train_net_f: (`Callable[[` `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel` `], None]`): the method used to train each model
+             train_net_f: (`Callable[[DynamicsModel], None]`):
+             learning_rate: (`float`):
 
         RETURNS (`None`):
 
@@ -249,17 +252,13 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 f'Training Dynamics Neural Ensemble member {i+1}/{len(self._models)}'
             )
 
+            model.reset()
+            model.set_learning_rate(learning_rate)
             train_net_f(model)
 
-    def reset(self) -> None:
-        """ resets the trained models
-
-        RETURNS (`None`):
-
-        """
-
-        for model in self._models:
-            model.reset()
+            # after training models we use this low learning rate
+            # for online updates
+            model.set_learning_rate(.001)
 
 
 def _replay_buffer_from_random_policy(domain: Simulator) -> ReplayBuffer:

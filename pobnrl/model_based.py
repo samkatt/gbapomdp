@@ -49,10 +49,8 @@ def main(conf) -> None:
         if conf.tensorboard_logdir:
             pytorch_api.set_tensorboard_logging(f'{conf.tensorboard_logdir}-{run}')
 
-        sim.reset()
+        sim.reset(train_method, conf.learning_rate)
         agent.reset()
-
-        sim.train_models(train_method)
 
         tmp_res = np.zeros(conf.episodes)
         logger.log(POBNRLogger.LogLevel.V1, f"Starting run {run}")
