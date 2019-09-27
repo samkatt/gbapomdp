@@ -285,6 +285,31 @@ def backprop_update(
     model.batch_update(state[None], action[None], next_state[None], observation[None])
 
 
+def chain_updates(to_chain: List[ModelUpdate]) -> ModelUpdate:
+    """ chains `ModelUpdate` into a single call
+
+    Returns a function that will apply all updates sequentially
+
+    Args:
+         to_chain: (`List[ModelUpdate]`):
+
+    RETURNS (`ModelUpdate`):
+
+    """
+
+    def chain(
+            model: DynamicsModel,
+            state: np.ndarray,
+            action: np.ndarray,
+            next_state: np.ndarray,
+            observation: np.ndarray) -> None:
+
+        for update in to_chain:
+            update(model, state, action, next_state, observation)
+
+    return chain
+
+
 def augmented_importance_sampling(
         belief: ParticleFilter,
         action: np.ndarray,
@@ -351,16 +376,12 @@ def importance_sample_factory(perturb_stdev: float, backprop: bool) -> BeliefUpd
     if perturb_stdev == 0 and not backprop:
         return importance_sampling
 
-    assert backprop or perturb_stdev != 0, \
-        f'Simultaneous backprop and perturbance is not supported'
-
+    updates: List[ModelUpdate] = []
     if backprop:
-        return partial(augmented_importance_sampling, update_model=backprop_update)
-
+        updates.append(backprop_update)
     if not perturb_stdev == 0:
-        return partial(
-            augmented_importance_sampling,
-            update_model=partial(perturb_parameters, stdev=perturb_stdev)
-        )
+        updates.append(partial(perturb_parameters, stdev=perturb_stdev))
 
-    raise AssertionError('This code cannot be reached, silly pylint')
+    return partial(
+        augmented_importance_sampling, update_model=chain_updates(updates)
+    )
