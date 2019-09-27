@@ -14,44 +14,6 @@ from collections import deque
 from typing import Deque, List, Any
 
 import torch
-from torch.nn.modules.loss import _Loss as TorchLoss
-
-
-class RMSELoss(TorchLoss):  # type: ignore
-    """ custom RMSELoss criterion in pytorch """
-
-    def forward(
-            self,
-            prediction: torch.Tensor,
-            target: torch.Tensor) -> torch.Tensor:
-        """ forward pass, returns loss of rmse(prediction, target)
-
-        Args:
-             prediction: (`torch.Tensor`):
-             target: (`torch.Tensor`):
-
-        """
-        return torch.sqrt(
-            torch.nn.functional.mse_loss(prediction, target, reduction=self.reduction)
-        )
-
-
-def loss_criterion(loss_type: str) -> TorchLoss:
-    """ factory for pytorch loss criterions
-
-    Args:
-         loss_type: (`str`): in ['rmse', 'huber']
-
-    RETURNS (`torch.nn.Criterion`):
-
-    """
-
-    if loss_type == "rmse":
-        return RMSELoss()
-    if loss_type == "huber":
-        return torch.nn.SmoothL1Loss()
-
-    raise ValueError('Entered unknown value for loss ' + loss_type)
 
 
 def perturb(tensor: torch.Tensor, stdev: float) -> torch.Tensor:

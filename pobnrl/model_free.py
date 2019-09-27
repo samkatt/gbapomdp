@@ -166,13 +166,6 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
-        "--loss",
-        default="rmse",
-        help="type of loss to consider",
-        choices={"rmse", "huber"}
-    )
-
-    parser.add_argument(
         "--clipping",
         type=float,
         default=1000,

@@ -102,7 +102,6 @@ def episode_reset_belief(
     for particle in p_filter:
         particle.domain_state = sim.sample_domain_start_state()
 
-    # TODO: abstract this away somehow
     if logger.log_is_on(POBNRLogger.LogLevel.V3):
 
         logger.log(

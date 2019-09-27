@@ -5,6 +5,8 @@ import abc
 import numpy as np
 import torch
 
+from torch.nn.modules.loss import _Loss as TorchLoss
+
 from agents.neural_networks import misc, networks
 from environments import ActionSpace
 from misc import POBNRLogger, Space
@@ -60,6 +62,25 @@ class QNetInterface(abc.ABC):
         """
 
 
+class RMSELoss(TorchLoss):  # type: ignore
+    """ custom RMSELoss criterion in pytorch """
+
+    def forward(
+            self,
+            prediction: torch.Tensor,
+            target: torch.Tensor) -> torch.Tensor:
+        """ forward pass, returns loss of rmse(prediction, target)
+
+        Args:
+             prediction: (`torch.Tensor`):
+             target: (`torch.Tensor`):
+
+        """
+        return torch.sqrt(
+            torch.nn.functional.mse_loss(prediction, target, reduction=self.reduction)
+        )
+
+
 class QNet(QNetInterface, POBNRLogger):
     """ interface to all Q networks """
 
@@ -111,7 +132,7 @@ class QNet(QNetInterface, POBNRLogger):
         self.update_target()  # make sure paramters are set equal
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
-        self.criterion = misc.loss_criterion(conf.loss)
+        self.criterion = RMSELoss()
 
         self.num_batches = 0
 
@@ -299,7 +320,7 @@ class RecQNet(QNetInterface, POBNRLogger):
         self.update_target()  # make sure paramters are set equal
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
-        self.criterion = misc.loss_criterion(conf.loss)
+        self.criterion = RMSELoss()
 
         self.num_batches = 0
 

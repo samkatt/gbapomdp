@@ -22,25 +22,25 @@ def tiger_model_analysis(
     # hear correct for state 0
     hear_correct_0 = np.array([
         belief.sample().model.observation_prob([0], 2, [0], [0])
-        for _ in range(100)
+        for _ in range(1000)
     ])
 
     # hear correct for state 1
     hear_correct_1 = np.array([
         belief.sample().model.observation_prob([1], 2, [1], [1])
-        for _ in range(100)
+        for _ in range(1000)
     ])
 
     # tiger stays left when opening
     stay_left_prob = np.array([
         belief.sample().model.state_transition__prob([0], 2, [0])
-        for _ in range(100)
+        for _ in range(1000)
     ])
 
     # tiger stays left when opening
     stay_right_prob = np.array([
         belief.sample().model.state_transition__prob([1], 2, [1])
-        for _ in range(100)
+        for _ in range(1000)
     ])
 
     return [
