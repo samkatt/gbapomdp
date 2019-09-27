@@ -81,8 +81,10 @@ class DynamicsModel():
 
         """
 
-        assert self.state_space.contains(state), f"{state} not in {self.state_space}"
-        assert self.action_space.contains(action), f"{action} not in {self.action_space}"
+        assert self.state_space.contains(state),\
+            f"{state} not in {self.state_space}"
+        assert self.action_space.contains(action),\
+            f"{action} not in {self.action_space}"
 
         next_state = self.sample_state(state, action)
         observation = self.sample_observation(state, action, next_state)

@@ -5,7 +5,7 @@ from functools import partial
 import numpy as np
 
 from agents.agent import Agent
-from agents.planning.belief import BeliefManager, rejection_sampling, importance_sample_factory
+from agents.planning.belief import BeliefManager, rejection_sampling, belief_update_factory
 from agents.planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
 from agents.planning.pouct import POUCT
 from analysis.augmented_beliefs import analyzer_factory
@@ -127,46 +127,40 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
 
     """
 
+    assert conf.belief in ["rejection_sampling", "importance_sampling"], \
+        f"belief {conf.belief} not legal"
+
     analyser = analyzer_factory(conf.domain)
 
+    belief_update = belief_update_factory(
+        conf.belief, conf.perturb_stdev, conf.backprop, sim
+    )
+
+    episode_reset = partial(
+        episode_reset_belief, logger=POBNRLogger('BeliefManager'), sim=sim
+    )
+
     if conf.belief == 'rejection_sampling':
-
-        # return a rejection sampling belief manager:
-        return BeliefManager(
-            reset_f=partial(
-                FlatFilter.create_from_process,
-                sample_process=sim.sample_start_state,
-                size=conf.num_particles
-            ),
-            update_belief_f=partial(rejection_sampling, sim=sim),
-            episode_reset_f=partial(
-                episode_reset_belief,
-                logger=POBNRLogger('BeliefManager'),
-                sim=sim
-            ),
-            belief_analyzer=analyser
+        reset = partial(
+            FlatFilter.create_from_process,
+            sample_process=sim.sample_start_state,
+            size=conf.num_particles
         )
-
-    if conf.belief == 'importance_sampling':
-
-        return BeliefManager(
-            reset_f=partial(
-                WeightedFilter.create_from_process,
-                sample_process=sim.sample_start_state,
-                size=conf.num_particles
-            ),
-            update_belief_f=importance_sample_factory(
-                conf.perturb_stdev, conf.backprop
-            ),
-            episode_reset_f=partial(
-                episode_reset_belief,
-                logger=POBNRLogger('BeliefManager'),
-                sim=sim
-            ),
-            belief_analyzer=analyser
+    elif conf.belief == 'importance_sampling':
+        reset = partial(
+            WeightedFilter.create_from_process,
+            sample_process=sim.sample_start_state,
+            size=conf.num_particles
         )
+    else:
+        raise ValueError(f"belief must be 'rejection_sampling' or 'importance_sampling', not {conf.belief}")
 
-    raise ValueError(f"belief must be 'rejection_sampling' or 'importance_sampling', not {conf.belief}")
+    return BeliefManager(
+        reset_f=reset,
+        update_belief_f=belief_update,
+        episode_reset_f=episode_reset,
+        belief_analyzer=analyser
+    )
 
 
 def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
