@@ -80,12 +80,14 @@ class RecNet(torch.nn.Module):  # type: ignore
             layer_size: int,
             prior_scaling: float = 0):
 
+        print('Recurrent nets are not fully tested, so beware any weird results!')
         super().__init__()
 
         self.prior_scaling = prior_scaling
         self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True) if prior_scaling != 0 else None
 
         if self.prior:
+            print('It is not entirely clear whether prior and recurrent networks fair well together')
             self.prior.requires_grad_(False)
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
