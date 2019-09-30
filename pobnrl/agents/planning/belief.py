@@ -285,11 +285,54 @@ def backprop_update(
     model.batch_update(state[None], action[None], next_state[None], observation[None])
 
 
+def augmented_rejection_sampling(
+        belief: ParticleFilter,
+        action: np.ndarray,
+        observation: np.ndarray,
+        update_model: ModelUpdate) -> ParticleFilter:
+    """ rejection sampling augmented with additional update methods
+
+    Args:
+         belief: (`ParticleFilter`): current belief
+         action: (`np.ndarray`):  taken action
+         observation: (`np.ndarray`): perceived observation
+         update_model: (`ModelUpdate`): the update to apply
+
+    RETURNS (`ParticleFilter`):
+
+    """
+
+    next_belief = type(belief)()
+
+    while next_belief.size < belief.size:
+
+        state = belief.sample()
+        sample_state, sample_observation \
+            = state.model.simulation_step(state.domain_state, action)
+
+        if np.all(sample_observation == observation):
+
+            next_model = state.model.copy()
+            update_model(
+                model=next_model,
+                state=state.domain_state,
+                action=action,
+                next_state=sample_state,
+                observation=observation
+            )
+
+            next_belief.add_particle(
+                NeuralEnsemblePOMDP.AugmentedState(sample_state, next_model)
+            )
+
+    return next_belief
+
+
 def augmented_importance_sampling(
         belief: ParticleFilter,
         action: np.ndarray,
         observation: np.ndarray,
-        update_model: ModelUpdate) -> WeightedFilter:
+        update_model: ModelUpdate) -> ParticleFilter:
     """ Core algorithm for this project. Updates the model during belief update
 
     Assuming a belief p(state, dynamics), this function will compute an
@@ -303,7 +346,7 @@ def augmented_importance_sampling(
          observation: (`np.ndarray`):
          update_model: (`ModelUpdate`):
 
-    RETURNS (`WeightedFilter`):
+    RETURNS (`ParticleFilter`):
 
     """
 
@@ -336,30 +379,49 @@ def augmented_importance_sampling(
     return next_belief
 
 
-def importance_sample_factory(perturb_stdev: float, backprop: bool) -> BeliefUpdate:
+def belief_update_factory(
+        belief: str,
+        perturb_stdev: float,
+        backprop: bool,
+        sim: Simulator) -> BeliefUpdate:
     """ returns an importance sampling method depending on the configurations
 
     Args:
+         belief: (`str`):
          perturb_stdev: (`float`): the amount of param perturbation during updates
          backprop: (`bool`): whether to apply backprop during update
+         sim: (`Simulator`):
 
     RETURNS (`BeliefUpdate`):
 
     """
 
+    assert belief in ["rejection_sampling", "importance_sampling"], \
+        f"belief {belief} not legal"
+
     # basic, no enhancements
     if perturb_stdev == 0 and not backprop:
-        return importance_sampling
 
-    assert backprop or perturb_stdev != 0, \
+        if belief == 'importance_sampling':
+            return importance_sampling
+        if belief == 'rejection_sampling':
+            return partial(rejection_sampling, sim=sim)
+
+    assert not (backprop and perturb_stdev != 0), \
         f'Simultaneous backprop and perturbance is not supported'
 
+    # set filter method
+    if belief == 'importance_sampling':
+        filter_method = augmented_importance_sampling
+    elif belief == 'rejection_sampling':
+        filter_method = augmented_rejection_sampling
+
     if backprop:
-        return partial(augmented_importance_sampling, update_model=backprop_update)
+        return partial(filter_method, update_model=backprop_update)
 
     if not perturb_stdev == 0:
         return partial(
-            augmented_importance_sampling,
+            filter_method,
             update_model=partial(perturb_parameters, stdev=perturb_stdev)
         )
 
