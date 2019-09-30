@@ -134,7 +134,8 @@ class TestModelBasedRL(unittest.TestCase):
             '--num_particles=64',
             '--horizon=5',
             '-v=0',
-            '--episodes=2'
+            '--episodes=2',
+            '-B=importance_sampling'
         ]
 
         mb_main(mb_parse_arguments(def_args + args))
