@@ -407,7 +407,7 @@ def belief_update_factory(
         if belief == 'rejection_sampling':
             return partial(rejection_sampling, sim=sim)
 
-    assert backprop or perturb_stdev != 0, \
+    assert not (backprop and perturb_stdev != 0), \
         f'Simultaneous backprop and perturbance is not supported'
 
     # set filter method
