@@ -98,7 +98,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
         Args:
              domain: (`pobnrl.environments.Simulator`): domain to train interactions from
-             conf: configurations from program input (`network_size` and `learning_rate`)
+             conf: configurations from program input (`network_size`, `learning_rate` and `dropout_rate`)
 
         """
 

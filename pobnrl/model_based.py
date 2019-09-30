@@ -110,7 +110,8 @@ def parse_arguments(args: Optional[List[str]] = None):
         choices=[0, 1, 2, 3, 4, 5],
         default=1,
         type=int,
-        help="level of logging")
+        help="level of logging"
+    )
 
     parser.add_argument(
         "--domain", "-D",
@@ -270,6 +271,7 @@ def parse_arguments(args: Optional[List[str]] = None):
         action='store_true',
         help='whether to apply backprop during belief updates'
     )
+
     parser.add_argument(
         '--dropout_rate',
         type=float,
