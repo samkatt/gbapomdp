@@ -180,7 +180,8 @@ def parse_arguments(args: Optional[List[str]] = None):
     parser.add_argument(
         "--belief", "-B",
         help="type of belief update",
-        choices=['rejection_sampling', 'importance_sampling']
+        choices=['rejection_sampling', 'importance_sampling'],
+        required=True
     )
 
     parser.add_argument(
