@@ -285,29 +285,44 @@ def backprop_update(
     model.batch_update(state[None], action[None], next_state[None], observation[None])
 
 
-def chain_updates(to_chain: List[ModelUpdate]) -> ModelUpdate:
+class ModelUpdatesChain():
     """ chains `ModelUpdate` into a single call
 
-    Returns a function that will apply all updates sequentially
-
-    Args:
-         to_chain: (`List[ModelUpdate]`):
-
-    RETURNS (`ModelUpdate`):
-
+    Returns a class that will apply all updates sequentially
     """
 
-    def chain(
+    def __init__(self, chain: List[ModelUpdate]):
+        """ registers which model updates to apply
+
+        Args:
+             chain: (`List[ModelUpdate]`):
+
+        """
+
+        self.model_updates = chain
+
+    def __call__(
+            self,
             model: DynamicsModel,
             state: np.ndarray,
             action: np.ndarray,
             next_state: np.ndarray,
             observation: np.ndarray) -> None:
+        """ applies all model updates on model, given transition
 
-        for update in to_chain:
+        Args:
+             model: (`DynamicsModel`):
+             state: (`np.ndarray`):
+             action: (`np.ndarray`):
+             next_state: (`np.ndarray`):
+             observation: (`np.ndarray`):
+
+        RETURNS (`None`):
+
+        """
+
+        for update in self.model_updates:
             update(model, state, action, next_state, observation)
-
-    return chain
 
 
 def augmented_rejection_sampling(
@@ -444,4 +459,4 @@ def belief_update_factory(
     if not perturb_stdev == 0:
         updates.append(partial(perturb_parameters, stdev=perturb_stdev))
 
-    return partial(filter_method, update_model=chain_updates(updates))
+    return partial(filter_method, update_model=ModelUpdatesChain(updates))

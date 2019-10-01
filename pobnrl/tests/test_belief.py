@@ -1,5 +1,6 @@
 """ tests functionality of the agents.planning.belief module """
 
+from functools import partial
 import unittest
 
 from agents.planning import belief
@@ -36,9 +37,9 @@ class TestFactory(unittest.TestCase):
             belief.augmented_rejection_sampling
         )
 
-        self.assertEqual(
-            bp_rs.keywords['update_model'],  # type: ignore
-            belief.backprop_update
+        self.assertListEqual(
+            bp_rs.keywords['update_model'].model_updates,  # type: ignore
+            [belief.backprop_update]
         )
 
         # perturb and importance
@@ -51,7 +52,36 @@ class TestFactory(unittest.TestCase):
             belief.augmented_importance_sampling
         )
 
+        self.assertEqual(len(bp_rs.keywords['update_model'].model_updates), 1)  # type: ignore
+
         self.assertEqual(
-            bp_rs.keywords['update_model'].func,  # type: ignore
-            belief.perturb_parameters
+            bp_rs.keywords['update_model'].model_updates[0].func,  # type: ignore
+            partial(belief.perturb_parameters, stdev=.1).func
         )
+
+        self.assertEqual(
+            bp_rs.keywords['update_model'].model_updates[0].args,  # type: ignore
+            partial(belief.perturb_parameters, stdev=.1).args
+        )
+
+        self.assertEqual(
+            bp_rs.keywords['update_model'].model_updates[0].keywords,  # type: ignore
+            partial(belief.perturb_parameters, stdev=.1).keywords
+        )
+
+        # perturb and backprop
+        is_rs_bp = belief.belief_update_factory(
+            'importance_sampling', .1, True, tiger.Tiger(EncodeType.DEFAULT)
+        )
+
+        self.assertEqual(len(is_rs_bp.keywords['update_model'].model_updates), 2)  # type: ignore
+
+        self.assertEqual(
+            is_rs_bp.keywords['update_model'].model_updates[0],  # type: ignore
+            belief.backprop_update
+        )
+        self.assertEqual(
+            is_rs_bp.keywords['update_model'].model_updates[1].func,  # type: ignore
+            partial(belief.perturb_parameters, stdev=.1).func
+        )
+
