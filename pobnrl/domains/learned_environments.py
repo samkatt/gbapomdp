@@ -258,7 +258,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
             # after training models we use this low learning rate
             # for online updates
-            model.set_learning_rate(.001)
+            model.set_learning_rate(.0005)
 
 
 def _replay_buffer_from_random_policy(domain: Simulator) -> ReplayBuffer:
