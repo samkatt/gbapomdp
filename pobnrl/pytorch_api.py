@@ -9,6 +9,18 @@ _DEVICE = 'cpu'
 _TENSORBOARD_WRITER: Optional[torch.utils.tensorboard.writer.SummaryWriter] = None
 
 
+def set_random_seed(seed: int) -> None:
+    """ sets the random seed for pytorch
+
+    Args:
+         seed: (`int`):
+
+    RETURNS (`None`):
+
+    """
+    torch.manual_seed(seed)
+
+
 def set_tensorboard_logging(log_dir: str) -> None:
     """ set what directory to write tensorboard results to
 

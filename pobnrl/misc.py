@@ -8,6 +8,8 @@ import random
 
 import numpy as np
 
+import pytorch_api
+
 
 def set_random_seed(seed: int) -> None:
     """ sets the random seed of our program
@@ -30,6 +32,7 @@ def set_random_seed(seed: int) -> None:
     """
     np.random.seed(seed)
     random.seed(seed)
+    pytorch_api.set_random_seed(seed)
 
 
 class POBNRLogger:
