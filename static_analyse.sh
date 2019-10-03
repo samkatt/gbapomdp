@@ -1,25 +1,31 @@
 debug_file=.static_analysis.txt
-project=po_nrl
+projects=(po_nrl tests)
 
 # autopep8
-echo "running autopep8....";
-find $project -type f -name "*.py" | xargs autopep8 --aggressive --aggressive -d > $debug_file;
-less $debug_file;
+for project in "${projects[@]}"; do
+    echo "running autopep8 on ${project}....";
+    find $project -type f -name "*.py" | xargs autopep8 --aggressive --aggressive -d > $debug_file;
+    less $debug_file;
+done
 rm $debug_file
+
+# mypy
+for project in "${projects[@]}"; do
+    echo "running mypy on ${project}...."
+    mypy -p $project > $debug_file;
+    less $debug_file;
+done
 
 # other checkers
 for checker in "pylint" "flake8"; do
 
-    echo "running $checker...";
-    $checker $project > $debug_file;
-    less $debug_file;
+    for project in "${projects[@]}"; do
+        echo "running $checker on $project...";
+        $checker $project > $debug_file;
+        less $debug_file;
+    done
 
 done
-
-# mypy
-echo "running mypy..."
-mypy -p $project > $debug_file;
-less $debug_file;
 
 # clean up
 rm $debug_file

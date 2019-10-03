@@ -7,6 +7,8 @@ from po_nrl.agents.planning import belief
 from po_nrl.domains import tiger
 from po_nrl.environments import EncodeType
 
+# pylint: disable=no-member
+
 
 class TestFactory(unittest.TestCase):
     """ tests the factory """

@@ -396,9 +396,9 @@ class TestGridWorld(unittest.TestCase):
     def test_goals(self) -> None:
         """ tests the location of goals """
 
-        gw = gridworld.GridWorld(3, EncodeType.DEFAULT)
+        grid_world = gridworld.GridWorld(3, EncodeType.DEFAULT)
 
-        for goal in gw.goals:
+        for goal in grid_world.goals:
             self.assertGreaterEqual(goal.x, 0)
             self.assertGreaterEqual(goal.y, 0)
             self.assertGreaterEqual(goal.index, 0)
@@ -417,13 +417,13 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertEqual(env.state[1], 1)
         self.assertEqual(env.state[2], 1)
 
-    def test_sample_start_state(self):
+    def test_sample_start_state(self):  # pylint: disable=no-self-use
         """ tests sampling start states """
 
         env = collision_avoidance.CollisionAvoidance(7)
         np.testing.assert_array_equal(env.sample_start_state(), [6, 3, 3])
 
-    def test_step(self):
+    def test_step(self):  # pylint: disable=no-self-use,too-many-statements
         """ tests CollisionAvoidance.step """
 
         env = collision_avoidance.CollisionAvoidance(7)
@@ -713,7 +713,7 @@ class TestChainDomain(unittest.TestCase):
         # one-hot observation
         env = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
 
-        def one_hot(obs):
+        def one_hot(obs: np.ndarray) -> np.ndarray:
             encoding = np.zeros((4, 4))
             encoding[obs[0], obs[1]] = 1
 

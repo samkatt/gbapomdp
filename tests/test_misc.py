@@ -7,10 +7,10 @@
 
 """
 
+import random
 import unittest
 
 import numpy as np
-import random
 
 from po_nrl.agents.neural_networks.misc import ReplayBuffer
 from po_nrl.environments import ActionSpace

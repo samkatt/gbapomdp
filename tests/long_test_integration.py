@@ -160,7 +160,13 @@ class TestModelBasedRL(unittest.TestCase):
     def test_train_on_prior(self):
         """ tests basic offline learning """
 
-        self.run_experiment(['-D=collision_avoidance', '--domain_size=3', '--train_offline=on_prior', '--offline_data_sampler=random_policy', '-B=importance_sampling'])
+        self.run_experiment([
+            '-D=collision_avoidance',
+            '--domain_size=3',
+            '--train_offline=on_prior',
+            '--offline_data_sampler=random_policy',
+            '-B=importance_sampling'
+        ])
 
     def test_sample_uniform_data(self):
         """ tests the functionality of training on randomly sampled data """
