@@ -51,7 +51,7 @@ class TigerPrior(Prior):
         RETURNS (`pobnrl.environments.Simulator`):
 
         """
-        sampled_observation_probs = [dirichlet([300, 200])[0], dirichlet([300, 200])[0]]
+        sampled_observation_probs = [dirichlet([60, 40])[0], dirichlet([60, 40])[0]]
 
         return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
 

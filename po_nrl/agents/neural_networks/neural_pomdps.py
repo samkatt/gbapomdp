@@ -154,8 +154,6 @@ class DynamicsModel():
 
         """
 
-        self.train()
-
         actions = [self.action_space.one_hot(a) for a in actions]
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
@@ -193,10 +191,6 @@ class DynamicsModel():
             log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
-
-        # this is the only function that actually trains
-        # so set to eval mode to prep for other operations
-        self.eval()
 
     def sample_state(self, state: np.ndarray, action: int) -> np.ndarray:
         """ samples next state given current and action
