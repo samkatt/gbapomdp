@@ -1,6 +1,5 @@
 """ agents that act by learning a model of the environments """
 
-from collections import Counter
 from functools import partial
 import numpy as np
 

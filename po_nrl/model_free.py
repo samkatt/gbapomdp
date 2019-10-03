@@ -1,3 +1,5 @@
+""" the main entrance for model-free learning experiments """
+
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from typing import Optional, List
 import numpy as np
