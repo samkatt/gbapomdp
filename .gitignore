@@ -5,3 +5,5 @@ doc/*
 videos
 .mypy_cache
 .tensorboard/*
+build
+po_nrl.egg-info
