@@ -268,7 +268,6 @@ class WeightedFilter(ParticleFilter):
         return 1 / np.sum([pow(p.weight / self._total_weight, 2) for p in self.particles])
 
 
-# TODO: test and doc
 def resample(belief: WeightedFilter) -> WeightedFilter:
     """ performs resampling on `belief`
 
