@@ -13,10 +13,10 @@ from po_nrl.misc import DiscreteSpace
 
 
 class TestDynamicModel(unittest.TestCase):
-    """ Test unit fo the `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
+    """ Test unit fo the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
 
     def test_copy(self) -> None:
-        """ tests the copy function of the `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`
+        """ tests the copy function of the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`
 
         Args:
 
@@ -62,10 +62,10 @@ class TestDynamicModel(unittest.TestCase):
 
 
 class TestMisc(unittest.TestCase):
-    """ Tests `pobnrl.agents.neural_networks.misc` """
+    """ Tests `po_nrl.agents.neural_networks.misc` """
 
     def test_perturbations(self) -> None:  # pylint: disable=no-self-use
-        """ tests `pobnrl.agents.neural_networks.misc.perturb`
+        """ tests `po_nrl.agents.neural_networks.misc.perturb`
 
         Args:
 
