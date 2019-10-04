@@ -11,6 +11,8 @@ setup(
         'scripts/experiments/model_based.py',
         'scripts/experiments/model_free.py',
         'scripts/experiments/pouct_planning.py',
+        'scripts/experiments/sequential_distr_learning.py',
+        #
         'scripts/analysis/merge_result_files.py',
         'scripts/analysis/plotting.py'
     ]

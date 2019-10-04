@@ -46,7 +46,7 @@ class Net(torch.nn.Module):  # type: ignore
 
         """
         activations = self.dropout(torch.tanh(self.layer_1(net_input)))
-        activations = self.dropout(torch.tanh(self.layer_2(activations)))
+        activations = torch.tanh(self.layer_2(activations))
 
         if self.prior:
             return self.out(activations) + self.prior_scaling * self.prior(net_input)
