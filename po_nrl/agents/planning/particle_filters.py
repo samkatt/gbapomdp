@@ -254,8 +254,17 @@ class WeightedFilter(ParticleFilter):
     def __repr__(self) -> str:
         return f'WeightedFilter of {self.size} particles and {self._total_weight} total weight'
 
-    # TODO: test and doc
     def effective_sample_size(self) -> float:
+        """ returns the effective sample size: 1 / sum(w_i^2)
+
+        Can we used as a measure of how healthy the particle filter is. The
+        lower this value, especially compared to the number of particles, the
+        more particle degeneracy.
+
+        Will return N if all weights are 1/total. Returns 1 if only 1 weight is
+        non-zero
+
+        """
         return 1 / np.sum([pow(p.weight / self._total_weight, 2) for p in self.particles])
 
 

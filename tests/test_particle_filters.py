@@ -6,10 +6,10 @@ import random
 from po_nrl.agents.planning.particle_filters import FlatFilter, WeightedFilter, WeightedParticle, resample
 
 
-class TestFilters(unittest.TestCase):
+class TestFlatFilter(unittest.TestCase):
     """ class to test filters """
 
-    def test_flat_filter(self):
+    def test_basic(self):
         """ tests sampling from a flat filter """
 
         ffilter = FlatFilter()
@@ -31,6 +31,10 @@ class TestFilters(unittest.TestCase):
         for sample in samples:
             self.assertIn(sample, [2, 5])
 
+
+class TestWeightedFilter(unittest.TestCase):
+    """ some tests for the weighted filter """
+
     def test_weighted_particle(self):
         """ tests the weighted particle """
 
@@ -40,7 +44,7 @@ class TestFilters(unittest.TestCase):
         self.assertEqual(particle.weight, 1.6)
         self.assertEqual(particle.value, 5)
 
-    def test_weighted_filter(self):
+    def test_basics(self):
         """ tests sampling from a weighted filter """
 
         wfilter = WeightedFilter()
@@ -54,6 +58,24 @@ class TestFilters(unittest.TestCase):
 
         wfilter.add_weighted_particle(WeightedParticle(1, 10000000))
         self.assertEqual(wfilter.sample(), 1)
+
+    def test_effective_sample_size(self) -> None:
+        """ tests `po_nrl.agents.planning.particle_filters.WeightedFilter.effective_sample_size` """
+
+        wfilter = WeightedFilter()
+
+        wfilter.add_particle(10)
+
+        self.assertEqual(wfilter.effective_sample_size(), 1)
+
+        wfilter.add_particle(10)
+
+        self.assertEqual(wfilter.effective_sample_size(), 2)
+
+        wfilter.add_weighted_particle(WeightedParticle(10, 10))
+
+        # 1 / ( 1/12^2 + 1/12^2 + 10/12^2)
+        self.assertAlmostEqual(wfilter.effective_sample_size(), 1.4117647058823528)
 
 
 class TestResampling(unittest.TestCase):
