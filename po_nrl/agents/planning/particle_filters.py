@@ -6,9 +6,11 @@ Contains:
     * belief managers
 """
 
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Iterator
 import abc
 import random
+
+import numpy as np
 
 
 class ParticleFilter(abc.ABC):
@@ -227,6 +229,17 @@ class WeightedFilter(ParticleFilter):
         )
 
     @property
+    def particles(self) -> Iterator[WeightedParticle]:
+        """ returns an iterator over the weighted particles
+
+        Args:
+
+        RETURNS (`iter`):
+
+        """
+        return iter(self._particles)
+
+    @property
     def size(self) -> int:
         """ returns size of particle fitler (number of samples)
 
@@ -240,3 +253,19 @@ class WeightedFilter(ParticleFilter):
 
     def __repr__(self) -> str:
         return f'WeightedFilter of {self.size} particles and {self._total_weight} total weight'
+
+    # TODO: test and doc
+    def effective_sample_size(self) -> float:
+        return 1 / np.sum([pow(p.weight / self._total_weight, 2) for p in self.particles])
+
+
+# TODO: test and doc
+def resample(belief: WeightedFilter) -> WeightedFilter:
+
+    next_belief = WeightedFilter()
+
+    for _ in range(belief.size):
+
+        next_belief.add_particle(belief.sample())
+
+    return next_belief

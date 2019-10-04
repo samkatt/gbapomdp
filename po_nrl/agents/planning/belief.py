@@ -11,7 +11,7 @@ from po_nrl.environments import Simulator
 from po_nrl.pytorch_api import log_tensorboard, tensorboard_logging
 
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
-from po_nrl.agents.planning.particle_filters import ParticleFilter, WeightedFilter, WeightedParticle
+from po_nrl.agents.planning.particle_filters import ParticleFilter, WeightedFilter, WeightedParticle, resample
 from po_nrl.domains.learned_environments import NeuralEnsemblePOMDP
 
 
@@ -201,10 +201,11 @@ def importance_sampling(
 
     next_belief = WeightedFilter()
 
-    for _ in range(belief.size):
+    assert isinstance(belief, WeightedFilter)
 
-        # This step functions as the resampling step
-        state = belief.sample()
+    for weighted_particle in belief.particles:
+
+        state = weighted_particle.value
 
         next_domain_state = state.model.sample_state(state.domain_state, action)
 
@@ -214,8 +215,11 @@ def importance_sampling(
 
         next_belief.add_weighted_particle(WeightedParticle(
             NeuralEnsemblePOMDP.AugmentedState(next_domain_state, state.model),
-            weight
+            weight * weighted_particle.weight
         ))
+
+    if next_belief.effective_sample_size() < (next_belief.size / 10):
+        next_belief = resample(next_belief)
 
     return next_belief
 
@@ -390,31 +394,36 @@ def augmented_importance_sampling(
 
     """
 
+    assert isinstance(belief, WeightedFilter)
+
     next_belief = WeightedFilter()
 
-    for _ in range(belief.size):
+    for weighted_particle in belief.particles:
 
-        # This step functions as the resampling step
-        state = belief.sample()
-        next_model = state.model.copy()
+        state = weighted_particle.value
 
         next_domain_state = state.model.sample_state(state.domain_state, action)
+
         update_model(
-            model=next_model,
+            model=state.model,
             state=state.domain_state,
             action=action,
             next_state=next_domain_state,
             observation=observation
         )
 
-        weight = next_model.observation_prob(
+        weight = state.model.observation_prob(
             state.domain_state, action, next_domain_state, observation
         )
 
+        state.domain_state = next_domain_state
         next_belief.add_weighted_particle(WeightedParticle(
-            NeuralEnsemblePOMDP.AugmentedState(next_domain_state, next_model),
-            weight
+            state,
+            weighted_particle.weight * weight
         ))
+
+    if next_belief.effective_sample_size() < (next_belief.size / 10):
+        next_belief = resample(next_belief)
 
     return next_belief
 
