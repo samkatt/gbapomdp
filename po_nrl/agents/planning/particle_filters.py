@@ -261,11 +261,24 @@ class WeightedFilter(ParticleFilter):
 
 # TODO: test and doc
 def resample(belief: WeightedFilter) -> WeightedFilter:
+    """ performs resampling on `belief`
+
+    Resampling is useful to tackle particle degeneracy: at some point during
+    sequential sampling, the total weight will be concentrated in a few samples
+
+    By resampling, a new filter is sampled from the current, where each
+    particle has 1/N weight
+
+    Args:
+         belief: (`WeightedFilter`):
+
+    RETURNS (`WeightedFilter`):
+
+    """
 
     next_belief = WeightedFilter()
 
     for _ in range(belief.size):
-
         next_belief.add_particle(belief.sample())
 
     return next_belief
