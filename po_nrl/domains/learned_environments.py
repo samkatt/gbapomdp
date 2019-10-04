@@ -21,8 +21,8 @@ def train_from_random_policy(
     buffer
 
     Args:
-         model: (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`):
-         sim: (`pobnrl.environments.Simulator`):
+         model: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`):
+         sim: (`po_nrl.environments.Simulator`):
          num_epochs: (`int`): number of batch updates
          batch_size: (`int`): size of a batch update
 
@@ -57,8 +57,8 @@ def train_from_uniform_steps(
 
 
     Args:
-         model: (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`):
-         sim: (`pobnrl.environments.Simulator`):
+         model: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`):
+         sim: (`po_nrl.environments.Simulator`):
          num_epochs: (`int`): number of batch updates
          batch_size: (`int`): size of a batch update
 
@@ -80,7 +80,7 @@ def train_from_uniform_steps(
 
 
 class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
-    """ A simulator over (`pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
+    """ A simulator over (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
     class AugmentedState:
         """ A state containing (POMDP state, POMDP dynamics) """
@@ -97,7 +97,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """ Creates `NeuralEnsemblePOMDP`
 
         Args:
-             domain: (`pobnrl.environments.Simulator`): domain to train interactions from
+             domain: (`po_nrl.environments.Simulator`): domain to train interactions from
              conf: configurations from program input (`network_size`, `learning_rate` and `dropout_rate`)
 
         """
@@ -145,7 +145,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
         Args:
 
-        RETURNS (`pobnrl.environments.ActionSpace`):
+        RETURNS (`po_nrl.environments.ActionSpace`):
 
         """
         return self.domain_action_space
@@ -156,7 +156,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
         Args:
 
-        RETURNS (`pobnrl.misc.Space`):
+        RETURNS (`po_nrl.misc.Space`):
 
         """
         assert isinstance(self.domain_obs_space, DiscreteSpace),\
@@ -186,7 +186,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
              state: (`AugmentedState`): incoming state
              action: (`int`): action
 
-        RETURNS (`pobnrl.environments.SimulationResult`):
+        RETURNS (`po_nrl.environments.SimulationResult`):
 
         """
 
@@ -265,9 +265,9 @@ def _replay_buffer_from_random_policy(domain: Simulator) -> ReplayBuffer:
     """ Fills up a replay buffer of (s,a,s',o) interactions
 
     Args:
-         domain: (`pobnrl.environments.Simulator`): a simulator to generate interactions
+         domain: (`po_nrl.environments.Simulator`): a simulator to generate interactions
 
-    RETURNS (`pobnrl.agents.neural_networks.misc.ReplayBuffer`):
+    RETURNS (`po_nrl.agents.neural_networks.misc.ReplayBuffer`):
 
     """
 

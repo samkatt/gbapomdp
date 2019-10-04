@@ -175,17 +175,17 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ `pobnrl.misc.DiscreteSpace`([size,size,num_goals]) """
+        """ `po_nrl.misc.DiscreteSpace`([size,size,num_goals]) """
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace`([4]) space """
+        """ a `po_nrl.environments.ActionSpace`([4]) space """
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
+        """ a `po_nrl.misc.DiscreteSpace`([size,size] + ones * num_goals) """
         return self._obs_space
 
     @property
@@ -299,7 +299,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): [x, y, goal_index]
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.SimulationResult`): the transition
+        RETURNS (`po_nrl.environments.SimulationResult`): the transition
 
         """
 
@@ -366,7 +366,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
+        RETURNS (`po_nrl.environments.EnvironmentInteraction`): the transition
 
         """
 

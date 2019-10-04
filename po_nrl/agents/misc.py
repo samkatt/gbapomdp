@@ -20,7 +20,7 @@ def epsilon_greedy(
     Args:
          q_values: (`np.array'): a list of q values, one for each action
          epsilon: (`float`): the probability of picking a random action
-         action_space: (`pobnrl.environments.ActionSpace`): : a space of actions to sample from
+         action_space: (`po_nrl.environments.ActionSpace`): : a space of actions to sample from
 
     RETURNS (`int`): an action (assuming discrete domains
 

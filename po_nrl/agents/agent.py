@@ -59,7 +59,7 @@ class RandomAgent(Agent):
         """ constructs an agent that will act randomly
 
         Args:
-             num_actions: (`pobnrl.environments.ActionSpace`): the action space
+             num_actions: (`po_nrl.environments.ActionSpace`): the action space
 
         """
         self._action_space = action_space
@@ -70,7 +70,7 @@ class RandomAgent(Agent):
     def episode_reset(self, observation: np.ndarray) -> None:
         """ Will not do anything since there is no internal state to reset
 
-        Part of the interface of `pobnrl.agents.agent.Agent`
+        Part of the interface of `po_nrl.agents.agent.Agent`
 
         Args:
              observation: (`np.ndarray`): ignored
@@ -80,7 +80,7 @@ class RandomAgent(Agent):
     def select_action(self) -> int:
         """ returns a random action
 
-        Part of the interface of `pobnrl.agents.agent.Agent`
+        Part of the interface of `po_nrl.agents.agent.Agent`
 
         RETURNS (`int`):
 
@@ -94,7 +94,7 @@ class RandomAgent(Agent):
             terminal: bool):
         """ will not do anything since this has nothing to update
 
-        Part of the interface of `pobnrl.agents.agent.Agent`
+        Part of the interface of `po_nrl.agents.agent.Agent`
 
         Args:
              observation (`np.ndarray`): ignored

@@ -17,13 +17,13 @@ def create_qnet(
     """ factory for creating Q networks / policies
 
     Args:
-         action_space: (`pobnrl.environments.ActionSpace`): of environment
-         observation_space: (`pobnrl.misc.Space`): of environment
+         action_space: (`po_nrl.environments.ActionSpace`): of environment
+         observation_space: (`po_nrl.misc.Space`): of environment
          scope: (`str`): name of agent (learning scope)
          conf: (`namespace`): configurations (see -h)
          name: (`str`): name of net
 
-    RETURNS (`pobnrl.agents.neural_networks.q_functions.QNetInterface`):
+    RETURNS (`po_nrl.agents.neural_networks.q_functions.QNetInterface`):
 
     """
 

@@ -19,7 +19,7 @@ class Prior(abc.ABC):
     def sample(self) -> Simulator:
         """ sample a simulator
 
-        RETURNS (`pobnrl.environments.Simulator`):
+        RETURNS (`po_nrl.environments.Simulator`):
         """
 
 
@@ -36,7 +36,7 @@ class TigerPrior(Prior):
         """ initiate the prior, will make observation one-hot encoded
 
         Args:
-             encoding: (`pobnrl.environments.EncodeType`):
+             encoding: (`po_nrl.environments.EncodeType`):
 
         """
 
@@ -48,10 +48,10 @@ class TigerPrior(Prior):
         This prior over the observation probability is a Dirichlet with alpha
         [6,4]
 
-        RETURNS (`pobnrl.environments.Simulator`):
+        RETURNS (`po_nrl.environments.Simulator`):
 
         """
-        sampled_observation_probs = [dirichlet([60, 40])[0], dirichlet([60, 40])[0]]
+        sampled_observation_probs = [dirichlet([6, 4])[0], dirichlet([6, 4])[0]]
 
         return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
 
@@ -69,7 +69,7 @@ class GridWorldPrior(Prior):
 
         Args:
              size: (`int`):
-             encoding: (`pobnrl.environments.EncodeType`):
+             encoding: (`po_nrl.environments.EncodeType`):
 
         """
 
@@ -77,7 +77,7 @@ class GridWorldPrior(Prior):
         self._encoding = encoding
 
     def sample(self) -> Simulator:
-        """  samples a `pobnrl.domains.gridworld.GridWorld` Gridworld of given size and encoding with a random set of slow cells """
+        """  samples a `po_nrl.domains.gridworld.GridWorld` Gridworld of given size and encoding with a random set of slow cells """
 
         slow_cells: Set[Tuple[int, int]] = set()
 
@@ -97,7 +97,7 @@ class CollisionAvoidancePrior(Prior):
     """
 
     def __init__(self, size: int):
-        """ creates a `pobnrl.domains.collision_avoidance.CollisionAvoidance` prior of `size`
+        """ creates a `po_nrl.domains.collision_avoidance.CollisionAvoidance` prior of `size`
 
         Args:
              size: (`int`):
@@ -106,7 +106,7 @@ class CollisionAvoidancePrior(Prior):
         self._size = size
 
     def sample(self) -> Simulator:
-        """  returns `pobnrl.domains.collision_avoidance.CollisionAvoidance` with random obstacle behavior """
+        """  returns `po_nrl.domains.collision_avoidance.CollisionAvoidance` with random obstacle behavior """
 
         sampled_behaviour = tuple(dirichlet([.5, .9, .5]))
 

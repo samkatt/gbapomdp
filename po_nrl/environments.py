@@ -165,7 +165,7 @@ class Environment(abc.ABC):
     def action_space(self) -> ActionSpace:
         """ returns size of domain action space
 
-        RETURNS(`pobnrl.environments.ActionSpace`): the action space
+        RETURNS(`po_nrl.environments.ActionSpace`): the action space
 
         """
 
@@ -174,7 +174,7 @@ class Environment(abc.ABC):
     def observation_space(self) -> Space:
         """ returns size of domain observation space
 
-        RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space
+        RETURNS(`po_nrl.misc.DiscreteSpace`): the observation space
 
         """
 
@@ -207,7 +207,7 @@ class Simulator(abc.ABC):
 
         Args:
 
-        RETURNS (`pobnrl.misc.DiscreteSpace`):
+        RETURNS (`po_nrl.misc.DiscreteSpace`):
 
         """
 
@@ -216,7 +216,7 @@ class Simulator(abc.ABC):
     def action_space(self) -> ActionSpace:
         """ returns size of domain action space
 
-        RETURNS(`pobnrl.environments.ActionSpace`): the action space
+        RETURNS(`po_nrl.environments.ActionSpace`): the action space
 
         """
 
@@ -225,7 +225,7 @@ class Simulator(abc.ABC):
     def observation_space(self) -> Space:
         """ returns size of domain observation space
 
-        RETURNS(`pobnrl.misc.DiscreteSpace`): the observation space
+        RETURNS(`po_nrl.misc.DiscreteSpace`): the observation space
 
         """
 

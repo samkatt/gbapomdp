@@ -54,7 +54,7 @@ class POBNRLogger:
             Args:
                  level: (`int`): in [0 ... 5]
 
-            RETURNS (`pobnrl.misc.POBNRLogger.LogLevel`):
+            RETURNS (`po_nrl.misc.POBNRLogger.LogLevel`):
 
             """
 

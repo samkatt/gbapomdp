@@ -1,1 +1,1 @@
-(export PYTHONPATH=$PYTHONPATH:pobnrl; pdoc --html --html-dir=doc --overwrite pobnrl)
+pdoc --html --html-dir=doc --overwrite po_nrl

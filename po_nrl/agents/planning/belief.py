@@ -188,7 +188,7 @@ def importance_sampling(
     """ applies importance sampling **with resampling** as belief update
 
     Assumes belief is over state and models, i.e.
-    `pobnrl.domains.learned_environments.NeuralEnsemblePOMDP.AugmentedState`
+    `po_nrl.domains.learned_environments.NeuralEnsemblePOMDP.AugmentedState`
 
     Args:
          belief: (`ParticleFilter`):

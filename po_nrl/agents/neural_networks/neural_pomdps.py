@@ -32,9 +32,9 @@ class DynamicsModel():
         """ Creates a dynamic model
 
         Args:
-             state_space: (`pobnrl.misc.DiscreteSpace`):
-             action_space: (`pobnrl.environments.ActionSpace`):
-             obs_space: (`pobnrl.misc.DiscreteSpace`):
+             state_space: (`po_nrl.misc.DiscreteSpace`):
+             action_space: (`po_nrl.environments.ActionSpace`):
+             obs_space: (`po_nrl.misc.DiscreteSpace`):
              network_size: (`int`): number of nodes in hidden layers
              learning_rate: (`float`): learning rate of the optimizer
              dropout_rate: (`float`): dropout rate of the layers

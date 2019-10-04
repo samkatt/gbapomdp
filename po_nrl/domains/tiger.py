@@ -72,17 +72,17 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([2]) space """
+        """ a `po_nrl.misc.DiscreteSpace`([2]) space """
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace`([3]) space """
+        """ a `po_nrl.environments.ActionSpace`([3]) space """
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([1,1]) space if one-hot, otherwise [3]"""
+        """ a `po_nrl.misc.DiscreteSpace`([1,1]) space if one-hot, otherwise [3]"""
         return self._obs_space
 
     def encode_observation(self, observation: int) -> np.ndarray:
@@ -158,7 +158,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): [0] is tiger left, [1] is tiger right
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`pobnrl.environments.SimulationResult`): the transition
+        RETURNS (`po_nrl.environments.SimulationResult`): the transition
 
         """
 
@@ -220,7 +220,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
+        RETURNS (`po_nrl.environments.EnvironmentInteraction`): the transition
 
         """
 

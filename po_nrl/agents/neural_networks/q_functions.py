@@ -93,8 +93,8 @@ class QNet(QNetInterface, POBNRLogger):
         """ constructs a QNet
 
         Args:
-             action_space: (`pobnrl.environments.ActionSpace`): output size of the network
-             obs_space: (`pobnrl.misc.Space`): of eenvironments
+             action_space: (`po_nrl.environments.ActionSpace`): output size of the network
+             obs_space: (`po_nrl.misc.Space`): of eenvironments
              name: (`str`): name of the network (used for scoping)
              conf: (`namespace`): configurations
              name: (`str`): name of the QNet
@@ -280,8 +280,8 @@ class RecQNet(QNetInterface, POBNRLogger):
         """ constructs a recurrent q-network
 
         Args:
-             action_space: (`pobnrl.environments.ActionSpace`): output size of the network
-             obs_space: (`pobnrl.misc.Space`): of eenvironments
+             action_space: (`po_nrl.environments.ActionSpace`): output size of the network
+             obs_space: (`po_nrl.misc.Space`): of eenvironments
              name: (`str`): name of the network (used for scoping)
              conf: (`namespace`): configurations
              name: (`str`): name of the QNet

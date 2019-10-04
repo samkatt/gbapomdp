@@ -291,11 +291,11 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
     """ creates a model training method
 
     This returns a function that can be called on any
-    `pobnrl.agents.neural_networks.neural_pomdps.DynamicsModel` net to be
+    `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` net to be
     trained
 
     Args:
-         env: (`pobnrl.environments.Simulator`):
+         env: (`po_nrl.environments.Simulator`):
          conf: namesapce of program options
 
     RETURNS (`Callable[[DynamicsModel], None]`): a function that trains an model

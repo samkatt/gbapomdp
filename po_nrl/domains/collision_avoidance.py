@@ -81,17 +81,17 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ `pobnrl.misc.DiscreteSpace`([size,size,size]) """
+        """ `po_nrl.misc.DiscreteSpace`([size,size,size]) """
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace`([3]) space """
+        """ a `po_nrl.environments.ActionSpace`([3]) space """
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`([size,size,size]) space """
+        """ a `po_nrl.misc.DiscreteSpace`([size,size,size]) space """
         return self._obs_space
 
     def sample_start_state(self) -> np.ndarray:
@@ -147,7 +147,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): [x, y, obs_y]
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`pobnrl.environments.SimulationResult`):
+        RETURNS (`po_nrl.environments.SimulationResult`):
 
         """
         assert self.action_space.contains(action), f'action {action} not in space'
@@ -229,7 +229,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
+        RETURNS (`po_nrl.environments.EnvironmentInteraction`): the transition
 
         """
         assert 0 <= action < 3

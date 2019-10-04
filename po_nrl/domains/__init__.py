@@ -23,9 +23,9 @@ def create_environment(
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
-         encoding: (`pobnrl.environments.EncodeType`): the encoding
+         encoding: (`po_nrl.environments.EncodeType`): the encoding
 
-    RETURNS (`pobnrl.environments.Environment`)
+    RETURNS (`po_nrl.environments.Environment`)
 
     """
 
@@ -54,7 +54,7 @@ def create_prior(
          _domain_size: (`int`): unused atm
          encoding: (`EncodeType`): what observation encoding to use
 
-    RETURNS (`pobnrl.domains.priors.Prior`):
+    RETURNS (`po_nrl.domains.priors.Prior`):
 
     """
 

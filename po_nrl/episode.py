@@ -13,8 +13,8 @@ def run_episode(
     NOTE: assumes env and agent has been reset
 
     Args:
-         env: (`pobnrl.environments.Environment`):
-         agent: (`pobnrl.agents.agent.Agent`):
+         env: (`po_nrl.environments.Environment`):
+         agent: (`po_nrl.agents.agent.Agent`):
          conf: configurations
 
     RETURNS (`float`): discounted return

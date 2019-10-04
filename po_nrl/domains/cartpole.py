@@ -58,7 +58,7 @@ class Cartpole(Environment, POBNRLogger):
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
+        RETURNS (`po_nrl.environments.EnvironmentInteraction`): the transition
 
         """
 

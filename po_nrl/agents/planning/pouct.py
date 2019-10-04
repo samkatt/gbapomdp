@@ -65,7 +65,7 @@ class TreeNode():
              action: (`int`): the chosen action
              observation: (`int`): the perceived observation
 
-        RETURNS (`pobnrl.agents.planning.pouct.TreeNode`):
+        RETURNS (`po_nrl.agents.planning.pouct.TreeNode`):
 
         """
 
@@ -106,7 +106,7 @@ class POUCT(POBNRLogger):
         """ Creates the PO-UCT planner
 
         Args:
-             simulator: (`pobnrl.environments.Simulator`)
+             simulator: (`po_nrl.environments.Simulator`)
              num_sims: (`int`): number of iterations
              exploration_constant: (`float`): UCB exploration constant
              planning_horizon: (`int`): the horizon to plan agains
@@ -141,7 +141,7 @@ class POUCT(POBNRLogger):
         """ selects an action given belief
 
         Args:
-             belief: (`pobnrl.agents.planning.particle_filters.ParticleFilter`): the belief at the root to plan from
+             belief: (`po_nrl.agents.planning.particle_filters.ParticleFilter`): the belief at the root to plan from
 
         RETURNS (`int`):
 

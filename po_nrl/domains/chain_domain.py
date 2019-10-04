@@ -29,7 +29,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         Args:
              size: (`int`): size of the grid
-             encoding: (`pobnrl.environments.EncodeType`)
+             encoding: (`po_nrl.environments.EncodeType`)
 
         """
 
@@ -79,17 +79,17 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ `pobnrl.misc.DiscreteSpace`([size,size])"""
+        """ `po_nrl.misc.DiscreteSpace`([size,size])"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `pobnrl.environments.ActionSpace` space with 2 actions"""
+        """ a `po_nrl.environments.ActionSpace` space with 2 actions"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `pobnrl.misc.DiscreteSpace`, depends on `one_hot_observation` flag for `this`"""
+        """ a `po_nrl.misc.DiscreteSpace`, depends on `one_hot_observation` flag for `this`"""
         return self._observation_space
 
     def sample_start_state(self) -> np.ndarray:
@@ -149,7 +149,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): the state [x,y]
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`pobnrl.environments.SimulationResult`): the transition
+        RETURNS (`po_nrl.environments.SimulationResult`): the transition
 
         """
 
@@ -222,7 +222,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`pobnrl.environments.EnvironmentInteraction`): the transition
+        RETURNS (`po_nrl.environments.EnvironmentInteraction`): the transition
 
         """
 

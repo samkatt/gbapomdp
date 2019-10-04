@@ -20,8 +20,8 @@ class PrototypeAgent(Agent, POBNRLogger):
         """ creates this agent with planner and belief manager
 
         Args:
-             planner: (`pobnrl.agents.planning.pouct.POUCT`):
-             BeliefManager: (`pobnrl.agents.planning.particle_filters.BeliefManager`):
+             planner: (`po_nrl.agents.planning.pouct.POUCT`):
+             BeliefManager: (`po_nrl.agents.planning.particle_filters.BeliefManager`):
 
         """
 
@@ -154,10 +154,10 @@ def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
     """ factory function to construct model based learning agents
 
     Args:
-         sim: (`pobnrl.environments.Simulator`) simulator
+         sim: (`po_nrl.environments.Simulator`) simulator
          conf: (`namespace`) configurations
 
-    RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
+    RETURNS (`po_nrl.agents.model_based_agents.PrototypeAgent`)
 
     """
 
@@ -181,10 +181,10 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
     """ factory function to construct planning agents
 
     Args:
-         sim: (`pobnrl.environments.Simulator`) simulator
+         sim: (`po_nrl.environments.Simulator`) simulator
          conf: (`namespace`) configurations
 
-    RETURNS (`pobnrl.agents.model_based_agents.PrototypeAgent`)
+    RETURNS (`po_nrl.agents.model_based_agents.PrototypeAgent`)
 
     """
 

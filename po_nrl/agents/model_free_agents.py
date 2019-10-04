@@ -27,10 +27,10 @@ class BaselineAgent(Agent, POBNRLogger):
         """ initializes a single network
 
         Args:
-             qnet: (`pobnrl.agents.neural_networks.q_functions.QNetInterface`): \
+             qnet: (`po_nrl.agents.neural_networks.q_functions.QNetInterface`): \
                     Q-net to use
-             action_space: (`pobnrl.environments.ActionSpace`): of environment
-             exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
+             action_space: (`po_nrl.environments.ActionSpace`): of environment
+             exploration: (`po_nrl.agents.misc.ExplorationSchedule`): \
                     schedule for e-greedy
              conf: (`namespace`) set of configurations (see -h)
 
@@ -146,10 +146,10 @@ class EnsembleAgent(Agent, POBNRLogger):
         """ initialize network
 
         Args:
-            qnet_constructor: (`Callable`[[], `pobnrl.agents.neural_networks.q_functions.QNetInterface`]): \
+            qnet_constructor: (`Callable`[[], `po_nrl.agents.neural_networks.q_functions.QNetInterface`]): \
                     Q-net constructor to use to create nets (given scope)
-            action_space: (`pobnrl.environments.ActionSpace`): of environment
-            exploration: (`pobnrl.agents.misc.ExplorationSchedule`): \
+            action_space: (`po_nrl.environments.ActionSpace`): of environment
+            exploration: (`po_nrl.agents.misc.ExplorationSchedule`): \
                     exploration schedule
             conf: (`namespace`): set of configurations
 
@@ -292,11 +292,11 @@ def create_agent(
     """ factory function to construct model-free learning agents
 
     Args:
-         action_space: (`pobnrl.environments.ActionSpace`): of environment
-         observation_space: (`pobnrl.misc.Space`) of environment
+         action_space: (`po_nrl.environments.ActionSpace`): of environment
+         observation_space: (`po_nrl.misc.Space`) of environment
          conf: (`namespace`) configurations
 
-    RETURNS (`pobnrl.agents.agent.Agent`)
+    RETURNS (`po_nrl.agents.agent.Agent`)
 
     """
 
