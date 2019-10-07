@@ -17,21 +17,21 @@ class TestFactory(unittest.TestCase):
         """ tests basic stuff on the first (belief) parameter """
 
         # belief should be something legit
-        self.assertRaises(AssertionError, belief.belief_update_factory, 'test', 0, 0, 0)
+        self.assertRaises(AssertionError, belief.belief_update_factory, 'test', 0, 0, 0, 0)
 
         # test returns rejection or importance sampling correctly
-        self.assertEqual(belief.belief_update_factory('importance_sampling', 0, False, tiger.Tiger(EncodeType.DEFAULT)), belief.importance_sampling)
+        self.assertEqual(belief.belief_update_factory('importance_sampling', 0, False, False, tiger.Tiger(EncodeType.DEFAULT)), belief.importance_sampling)
 
         self.assertEqual(
             belief.belief_update_factory(  # type: ignore
-                'rejection_sampling', 0, False, tiger.Tiger(EncodeType.DEFAULT)
+                'rejection_sampling', 0, False, False, tiger.Tiger(EncodeType.DEFAULT)
             ).func,
             belief.rejection_sampling
         )
 
         # backprop and rs
         bp_rs = belief.belief_update_factory(
-            'rejection_sampling', 0, True, tiger.Tiger(EncodeType.DEFAULT)
+            'rejection_sampling', 0, True, False, tiger.Tiger(EncodeType.DEFAULT)
         )
 
         self.assertEqual(
@@ -45,7 +45,7 @@ class TestFactory(unittest.TestCase):
 
         # perturb and importance
         bp_rs = belief.belief_update_factory(
-            'importance_sampling', 0.1, False, tiger.Tiger(EncodeType.DEFAULT)
+            'importance_sampling', 0.1, False, False, tiger.Tiger(EncodeType.DEFAULT)
         )
 
         self.assertEqual(
@@ -68,7 +68,7 @@ class TestFactory(unittest.TestCase):
 
         # perturb and backprop
         is_rs_bp = belief.belief_update_factory(
-            'importance_sampling', .1, True, tiger.Tiger(EncodeType.DEFAULT)
+            'importance_sampling', .1, True, False, tiger.Tiger(EncodeType.DEFAULT)
         )
 
         self.assertEqual(len(is_rs_bp.keywords['update_model'].model_updates), 2)  # type: ignore

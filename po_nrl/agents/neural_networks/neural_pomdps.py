@@ -1,7 +1,8 @@
 """ POMDP dynamics as neural networks """
 
+from collections import deque, namedtuple
 from itertools import chain
-from typing import Tuple
+from typing import Tuple, Deque
 import copy
 import re
 
@@ -14,6 +15,19 @@ from po_nrl.agents.neural_networks.misc import perturb
 from po_nrl.environments import ActionSpace
 from po_nrl.misc import DiscreteSpace
 from po_nrl.pytorch_api import log_tensorboard, device, tensorboard_logging
+
+
+class Interaction(
+        namedtuple('interaction', 'state action next_state observation')):
+    """ transition in environment
+
+        Contains:
+             state: (`np.ndarray`):
+             action: (`int`):
+             next_state: (`np.ndarray`):
+             observation: (`np.ndarray`):
+    """
+    __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
 # TODO: add logging functionality
@@ -47,6 +61,8 @@ class DynamicsModel():
         self.state_space = state_space
         self.action_space = action_space
         self.obs_space = obs_space
+
+        self.experiences: Deque[Interaction] = deque([], 500)
 
         self.net_t = Net(
             input_size=self.state_space.ndim + self.action_space.n,
@@ -191,6 +207,30 @@ class DynamicsModel():
             log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
+
+    def add_transition(
+            self,
+            state: np.ndarray,
+            action: int,
+            next_state: np.ndarray,
+            observation: np.ndarray) -> None:
+        """ stores the given transition
+
+        `this` uses this data to learn
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             next_state: (`np.ndarray`):
+             observation: (`np.ndarray`):
+
+        RETURNS (`None`):
+
+        """
+
+        self.experiences.append(
+            Interaction(state, action, next_state, observation)
+        )
 
     def sample_state(self, state: np.ndarray, action: int) -> np.ndarray:
         """ samples next state given current and action

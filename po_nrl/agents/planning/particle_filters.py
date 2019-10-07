@@ -8,6 +8,7 @@ Contains:
 
 from typing import Any, Callable, List, Iterator
 import abc
+import copy
 import random
 
 import numpy as np
@@ -287,6 +288,7 @@ def resample(belief: WeightedFilter) -> WeightedFilter:
     next_belief = WeightedFilter()
 
     for _ in range(belief.size):
+        # TODO: deep copy
         next_belief.add_particle(belief.sample())
 
     return next_belief

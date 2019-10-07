@@ -284,6 +284,12 @@ def parse_arguments(args: Optional[List[str]] = None):
         default=0
     )
 
+    parser.add_argument(
+        '--replay_update',
+        action='store_true',
+        help='whether to do updates from the replay buffer during belief updates'
+    )
+
     return parser.parse_args(args)  # if args is "", will read cmdline
 
 

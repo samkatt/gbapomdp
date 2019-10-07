@@ -101,6 +101,7 @@ class BeliefManager(POBNRLogger):
         else:
             self._episode_reset = lambda _: self._reset()
 
+        # TODO: potentially just remove?
         self._belief = self._reset()
 
     def reset(self) -> None:
@@ -264,6 +265,29 @@ def perturb_parameters(
     """
 
     model.perturb_parameters(stdev)
+
+
+def replay_buffer_update(
+        model: DynamicsModel,
+        state: np.ndarray,
+        action: np.ndarray,
+        next_state: np.ndarray,
+        observation: np.ndarray) -> None:
+    """ will add transition to model and then invoke a `self learn` step
+
+    Args:
+         model: (`DynamicsModel`):
+         state: (`np.ndarray`):
+         action: (`np.ndarray`):
+         next_state: (`np.ndarray`):
+         observation: (`np.ndarray`):
+
+    RETURNS (`None`):
+
+    """
+
+    model.add_transition(state, action, next_state, observation)
+    model.self_learn()
 
 
 def backprop_update(
@@ -432,6 +456,7 @@ def belief_update_factory(
         belief: str,
         perturb_stdev: float,
         backprop: bool,
+        replay_update: bool,
         sim: Simulator) -> BeliefUpdate:
     """ returns an importance sampling method depending on the configurations
 
@@ -439,6 +464,7 @@ def belief_update_factory(
          belief: (`str`):
          perturb_stdev: (`float`): the amount of param perturbation during updates
          backprop: (`bool`): whether to apply backprop during update
+         replay_update: (`bool`): whether to apply self-learn from replay buffer during update
          sim: (`Simulator`):
 
     RETURNS (`BeliefUpdate`):
@@ -449,7 +475,7 @@ def belief_update_factory(
         f"belief {belief} not legal"
 
     # basic, no enhancements
-    if perturb_stdev == 0 and not backprop:
+    if perturb_stdev == 0 and not backprop and not replay_update:
         if belief == 'importance_sampling':
             return importance_sampling
         if belief == 'rejection_sampling':
@@ -465,6 +491,8 @@ def belief_update_factory(
     updates: List[ModelUpdate] = []
     if backprop:
         updates.append(backprop_update)
+    if replay_update:
+        updates.append(replay_buffer_update)
     if not perturb_stdev == 0:
         updates.append(partial(perturb_parameters, stdev=perturb_stdev))
 
