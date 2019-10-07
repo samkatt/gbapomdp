@@ -3,8 +3,6 @@
 from collections import deque, namedtuple
 from itertools import chain
 from typing import Tuple, Deque
-import copy
-import re
 
 import numpy as np
 import torch
@@ -30,7 +28,6 @@ class Interaction(
     __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
-# TODO: add logging functionality
 class DynamicsModel():
     """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
 
@@ -41,8 +38,7 @@ class DynamicsModel():
             obs_space: DiscreteSpace,
             network_size: int,
             learning_rate: float,
-            dropout_rate: float,
-            name: str):
+            dropout_rate: float):
         """ Creates a dynamic model
 
         Args:
@@ -55,8 +51,6 @@ class DynamicsModel():
              name: (`str`): name of the network
 
         """
-
-        self.name = name
 
         self.state_space = state_space
         self.action_space = action_space
@@ -203,10 +197,22 @@ class DynamicsModel():
         self.optimizer.step()
 
         if tensorboard_logging():
-            log_tensorboard(f'observation_loss/{self.name}', observation_loss.item(), self.num_batches)
-            log_tensorboard(f'transition_loss/{self.name}', state_loss.item(), self.num_batches)
+            log_tensorboard(f'observation_loss/{self}', observation_loss.item(), self.num_batches)
+            log_tensorboard(f'transition_loss/{self}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
+
+    def self_learn(self) -> None:
+        """ performs a batch update on stored data
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+        assert self.experiences, f'cannot self learn without data'
+
+        self.batch_update(*map(np.array, zip(*self.experiences)))
 
     def add_transition(
             self,
@@ -349,6 +355,7 @@ class DynamicsModel():
 
     def reset(self) -> None:
         """ resets the networks """
+        self.experiences.clear()
         self.net_t.random_init_parameters()
         self.net_o.random_init_parameters()
         self.num_batches = 0
@@ -371,39 +378,3 @@ class DynamicsModel():
         with torch.no_grad():
             for param in chain(self.net_t.parameters(), self.net_o.parameters()):
                 param.set_(perturb(param, stdev))  # XXX: not sure if most natural way
-
-    def copy(self) -> 'DynamicsModel':
-        """ copies self
-
-        Takes care of which members to copy deep and afterwards links pytorch
-        optimizer with the correct parameters
-
-        Args:
-
-        RETURNS (`DynamicsModel`):
-
-        """
-
-        copied_model = copy.copy(self)
-
-        copied_model.net_o = copy.deepcopy(self.net_o)
-        copied_model.net_t = copy.deepcopy(self.net_t)
-
-        copied_model.optimizer = torch.optim.Adam(
-            chain(copied_model.net_t.parameters(), copied_model.net_o.parameters()),
-            self.learning_rate
-        )
-
-        # some magic to maintain name consistency:
-        # create (name)-copy-1 or increment counter if already available
-
-        name_splits = re.split(r'(-copy-\d+)', self.name)
-        if len(name_splits) == 1:
-            copied_model.name = f'{name_splits[0]}-copy-1'
-        else:
-            assert len(name_splits) == 3, f'not sure how we got to network name {self.name}'
-
-            i = int(re.split(r'(\d+)', name_splits[1])[1]) + 1
-            copied_model.name = f'{name_splits[0]}-copy-{i}'
-
-        return copied_model

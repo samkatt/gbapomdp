@@ -493,7 +493,7 @@ def belief_update_factory(
         updates.append(backprop_update)
     if replay_update:
         updates.append(replay_buffer_update)
-    if not perturb_stdev == 0:
+    if perturb_stdev:
         updates.append(partial(perturb_parameters, stdev=perturb_stdev))
 
     return partial(filter_method, update_model=ModelUpdatesChain(updates))

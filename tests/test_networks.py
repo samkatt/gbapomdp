@@ -2,6 +2,7 @@
 
 import unittest
 
+import copy
 import numpy as np
 import torch
 
@@ -18,6 +19,9 @@ class TestDynamicModel(unittest.TestCase):
     def test_copy(self) -> None:
         """ tests the copy function of the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`
 
+        Basically double checking whether the standard implementation works as
+        **I** expect
+
         Args:
 
         RETURNS (`None`):
@@ -30,35 +34,39 @@ class TestDynamicModel(unittest.TestCase):
             obs_space=DiscreteSpace([1]),
             network_size=5,
             learning_rate=.01,
-            dropout_rate=0.5,
-            name='test'
+            dropout_rate=0.5
         )
 
-        copied_model = test_model.copy()
-        self.assertEqual(test_model.name, 'test')
-        self.assertNotEqual(test_model.net_t, copied_model.net_t)
+        copied_model = copy.deepcopy(test_model)
 
-        self.assertEqual(copied_model.name, 'test-copy-1')
+        for test_tensor, copy_tensor in zip(
+                test_model.net_t.parameters(),
+                copied_model.net_t.parameters()):
+            self.assertTrue(torch.equal(test_tensor.data, copy_tensor.data))
 
-        nested_copied_model = copied_model.copy()
-        self.assertEqual(nested_copied_model.name, 'test-copy-2')
+        test_model.perturb_parameters()
 
-        # test when there is a number present
-        model_with_numbered_name = DynamicsModel(
-            state_space=DiscreteSpace([1]),
+        for test_tensor, copy_tensor in zip(
+                test_model.net_t.parameters(),
+                copied_model.net_t.parameters()):
+            self.assertFalse(torch.equal(test_tensor.data, copy_tensor.data))
+
+        test_model = DynamicsModel(
+            state_space=DiscreteSpace([2]),
             action_space=ActionSpace(1),
-            obs_space=DiscreteSpace([1]),
+            obs_space=DiscreteSpace([2]),
             network_size=5,
             learning_rate=.01,
-            dropout_rate=.5,
-            name='some-model-3'
+            dropout_rate=0.5
         )
+        copied_model = copy.deepcopy(test_model)
 
-        copied_model = model_with_numbered_name.copy()
-        self.assertEqual(copied_model.name, 'some-model-3-copy-1')
+        copied_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]))
 
-        nested_copied_model = copied_model.copy()
-        self.assertEqual(nested_copied_model.name, 'some-model-3-copy-2')
+        for test_tensor, copy_tensor in zip(
+                test_model.net_t.parameters(),
+                copied_model.net_t.parameters()):
+            self.assertFalse(torch.equal(test_tensor.data, copy_tensor.data))
 
 
 class TestMisc(unittest.TestCase):

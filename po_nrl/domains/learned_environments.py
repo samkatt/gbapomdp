@@ -1,6 +1,7 @@
 """ domains either learned or constructed from other domains """
 
 from typing import Callable
+import copy
 import numpy as np
 
 from po_nrl.agents.neural_networks import ReplayBuffer
@@ -126,8 +127,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 self.domain_obs_space,
                 conf.network_size,
                 conf.learning_rate,
-                conf.dropout_rate,
-                f'model {i}'
+                conf.dropout_rate
             ) for i in range(conf.num_nets)
         ]
 
@@ -173,7 +173,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """
         return self.AugmentedState(
             self.sample_domain_start_state(),
-            np.random.choice(self._models).copy()
+            copy.deepcopy(np.random.choice(self._models))
         )
 
     def simulation_step(

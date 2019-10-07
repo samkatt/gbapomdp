@@ -288,7 +288,6 @@ def resample(belief: WeightedFilter) -> WeightedFilter:
     next_belief = WeightedFilter()
 
     for _ in range(belief.size):
-        # TODO: deep copy
-        next_belief.add_particle(belief.sample())
+        next_belief.add_particle(copy.deepcopy(belief.sample()))
 
     return next_belief
