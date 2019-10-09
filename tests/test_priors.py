@@ -38,8 +38,33 @@ class TestTigerPrior(unittest.TestCase):
         self.assertTrue(0 <= obs_probs[1] <= 1)
 
     def test_num_total_counts(self) -> None:
-        # FIXME: NYI
-        self.assertFalse(True)
+        """ tests the parameter # of total counts
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        # randomly pick encoding
+        if random.choice([True, False]):
+            encoding = EncodeType.DEFAULT
+        else:
+            encoding = EncodeType.ONE_HOT
+
+        tiger = TigerPrior(10000000, encoding).sample()
+        assert isinstance(tiger, Tiger)
+
+        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        self.assertTrue(.59 <= obs_probs[0] <= .61)
+        self.assertTrue(.59 <= obs_probs[1] <= .61)
+
+        tiger = TigerPrior(1, encoding).sample()
+        assert isinstance(tiger, Tiger)
+
+        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        self.assertFalse(.59 <= obs_probs[0] <= .61)
+        self.assertFalse(.59 <= obs_probs[1] <= .61)
 
 
 class TestGridWorldPrior(unittest.TestCase):

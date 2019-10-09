@@ -54,8 +54,8 @@ class TigerPrior(Prior):
 
         """
         sampled_observation_probs = [
-            dirichlet([6 * self._total_counts, 4 * self._total_counts])[0],
-            dirichlet([6 * self._total_counts, 4 * self._total_counts])[0]
+            dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0],
+            dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0]
         ]
 
         return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
