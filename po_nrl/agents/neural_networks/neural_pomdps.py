@@ -38,6 +38,7 @@ class DynamicsModel():
             obs_space: DiscreteSpace,
             network_size: int,
             learning_rate: float,
+            batch_size: int,
             dropout_rate: float):
         """ Creates a dynamic model
 
@@ -47,8 +48,8 @@ class DynamicsModel():
              obs_space: (`po_nrl.misc.DiscreteSpace`):
              network_size: (`int`): number of nodes in hidden layers
              learning_rate: (`float`): learning rate of the optimizer
+             batch_size: (`int`): number of interactions to **remember** and update with
              dropout_rate: (`float`): dropout rate of the layers
-             name: (`str`): name of the network
 
         """
 
@@ -56,7 +57,7 @@ class DynamicsModel():
         self.action_space = action_space
         self.obs_space = obs_space
 
-        self.experiences: Deque[Interaction] = deque([], 500)
+        self.experiences: Deque[Interaction] = deque([], batch_size)
 
         self.net_t = Net(
             input_size=self.state_space.ndim + self.action_space.n,
