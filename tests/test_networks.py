@@ -34,6 +34,7 @@ class TestDynamicModel(unittest.TestCase):
             obs_space=DiscreteSpace([1]),
             network_size=5,
             learning_rate=.01,
+            batch_size=0,
             dropout_rate=0.5
         )
 
@@ -57,6 +58,7 @@ class TestDynamicModel(unittest.TestCase):
             obs_space=DiscreteSpace([2]),
             network_size=5,
             learning_rate=.01,
+            batch_size=0,
             dropout_rate=0.5
         )
         copied_model = copy.deepcopy(test_model)
