@@ -27,19 +27,21 @@ class TigerPrior(Prior):
     """ standard prior over the tiger domain
 
     The transition model is known, however the probability of observing the
-    tiger correctly is not. Here we assume a Dir(6,4) belief over this
+    tiger correctly is not. Here we assume a Dir(.6 * total_counts ,.4 * total_counts) belief over this
     distribution.
 
     """
 
-    def __init__(self, encoding: EncodeType):
+    def __init__(self, num_total_counts: float, encoding: EncodeType):
         """ initiate the prior, will make observation one-hot encoded
 
         Args:
+             num_total_counts: (`float`): number of total counts of Dir prior
              encoding: (`po_nrl.environments.EncodeType`):
 
         """
 
+        self._total_counts = num_total_counts
         self._encoding = encoding
 
     def sample(self) -> Simulator:
@@ -51,7 +53,10 @@ class TigerPrior(Prior):
         RETURNS (`po_nrl.environments.Simulator`):
 
         """
-        sampled_observation_probs = [dirichlet([12, 8])[0], dirichlet([12, 8])[0]]
+        sampled_observation_probs = [
+            dirichlet([6 * self._total_counts, 4 * self._total_counts])[0],
+            dirichlet([6 * self._total_counts, 4 * self._total_counts])[0]
+        ]
 
         return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
 

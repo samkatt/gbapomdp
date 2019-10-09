@@ -46,12 +46,14 @@ def create_environment(
 def create_prior(
         domain_name: str,
         domain_size: int,
+        prior_param: float,
         encoding: EncodeType) -> Prior:
     """ create_prior
 
     Args:
          domain_name: (`str`): currently only accepting tiger
-         _domain_size: (`int`): unused atm
+         domain_size: (`int`): size of domain
+         prior_param: (`float`): some parameter to help set the prior (domain depenedent)
          encoding: (`EncodeType`): what observation encoding to use
 
     RETURNS (`po_nrl.domains.priors.Prior`):
@@ -59,7 +61,7 @@ def create_prior(
     """
 
     if domain_name == "tiger":
-        return TigerPrior(encoding)
+        return TigerPrior(prior_param, encoding)
     if domain_name == "gridworld":
         return GridWorldPrior(domain_size, encoding)
     if domain_name == 'collision_avoidance':
