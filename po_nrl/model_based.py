@@ -203,6 +203,13 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--prior_param",
+        type=float,
+        default=10,
+        help='currently only implemented for tiger: number of the total counts'
+    )
+
+    parser.add_argument(
         "--offline_data_sampler",
         choices=['uniform', 'random_policy'],
         default='uniform',
@@ -320,7 +327,7 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
             return env
     elif conf.train_offline == 'on_prior':
         sim_sampler \
-            = create_prior(conf.domain, conf.domain_size, EncodeType.DEFAULT).sample
+            = create_prior(conf.domain, conf.domain_size, conf.prior_param, EncodeType.DEFAULT).sample
 
     def train_method(net: DynamicsModel):
         sim = sim_sampler()

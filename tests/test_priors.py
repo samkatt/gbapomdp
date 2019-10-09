@@ -16,10 +16,10 @@ class TestTigerPrior(unittest.TestCase):
     def test_encoding(self) -> None:
         """ tests the sample method encoding is correct """
 
-        one_hot_prior = TigerPrior(EncodeType.ONE_HOT)
+        one_hot_prior = TigerPrior(10, EncodeType.ONE_HOT)
         self.assertEqual(one_hot_prior.sample().observation_space.ndim, 2)
 
-        default_prior = TigerPrior(EncodeType.DEFAULT)
+        default_prior = TigerPrior(10, EncodeType.DEFAULT)
         self.assertEqual(default_prior.sample().observation_space.ndim, 1)
 
     def test_observation_prob(self) -> None:
@@ -30,12 +30,41 @@ class TestTigerPrior(unittest.TestCase):
         else:
             encoding = EncodeType.ONE_HOT
 
-        tiger = TigerPrior(encoding).sample()
+        tiger = TigerPrior(10, encoding).sample()
         assert isinstance(tiger, Tiger)
 
         obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
         self.assertTrue(0 <= obs_probs[0] <= 1)
         self.assertTrue(0 <= obs_probs[1] <= 1)
+
+    def test_num_total_counts(self) -> None:
+        """ tests the parameter # of total counts
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        # randomly pick encoding
+        if random.choice([True, False]):
+            encoding = EncodeType.DEFAULT
+        else:
+            encoding = EncodeType.ONE_HOT
+
+        tiger = TigerPrior(10000000, encoding).sample()
+        assert isinstance(tiger, Tiger)
+
+        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        self.assertTrue(.59 <= obs_probs[0] <= .61)
+        self.assertTrue(.59 <= obs_probs[1] <= .61)
+
+        tiger = TigerPrior(1, encoding).sample()
+        assert isinstance(tiger, Tiger)
+
+        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        self.assertFalse(.59 <= obs_probs[0] <= .61)
+        self.assertFalse(.59 <= obs_probs[1] <= .61)
 
 
 class TestGridWorldPrior(unittest.TestCase):
