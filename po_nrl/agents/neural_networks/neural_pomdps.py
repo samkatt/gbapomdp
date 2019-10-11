@@ -2,7 +2,7 @@
 
 from collections import deque, namedtuple
 from itertools import chain
-from typing import Tuple, Deque
+from typing import Tuple, Deque, List
 
 import numpy as np
 import torch
@@ -294,19 +294,20 @@ class DynamicsModel():
                     1).item() for i in range(self.obs_space.ndim)
             ], dtype=int)
 
-    def state_transition__prob(
+    def transition_model(
             self,
             state: np.ndarray,
-            action: int,
-            next_state: np.ndarray) -> float:
-        """ Returns the probability of the state transition
+            action: int) -> List[np.ndarray]:
+        """ Returns the transition model (next state) for state-action pair
+
+        element i of the returned list is the transition probability of next
+        state dimension i
 
         Args:
              state: (`np.ndarray`):
              action: (`int`):
-             next_state: (`np.ndarrray`):
 
-        RETURNS (`float`):
+        RETURNS (`List[np.ndarray]`): [#dim x dim_size] list
 
         """
 
@@ -317,27 +318,28 @@ class DynamicsModel():
         with torch.no_grad():
             logits = self.net_t(state_action_pair)
 
-            return np.prod([
+            return [
                 torch.distributions.utils.logits_to_probs(
                     logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
-                )[next_state[i]].item() for i in range(self.state_space.ndim)
-            ])
+                ).numpy() for i in range(self.state_space.ndim)
+            ]
 
-    def observation_prob(
+    def observation_model(
             self,
             state: np.ndarray,
             action: int,
-            next_state: np.ndarray,
-            observation: np.ndarray) -> float:
-        """ Returns the observation probability of a transition
+            next_state: np.ndarray) -> List[np.ndarray]:
+        """ Returns the observation model of a transition
+
+        element i of the returned list is the probability of observation
+        dimension i
 
         Args:
              state: (`np.ndarray`):
              action: (`int`):
              next_state: (`np.ndarray`):
-             observation: (`np.ndarray`):
 
-        RETURNS (`float`):
+        RETURNS (`List[np.ndarray]`): [#dim x dim_size] list
 
         """
 
@@ -348,11 +350,11 @@ class DynamicsModel():
         with torch.no_grad():
             logits = self.net_o(state_action_state)
 
-            return np.prod([
+            return [
                 torch.distributions.utils.logits_to_probs(
                     logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
-                )[observation[i]].item() for i in range(self.obs_space.ndim)
-            ])
+                ).numpy() for i in range(self.obs_space.ndim)
+            ]
 
     def reset(self) -> None:
         """ resets the networks """

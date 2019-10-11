@@ -210,9 +210,15 @@ def importance_sampling(
 
         next_domain_state = state.model.sample_state(state.domain_state, action)
 
-        weight = state.model.observation_prob(
-            state.domain_state, action, next_domain_state, observation
-        )
+        weight = np.prod([
+            distr[feature] for distr, feature in
+            zip(
+                state.model.observation_model(
+                    state.domain_state, action, next_domain_state
+                ),
+                observation
+            )
+        ])
 
         next_belief.add_weighted_particle(WeightedParticle(
             NeuralEnsemblePOMDP.AugmentedState(next_domain_state, state.model),
@@ -436,9 +442,15 @@ def augmented_importance_sampling(
             observation=observation
         )
 
-        weight = state.model.observation_prob(
-            state.domain_state, action, next_domain_state, observation
-        )
+        weight = np.prod([
+            distr[feature] for distr, feature in
+            zip(
+                state.model.observation_model(
+                    state.domain_state, action, next_domain_state
+                ),
+                observation
+            )
+        ])
 
         state.domain_state = next_domain_state
         next_belief.add_weighted_particle(WeightedParticle(
