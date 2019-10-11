@@ -4,7 +4,7 @@ from typing import Tuple, Set
 import abc
 import random
 
-from numpy.random import dirichlet
+import numpy as np
 
 from po_nrl.domains.collision_avoidance import CollisionAvoidance
 from po_nrl.domains.gridworld import GridWorld
@@ -41,6 +41,9 @@ class TigerPrior(Prior):
 
         """
 
+        if num_total_counts <= 0:
+            raise ValueError('Assume positive number of total counts')
+
         self._total_counts = num_total_counts
         self._encoding = encoding
 
@@ -54,8 +57,8 @@ class TigerPrior(Prior):
 
         """
         sampled_observation_probs = [
-            dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0],
-            dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0]
+            np.random.dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0],
+            np.random.dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0]
         ]
 
         return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
@@ -101,18 +104,26 @@ class CollisionAvoidancePrior(Prior):
 
     """
 
-    def __init__(self, size: int):
+    def __init__(self, size: int, num_total_counts: float):
         """ creates a `po_nrl.domains.collision_avoidance.CollisionAvoidance` prior of `size`
 
         Args:
              size: (`int`):
+             num_total_counts: (`float`):
         """
 
+        if num_total_counts <= 0:
+            raise ValueError('Assume positive number of total counts')
+
+        if size <= 0:
+            raise ValueError('Assume positive grid size')
+
         self._size = size
+        self._num_total_counts = num_total_counts
 
     def sample(self) -> Simulator:
         """  returns `po_nrl.domains.collision_avoidance.CollisionAvoidance` with random obstacle behavior """
 
-        sampled_behaviour = tuple(dirichlet([.5, .9, .5]))
+        sampled_behaviour = tuple(np.random.dirichlet(np.array([.05, .9, .05]) * self._num_total_counts))
 
         return CollisionAvoidance(self._size, sampled_behaviour)  # type: ignore

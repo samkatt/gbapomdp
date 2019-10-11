@@ -99,7 +99,7 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
     def test_default(self) -> None:
         """ tests the default prior """
 
-        sampled_domain = CollisionAvoidancePrior(3).sample()
+        sampled_domain = CollisionAvoidancePrior(3, 1).sample()
 
         assert isinstance(sampled_domain, CollisionAvoidance)
 
@@ -109,3 +109,27 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
         np.testing.assert_array_less(0, block_pol)
 
         self.assertAlmostEqual(np.sum(block_pol), 1)
+
+    def test_certain_prior(self) -> None:
+        """ very certain prior """
+        sampled_domain = CollisionAvoidancePrior(3, 10000000).sample()
+
+        assert isinstance(sampled_domain, CollisionAvoidance)
+
+        block_pol = sampled_domain._block_policy  # pylint: disable=protected-access
+
+        self.assertAlmostEqual(block_pol[0], .05, 3)
+        self.assertAlmostEqual(block_pol[1], .9, 3)
+        self.assertAlmostEqual(block_pol[2], .05, 3)
+
+    def test_uncertain_prior(self) -> None:
+        """ uncertain prior """
+        sampled_domain = CollisionAvoidancePrior(3, 10).sample()
+
+        assert isinstance(sampled_domain, CollisionAvoidance)
+
+        block_pol = sampled_domain._block_policy  # pylint: disable=protected-access
+
+        self.assertNotAlmostEqual(block_pol[0], .05, 6)
+        self.assertNotAlmostEqual(block_pol[1], .9, 6)
+        self.assertNotAlmostEqual(block_pol[2], .05, 6)

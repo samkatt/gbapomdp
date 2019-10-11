@@ -65,6 +65,6 @@ def create_prior(
     if domain_name == "gridworld":
         return GridWorldPrior(domain_size, encoding)
     if domain_name == 'collision_avoidance':
-        return CollisionAvoidancePrior(domain_size)
+        return CollisionAvoidancePrior(domain_size, prior_param)
 
     raise ValueError('no known priors for domain ' + domain_name)
