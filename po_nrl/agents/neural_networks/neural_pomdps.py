@@ -250,21 +250,11 @@ class DynamicsModel():
 
         """
 
-        state_action = torch.from_numpy(np.concatenate(
-            [state, self.action_space.one_hot(action)]
-        )).to(device()).float()
-
         # sample value for each dimension iteratively
-        with torch.no_grad():
-            logits = self.net_t(state_action)
-
-            return np.array([
-                torch.multinomial(
-                    torch.distributions.utils.logits_to_probs(
-                        logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
-                    ),
-                    1).item() for i in range(self.state_space.ndim)
-            ], dtype=int)
+        return np.array([
+            torch.multinomial(torch.from_numpy(probs), 1).item()
+            for probs in self.transition_model(state, action)
+        ], dtype=int)
 
     def sample_observation(self, state: np.ndarray, action: int, next_state: np.ndarray) -> np.ndarray:
         """ samples an observation given state - action - next state triple
@@ -278,21 +268,11 @@ class DynamicsModel():
 
         """
 
-        state_action_state = torch.from_numpy(np.concatenate(
-            [state, self.action_space.one_hot(action), next_state]
-        )).to(device()).float()
-
-        with torch.no_grad():
-            logits = self.net_o(state_action_state)
-
-            # sample value for each dimension iteratively
-            return np.array([
-                torch.multinomial(
-                    torch.distributions.utils.logits_to_probs(
-                        logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
-                    ),
-                    1).item() for i in range(self.obs_space.ndim)
-            ], dtype=int)
+        # sample value for each dimension iteratively
+        return np.array([
+            torch.multinomial(torch.from_numpy(probs), 1).item()
+            for probs in self.observation_model(state, action, next_state)
+        ], dtype=int)
 
     def transition_model(
             self,
