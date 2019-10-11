@@ -81,7 +81,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ `po_nrl.misc.DiscreteSpace`([size,size,size]) """
+        """ `po_nrl.misc.DiscreteSpace`([x, y, obs_y]) """
         return self._state_space
 
     @property

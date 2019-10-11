@@ -1,6 +1,7 @@
 """ provides analyzers for augmented beliefs """
 
 from typing import Union, Tuple, List
+from functools import partial
 import numpy as np
 
 from po_nrl.agents.planning.particle_filters import ParticleFilter
@@ -51,6 +52,40 @@ def tiger_model_analysis(
     ]
 
 
+def ca_transition_analysis(
+        belief: ParticleFilter,
+        size: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
+    """ provides analysis on belief over collision avoidance transition model
+
+    returns the probability of correctly predicting the (deterministic) x pos
+
+    Args:
+         size: (`int`):
+         belief: (`ParticleFilter`):
+
+    RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+    """
+
+    sample_size = 100
+    states = np.stack((
+        np.random.randint(1, size, sample_size),
+        np.random.randint(0, size, size=sample_size),
+        np.random.randint(0, size, size=sample_size)
+    ), axis=1)
+
+    actions = np.random.randint(0, 3, size=sample_size)
+
+    correct_x_prob = np.array([
+        belief.sample().model.transition_model(states[i], actions[i])[0][states[i][0] - 1]
+        for i in range(sample_size)
+    ], dtype=int)
+
+    return [
+        ('correct-x', correct_x_prob)
+    ]
+
+
 def count_unique_models(
         belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ returns number of unique models from 100 samples
@@ -89,11 +124,12 @@ def chain_analysis(to_chain: List[BeliefAnalysis]) -> BeliefAnalysis:
     return chain
 
 
-def analyzer_factory(domain: str) -> BeliefAnalysis:
+def analyzer_factory(domain: str, domain_size: int) -> BeliefAnalysis:
     """ factory for belief analysers
 
     Args:
          domain: (`str`):
+         domain_size: (`int`):
 
     RETURNS(`BeliefAnalysis`):
 
@@ -101,6 +137,11 @@ def analyzer_factory(domain: str) -> BeliefAnalysis:
 
     if domain == 'tiger':
         return chain_analysis([tiger_model_analysis, count_unique_models])
+    if domain == 'collision_avoidance':
+        return chain_analysis([
+            partial(ca_transition_analysis, size=domain_size),
+            count_unique_models
+        ])
 
     # default analysis
     return count_unique_models

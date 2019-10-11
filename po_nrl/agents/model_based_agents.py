@@ -117,7 +117,7 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
     assert conf.belief in ["rejection_sampling", "importance_sampling"], \
         f"belief {conf.belief} not legal"
 
-    analyser = analyzer_factory(conf.domain)
+    analyser = analyzer_factory(conf.domain, conf.domain_size)
 
     belief_update = belief_update_factory(
         conf.belief, conf.perturb_stdev, conf.backprop, conf.replay_update, sim
