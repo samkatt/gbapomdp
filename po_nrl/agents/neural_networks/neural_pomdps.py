@@ -239,12 +239,13 @@ class DynamicsModel():
             Interaction(state, action, next_state, observation)
         )
 
-    def sample_state(self, state: np.ndarray, action: int) -> np.ndarray:
+    def sample_state(self, state: np.ndarray, action: int, num: int = 1) -> np.ndarray:
         """ samples next state given current and action
 
         Args:
              state: (`np.ndarray`): current state
              action: (`int`): taken action
+             num: (`int`): number of samples
 
         RETURNS (`np.ndarray`): next state
 
@@ -252,17 +253,23 @@ class DynamicsModel():
 
         # sample value for each dimension iteratively
         return np.array([
-            torch.multinomial(torch.from_numpy(probs), 1).item()
+            torch.multinomial(torch.from_numpy(probs), num).item()
             for probs in self.transition_model(state, action)
         ], dtype=int)
 
-    def sample_observation(self, state: np.ndarray, action: int, next_state: np.ndarray) -> np.ndarray:
+    def sample_observation(
+            self,
+            state: np.ndarray,
+            action: int,
+            next_state: np.ndarray,
+            num: int = 1) -> np.ndarray:
         """ samples an observation given state - action - next state triple
 
         Args:
              state: (`np.ndarray`): state at t
              action: (`int`): taken action at t
              next_state: (`np.ndarray`): state t + 1
+             num: (`int`): number of samples
 
         RETURNS (`np.ndarray`): observation at t + 1
 
@@ -270,7 +277,7 @@ class DynamicsModel():
 
         # sample value for each dimension iteratively
         return np.array([
-            torch.multinomial(torch.from_numpy(probs), 1).item()
+            torch.multinomial(torch.from_numpy(probs), num).item()
             for probs in self.observation_model(state, action, next_state)
         ], dtype=int)
 
