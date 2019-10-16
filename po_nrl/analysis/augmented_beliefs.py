@@ -67,8 +67,9 @@ def ca_transition_analysis(
 
     """
 
+    # agent transition
     sample_size = 100
-    states = np.stack((
+    non_terminal_states = np.stack((
         np.random.randint(1, size, sample_size),
         np.random.randint(0, size, size=sample_size),
         np.random.randint(0, size, size=sample_size)
@@ -76,13 +77,31 @@ def ca_transition_analysis(
 
     actions = np.random.randint(0, 3, size=sample_size)
 
-    correct_x_prob = np.array([
-        belief.sample().model.transition_model(states[i], actions[i])[0][states[i][0] - 1]
+    correct_agent_x_prob = np.array([
+        belief.sample().model.transition_model(non_terminal_states[i], actions[i])[0][non_terminal_states[i][0] - 1]
         for i in range(sample_size)
-    ], dtype=int)
+    ])
+
+    non_terminal_obst_bottom_states = np.stack((
+        np.random.randint(1, size, sample_size),
+        np.random.randint(0, size, size=sample_size),
+        np.zeros(sample_size)
+    ), axis=1)
+
+    impossible_obst_transition_prob = np.concatenate([
+        belief.sample().model.transition_model(non_terminal_obst_bottom_states[i], actions[i])[2][2:]
+        for i in range(sample_size)
+    ])
+
+    obst_stay_prob = np.array([
+        belief.sample().model.transition_model(non_terminal_states[i], actions[i])[2][non_terminal_states[i][2]]
+        for i in range(sample_size)
+    ])
 
     return [
-        ('correct-x', correct_x_prob)
+        ('obstacle-stay-prob', obst_stay_prob),
+        ('impossible-obstacle-prob', impossible_obst_transition_prob),
+        ('agent-x-prob', correct_agent_x_prob)
     ]
 
 
