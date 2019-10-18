@@ -1,7 +1,8 @@
 """ contains algorithms and classes for maintaining beliefs """
 
-from typing import Callable, Optional, Union, Tuple, List
 from functools import partial
+from typing import Callable, Optional, Union, Tuple, List
+import copy
 
 from typing_extensions import Protocol
 import numpy as np
@@ -386,7 +387,7 @@ def augmented_rejection_sampling(
 
         if np.all(sample_observation == observation):
 
-            next_model = state.model.copy()
+            next_model = copy.deepcopy(state.model)
             update_model(
                 model=next_model,
                 state=state.domain_state,

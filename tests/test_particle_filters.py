@@ -38,7 +38,7 @@ class TestWeightedFilter(unittest.TestCase):
     def test_weighted_particle(self):
         """ tests the weighted particle """
 
-        self.assertRaises(ValueError, WeightedParticle, 2, -.1)
+        self.assertRaises(AssertionError, WeightedParticle, 2, -.1)
 
         particle = WeightedParticle(5, 1.6)
         self.assertEqual(particle.weight, 1.6)

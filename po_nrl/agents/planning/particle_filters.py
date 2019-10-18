@@ -120,12 +120,10 @@ class WeightedParticle():
              weight: (`float`): the weight/probability of the particle
 
         """
-
-        if weight < 0:
-            raise ValueError("weights should be positive")
+        assert weight > 0
 
         self._weight = weight
-        self._val = value
+        self.value = value
 
     @property
     def weight(self) -> float:
@@ -147,26 +145,6 @@ class WeightedParticle():
 
         assert weight > 0
         self._weight = weight
-
-    @property
-    def value(self) -> Any:
-        """ returns the value of the particle
-
-        RETURNS (`Any`):
-
-        """
-        return self._val
-
-    @value.setter
-    def value(self, value: Any):
-        """ sets value of particle
-
-        Args:
-             value: (`Any`):
-
-        """
-
-        self._val = value
 
 
 class WeightedFilter(ParticleFilter):
