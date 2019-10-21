@@ -271,3 +271,9 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         return observation[0]\
             + observation[1] * self.size\
             + observation[2] * self.size * self.size
+
+    def __repr__(self):
+        return (f' Collision avoidance of size {self.size} with '
+                f' obstacle probabilities {self._block_policy}')
+
+

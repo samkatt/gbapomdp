@@ -315,6 +315,8 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
 
     """
 
+    logger = POBNRLogger('Prior')
+
     # select sampling method
     if conf.offline_data_sampler == 'random_policy':
         sample_method = train_from_random_policy
@@ -331,6 +333,7 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
 
     def train_method(net: DynamicsModel):
         sim = sim_sampler()
+        logger.log(logger.LogLevel.V1, f'Training network on {sim}')
         sample_method(net, sim, conf.num_pretrain_epochs, conf.batch_size)
 
     return train_method
