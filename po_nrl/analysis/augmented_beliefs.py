@@ -59,6 +59,7 @@ def ca_transition_analysis(
 
     returns the probability of
         - (deterministic) x position
+        - (deterministic) y position
         - impossible obstacle transition
         - obstacle staying in position (mid or bottom)
 
@@ -80,8 +81,15 @@ def ca_transition_analysis(
         np.random.randint(0, size, size=sample_size)
     ), axis=1)
 
+    correct_next_y = np.clip(non_terminal_states[:, 1] + actions - 1, 0, size - 1)
+
     correct_agent_x_prob = np.array([
         belief.sample().model.transition_model(non_terminal_states[i], actions[i])[0][non_terminal_states[i][0] - 1]
+        for i in range(sample_size)
+    ])
+
+    correct_agent_y_prob = np.array([
+        belief.sample().model.transition_model(non_terminal_states[i], actions[i])[1][correct_next_y[i]]
         for i in range(sample_size)
     ])
 
@@ -125,7 +133,8 @@ def ca_transition_analysis(
         ('obstacle-stay-mid-prob', obst_stay_mid_prob),
         ('obstacle-stay-bottom-prob', obs_stay_bottom_prob),
         ('impossible-obstacle-transition-prob', impossible_obst_transition_prob),
-        ('agent-x-transition-prob', correct_agent_x_prob)
+        ('agent-x-transition-prob', correct_agent_x_prob),
+        ('agent-y-transition-prob', correct_agent_y_prob)
     ]
 
 
@@ -153,11 +162,12 @@ def ca_observation_analysis(
 
     non_terminal_x = np.random.randint(1, size, sample_size)
     y_position = np.random.randint(0, size, size=sample_size)
+    next_y_position = np.clip(y_position + actions - 1, 0, size - 1)
 
     obs = np.random.randint(0, size, size=sample_size)
 
     non_terminal_states = np.stack((non_terminal_x, y_position, obs), axis=1)
-    next_states = np.stack((non_terminal_x - 1, y_position, obs), axis=1)
+    next_states = np.stack((non_terminal_x - 1, next_y_position, obs), axis=1)
 
     correct_x_pos_prob = np.array([
         belief.sample().model.observation_model(non_terminal_states[i], actions[i], next_states[i])[0][next_states[i][0]]
@@ -171,7 +181,7 @@ def ca_observation_analysis(
 
     obs = np.zeros(sample_size)
     non_terminal_states = np.stack((non_terminal_x, y_position, obs), axis=1)
-    next_states = np.stack((non_terminal_x - 1, y_position, obs), axis=1)
+    next_states = np.stack((non_terminal_x - 1, next_y_position, obs), axis=1)
 
     correct_bottom_obstacle_obs_prob = np.array([
         belief.sample().model.observation_model(
@@ -183,7 +193,7 @@ def ca_observation_analysis(
 
     obs += mid
     non_terminal_states = np.stack((non_terminal_x, y_position, obs), axis=1)
-    next_states = np.stack((non_terminal_x - 1, y_position, obs), axis=1)
+    next_states = np.stack((non_terminal_x - 1, next_y_position, obs), axis=1)
 
     correct_mid_obstacle_obs_prob = np.array([
         belief.sample().model.observation_model(
