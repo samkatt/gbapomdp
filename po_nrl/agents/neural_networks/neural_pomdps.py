@@ -165,6 +165,8 @@ class DynamicsModel():
 
         """
 
+        self.train() 
+
         actions = [self.action_space.one_hot(a) for a in actions]
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
@@ -202,6 +204,8 @@ class DynamicsModel():
             log_tensorboard(f'transition_loss/{self}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
+
+        self.eval()
 
     def self_learn(self) -> None:
         """ performs a batch update on stored data
