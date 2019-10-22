@@ -8,7 +8,7 @@ from po_nrl.agents.model_based_agents import create_learning_agent
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import create_environment, EncodeType, create_prior
 from po_nrl.domains.learned_environments import NeuralEnsemblePOMDP
-from po_nrl.domains.learned_environments import train_from_random_policy, train_from_uniform_steps
+from po_nrl.domains.learned_environments import train_from_uniform_steps
 from po_nrl.environments import Simulator
 from po_nrl.episode import run_episode
 from po_nrl.misc import POBNRLogger, set_random_seed
@@ -210,13 +210,6 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
-        "--offline_data_sampler",
-        choices=['uniform', 'random_policy'],
-        default='uniform',
-        help='how to sample trajectories for offline dynamics learning'
-    )
-
-    parser.add_argument(
         "--learning_rate", "--alpha",
         default=1e-4,
         type=float,
@@ -317,12 +310,6 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
 
     logger = POBNRLogger('Prior')
 
-    # select sampling method
-    if conf.offline_data_sampler == 'random_policy':
-        sample_method = train_from_random_policy
-    elif conf.offline_data_sampler == 'uniform':
-        sample_method = train_from_uniform_steps
-
     # select train_on_true versus train_on_prior
     if conf.train_offline == 'on_true':
         def sim_sampler() -> Simulator:
@@ -334,6 +321,6 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
     def train_method(net: DynamicsModel):
         sim = sim_sampler()
         logger.log(logger.LogLevel.V1, f'Training network on {sim}')
-        sample_method(net, sim, conf.num_pretrain_epochs, conf.batch_size)
+        train_from_uniform_steps(net, sim, conf.num_pretrain_epochs, conf.batch_size)
 
     return train_method

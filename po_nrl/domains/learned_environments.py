@@ -1,48 +1,14 @@
 """ domains either learned or constructed from other domains """
 
-from typing import Callable
+from typing import Callable, Tuple
 import copy
 import numpy as np
 
 from po_nrl.agents.neural_networks import ReplayBuffer
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
-from po_nrl.environments import ActionSpace
+from po_nrl.environments import ActionSpace, TerminalState
 from po_nrl.environments import Simulator, SimulationResult
 from po_nrl.misc import Space, DiscreteSpace, POBNRLogger
-
-
-def train_from_random_policy(
-        model: DynamicsModel,
-        sim: Simulator,
-        num_epochs: int,
-        batch_size: int) -> None:
-    """ trains a model with data obtained from the random policy
-
-    Generates a replay buffer and performs updates by sampling from the replay
-    buffer
-
-    Args:
-         model: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`):
-         sim: (`po_nrl.environments.Simulator`):
-         num_epochs: (`int`): number of batch updates
-         batch_size: (`int`): size of a batch update
-
-    RETURNS (`None`):
-
-    """
-
-    replay_buffer = _replay_buffer_from_random_policy(sim)
-
-    for _ in range(num_epochs):
-
-        batch = replay_buffer.sample(batch_size=batch_size)
-
-        states = np.array([seq[0][0] for seq in batch])
-        actions = np.array([seq[0][1] for seq in batch])
-        new_states = np.array([seq[0][2] for seq in batch])
-        observations = np.array([seq[0][3] for seq in batch])
-
-        model.batch_update(states, actions, new_states, observations)
 
 
 def train_from_uniform_steps(
@@ -67,17 +33,24 @@ def train_from_uniform_steps(
 
     """
 
+    def sample_transition() -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
+        """ generates for (state, action, next_state, observation) transitions """
+
+        while True:
+            try:
+                state = sim.state_space.sample()
+                action = sim.action_space.sample()
+
+                next_state, observation = sim.simulation_step(state, action)
+
+                return state, action, next_state, observation
+
+            except TerminalState:
+                continue
+
     for _ in range(num_epochs):
-
-        states = np.array([sim.state_space.sample() for _ in range(batch_size)])
-        actions = np.array([sim.action_space.sample() for _ in range(batch_size)])
-
-        transitions = [sim.simulation_step(state, action) for state, action in zip(states, actions)]
-
-        new_states = np.array([transition.state for transition in transitions])
-        observations = np.array([transition.observation for transition in transitions])
-
-        model.batch_update(states, actions, new_states, observations)
+        states, actions, new_states, observations = zip(*[sample_transition() for _ in range(batch_size)])
+        model.batch_update(np.array(states), np.array(actions), np.array(new_states), np.array(observations))
 
 
 class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
@@ -260,40 +233,3 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             # after training models we use this low learning rate
             # for online updates
             model.set_learning_rate(.001)
-
-
-def _replay_buffer_from_random_policy(domain: Simulator) -> ReplayBuffer:
-    """ Fills up a replay buffer of (s,a,s',o) interactions
-
-    Args:
-         domain: (`po_nrl.environments.Simulator`): a simulator to generate interactions
-
-    RETURNS (`po_nrl.agents.neural_networks.misc.ReplayBuffer`):
-
-    """
-
-    replay_buffer = ReplayBuffer()
-
-    for _ in range(replay_buffer.capacity):
-
-        terminal = False
-        state = domain.sample_start_state()
-        while not terminal:
-
-            action = domain.action_space.sample()
-
-            step = domain.simulation_step(state, action)
-            terminal = domain.terminal(state, action, step.state)
-
-            replay_buffer.store(
-                (state.copy(), action, step.state.copy(), step.observation),
-                terminal
-            )
-
-            state = step.state
-
-    assert replay_buffer.size == replay_buffer.capacity, \
-        'learning should have filled up replay_buffer, ' \
-        f' instead filled {replay_buffer.size} / replay_buffer.capacity..'
-
-    return replay_buffer

@@ -4,7 +4,7 @@ from typing import Tuple, Optional
 import numpy as np
 
 from po_nrl.environments import Environment, EnvironmentInteraction, ActionSpace
-from po_nrl.environments import Simulator, SimulationResult
+from po_nrl.environments import Simulator, SimulationResult, TerminalState
 from po_nrl.misc import DiscreteSpace, POBNRLogger
 
 
@@ -152,7 +152,10 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         """
         assert self.action_space.contains(action), f'action {action} not in space'
         assert self.state_space.contains(state), f'state {state} not in space'
-        assert state[0] > 0, f'state {state} is terminal because x = 0'
+
+        if not state[0] > 0:
+            raise TerminalState(f'state {state} is terminal')
+
 
         new_state = state.copy()
 

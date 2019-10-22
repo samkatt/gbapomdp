@@ -6,7 +6,7 @@ import random
 
 import numpy as np
 
-from po_nrl.environments import EncodeType
+from po_nrl.environments import EncodeType, TerminalState
 from po_nrl.domains import gridworld, tiger, collision_avoidance, chain_domain
 
 
@@ -465,6 +465,9 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertEqual(env.state[1], 5)
         self.assertTrue(step.terminal)
 
+        # make sure terminal state raises the corrct error
+        self.assertRaises(TerminalState, env.step, 0)
+
         should_be_rew = -1000 if env.state[2] == 5 else 0
         self.assertEqual(step.reward, should_be_rew)
 
@@ -636,6 +639,8 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(
             step.observation, [0, 0, 0, 0, 0, 0, 1, 0, 0]
         )
+
+        self.assertRaises(TerminalState, domain.step, 0)
 
         domain.reset()
 

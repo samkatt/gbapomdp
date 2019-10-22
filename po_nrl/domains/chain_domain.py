@@ -3,7 +3,7 @@
 import numpy as np
 
 from po_nrl.environments import Environment, EnvironmentInteraction, ActionSpace
-from po_nrl.environments import Simulator, SimulationResult, EncodeType
+from po_nrl.environments import Simulator, SimulationResult, EncodeType, TerminalState
 from po_nrl.misc import DiscreteSpace, POBNRLogger
 
 
@@ -145,6 +145,8 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         the state and the environment stops when the end is reached (on either
         x-axis)
 
+        Raises `po_nrl.environments.TerminalState` if x value of `state` is 0
+
         Args:
              state: (`np.ndarray`): the state [x,y]
              action: (`int`): 0 is action A, 1 = action B
@@ -155,7 +157,9 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         assert self.action_space.contains(action), f"expecting action A or B, not {action}"
         assert self.state_space.contains(state), f"state {state} not in space"
-        assert state[1] > 0, f"state {state} is terminal because y == 0"
+
+        if state[1] == 0 or self.size - state[0] <= state[1]:
+            raise TerminalState(f'state {state} is terminal')
 
         new_state = state.copy()
 

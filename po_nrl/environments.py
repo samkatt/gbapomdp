@@ -142,6 +142,11 @@ class EnvironmentInteraction(
     __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
+class TerminalState(Exception):
+    """ raised when trying to step with a terminal state """
+    pass
+
+
 class Environment(abc.ABC):
     """ interface to all domains """
 
@@ -152,6 +157,8 @@ class Environment(abc.ABC):
     @abc.abstractmethod
     def step(self, action: int) -> EnvironmentInteraction:
         """ update state as a result of action
+
+        May raise `TerminalState`
 
         Args:
              action: (`int`): agent's taken action
@@ -232,6 +239,8 @@ class Simulator(abc.ABC):
     @abc.abstractmethod
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """ generates a transition
+
+        May raise `TerminalState`
 
         Args:
              state: (`np.ndarray`): some state

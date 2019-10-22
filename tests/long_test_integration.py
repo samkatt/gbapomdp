@@ -147,14 +147,12 @@ class TestModelBasedRL(unittest.TestCase):
             '-D=collision_avoidance',
             '--train_offline=on_true',
             '--domain_size=3',
-            '--offline_data_sampler=random_policy'
         ])
 
         self.run_experiment([
             '-D=chain',
             '--domain_size=4',
             '--train_offline=on_true',
-            '--offline_data_sampler=random_policy'
         ])
 
     def test_train_on_prior(self):
@@ -164,7 +162,6 @@ class TestModelBasedRL(unittest.TestCase):
             '-D=collision_avoidance',
             '--domain_size=3',
             '--train_offline=on_prior',
-            '--offline_data_sampler=random_policy',
             '-B=importance_sampling'
         ])
 
