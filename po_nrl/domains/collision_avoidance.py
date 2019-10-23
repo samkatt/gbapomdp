@@ -156,7 +156,6 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         if not state[0] > 0:
             raise TerminalState(f'state {state} is terminal')
 
-
         new_state = state.copy()
 
         # move agent

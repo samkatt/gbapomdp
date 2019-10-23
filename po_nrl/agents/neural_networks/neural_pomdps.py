@@ -165,7 +165,7 @@ class DynamicsModel():
 
         """
 
-        self.train() 
+        self.train()
 
         actions = [self.action_space.one_hot(a) for a in actions]
         next_states = torch.from_numpy(next_states).to(device())

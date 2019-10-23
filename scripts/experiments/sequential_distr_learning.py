@@ -46,6 +46,7 @@ def main() -> None:
 
     for episode in range(conf.episodes):
 
+        net.train()
         logits = net(torch.tensor([random.randint(0, 1)]).float())  # input 0 or 1
         target = torch.tensor([int(random.random() < .85)])  # output 1 with 85%
 
@@ -54,6 +55,7 @@ def main() -> None:
         loss.backward()
         optimizer.step()
 
+        net.eval()
         for i in [0, 1]:
             with torch.no_grad():
                 prob_distr = np.array([

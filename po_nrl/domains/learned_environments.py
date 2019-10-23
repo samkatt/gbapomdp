@@ -4,7 +4,6 @@ from typing import Callable, Tuple
 import copy
 import numpy as np
 
-from po_nrl.agents.neural_networks import ReplayBuffer
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.environments import ActionSpace, TerminalState
 from po_nrl.environments import Simulator, SimulationResult

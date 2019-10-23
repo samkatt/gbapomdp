@@ -144,7 +144,6 @@ class EnvironmentInteraction(
 
 class TerminalState(Exception):
     """ raised when trying to step with a terminal state """
-    pass
 
 
 class Environment(abc.ABC):
