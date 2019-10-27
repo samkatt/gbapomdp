@@ -171,16 +171,11 @@ class DynamicsModel():
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
 
+        # transition model
         state_action_pairs = torch.from_numpy(np.concatenate(
             [states, actions], axis=1
         )).to(device()).float()
-
-        state_action_state_triplets = torch.from_numpy(np.concatenate(
-            [states, actions, next_states], axis=1
-        )).to(device()).float()
-
         next_state_logits = self.net_t(state_action_pairs)
-        observation_logits = self.net_o(state_action_state_triplets)
 
         state_loss = torch.stack([
             self.criterion(
@@ -189,14 +184,21 @@ class DynamicsModel():
             )
             for i in range(self.state_space.ndim)]).sum()
 
-        observation_loss = torch.stack([
-            self.criterion(
-                observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
-                obs[:, i])
-            for i in range(self.obs_space.ndim)]).sum()
+        # # observation model
+        # state_action_state_triplets = torch.from_numpy(np.concatenate(
+            # [states, actions, next_states], axis=1
+        # )).to(device()).float()
+        # observation_logits = self.net_o(state_action_state_triplets)
+
+        # observation_loss = torch.stack([
+            # self.criterion(
+                # observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
+                # obs[:, i])
+            # for i in range(self.obs_space.ndim)]).sum()
 
         self.optimizer.zero_grad()
-        (state_loss + observation_loss).backward()
+        state_loss.backward()
+        # (state_loss + observation_loss).backward()
         self.optimizer.step()
 
         if tensorboard_logging():
