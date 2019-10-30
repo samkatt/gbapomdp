@@ -202,7 +202,7 @@ class DynamicsModel():
         self.optimizer.step()
 
         if tensorboard_logging():
-            log_tensorboard(f'observation_loss/{self}', observation_loss.item(), self.num_batches)
+            # log_tensorboard(f'observation_loss/{self}', observation_loss.item(), self.num_batches)
             log_tensorboard(f'transition_loss/{self}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
