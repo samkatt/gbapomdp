@@ -290,6 +290,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         help='whether to do updates from the replay buffer during belief updates'
     )
 
+    parser.add_argument(
+        '--freeze_model',
+        type=str,
+        help='What parts of the models to freeze after prior learning',
+        choices=['', 'T', 'O']
+    )
+
     return parser.parse_args(args)  # if args is "", will read cmdline
 
 

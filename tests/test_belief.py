@@ -3,6 +3,7 @@
 from functools import partial
 import unittest
 
+from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.agents.planning import belief
 from po_nrl.domains import tiger
 from po_nrl.environments import EncodeType
@@ -17,66 +18,93 @@ class TestFactory(unittest.TestCase):
         """ tests basic stuff on the first (belief) parameter """
 
         # belief should be something legit
-        self.assertRaises(AssertionError, belief.belief_update_factory, 'test', 0, 0, 0, 0)
+        self.assertRaises(AssertionError, belief.belief_update_factory, 'test', 0, 0, 0, 0, "")
 
         # test returns rejection or importance sampling correctly
-        self.assertEqual(belief.belief_update_factory('importance_sampling', 0, False, False, tiger.Tiger(EncodeType.DEFAULT)), belief.importance_sampling)
+        self.assertEqual(belief.belief_update_factory('importance_sampling', 0, False, False, tiger.Tiger(EncodeType.DEFAULT), ""), belief.importance_sampling)
 
         self.assertEqual(
             belief.belief_update_factory(  # type: ignore
-                'rejection_sampling', 0, False, False, tiger.Tiger(EncodeType.DEFAULT)
+                'rejection_sampling', 0, False, False, tiger.Tiger(EncodeType.DEFAULT), ""
             ).func,
             belief.rejection_sampling
         )
 
         # backprop and rs
         bp_rs = belief.belief_update_factory(
-            'rejection_sampling', 0, True, False, tiger.Tiger(EncodeType.DEFAULT)
+            'rejection_sampling', 0, True, False, tiger.Tiger(EncodeType.DEFAULT), ""
         )
 
         self.assertEqual(
             bp_rs.func,  # type: ignore
             belief.augmented_rejection_sampling
         )
-        self.assertListEqual(
-            bp_rs.keywords['update_model'].model_updates,  # type: ignore
-            [belief.backprop_update]
+
+        self.assertEqual(len(bp_rs.keywords['update_model'].model_updates), 1)  # type: ignore
+
+        self.assertEqual(
+            bp_rs.keywords['update_model'].model_updates[0].args,  # type: ignore
+            partial(belief.backprop_update, freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_NONE).args
+        )
+        self.assertEqual(
+            bp_rs.keywords['update_model'].model_updates[0].func,  # type: ignore
+            partial(belief.backprop_update, freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_NONE).func
         )
 
         # perturb and importance
-        bp_rs = belief.belief_update_factory(
-            'importance_sampling', 0.1, False, False, tiger.Tiger(EncodeType.DEFAULT)
+        bp_is = belief.belief_update_factory(
+            'importance_sampling', 0.1, False, False, tiger.Tiger(EncodeType.DEFAULT), ""
         )
 
         self.assertEqual(
-            bp_rs.func,  # type: ignore
+            bp_is.func,  # type: ignore
             belief.augmented_importance_sampling
         )
-        self.assertEqual(len(bp_rs.keywords['update_model'].model_updates), 1)  # type: ignore
+        self.assertEqual(len(bp_is.keywords['update_model'].model_updates), 1)  # type: ignore
         self.assertEqual(
-            bp_rs.keywords['update_model'].model_updates[0].func,  # type: ignore
-            partial(belief.perturb_parameters, stdev=.1).func
+            bp_is.keywords['update_model'].model_updates[0].func,  # type: ignore
+            partial(
+                belief.perturb_parameters,
+                stdev=.1,
+                freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_NONE
+            ).func
         )
         self.assertEqual(
-            bp_rs.keywords['update_model'].model_updates[0].args,  # type: ignore
-            partial(belief.perturb_parameters, stdev=.1).args
+            bp_is.keywords['update_model'].model_updates[0].args,  # type: ignore
+            partial(
+                belief.perturb_parameters,
+                stdev=.1,
+                freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_NONE
+            ).args
         )
         self.assertEqual(
-            bp_rs.keywords['update_model'].model_updates[0].keywords,  # type: ignore
-            partial(belief.perturb_parameters, stdev=.1).keywords
+            bp_is.keywords['update_model'].model_updates[0].keywords,  # type: ignore
+            partial(
+                belief.perturb_parameters,
+                stdev=.1,
+                freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_NONE
+            ).keywords
         )
 
         # perturb and backprop
         is_rs_bp = belief.belief_update_factory(
-            'importance_sampling', .1, True, False, tiger.Tiger(EncodeType.DEFAULT)
+            'importance_sampling', .1, True, False, tiger.Tiger(EncodeType.DEFAULT), "T"
         )
 
         self.assertEqual(len(is_rs_bp.keywords['update_model'].model_updates), 2)  # type: ignore
         self.assertEqual(
-            is_rs_bp.keywords['update_model'].model_updates[0],  # type: ignore
-            belief.backprop_update
+            is_rs_bp.keywords['update_model'].model_updates[0].func,  # type: ignore
+            partial(belief.backprop_update, freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_T).func
+        )
+        self.assertEqual(
+            is_rs_bp.keywords['update_model'].model_updates[0].args,  # type: ignore
+            partial(belief.backprop_update, freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_T).args
         )
         self.assertEqual(
             is_rs_bp.keywords['update_model'].model_updates[1].func,  # type: ignore
-            partial(belief.perturb_parameters, stdev=.1).func
+            partial(belief.perturb_parameters, stdev=.1, freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_T).func
+        )
+        self.assertEqual(
+            is_rs_bp.keywords['update_model'].model_updates[1].args,  # type: ignore
+            partial(belief.perturb_parameters, stdev=.1, freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_T).args
         )

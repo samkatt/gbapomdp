@@ -1,6 +1,7 @@
 """ POMDP dynamics as neural networks """
 
 from collections import deque, namedtuple
+from enum import Enum, auto
 from itertools import chain
 from typing import Tuple, Deque, List
 
@@ -28,8 +29,14 @@ class Interaction(
     __slots__ = ()  # required to keep lightweight implementation of namedtuple
 
 
-class DynamicsModel():
+class DynamicsModel:
     """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
+
+    class FreezeModelSetting(Enum):
+        """ setting for training """
+        FREEZE_NONE = auto()
+        FREEZE_T = auto()
+        FREEZE_O = auto()
 
     def __init__(
             self,
@@ -154,7 +161,8 @@ class DynamicsModel():
             states: np.ndarray,
             actions: np.ndarray,
             next_states: np.ndarray,
-            obs: np.ndarray) -> None:
+            obs: np.ndarray,
+            conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE) -> None:
         """ performs a batch update (single gradient descent step)
 
         Args:
@@ -162,6 +170,7 @@ class DynamicsModel():
              actions: (`np.ndarray`): (batch_size,) array of actions
              next_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
              obs: (`np.ndarray`): (batch_size, obs_shape) array of observations
+             conf: (`FreezeModelSetting`): configurations for training
 
         """
 
@@ -172,54 +181,61 @@ class DynamicsModel():
         obs = torch.from_numpy(obs).to(device())
 
         # transition model
-        state_action_pairs = torch.from_numpy(np.concatenate(
-            [states, actions], axis=1
-        )).to(device()).float()
-        next_state_logits = self.net_t(state_action_pairs)
+        if conf == DynamicsModel.FreezeModelSetting.FREEZE_T:
+            state_loss = torch.zeros(1)
 
-        state_loss = torch.stack([
-            self.criterion(
-                next_state_logits[:, self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]],
-                next_states[:, i]
-            )
-            for i in range(self.state_space.ndim)]).sum()
+        else:
+            state_action_pairs = torch.from_numpy(np.concatenate(
+                [states, actions], axis=1
+            )).to(device()).float()
+            next_state_logits = self.net_t(state_action_pairs)
 
-        # # observation model
-        # state_action_state_triplets = torch.from_numpy(np.concatenate(
-            # [states, actions, next_states], axis=1
-        # )).to(device()).float()
-        # observation_logits = self.net_o(state_action_state_triplets)
+            state_loss = torch.stack([
+                self.criterion(
+                    next_state_logits[:, self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]],
+                    next_states[:, i]
+                )
+                for i in range(self.state_space.ndim)]).sum()
 
-        # observation_loss = torch.stack([
-            # self.criterion(
-                # observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
-                # obs[:, i])
-            # for i in range(self.obs_space.ndim)]).sum()
+        if conf == DynamicsModel.FreezeModelSetting.FREEZE_O:
+            observation_loss = torch.zeros(1)
+        else:
+            # observation model
+            state_action_state_triplets = torch.from_numpy(np.concatenate(
+                [states, actions, next_states], axis=1
+            )).to(device()).float()
+            observation_logits = self.net_o(state_action_state_triplets)
+
+            observation_loss = torch.stack([
+                self.criterion(
+                    observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
+                    obs[:, i])
+                for i in range(self.obs_space.ndim)]).sum()
 
         self.optimizer.zero_grad()
-        state_loss.backward()
-        # (state_loss + observation_loss).backward()
+        (state_loss + observation_loss).backward()
         self.optimizer.step()
 
         if tensorboard_logging():
-            # log_tensorboard(f'observation_loss/{self}', observation_loss.item(), self.num_batches)
+            log_tensorboard(f'observation_loss/{self}', observation_loss.item(), self.num_batches)
             log_tensorboard(f'transition_loss/{self}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
 
         self.eval()
 
-    def self_learn(self) -> None:
+    def self_learn(self, conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE) -> None:
         """ performs a batch update on stored data
 
         Args:
+             conf: (`FreezeModelSetting`): configurations for training
 
         RETURNS (`None`):
 
         """
         assert self.experiences, f'cannot self learn without data'
 
-        self.batch_update(*map(np.array, zip(*self.experiences)))
+        self.batch_update(*map(np.array, zip(*self.experiences)), conf=conf)  # type: ignore
 
     def add_transition(
             self,
@@ -361,16 +377,25 @@ class DynamicsModel():
             lr=self.learning_rate
         )
 
-    def perturb_parameters(self, stdev: float = .1) -> None:
+    def perturb_parameters(
+            self,
+            stdev: float = .1,
+            freeze_model_setting: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE) -> None:
         """ perturb parameters of model
 
         Args:
              stdev: (`float`): the standard deviation of the pertubation
+             freeze_model_setting: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`)
 
         RETURNS (`None`):
 
         """
 
         with torch.no_grad():
-            for param in chain(self.net_t.parameters(), self.net_o.parameters()):
-                param.set_(perturb(param, stdev))  # XXX: not sure if most natural way
+            if freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_T:
+                for param in self.net_t.parameters():
+                    param.set_(perturb(param, stdev))
+
+            if freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_O:
+                for param in self.net_o.parameters():
+                    param.set_(perturb(param, stdev))

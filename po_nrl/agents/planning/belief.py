@@ -256,7 +256,8 @@ def perturb_parameters(
         action: np.ndarray,  # pylint: disable=unused-argument
         next_state: np.ndarray,  # pylint: disable=unused-argument
         observation: np.ndarray,  # pylint: disable=unused-argument
-        stdev: float) -> None:
+        stdev: float,
+        freeze_model_setting: DynamicsModel.FreezeModelSetting) -> None:
     """ A type of belief update: applies gaussian noise to model parameters
 
     Args:
@@ -266,12 +267,13 @@ def perturb_parameters(
          ___: (`np.ndarray`): ignored
          _____: (`np.ndarray`): ignored
          stdev: (`float`): the standard deviation of the applied noise
+         freeze_model_setting: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`)
 
     RETURNS (`None`):
 
     """
 
-    model.perturb_parameters(stdev)
+    model.perturb_parameters(stdev, freeze_model_setting)
 
 
 def replay_buffer_update(
@@ -279,7 +281,8 @@ def replay_buffer_update(
         state: np.ndarray,
         action: np.ndarray,
         next_state: np.ndarray,
-        observation: np.ndarray) -> None:
+        observation: np.ndarray,
+        freeze_model_setting: DynamicsModel.FreezeModelSetting) -> None:
     """ will add transition to model and then invoke a `self learn` step
 
     Args:
@@ -288,13 +291,14 @@ def replay_buffer_update(
          action: (`np.ndarray`):
          next_state: (`np.ndarray`):
          observation: (`np.ndarray`):
+         freeze_model_setting: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`)
 
     RETURNS (`None`):
 
     """
 
     model.add_transition(state, action, next_state, observation)
-    model.self_learn()
+    model.self_learn(freeze_model_setting)
 
 
 def backprop_update(
@@ -302,7 +306,8 @@ def backprop_update(
         state: np.ndarray,
         action: np.ndarray,
         next_state: np.ndarray,
-        observation: np.ndarray) -> None:
+        observation: np.ndarray,
+        freeze_model_setting: DynamicsModel.FreezeModelSetting) -> None:
     """ A type of belief update: applies a simple backprop call to the model
 
     Args:
@@ -311,13 +316,14 @@ def backprop_update(
          action: (`np.ndarray`):
          next_state: (`np.ndarray`):
          observation: (`np.ndarray`):
+         freeze_model_setting: (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`)
 
     RETURNS (`None`):
 
     """
 
     # `batch_update` expects batch_size x ... size. [None] adds a dimension
-    model.batch_update(state[None], action[None], next_state[None], observation[None])
+    model.batch_update(state[None], action[None], next_state[None], observation[None], freeze_model_setting)
 
 
 class ModelUpdatesChain():
@@ -470,7 +476,8 @@ def belief_update_factory(
         perturb_stdev: float,
         backprop: bool,
         replay_update: bool,
-        sim: Simulator) -> BeliefUpdate:
+        sim: Simulator,
+        freeze_model_conf: str) -> BeliefUpdate:
     """ returns an importance sampling method depending on the configurations
 
     Args:
@@ -479,6 +486,7 @@ def belief_update_factory(
          backprop: (`bool`): whether to apply backprop during update
          replay_update: (`bool`): whether to apply self-learn from replay buffer during update
          sim: (`Simulator`):
+         freeze_model_conf: (`str`): the freeze model configuration
 
     RETURNS (`BeliefUpdate`):
 
@@ -500,13 +508,36 @@ def belief_update_factory(
     elif belief == 'rejection_sampling':
         filter_method = augmented_rejection_sampling
 
+    freeze_model_setting = get_model_freeze_setting(freeze_model_conf)
+
     # set model update method
     updates: List[ModelUpdate] = []
     if backprop:
-        updates.append(backprop_update)
+        updates.append(partial(backprop_update, freeze_model_setting=freeze_model_setting))
     if replay_update:
-        updates.append(replay_buffer_update)
+        updates.append(partial(replay_buffer_update, freeze_model_setting=freeze_model_setting))
     if perturb_stdev:
-        updates.append(partial(perturb_parameters, stdev=perturb_stdev))
+        updates.append(partial(perturb_parameters, stdev=perturb_stdev, freeze_model_setting=freeze_model_setting))
 
     return partial(filter_method, update_model=ModelUpdatesChain(updates))
+
+
+def get_model_freeze_setting(freeze_model: str) -> DynamicsModel.FreezeModelSetting:
+    """ returns the model freeze setting given configuration string
+
+    Args:
+         freeze_model: (`str`):
+
+    RETURNS ( `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`):
+
+    """
+    if not freeze_model:
+        return DynamicsModel.FreezeModelSetting.FREEZE_NONE
+
+    if freeze_model == "T":
+        return DynamicsModel.FreezeModelSetting.FREEZE_T
+
+    if freeze_model == "O":
+        return DynamicsModel.FreezeModelSetting.FREEZE_O
+
+    raise ValueError('Wrong value given to freeze model argument')
