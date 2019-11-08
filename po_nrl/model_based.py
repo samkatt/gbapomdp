@@ -182,6 +182,13 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--search_depth", "-d",
+        type=int,
+        default=0,
+        help="The max depth of the MCTS search tree, if not set will be horizon"
+    )
+
+    parser.add_argument(
         "--belief", "-B",
         help="type of belief update",
         choices=['rejection_sampling', 'importance_sampling'],
@@ -297,7 +304,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         choices=['', 'T', 'O']
     )
 
-    return parser.parse_args(args)  # if args is "", will read cmdline
+    parsed_args = parser.parse_args(args)
+
+    # post process
+    if not parsed_args.search_depth:
+        parsed_args.searched_depth = parsed_args.horizon
+
+    return parsed_args
 
 
 def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]:
