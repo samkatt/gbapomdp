@@ -8,14 +8,31 @@ from po_nrl.misc import DiscreteSpace, Space, POBNRLogger
 
 
 class RoadRacer(Environment, Simulator):
-    """ represents the domain `RoadRacer` """
+    """ represents the domain `RoadRacer`
+
+    In this domain the agent is a driver on a highway. Its task is to navigate
+    to the lanes to maximize the distance to the next car. The number of lanes,
+    their length, and the average speed of other cars is variable.
+
+    The agent can choose to either stay in lane, move up, or move down. The
+    observation and reward is the distance until the next car on the current
+    lane. If the agent attempts to move into another car, or off the road, then
+    it is penalized.
+
+    """
 
     GO_UP = 0
     NO_OP = 1
     GO_DOWN = 2
 
     def __init__(self, lane_length: int, lane_probs: np.ndarray):
-        """ """
+        """ Creates a domain with lanes of length `lane_length` with transition probability `lane_probs`
+
+        Args:
+             lane_length: (`int`):
+             lane_probs: (`np.ndarray`):
+
+        """
 
         assert len(lane_probs) % 2 == 1, 'assume odd number of lanes'
         assert (lane_probs > 0).all() and (lane_probs <= 1).all(), 'expect 0 > probs > 1'
@@ -104,19 +121,23 @@ class RoadRacer(Environment, Simulator):
         return RoadRacer.get_observation(self.state)
 
     def step(self, action: int) -> EnvironmentInteraction:
-        """ implements `po_nrl.environments.Environment.step` """
+        """ implements `po_nrl.environments.Environment.step`
+
+        action: 0 -> 'go up', 1 -> 'stay', 2 -> 'go down'
+
+        """
 
         step = self.simulation_step(self.state, action)
         reward = self.reward(self.state, action, step.state)
         terminal = self.terminal(self.state, action, step.state)
 
+        self.state = step.state
+
         if self.logger.log_is_on(POBNRLogger.LogLevel.V2):
             self.logger.log(
                 POBNRLogger.LogLevel.V2,
-                f"a={action}, o={step.observation}"
+                f"lane={self.current_lane}, a={action}, o={step.observation[0]}, r={reward}"
             )
-
-        self.state = step.state
 
         return EnvironmentInteraction(step.observation, reward, terminal)
 
@@ -136,7 +157,11 @@ class RoadRacer(Environment, Simulator):
         return self.states
 
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
-        """ implements `po_nrl.environments.Simulator.simulation_step` """
+        """ implements `po_nrl.environments.Simulator.simulation_step`
+
+        action: 0 -> 'go up', 1 -> 'stay', 2 -> 'go down'
+
+        """
 
         assert self.state_space.contains(state)
         assert self.action_space.contains(action)
@@ -157,7 +182,7 @@ class RoadRacer(Environment, Simulator):
         next_lane = min(max(0, cur_lane + action - 1), self.num_lanes - 1)
 
         if next_state[next_lane] != 0:
-            next_state[-1] = next_lane
+            next_state[self.agent_state_feature_index] = next_lane
 
         # cars re-appear at the start of the lane when finishing
         next_state = next_state % (self.lane_length - 1)
