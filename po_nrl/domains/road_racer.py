@@ -4,7 +4,7 @@ import numpy as np
 
 from po_nrl.environments import Environment, Simulator, ActionSpace
 from po_nrl.environments import EnvironmentInteraction, SimulationResult
-from po_nrl.misc import DiscreteSpace, Space
+from po_nrl.misc import DiscreteSpace, Space, POBNRLogger
 
 
 class RoadRacer(Environment, Simulator):
@@ -27,6 +27,8 @@ class RoadRacer(Environment, Simulator):
         self.actions = ActionSpace(3)
 
         self.states = DiscreteSpace([self.lane_length] * (self.num_lanes + 1))
+
+        self.logger = POBNRLogger('road racer')
 
     @property
     def num_lanes(self) -> int:
@@ -99,6 +101,12 @@ class RoadRacer(Environment, Simulator):
         reward = self.reward(self.state, action, step.state)
         terminal = self.terminal(self.state, action, step.state)
 
+        if self.logger.log_is_on(POBNRLogger.LogLevel.V2):
+            self.logger.log(
+                POBNRLogger.LogLevel.V2,
+                f"a={action}, o={step.observation}"
+            )
+
         self.state = step.state
 
         return EnvironmentInteraction(step.observation, reward, terminal)
@@ -137,7 +145,7 @@ class RoadRacer(Environment, Simulator):
         next_state = state - (lane_advances + [0])
 
         # move agent
-        next_lane = cur_lane + action - 1
+        next_lane = min(max(0, cur_lane + action - 1), self.num_lanes - 1)
 
         if next_state[next_lane] != 0:
             next_state[-1] = next_lane
