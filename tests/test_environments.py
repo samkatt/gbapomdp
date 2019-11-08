@@ -821,21 +821,27 @@ class TestRoadRacer(unittest.TestCase):
         """
 
         state = np.random.randint(
-            low=0,
-            high=np.random.randint(low=1, high=5),
+            low=1,
+            high=np.random.randint(low=2, high=5),
             size=np.random.randint(low=2, high=5)
         )
 
         state[-1] = 0
         self.assertEqual(road_racer.RoadRacer.get_current_lane(state), 0)
 
-        state[-1] = 10
-        self.assertEqual(road_racer.RoadRacer.get_current_lane(state), 10)
+        state[-1] = 3
+        self.assertEqual(road_racer.RoadRacer.get_current_lane(state), 3)
 
         state[-1] = -1
         self.assertRaises(AssertionError, road_racer.RoadRacer.get_current_lane, state)
 
-        raise NotImplementedError('test get_observation nyi')
+        dist = state[0]
+        state[-1] = 0
+        np.testing.assert_array_equal(self.random_env.get_observation(state), [dist])
+
+        dist = state[1]
+        state[-1] = 1
+        np.testing.assert_array_equal(self.random_env.get_observation(state), [dist])
 
     def test_reset(self) -> None:
         """ tests resetting the environment
@@ -870,7 +876,34 @@ class TestRoadRacer(unittest.TestCase):
 
         """
 
-        raise NotImplementedError('test reward nyi')
+        state = np.random.randint(
+            low=1,
+            high=self.length - 1,
+            size=self.num_lanes + 1
+        )
+
+        # put agent in first lane
+        state[-1] = 0
+
+        next_state = self.random_env.simulation_step(state, road_racer.RoadRacer.NO_OP).state
+
+        dist = next_state[0]
+
+        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.NO_OP, new_state=next_state), dist, f'{state} -> {next_state}')
+
+        # imagine agent tried to go up -> penalty of 1
+        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.GO_UP, new_state=next_state), dist - 1, f'{state} -> {next_state}')
+
+        # imagine agent went down
+        next_state[-1] = 1
+        dist = next_state[1]
+        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.GO_DOWN, new_state=next_state), dist, f'{state} -> {next_state}')
+
+        # imagine agent **tried** to go down but was not possible
+        next_state[1] = 0
+        next_state[-1] = 0
+        dist = next_state[0]
+        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.GO_DOWN, new_state=next_state), dist - 1, f'{state} -> {next_state}')
 
     def test_terminal(self) -> None:
         """  tests that it never returns terminal

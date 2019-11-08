@@ -10,6 +10,10 @@ from po_nrl.misc import DiscreteSpace, Space, POBNRLogger
 class RoadRacer(Environment, Simulator):
     """ represents the domain `RoadRacer` """
 
+    GO_UP = 0
+    NO_OP = 1
+    GO_DOWN = 2
+
     def __init__(self, lane_length: int, lane_probs: np.ndarray):
         """ """
 
@@ -50,7 +54,7 @@ class RoadRacer(Environment, Simulator):
         RETURNS (`int`):
 
         """
-        return self.get_current_lane(self.state)
+        return RoadRacer.get_current_lane(self.state)
 
     @property
     def middle_lane(self) -> int:
@@ -62,6 +66,11 @@ class RoadRacer(Environment, Simulator):
 
         """
         return int(len(self.lane_probs) / 2)
+
+    @property
+    def agent_state_feature_index(self) -> int:
+        """ returns the index of the state feature associated with the agent """
+        return self.num_lanes
 
     @staticmethod
     def get_current_lane(state: np.ndarray) -> int:
@@ -92,7 +101,7 @@ class RoadRacer(Environment, Simulator):
         """ implements `po_nrl.environments.Environment` """
         self.state = self.sample_start_state()
 
-        return self.get_observation(self.state)
+        return RoadRacer.get_observation(self.state)
 
     def step(self, action: int) -> EnvironmentInteraction:
         """ implements `po_nrl.environments.Environment.step` """
@@ -132,7 +141,7 @@ class RoadRacer(Environment, Simulator):
         assert self.state_space.contains(state)
         assert self.action_space.contains(action)
 
-        cur_lane = self.get_current_lane(state)
+        cur_lane = RoadRacer.get_current_lane(state)
 
         # advance lanes
         lane_advances = [np.random.rand() < p for p in self.lane_probs]
@@ -151,9 +160,9 @@ class RoadRacer(Environment, Simulator):
             next_state[-1] = next_lane
 
         # cars re-appear at the start of the lane when finishing
-        next_state = (next_state + self.lane_length) % (self.lane_length - 1)
+        next_state = next_state % (self.lane_length - 1)
 
-        return SimulationResult(next_state, self.get_observation(next_state))
+        return SimulationResult(next_state, RoadRacer.get_observation(next_state))
 
     def sample_start_state(self) -> np.ndarray:
         """ implements `po_nrl.environments.Simulator.sample_start_state` """
@@ -166,15 +175,37 @@ class RoadRacer(Environment, Simulator):
         return observation[0]
 
     def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
-        """ implements `po_nrl.environments.Simulator.reward` """
+        """ implements `po_nrl.environments.Simulator.reward`
+
+        Reward consists of 2 components:
+
+        1: the reward for being in the current lane
+        2: the cost of potentially bumping
+
+        The first component (1) is computed by taking the distance to the
+        car in the current lane
+
+        Bumping (2) happens when the agent either attempts to go off the lanes,
+        or when it tries to go to a lane where a car is situated
+
+        """
 
         assert self.state_space.contains(state)
         assert self.action_space.contains(action)
         assert self.state_space.contains(new_state)
 
+        previous_lane = RoadRacer.get_current_lane(state)
+
+        bump = (
+            # action == 0 and previous_lane == 0 OR action == 2 and previous_lane == self.num_lanes - 1
+            not action + previous_lane or action + previous_lane == self.num_lanes + 1\
+            or\
+            new_state[previous_lane - 1 + action] == 0  # destined spot has a car
+        )
+
         # return the distance of the car in the current lane
         # penalize agent for moving (action of 0 or 2)
-        return new_state[self.get_current_lane(new_state)] - int(action != 1)
+        return new_state[RoadRacer.get_current_lane(new_state)] - bump
 
     def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
         """ implements `po_nrl.environments.Simulator.terminal` """
