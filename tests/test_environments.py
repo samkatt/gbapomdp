@@ -6,8 +6,9 @@ import random
 
 import numpy as np
 
+from po_nrl.domains import gridworld, tiger, collision_avoidance, chain_domain, road_racer
 from po_nrl.environments import EncodeType, TerminalState
-from po_nrl.domains import gridworld, tiger, collision_avoidance, chain_domain
+from po_nrl.misc import DiscreteSpace
 
 
 class TestTiger(unittest.TestCase):
@@ -734,6 +735,183 @@ class TestChainDomain(unittest.TestCase):
         obs = np.zeros((5, 5))
         obs[4, 4] = 1
         self.assertRaises(AssertionError, env.obs2index, obs.reshape(25))
+
+
+class TestRoadRacer(unittest.TestCase):
+    """ tests the road race domain """
+
+    def setUp(self):
+        """ creates a random domain """
+
+        self.length = np.random.randint(3, 10)
+        self.num_lanes = int(np.random.choice(range(1, 15, 2)))
+        self.probs = np.random.rand(self.num_lanes)
+
+        self.random_env = road_racer.RoadRacer(self.length, self.probs)
+        self.random_env.reset()
+
+    def test_init(self) -> None:
+        """ some tests on the `po_nrl.domains.road_racer.RoadRacer` init
+
+        raises on   * even lanes
+                    * probs outside of 0 and 1
+                    * less than 2 long
+
+        """
+
+        self.assertRaises(
+            AssertionError,
+            road_racer.RoadRacer,
+            self.length, np.array([.5, .7])
+        )
+        self.assertRaises(
+            AssertionError,
+            road_racer.RoadRacer,
+            self.length, np.array([.5, .7, 1.1])
+        )
+        self.assertRaises(
+            AssertionError,
+            road_racer.RoadRacer,
+            self.length, np.array([.5, .7, -.1])
+        )
+        self.assertRaises(
+            AssertionError,
+            road_racer.RoadRacer, 2, np.array([.5, .7, .1])
+        )
+
+    def test_properties(self) -> None:
+        """ tests basic properties
+
+
+        `po_nrl.domains.road_racer.RoadRacer.num_lanes`
+        `po_nrl.domains.road_racer.RoadRacer.current_lane`
+        `po_nrl.domains.road_racer.RoadRacer.middle_lane`
+        `po_nrl.domains.road_racer.RoadRacer.action_space`
+        `po_nrl.domains.road_racer.RoadRacer.observation_space`
+        `po_nrl.domains.road_racer.RoadRacer.state_space`
+
+        """
+
+        # random domain properties
+        self.assertEqual(self.random_env.lane_length, self.length)
+        self.assertEqual(self.random_env.num_lanes, self.num_lanes)
+        self.assertEqual(self.random_env.current_lane, (self.num_lanes - 1) / 2)
+        self.assertEqual(self.random_env.middle_lane, (self.num_lanes - 1) / 2)
+
+        self.assertEqual(self.random_env.action_space.n, 3)
+
+        obs_space = self.random_env.observation_space
+        assert isinstance(obs_space, DiscreteSpace)
+        np.testing.assert_array_equal(obs_space.size, [self.length])
+
+        state_space = self.random_env.state_space
+        assert isinstance(state_space, DiscreteSpace)
+        np.testing.assert_array_equal(
+            state_space.size,
+            [self.length] * (self.num_lanes + 1)
+        )
+
+    def test_functional(self) -> None:
+        """ tests the pure functions defined in the road racer package
+
+        `po_nrl.domains.road_racer.current_lane`
+        `po_nrl.domains.road_racer.get_observation`
+
+
+        """
+
+        state = np.random.randint(
+            low=0,
+            high=np.random.randint(low=1, high=5),
+            size=np.random.randint(low=2, high=5)
+        )
+
+        state[-1] = 0
+        self.assertEqual(road_racer.RoadRacer.get_current_lane(state), 0)
+
+        state[-1] = 10
+        self.assertEqual(road_racer.RoadRacer.get_current_lane(state), 10)
+
+        state[-1] = -1
+        self.assertRaises(AssertionError, road_racer.RoadRacer.get_current_lane, state)
+
+        raise NotImplementedError('test get_observation nyi')
+
+    def test_reset(self) -> None:
+        """ tests resetting the environment
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+        np.testing.assert_array_equal(self.random_env.reset(), [self.length])
+
+    def test_start_start(self) -> None:
+        """ tests whether the start state are sampled correctly
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        start_state = np.ones(self.num_lanes + 1) * self.length
+        start_state[-1] = int(self.num_lanes / 2)
+
+        np.testing.assert_array_equal(self.random_env.sample_start_state(), start_state)
+
+    def test_reward(self) -> None:
+        """ test whether rewards are generated correctly
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        raise NotImplementedError('test reward nyi')
+
+    def test_terminal(self) -> None:
+        """  tests that it never returns terminal
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        # test any random <s,a,s'> transition
+        self.assertFalse(self.random_env.terminal(
+            np.random.randint(low=0, high=self.length, size=self.num_lanes + 1),
+            self.random_env.action_space.sample(),
+            np.random.randint(low=0, high=self.length, size=self.num_lanes + 1)
+        ))
+
+    def test_obs2index(self) -> None:
+        """ tests the obs2index function
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        random_observation = self.random_env.observation_space.sample()
+        should_be_index = random_observation[0]
+
+        self.assertEqual(self.random_env.obs2index(random_observation), should_be_index)
+
+    def test_steps(self) -> None:
+        """ tests the actual stepping functionality
+
+        Args:
+
+        RETURNS (`None`):
+
+        """
+
+        raise NotImplementedError('test steps nyi')
 
 
 if __name__ == '__main__':

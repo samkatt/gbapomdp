@@ -1,0 +1,179 @@
+""" the road racer domain """
+
+import numpy as np
+
+from po_nrl.environments import Environment, Simulator, ActionSpace
+from po_nrl.environments import EnvironmentInteraction, SimulationResult
+from po_nrl.misc import DiscreteSpace, Space
+
+
+class RoadRacer(Environment, Simulator):
+    """ represents the domain `RoadRacer` """
+
+    def __init__(self, lane_length: int, lane_probs: np.ndarray):
+        """ """
+
+        assert len(lane_probs) % 2 == 1, 'assume odd number of lanes'
+        assert (lane_probs > 0).all() and (lane_probs <= 1).all(), 'expect 0 > probs > 1'
+        assert lane_length > 2
+
+        self.lane_length = lane_length
+        self.lane_probs = lane_probs
+
+        self.state = np.zeros(0)  # dummy declaraction
+        self.reset()  # actually set state
+
+        self.observations = DiscreteSpace([self.lane_length])
+        self.actions = ActionSpace(3)
+
+        self.states = DiscreteSpace([self.lane_length] * (self.num_lanes + 1))
+
+    @property
+    def num_lanes(self) -> int:
+        """ returns the number of lanes
+
+        Args:
+
+        RETURNS (`int`):
+
+        """
+        return len(self.lane_probs)
+
+    @property
+    def current_lane(self) -> int:
+        """ return the lane that the agent is currently in
+
+        Args:
+
+        RETURNS (`int`):
+
+        """
+        return self.get_current_lane(self.state)
+
+    @property
+    def middle_lane(self) -> int:
+        """ returns the middle lane
+
+        Args:
+
+        RETURNS (`int`):
+
+        """
+        return int(len(self.lane_probs) / 2)
+
+    @staticmethod
+    def get_current_lane(state: np.ndarray) -> int:
+        """ returns the lane in which the car is currently in
+
+        Args:
+             state: (`np.ndarray`):
+
+        RETURNS (`int`):
+
+        """
+        assert state[-1] >= 0
+        return state[-1]
+
+    @staticmethod
+    def get_observation(state: np.ndarray) -> np.ndarray:
+        """ returns the (deterministic) observation associated with the state
+
+        Args:
+             state: (`np.ndarray`):
+
+        RETURNS (`np.ndarray`):
+
+        """
+        return state[RoadRacer.get_current_lane(state)]
+
+    def reset(self) -> np.ndarray:
+        """ implements `po_nrl.environments.Environment` """
+        self.state = np.zeros(len(self.lane_probs) + 1, dtype=int) + self.lane_length
+        self.state[-1] = self.middle_lane
+
+        return self.get_observation(self.state)
+
+    def step(self, action: int) -> EnvironmentInteraction:
+        """ implements `po_nrl.environments.Environment.step` """
+
+        step = self.simulation_step(self.state, action)
+        reward = self.reward(self.state, action, step.state)
+        terminal = self.terminal(self.state, action, step.state)
+
+        self.state = step.state
+
+        return step.observation, reward, terminal
+
+    @property
+    def action_space(self) -> ActionSpace:
+        """ implements `po_nrl.environments.Environment.action_space` """
+        return self.actions
+
+    @property
+    def observation_space(self) -> Space:
+        """ implements `po_nrl.environments.Environment.observation_space` """
+        return self.observations
+
+    @property
+    def state_space(self) -> Space:
+        """ implements `po_nrl.environments.Simulator.state_space` """
+        return self.states
+
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
+        """ implements `po_nrl.environments.Simulator.simulation_step` """
+
+        assert self.state_space.contains(state)
+        assert self.action_space.contains(action)
+
+        cur_lane = self.get_current_lane(state)
+
+        # advance lanes
+        lane_advances = [np.random.choice([0, 1], p=p) for p in self.lane_probs]
+
+        if state[cur_lane] == 1:  # car in front of us does not move
+            lane_advances[cur_lane] = 0
+
+        # temporary next state: lanes have advanced, but
+        # agent position has not been updated yet (hence [0])
+        next_state = state[:-1] - (lane_advances + [0])
+
+        # move agent
+        next_lane = cur_lane + action - 1
+
+        if next_state[next_lane] != 0:
+            next_state[-1] = next_lane
+
+        # cars re-appear at the start of the lane when finishing
+        next_state = (next_state + self.lane_length) % self.lane_length
+
+        return SimulationResult(next_state, self.get_observation(next_state))
+
+    def sample_start_state(self) -> np.ndarray:
+        """ implements `po_nrl.environments.Simulator.sample_start_state` """
+        return np.concatenate((np.ones(self.num_lanes) * self.lane_length, [self.middle_lane]))
+
+    def obs2index(self, observation: np.ndarray) -> int:
+        """ implements `po_nrl.environments.Simulator.obs2index` """
+        assert self.observation_space.contains(observation)
+
+        return observation[0]
+
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """ implements `po_nrl.environments.Simulator.reward` """
+
+        assert self.state_space.contains(state)
+        assert self.action_space.contains(action)
+        assert self.state_space.contains(new_state)
+
+        # return the distance of the car in the current lane
+        # penalize agent for moving (action of 0 or 2)
+        return new_state[self.get_current_lane(new_state)] - int(action != 1)
+
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """ implements `po_nrl.environments.Simulator.terminal` """
+
+        assert self.state_space.contains(state)
+        assert self.action_space.contains(action)
+        assert self.state_space.contains(new_state)
+
+        return False  # continuous for now
