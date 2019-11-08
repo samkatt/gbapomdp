@@ -108,6 +108,7 @@ class TestPOMCP(unittest.TestCase):
         self.run_experiment(['--domain_size=3', '-D=gridworld'])
         self.run_experiment(['--domain_size=3', '-D=collision_avoidance'])
         self.run_experiment(['--domain_size=5', '-D=chain'])
+        self.run_experiment(['--domain_size=4', '-D=road_racer'])
 
     def test_setting_sims(self):
         """ tests setting number of simulations """

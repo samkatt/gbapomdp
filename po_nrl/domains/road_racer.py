@@ -84,12 +84,11 @@ class RoadRacer(Environment, Simulator):
         RETURNS (`np.ndarray`):
 
         """
-        return state[RoadRacer.get_current_lane(state)]
+        return np.array([state[RoadRacer.get_current_lane(state)]])
 
     def reset(self) -> np.ndarray:
         """ implements `po_nrl.environments.Environment` """
-        self.state = np.zeros(len(self.lane_probs) + 1, dtype=int) + self.lane_length
-        self.state[-1] = self.middle_lane
+        self.state = self.sample_start_state()
 
         return self.get_observation(self.state)
 
@@ -102,7 +101,7 @@ class RoadRacer(Environment, Simulator):
 
         self.state = step.state
 
-        return step.observation, reward, terminal
+        return EnvironmentInteraction(step.observation, reward, terminal)
 
     @property
     def action_space(self) -> ActionSpace:
@@ -128,14 +127,14 @@ class RoadRacer(Environment, Simulator):
         cur_lane = self.get_current_lane(state)
 
         # advance lanes
-        lane_advances = [np.random.choice([0, 1], p=p) for p in self.lane_probs]
+        lane_advances = [np.random.rand() < p for p in self.lane_probs]
 
         if state[cur_lane] == 1:  # car in front of us does not move
             lane_advances[cur_lane] = 0
 
         # temporary next state: lanes have advanced, but
         # agent position has not been updated yet (hence [0])
-        next_state = state[:-1] - (lane_advances + [0])
+        next_state = state - (lane_advances + [0])
 
         # move agent
         next_lane = cur_lane + action - 1
@@ -144,13 +143,13 @@ class RoadRacer(Environment, Simulator):
             next_state[-1] = next_lane
 
         # cars re-appear at the start of the lane when finishing
-        next_state = (next_state + self.lane_length) % self.lane_length
+        next_state = (next_state + self.lane_length) % (self.lane_length - 1)
 
         return SimulationResult(next_state, self.get_observation(next_state))
 
     def sample_start_state(self) -> np.ndarray:
         """ implements `po_nrl.environments.Simulator.sample_start_state` """
-        return np.concatenate((np.ones(self.num_lanes) * self.lane_length, [self.middle_lane]))
+        return np.concatenate((np.ones(self.num_lanes) * (self.lane_length - 1), [self.middle_lane])).astype(int)
 
     def obs2index(self, observation: np.ndarray) -> int:
         """ implements `po_nrl.environments.Simulator.obs2index` """
@@ -177,3 +176,6 @@ class RoadRacer(Environment, Simulator):
         assert self.state_space.contains(new_state)
 
         return False  # continuous for now
+
+    def __repr__(self) -> str:
+        return f'Road racer of length {self.lane_length} with lane probabilities {self.lane_probs}'

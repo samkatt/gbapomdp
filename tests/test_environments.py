@@ -845,7 +845,7 @@ class TestRoadRacer(unittest.TestCase):
         RETURNS (`None`):
 
         """
-        np.testing.assert_array_equal(self.random_env.reset(), [self.length])
+        np.testing.assert_array_equal(self.random_env.reset(), [self.length - 1])
 
     def test_start_start(self) -> None:
         """ tests whether the start state are sampled correctly
@@ -856,7 +856,7 @@ class TestRoadRacer(unittest.TestCase):
 
         """
 
-        start_state = np.ones(self.num_lanes + 1) * self.length
+        start_state = np.ones(self.num_lanes + 1) * self.length - 1
         start_state[-1] = int(self.num_lanes / 2)
 
         np.testing.assert_array_equal(self.random_env.sample_start_state(), start_state)

@@ -1,5 +1,7 @@
 """ all the domains in which an agent can act """
 
+import numpy as np
+
 from po_nrl.environments import Environment, EncodeType
 
 from .priors import Prior
@@ -9,6 +11,7 @@ from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
 from .gridworld import GridWorld
 from .learned_environments import NeuralEnsemblePOMDP  # NOQA, ignore unused import
+from .road_racer import RoadRacer
 from .tiger import Tiger
 
 from .priors import TigerPrior, GridWorldPrior, CollisionAvoidancePrior
@@ -39,6 +42,8 @@ def create_environment(
         return CollisionAvoidance(domain_size)
     if domain_name == "chain":
         return ChainDomain(domain_size, encoding)
+    if domain_name == "road_racer":
+        return RoadRacer(domain_size, np.array([.7, .99, .99]))
 
     raise ValueError('unknown domain ' + domain_name)
 
