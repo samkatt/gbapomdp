@@ -165,7 +165,7 @@ def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
         sim,
         conf.num_sims,
         conf.exploration,
-        conf.horizon,
+        conf.search_depth,
         conf.gamma
     )
 
@@ -195,7 +195,7 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
         sim,
         conf.num_sims,
         conf.exploration,
-        conf.horizon,
+        conf.search_depth,
         conf.gamma
     )
 

@@ -151,6 +151,13 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--search_depth", "-d",
+        type=int,
+        default=0,
+        help="The max depth of the MCTS search tree, if not set will be horizon"
+    )
+
+    parser.add_argument(
         "--belief", "-B",
         default="rejection_sampling",
         help="type of belief update",
@@ -171,4 +178,9 @@ def parse_arguments(args: Optional[List[str]] = None):
         help='set random seed'
     )
 
-    return parser.parse_args(args)  # if args is "", will read cmdline
+    parsed_args = parser.parse_args(args)
+
+    if not parsed_args.search_depth:
+        parsed_args.searched_depth = parsed_args.horizon
+
+    return parsed_args
