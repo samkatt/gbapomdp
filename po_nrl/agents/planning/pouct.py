@@ -90,7 +90,8 @@ class TreeNode():
 
     def __repr__(self) -> str:
         """ prints out value and counts for each child """
-        return str({c: v for c, v in zip(self.children_visits, self.avg_values)})
+        # [A(i): v (c) .... ]
+        return str([f'A({i}): {v:.2f} ({c})' for i, (c, v) in enumerate(zip(self.children_visits, self.avg_values))])
 
 
 class POUCT(POBNRLogger):
