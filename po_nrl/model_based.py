@@ -315,7 +315,7 @@ def parse_arguments(args: Optional[List[str]] = None):
 
     # post process
     if not parsed_args.search_depth:
-        parsed_args.searched_depth = parsed_args.horizon
+        parsed_args.search_depth = parsed_args.horizon
 
     return parsed_args
 
