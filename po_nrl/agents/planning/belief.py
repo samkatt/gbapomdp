@@ -437,7 +437,8 @@ def augmented_importance_sampling(
 
     """
 
-    assert minimal_sampling_size > 0, f'desired sample size must be positive, not {minimal_sampling_size}'
+    if not minimal_sampling_size > 0:
+        ValueError(f'desired sample size must be positive, not {minimal_sampling_size}')
 
     assert isinstance(belief, WeightedFilter)
 
