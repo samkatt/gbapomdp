@@ -119,9 +119,7 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
 
     analyser = analyzer_factory(conf.domain, conf.domain_size)
 
-    belief_update = belief_update_factory(
-        conf.belief, conf.perturb_stdev, conf.backprop, conf.replay_update, sim, conf.freeze_model
-    )
+    belief_update = belief_update_factory(conf, sim)
 
     episode_reset = partial(
         episode_reset_belief, sim=sim
