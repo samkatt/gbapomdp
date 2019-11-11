@@ -504,7 +504,10 @@ def belief_update_factory(conf, sim: Simulator) -> BeliefUpdate:
     if conf.belief == 'importance_sampling':
         filter_method = partial(augmented_importance_sampling, minimal_sampling_size=conf.belief_minimal_sample_size)
     elif conf.belief == 'rejection_sampling':
-        filter_method = augmented_rejection_sampling  # FIXME: I hate warnings
+        # ignoring typing here because mypy does not realize these two
+        # have the same type:
+        # partial signature is the same as augmented rejection sampling signature
+        filter_method = augmented_rejection_sampling  # type: ignore
 
     freeze_model_setting = get_model_freeze_setting(conf.freeze_model)
 

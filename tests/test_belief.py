@@ -102,7 +102,7 @@ class TestFactory(unittest.TestCase):
 
         # perturb and importance
         bp_is = belief.belief_update_factory(
-            TestFactory.create_conf('importance_sampling', 0.1, False, False, "", 10), tiger.Tiger(EncodeType.DEFAULT)
+            TestFactory.create_conf('importance_sampling', 0.1, False, False, "", 30), tiger.Tiger(EncodeType.DEFAULT)
         )
 
         self.assertEqual(
