@@ -90,32 +90,6 @@ class DynamicsModel:
         self.num_batches = 0
         self.learning_rate = learning_rate  # hard to extract from self.optimizer
 
-    def train(self) -> None:
-        """ sets to training mode
-
-        * disables dropout layers
-
-        Args:
-
-        RETURNS (`None`):
-
-        """
-        self.net_t.train()
-        self.net_o.train()
-
-    def eval(self) -> None:
-        """ sets to evaluation mode
-
-        * enables dropout layers
-
-        Args:
-
-        RETURNS (`None`):
-
-        """
-        self.net_t.eval()
-        self.net_o.eval()
-
     def set_learning_rate(self, learning_rate: float) -> None:
         """ (re)sets the optimizer's learning rate
 
@@ -174,8 +148,6 @@ class DynamicsModel:
 
         """
 
-        self.train()
-
         actions = [self.action_space.one_hot(a) for a in actions]
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
@@ -221,8 +193,6 @@ class DynamicsModel:
             log_tensorboard(f'transition_loss/{self}', state_loss.item(), self.num_batches)
 
         self.num_batches += 1
-
-        self.eval()
 
     def self_learn(self, conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE) -> None:
         """ performs a batch update on stored data
