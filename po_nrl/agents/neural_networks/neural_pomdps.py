@@ -2,7 +2,6 @@
 
 from collections import deque, namedtuple
 from enum import Enum, auto
-from itertools import chain
 from typing import Tuple, Deque, List
 
 import numpy as np
@@ -54,7 +53,7 @@ class DynamicsModel:
              action_space: (`po_nrl.environments.ActionSpace`):
              obs_space: (`po_nrl.misc.DiscreteSpace`):
              network_size: (`int`): number of nodes in hidden layers
-             learning_rate: (`float`): learning rate of the optimizer
+             learning_rate: (`float`): learning rate of the optimizers
              batch_size: (`int`): number of interactions to **remember** and update with
              dropout_rate: (`float`): dropout rate of the layers
 
@@ -80,20 +79,25 @@ class DynamicsModel:
             dropout_rate=dropout_rate,
         ).to(device())
 
-        self.optimizer = torch.optim.Adam(
-            chain(self.net_t.parameters(), self.net_o.parameters()),
+        self.t_optimizer = torch.optim.Adam(
+            self.net_t.parameters(),
+            lr=learning_rate
+        )
+
+        self.o_optimizer = torch.optim.Adam(
+            self.net_o.parameters(),
             lr=learning_rate
         )
 
         self.criterion = torch.nn.CrossEntropyLoss()
 
         self.num_batches = 0
-        self.learning_rate = learning_rate  # hard to extract from self.optimizer
+        self.learning_rate = learning_rate
 
     def set_learning_rate(self, learning_rate: float) -> None:
-        """ (re)sets the optimizer's learning rate
+        """ (re)sets the optimizers' learning rate
 
-        Will re-create the optimizer, thus losing its current state
+        Will re-create the optimizers, thus losing its current state
 
         Args:
              learning_rate: (`float`):
@@ -103,10 +107,16 @@ class DynamicsModel:
         """
         assert 0 < learning_rate < 1, f'learning rate must be [0,1], not {learning_rate}'
 
-        self.optimizer = torch.optim.Adam(
-            chain(self.net_t.parameters(), self.net_o.parameters()),
+        self.t_optimizer = torch.optim.Adam(
+            self.net_t.parameters(),
             lr=learning_rate
         )
+
+        self.o_optimizer = torch.optim.Adam(
+            self.net_o.parameters(),
+            lr=learning_rate
+        )
+
         self.learning_rate = learning_rate
 
     def simulation_step(self, state: np.array, action: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -153,44 +163,47 @@ class DynamicsModel:
         obs = torch.from_numpy(obs).to(device())
 
         # transition model
-        if conf == DynamicsModel.FreezeModelSetting.FREEZE_T:
-            state_loss = torch.zeros(1)
+        if conf != DynamicsModel.FreezeModelSetting.FREEZE_T:
 
-        else:
             state_action_pairs = torch.from_numpy(np.concatenate(
                 [states, actions], axis=1
             )).to(device()).float()
             next_state_logits = self.net_t(state_action_pairs)
 
-            state_loss = torch.stack([
+            loss = torch.stack([
                 self.criterion(
                     next_state_logits[:, self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]],
                     next_states[:, i]
                 )
                 for i in range(self.state_space.ndim)]).sum()
 
-        if conf == DynamicsModel.FreezeModelSetting.FREEZE_O:
-            observation_loss = torch.zeros(1)
-        else:
-            # observation model
+            self.t_optimizer.zero_grad()
+            loss.backward()
+            self.t_optimizer.step()
+
+            if tensorboard_logging():
+                log_tensorboard(f'transition_loss/{self}', loss.item(), self.num_batches)
+
+        # observation model
+        if conf != DynamicsModel.FreezeModelSetting.FREEZE_O:
+
             state_action_state_triplets = torch.from_numpy(np.concatenate(
                 [states, actions, next_states], axis=1
             )).to(device()).float()
             observation_logits = self.net_o(state_action_state_triplets)
 
-            observation_loss = torch.stack([
+            loss = torch.stack([
                 self.criterion(
                     observation_logits[:, self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]],
                     obs[:, i])
                 for i in range(self.obs_space.ndim)]).sum()
 
-        self.optimizer.zero_grad()
-        (state_loss + observation_loss).backward()
-        self.optimizer.step()
+            self.o_optimizer.zero_grad()
+            loss.backward()
+            self.o_optimizer.step()
 
-        if tensorboard_logging():
-            log_tensorboard(f'observation_loss/{self}', observation_loss.item(), self.num_batches)
-            log_tensorboard(f'transition_loss/{self}', state_loss.item(), self.num_batches)
+            if tensorboard_logging():
+                log_tensorboard(f'observation_loss/{self}', loss.item(), self.num_batches)
 
         self.num_batches += 1
 
@@ -342,8 +355,12 @@ class DynamicsModel:
         self.net_o.random_init_parameters()
         self.num_batches = 0
 
-        self.optimizer = torch.optim.Adam(
-            chain(self.net_t.parameters(), self.net_o.parameters()),
+        self.o_optimizer = torch.optim.Adam(
+            self.net_o.parameters(),
+            lr=self.learning_rate
+        )
+        self.t_optimizer = torch.optim.Adam(
+            self.net_t.parameters(),
             lr=self.learning_rate
         )
 
