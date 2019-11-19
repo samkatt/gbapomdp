@@ -121,7 +121,7 @@ class TestDynamicModel(unittest.TestCase):
         )
         copied_model = copy.deepcopy(test_model)
 
-        copied_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]))
+        copied_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[1]]))
 
         self.is_equal_models(test_model.net_t, copied_model.net_t, False)
         self.is_equal_models(test_model.net_o, copied_model.net_o, False)
