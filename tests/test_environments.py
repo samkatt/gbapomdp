@@ -743,11 +743,11 @@ class TestRoadRacer(unittest.TestCase):
     def setUp(self):
         """ creates a random domain """
 
-        self.length = np.random.randint(4, 10)
+        self.length = 6
         self.num_lanes = int(np.random.choice(range(3, 15, 2)))
         self.probs = np.random.rand(self.num_lanes)
 
-        self.random_env = road_racer.RoadRacer(self.length, self.probs)
+        self.random_env = road_racer.RoadRacer(self.probs)
         self.random_env.reset()
 
     def test_init(self) -> None:
@@ -759,25 +759,9 @@ class TestRoadRacer(unittest.TestCase):
 
         """
 
-        self.assertRaises(
-            AssertionError,
-            road_racer.RoadRacer,
-            self.length, np.array([.5, .7])
-        )
-        self.assertRaises(
-            AssertionError,
-            road_racer.RoadRacer,
-            self.length, np.array([.5, .7, 1.1])
-        )
-        self.assertRaises(
-            AssertionError,
-            road_racer.RoadRacer,
-            self.length, np.array([.5, .7, -.1])
-        )
-        self.assertRaises(
-            AssertionError,
-            road_racer.RoadRacer, 2, np.array([.5, .7, .1])
-        )
+        self.assertRaises(AssertionError, road_racer.RoadRacer, np.array([.5, .7]))
+        self.assertRaises(AssertionError, road_racer.RoadRacer, np.array([.5, .7, 1.1]))
+        self.assertRaises(AssertionError, road_racer.RoadRacer, np.array([.5, .7, -.1]))
 
     def test_properties(self) -> None:
         """ tests basic properties

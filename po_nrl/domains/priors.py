@@ -164,4 +164,4 @@ class RoadRacerPrior(Prior):
         """
         sampled_lane_speeds = np.random.beta(.5 * self._total_counts, .5 * self._total_counts, self._num_lanes)
 
-        return RoadRacer(6, sampled_lane_speeds)
+        return RoadRacer(sampled_lane_speeds)

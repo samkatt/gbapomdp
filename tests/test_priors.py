@@ -149,8 +149,8 @@ class TestRoadRacerPrior(unittest.TestCase):
         np.testing.assert_almost_equal(domain.lane_probs, np.array([.5, .5, .5]), decimal=3)
 
         # test always within 0 and 1
-        domain = RoadRacerPrior(5, .1).sample()
+        domain = RoadRacerPrior(5, .5).sample()
         assert isinstance(domain, RoadRacer)
 
-        self.assertTrue(np.all(domain.lane_probs > 0))
-        self.assertTrue(np.all(domain.lane_probs < 1))
+        self.assertTrue(np.all(domain.lane_probs > 0), f'probs={domain.lane_probs}')
+        self.assertTrue(np.all(domain.lane_probs < 1), f'probs={domain.lane_probs}')

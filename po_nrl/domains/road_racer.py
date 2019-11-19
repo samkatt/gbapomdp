@@ -24,21 +24,19 @@ class RoadRacer(Environment, Simulator):
     GO_UP = 0
     NO_OP = 1
     GO_DOWN = 2
+    LANE_LENGTH = 6
 
-    def __init__(self, lane_length: int, lane_probs: np.ndarray):
-        """ Creates a domain with lanes of length `lane_length` with transition probability `lane_probs`
+    def __init__(self, lane_probs: np.ndarray):
+        """ Creates a domain with transition probability `lane_probs`
 
         Args:
-             lane_length: (`int`):
              lane_probs: (`np.ndarray`):
 
         """
 
         assert len(lane_probs) % 2 == 1, f'assume odd number of lanes, not {lane_probs}'
         assert (lane_probs > 0).all() and (lane_probs <= 1).all(), f'expect 0 > probs > 1, not {lane_probs}'
-        assert lane_length > 2, 'Must have more than 2 lanes'
 
-        self.lane_length = lane_length
         self._lane_probs = lane_probs
 
         self.state = np.zeros(0)  # dummy declaraction
@@ -50,6 +48,11 @@ class RoadRacer(Environment, Simulator):
         self.states = DiscreteSpace([self.lane_length] * (self.num_lanes) + [self.num_lanes])
 
         self.logger = POBNRLogger('road racer')
+
+    @property
+    def lane_length(self) -> int:
+        """ returns the length of the lanes """
+        return self.LANE_LENGTH
 
     @property
     def lane_probs(self):

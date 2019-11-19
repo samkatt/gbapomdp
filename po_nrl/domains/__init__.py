@@ -43,7 +43,7 @@ def create_environment(
     if domain_name == "chain":
         return ChainDomain(domain_size, encoding)
     if domain_name == "road_racer":
-        return RoadRacer(6, np.arange(1, domain_size + 1) / (domain_size + 1))
+        return RoadRacer(np.arange(1, domain_size + 1) / (domain_size + 1))
 
     raise ValueError('unknown domain ' + domain_name)
 
