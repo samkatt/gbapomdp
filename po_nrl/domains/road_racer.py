@@ -34,9 +34,9 @@ class RoadRacer(Environment, Simulator):
 
         """
 
-        assert len(lane_probs) % 2 == 1, 'assume odd number of lanes'
-        assert (lane_probs > 0).all() and (lane_probs <= 1).all(), 'expect 0 > probs > 1'
-        assert lane_length > 2
+        assert len(lane_probs) % 2 == 1, f'assume odd number of lanes, not {lane_probs}'
+        assert (lane_probs > 0).all() and (lane_probs <= 1).all(), f'expect 0 > probs > 1, not {lane_probs}'
+        assert lane_length > 2, 'Must have more than 2 lanes'
 
         self.lane_length = lane_length
         self._lane_probs = lane_probs

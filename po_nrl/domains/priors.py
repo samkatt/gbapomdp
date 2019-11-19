@@ -9,6 +9,7 @@ import numpy as np
 from po_nrl.domains.collision_avoidance import CollisionAvoidance
 from po_nrl.domains.gridworld import GridWorld
 from po_nrl.domains.tiger import Tiger
+from po_nrl.domains.road_racer import RoadRacer
 from po_nrl.environments import Simulator, EncodeType
 
 
@@ -127,3 +128,40 @@ class CollisionAvoidancePrior(Prior):
         sampled_behaviour = tuple(np.random.dirichlet(np.array([.05, .9, .05]) * self._num_total_counts))
 
         return CollisionAvoidance(self._size, sampled_behaviour)  # type: ignore
+
+
+class RoadRacerPrior(Prior):
+    """ standard prior over the road racer domain
+
+    The agent's transition and observation model is known, however the other
+    cars' speed is not. We assign a expected model of p=.5 for advancing to
+    each lane.
+
+    """
+
+    def __init__(self, num_lanes: int, num_total_counts: float):
+        """ initiate the prior, will make observation one-hot encoded
+
+        Args:
+             num_lanes: (`float`): number of lanes in the domain
+             num_total_counts: (`float`): number of total counts of Dir prior
+
+        """
+
+        if num_total_counts <= 0:
+            raise ValueError('Assume positive number of total counts')
+
+        self._total_counts = num_total_counts
+        self._num_lanes = num_lanes
+
+    def sample(self) -> Simulator:
+        """ returns a Road Racer instance with some sampled set of lane speeds
+
+        The prior over each lane advancement probability  is .5
+
+        RETURNS (`po_nrl.environments.Simulator`):
+
+        """
+        sampled_lane_speeds = np.random.beta(.5 * self._total_counts, .5 * self._total_counts, self._num_lanes)
+
+        return RoadRacer(6, sampled_lane_speeds)

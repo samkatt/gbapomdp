@@ -5,8 +5,9 @@ import unittest
 
 import numpy as np
 
-from po_nrl.domains import Tiger, GridWorld, CollisionAvoidance
-from po_nrl.domains.priors import TigerPrior, GridWorldPrior, CollisionAvoidancePrior
+from po_nrl.domains import Tiger, GridWorld, CollisionAvoidance, RoadRacer
+from po_nrl.domains.priors import TigerPrior, GridWorldPrior
+from po_nrl.domains.priors import CollisionAvoidancePrior, RoadRacerPrior
 from po_nrl.environments import EncodeType
 
 
@@ -63,8 +64,8 @@ class TestTigerPrior(unittest.TestCase):
         assert isinstance(tiger, Tiger)
 
         obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
-        self.assertFalse(.59 <= obs_probs[0] <= .61)
-        self.assertFalse(.59 <= obs_probs[1] <= .61)
+        self.assertFalse(.59 <= obs_probs[0] <= .61, f'Rarely false; obs = {obs_probs[0]}')
+        self.assertFalse(.59 <= obs_probs[1] <= .61, f'Rarely false; obs = {obs_probs[0]}')
 
 
 class TestGridWorldPrior(unittest.TestCase):
@@ -133,3 +134,23 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
         self.assertNotAlmostEqual(block_pol[0], .05, 6)
         self.assertNotAlmostEqual(block_pol[1], .9, 6)
         self.assertNotAlmostEqual(block_pol[2], .05, 6)
+
+
+class TestRoadRacerPrior(unittest.TestCase):
+    """ tests the road race prior """
+
+    def test_lane_probs(self) -> None:
+        """ some basic tests """
+
+        # test .5 probabilities with certainty
+        domain = RoadRacerPrior(3, 1000000000).sample()
+        assert isinstance(domain, RoadRacer)
+
+        np.testing.assert_almost_equal(domain.lane_probs, np.array([.5, .5, .5]), decimal=3)
+
+        # test always within 0 and 1
+        domain = RoadRacerPrior(5, .1).sample()
+        assert isinstance(domain, RoadRacer)
+
+        self.assertTrue(np.all(domain.lane_probs > 0))
+        self.assertTrue(np.all(domain.lane_probs < 1))
