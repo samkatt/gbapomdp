@@ -39,7 +39,7 @@ class RoadRacer(Environment, Simulator):
         assert lane_length > 2
 
         self.lane_length = lane_length
-        self.lane_probs = lane_probs
+        self._lane_probs = lane_probs
 
         self.state = np.zeros(0)  # dummy declaraction
         self.reset()  # actually set state
@@ -47,9 +47,20 @@ class RoadRacer(Environment, Simulator):
         self.observations = DiscreteSpace([self.lane_length])
         self.actions = ActionSpace(3)
 
-        self.states = DiscreteSpace([self.lane_length] * (self.num_lanes + 1))
+        self.states = DiscreteSpace([self.lane_length] * (self.num_lanes) + [self.num_lanes])
 
         self.logger = POBNRLogger('road racer')
+
+    @property
+    def lane_probs(self):
+        """ returns the probabilities of each lane advancing """
+        return self._lane_probs
+
+    @lane_probs.setter
+    def lane_probs(self, lane_probs):
+        assert np.all(lane_probs >= .0) and np.all(lane_probs <= 1)
+
+        self._lane_probs = lane_probs
 
     @property
     def num_lanes(self) -> int:
@@ -161,6 +172,12 @@ class RoadRacer(Environment, Simulator):
 
         action: 0 -> 'go up', 1 -> 'stay', 2 -> 'go down'
 
+        BUMPING rules:
+            - actions that will go beyond the lanes have no effect on the lane
+            - we first advance lanes, then try to move:
+                * if a car is on the intended moved lane, agent stays put
+            - legal car position **includes** 0
+
         """
 
         assert self.state_space.contains(state)
@@ -185,7 +202,7 @@ class RoadRacer(Environment, Simulator):
             next_state[self.agent_state_feature_index] = next_lane
 
         # cars re-appear at the start of the lane when finishing
-        next_state = next_state % (self.lane_length - 1)
+        next_state[:-1] = next_state[:-1] % self.lane_length
 
         return SimulationResult(next_state, RoadRacer.get_observation(next_state))
 
