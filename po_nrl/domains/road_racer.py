@@ -3,7 +3,7 @@
 import numpy as np
 
 from po_nrl.environments import Environment, Simulator, ActionSpace
-from po_nrl.environments import EnvironmentInteraction, SimulationResult
+from po_nrl.environments import EnvironmentInteraction, SimulationResult, TerminalState
 from po_nrl.misc import DiscreteSpace, Space, POBNRLogger
 
 
@@ -186,6 +186,9 @@ class RoadRacer(Environment, Simulator):
         assert self.state_space.contains(state)
         assert self.action_space.contains(action)
 
+        if state[RoadRacer.get_current_lane(state)] == 0:
+            raise TerminalState(f'state {state} is terminal because agent on car')
+
         cur_lane = RoadRacer.get_current_lane(state)
 
         # advance lanes
@@ -255,9 +258,9 @@ class RoadRacer(Environment, Simulator):
     def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
         """ implements `po_nrl.environments.Simulator.terminal` """
 
-        assert self.state_space.contains(state)
-        assert self.action_space.contains(action)
-        assert self.state_space.contains(new_state)
+        assert self.state_space.contains(state), str(state)
+        assert self.action_space.contains(action), str(action)
+        assert self.state_space.contains(new_state), str(new_state)
 
         return False  # continuous for now
 

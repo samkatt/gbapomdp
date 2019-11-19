@@ -900,9 +900,9 @@ class TestRoadRacer(unittest.TestCase):
 
         # test any random <s,a,s'> transition
         self.assertFalse(self.random_env.terminal(
-            np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes)])),
+            np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes - 1)])),
             self.random_env.action_space.sample(),
-            np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes)]))
+            np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes - 1)]))
         ))
 
     def test_obs2index(self) -> None:
@@ -989,6 +989,10 @@ class TestRoadRacer(unittest.TestCase):
         # test lane will not advance if agent is blocking
         state[1] = 1
         np.testing.assert_array_equal(self.random_env.simulation_step(state, stay).state[1], 1)
+
+        # test throwing terminal state if given state where agent is on car
+        state[road_racer.RoadRacer.get_current_lane(state)] = 0
+        self.assertRaises(TerminalState, self.random_env.simulation_step, state, stay)
 
 
 if __name__ == '__main__':

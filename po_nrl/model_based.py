@@ -122,7 +122,7 @@ def parse_arguments(args: Optional[List[str]] = None):
         help="which domain to use method on",
         required=True,
         choices=[
-            "cartpole", "tiger", "gridworld", "collision_avoidance", "chain"
+            "cartpole", "tiger", "gridworld", "collision_avoidance", "chain", "road_racer"
         ]
     )
 
