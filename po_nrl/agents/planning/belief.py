@@ -186,7 +186,8 @@ def rejection_sampling(
 def importance_sampling(
         belief: ParticleFilter,
         action: np.ndarray,
-        observation: np.ndarray) -> WeightedFilter:
+        observation: np.ndarray,
+        minimal_sampling_size: int) -> WeightedFilter:
     """ applies importance sampling **with resampling** as belief update
 
     Assumes belief is over state and models, i.e.
@@ -196,10 +197,13 @@ def importance_sampling(
          belief: (`ParticleFilter`):
          action: (`np.ndarray`):
          observation: (`np.ndarray`):
+         minimal_sampling_size: (`int`): will resample if belief drops below this threshold
 
     RETURNS (`WeightedFilter`):
 
     """
+
+    assert minimal_sampling_size > 0, f'desired sample size must be positive, not {minimal_sampling_size}'
 
     next_belief = WeightedFilter()
 
@@ -226,7 +230,7 @@ def importance_sampling(
             weight * weighted_particle.weight
         ))
 
-    if next_belief.effective_sample_size() < (next_belief.size / 10):
+    if next_belief.effective_sample_size() < minimal_sampling_size:
         next_belief = resample(next_belief)
 
     return next_belief
@@ -413,7 +417,8 @@ def augmented_importance_sampling(
         belief: ParticleFilter,
         action: np.ndarray,
         observation: np.ndarray,
-        update_model: ModelUpdate) -> ParticleFilter:
+        update_model: ModelUpdate,
+        minimal_sampling_size: int) -> ParticleFilter:
     """ Core algorithm for this project. Updates the model during belief update
 
     Assuming a belief p(state, dynamics), this function will compute an
@@ -426,10 +431,14 @@ def augmented_importance_sampling(
          action: (`np.ndarray`):
          observation: (`np.ndarray`):
          update_model: (`ModelUpdate`):
+         minimal_sampling_size: (`int`): will resample if belief drops below this threshold
 
     RETURNS (`ParticleFilter`):
 
     """
+
+    if not minimal_sampling_size > 0:
+        ValueError(f'desired sample size must be positive, not {minimal_sampling_size}')
 
     assert isinstance(belief, WeightedFilter)
 
@@ -465,59 +474,52 @@ def augmented_importance_sampling(
             weighted_particle.weight * weight
         ))
 
-    if next_belief.effective_sample_size() < (next_belief.size / 10):
+    if next_belief.effective_sample_size() < minimal_sampling_size:
         next_belief = resample(next_belief)
 
     return next_belief
 
 
-def belief_update_factory(
-        belief: str,
-        perturb_stdev: float,
-        backprop: bool,
-        replay_update: bool,
-        sim: Simulator,
-        freeze_model_conf: str) -> BeliefUpdate:
+def belief_update_factory(conf, sim: Simulator) -> BeliefUpdate:
     """ returns an importance sampling method depending on the configurations
 
     Args:
-         belief: (`str`):
-         perturb_stdev: (`float`): the amount of param perturbation during updates
-         backprop: (`bool`): whether to apply backprop during update
-         replay_update: (`bool`): whether to apply self-learn from replay buffer during update
+         conf: (`namespace`) program configurations
          sim: (`Simulator`):
-         freeze_model_conf: (`str`): the freeze model configuration
 
     RETURNS (`BeliefUpdate`):
 
     """
 
-    assert belief in ["rejection_sampling", "importance_sampling"], \
-        f"belief {belief} not legal"
+    assert conf.belief in ["rejection_sampling", "importance_sampling"], \
+        f"belief {conf.belief} not legal"
 
     # basic, no enhancements
-    if perturb_stdev == 0 and not backprop and not replay_update:
-        if belief == 'importance_sampling':
-            return importance_sampling
-        if belief == 'rejection_sampling':
+    if conf.perturb_stdev == 0 and not conf.backprop and not conf.replay_update:
+        if conf.belief == 'importance_sampling':
+            return partial(importance_sampling, minimal_sampling_size=conf.belief_minimal_sample_size)
+        if conf.belief == 'rejection_sampling':
             return partial(rejection_sampling, sim=sim)
 
     # set filter method
-    if belief == 'importance_sampling':
-        filter_method = augmented_importance_sampling
-    elif belief == 'rejection_sampling':
-        filter_method = augmented_rejection_sampling
+    if conf.belief == 'importance_sampling':
+        filter_method = partial(augmented_importance_sampling, minimal_sampling_size=conf.belief_minimal_sample_size)
+    elif conf.belief == 'rejection_sampling':
+        # ignoring typing here because mypy does not realize these two
+        # have the same type:
+        # partial signature is the same as augmented rejection sampling signature
+        filter_method = augmented_rejection_sampling  # type: ignore
 
-    freeze_model_setting = get_model_freeze_setting(freeze_model_conf)
+    freeze_model_setting = get_model_freeze_setting(conf.freeze_model)
 
     # set model update method
     updates: List[ModelUpdate] = []
-    if backprop:
+    if conf.backprop:
         updates.append(partial(backprop_update, freeze_model_setting=freeze_model_setting))
-    if replay_update:
+    if conf.replay_update:
         updates.append(partial(replay_buffer_update, freeze_model_setting=freeze_model_setting))
-    if perturb_stdev:
-        updates.append(partial(perturb_parameters, stdev=perturb_stdev, freeze_model_setting=freeze_model_setting))
+    if conf.perturb_stdev:
+        updates.append(partial(perturb_parameters, stdev=conf.perturb_stdev, freeze_model_setting=freeze_model_setting))
 
     return partial(filter_method, update_model=ModelUpdatesChain(updates))
 

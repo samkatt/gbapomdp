@@ -16,6 +16,68 @@ from po_nrl.misc import DiscreteSpace
 class TestDynamicModel(unittest.TestCase):
     """ Test unit fo the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
 
+    def is_equal_models(self, model_a, model_b, is_equal: bool) -> None:
+        """ checks whether provided models are equal
+
+        Args:
+             model_a:
+             model_b:
+             is_equal: (`bool`)
+
+        RETURNS (`None`):
+
+        """
+
+        test = self.assertTrue if is_equal else self.assertFalse
+
+        for tensor_a, tensor_b in zip(
+                model_a.parameters(),
+                model_b.parameters()):
+            test(torch.equal(tensor_a.data, tensor_b.data), f'{tensor_a} vs {tensor_b}')
+
+    def test_freeze(self) -> None:
+        """ tests whether freezing models works properly
+
+        If freeze_O then the observation should not change with update (T should)
+        If freeze_T then the observation should not change with update (O should)
+        """
+
+        test_model = DynamicsModel(
+            state_space=DiscreteSpace([2]),
+            action_space=ActionSpace(2),
+            obs_space=DiscreteSpace([2]),
+            network_size=5,
+            learning_rate=.01,
+            batch_size=0,
+            dropout_rate=0.5
+        )
+
+        copied_model = copy.deepcopy(test_model)
+        test_model.perturb_parameters(freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_O)
+
+        self.is_equal_models(test_model.net_t, copied_model.net_t, False)
+        self.is_equal_models(test_model.net_o, copied_model.net_o, True)
+
+        copied_model = copy.deepcopy(test_model)
+        test_model.perturb_parameters(freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_T)
+
+        self.is_equal_models(test_model.net_t, copied_model.net_t, True)
+        self.is_equal_models(test_model.net_o, copied_model.net_o, False)
+
+        copied_model = copy.deepcopy(test_model)
+        test_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]), DynamicsModel.FreezeModelSetting.FREEZE_O)
+
+        self.is_equal_models(test_model.net_t, copied_model.net_t, False)
+        self.is_equal_models(test_model.net_o, copied_model.net_o, True)
+
+        copied_model = copy.deepcopy(test_model)
+
+        self.is_equal_models(test_model.net_t, copied_model.net_t, True)
+        test_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]), DynamicsModel.FreezeModelSetting.FREEZE_T)
+
+        self.is_equal_models(test_model.net_o, copied_model.net_o, False)
+        self.is_equal_models(test_model.net_t, copied_model.net_t, True)
+
     def test_copy(self) -> None:
         """ tests the copy function of the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`
 
@@ -29,9 +91,9 @@ class TestDynamicModel(unittest.TestCase):
         """
 
         test_model = DynamicsModel(
-            state_space=DiscreteSpace([1]),
-            action_space=ActionSpace(1),
-            obs_space=DiscreteSpace([1]),
+            state_space=DiscreteSpace([2]),
+            action_space=ActionSpace(2),
+            obs_space=DiscreteSpace([2]),
             network_size=5,
             learning_rate=.01,
             batch_size=0,
@@ -40,17 +102,13 @@ class TestDynamicModel(unittest.TestCase):
 
         copied_model = copy.deepcopy(test_model)
 
-        for test_tensor, copy_tensor in zip(
-                test_model.net_t.parameters(),
-                copied_model.net_t.parameters()):
-            self.assertTrue(torch.equal(test_tensor.data, copy_tensor.data))
+        self.is_equal_models(test_model.net_t, copied_model.net_t, True)
+        self.is_equal_models(test_model.net_o, copied_model.net_o, True)
 
         test_model.perturb_parameters()
 
-        for test_tensor, copy_tensor in zip(
-                test_model.net_t.parameters(),
-                copied_model.net_t.parameters()):
-            self.assertFalse(torch.equal(test_tensor.data, copy_tensor.data))
+        self.is_equal_models(test_model.net_t, copied_model.net_t, False)
+        self.is_equal_models(test_model.net_o, copied_model.net_o, False)
 
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
@@ -65,10 +123,8 @@ class TestDynamicModel(unittest.TestCase):
 
         copied_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]))
 
-        for test_tensor, copy_tensor in zip(
-                test_model.net_t.parameters(),
-                copied_model.net_t.parameters()):
-            self.assertFalse(torch.equal(test_tensor.data, copy_tensor.data))
+        self.is_equal_models(test_model.net_t, copied_model.net_t, False)
+        self.is_equal_models(test_model.net_o, copied_model.net_o, False)
 
 
 class TestMisc(unittest.TestCase):

@@ -53,7 +53,7 @@ def main(args: Optional[List[str]]) -> None:
         if conf.tensorboard_logdir:
             po_nrl.pytorch_api.set_tensorboard_logging(f'{conf.tensorboard_logdir}-{run}')
 
-        sim.reset(train_method, conf.learning_rate)
+        sim.reset(train_method, conf.learning_rate, conf.online_learning_rate)
         agent.reset()
 
         tmp_res = np.zeros(conf.episodes)
@@ -203,6 +203,13 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--belief_minimal_sample_size",
+        default=0,
+        help='Threshold before resampling during importance sampling, default is resampling every step',
+        type=float
+    )
+
+    parser.add_argument(
         "--train_offline",
         choices=['on_true', 'on_prior'],
         default='on_true',
@@ -218,6 +225,13 @@ def parse_arguments(args: Optional[List[str]] = None):
 
     parser.add_argument(
         "--learning_rate", "--alpha",
+        default=1e-4,
+        type=float,
+        help="learning rate of the policy gradient descent"
+    )
+
+    parser.add_argument(
+        "--online_learning_rate", "--online_alpha",
         default=1e-4,
         type=float,
         help="learning rate of the policy gradient descent"
@@ -308,7 +322,9 @@ def parse_arguments(args: Optional[List[str]] = None):
 
     # post process
     if not parsed_args.search_depth:
-        parsed_args.searched_depth = parsed_args.horizon
+        parsed_args.search_depth = parsed_args.horizon
+    if not parsed_args.belief_minimal_sample_size:
+        parsed_args.belief_minimal_sample_size = parsed_args.num_particles
 
     return parsed_args
 

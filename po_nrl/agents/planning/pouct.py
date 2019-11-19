@@ -115,7 +115,7 @@ class POUCT(POBNRLogger):
 
         """
 
-        assert planning_horizon > 0, "Cannot accept a negative planning horizon"
+        assert planning_horizon > 0, f"Cannot accept a negative planning horizon {planning_horizon}"
 
         POBNRLogger.__init__(self)
 

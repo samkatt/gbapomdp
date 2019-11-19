@@ -231,7 +231,10 @@ class WeightedFilter(ParticleFilter):
         return (p.value for p in self._particles)
 
     def __repr__(self) -> str:
-        return f'WeightedFilter of {self.size} particles and {self._total_weight} total weight'
+        return (
+            f'WeightedFilter of {self.size} particles and {self._total_weight} '
+            f'total weight and {self.effective_sample_size()} effective size'
+        )
 
     def effective_sample_size(self) -> float:
         """ returns the effective sample size: 1 / sum(w_i^2)

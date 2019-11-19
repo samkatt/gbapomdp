@@ -181,6 +181,6 @@ def parse_arguments(args: Optional[List[str]] = None):
     parsed_args = parser.parse_args(args)
 
     if not parsed_args.search_depth:
-        parsed_args.searched_depth = parsed_args.horizon
+        parsed_args.search_depth = parsed_args.horizon
 
     return parsed_args

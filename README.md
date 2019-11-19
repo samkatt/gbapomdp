@@ -22,47 +22,26 @@ sudo apt install ffmpeg
 ```
 
 ### Run the program
-Main scripts, `pouct_planning.py`, `model_based.py` and `model_free.py` are located in `pobnrl`
+
+Main scripts, `pouct_planning.py`, `model_based.py` and `model_free.py` are
+located in `scripts/experiments`
 
 ```bash
 python {script} -D tiger -v 2
 python {script} -h
 ```
 
-## Relevant literature
-* [Osband, Ian, John Aslanides, and Albin Cassirer. "Randomized prior functions
-for deep reinforcement learning." Advances in Neural Information Processing
-Systems. 2018.][1]
-
 ## Development
 
-* documentation: Run `./make_documentation.sh` in root and find documentation
-  in `doc/pobnrl` folder
 * static analysis & formatting: Run `./static_analyse.sh` in root and check
   whether the code is formatted correctly
-* testing: Run `./run_tests.sh` and `./run_tests_integration.sh` in root and check that all pass
+* testing: Run `python setup.py test` in root and check that all pass
 
 ### TODO
 
-* revisit static analysis
-* profile (numba)
-* move scripts in a /bin directory
+* [ ] raise errors on illegal program arguments where appropriate
+* [ ] require parameter for some (now slightly) hidden program arguments
+* [ ] make `--train_offline` parameter a flag
+* [ ] revisit static analysis
+* [ ] profile (numba)
 
-#### spaces issue
-
-Observations:
-1. Planning requires (small) discrete action & observation problems
-2. Current implementation of learned environments assumes small discrete state space
-3. Model-free methods have been using one-hot, while learned model is much better at the opposite
-
-Questions:
-* Continuous versus discrete
-    1. Should I go to continuous states (learned environments)?
-    2. Should I go to continuous planning things?
-* Should I make a more general space, and work with gym spaces?
-* How do I go about different representations of the observations, states and actions?
-
-#### features
-* use pure indices in learning dynamics (i.e. BA-POMDP)
-
-[1]: https://papers.nips.cc/paper/8080-randomized-prior-functions-for-deep-reinforcement-learning.pdf

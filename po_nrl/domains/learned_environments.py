@@ -205,14 +205,16 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """
         return self.domain_obs2index(observation)
 
-    def reset(self, train_net_f: Callable[[DynamicsModel], None], learning_rate: float) -> None:
+    def reset(self, train_net_f: Callable[[DynamicsModel], None], learning_rate: float, online_learning_rate: float) -> None:
         """ resets the ensemble and re-trains them according
 
-        After training, the learning rate is reset to .001 for online updating
+        After training, the learning rate is reset to `online_learning_rate`
+        for online updating
 
         Args:
              train_net_f: (`Callable[[DynamicsModel], None]`):
-             learning_rate: (`float`):
+             learning_rate: (`float`): learning rate to learn models with
+             online_learning_rate: (`float`): learning rate to set to after learning
 
         RETURNS (`None`):
 
@@ -231,4 +233,4 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
             # after training models we use this low learning rate
             # for online updates
-            model.set_learning_rate(.001)
+            model.set_learning_rate(online_learning_rate)
