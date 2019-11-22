@@ -7,6 +7,8 @@ import numpy as np
 from po_nrl.agents.planning.particle_filters import ParticleFilter
 from po_nrl.agents.planning.belief import BeliefAnalysis
 
+from po_nrl.domains.road_racer import RoadRacer
+
 
 def tiger_model_analysis(
         belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
@@ -211,6 +213,159 @@ def ca_observation_analysis(
     ]
 
 
+def rr_observation_analysis(
+        belief: ParticleFilter,
+        num_lanes: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
+    """ checks whether the deterministic observation function is learned properly
+
+    Args:
+         belief: (`ParticleFilter`):
+         num_lanes: (`int`):
+
+    RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+    """
+    length = RoadRacer.LANE_LENGTH
+    size = 500
+
+    # sample states and actions
+    states = np.concatenate((
+        np.random.randint(0, length, (size, num_lanes)),
+        np.random.randint(0, num_lanes, (size, 1))
+    ), axis=1)
+    actions = np.random.randint(low=0, high=3, size=size)
+    models = [belief.sample().model for _ in range(size)]
+
+    next_states = np.array([
+        models[i].sample_state(states[i], actions[i])
+        for i in range(size)
+    ])
+
+    correct_observation_prob = np.array([
+        models[i].observation_model(
+            states[i],
+            actions[i],
+            next_states[i])[0][next_states[i][RoadRacer.get_current_lane(next_states[i])]]
+        for i in range(size)
+    ])
+
+    return [('correct_observation_prob', correct_observation_prob)]
+
+
+def rr_agent_lane_change(
+        belief: ParticleFilter,
+        num_lanes: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
+    """ diagnoses the model on predicting lane change
+
+    Args:
+         belief: (`ParticleFilter`):
+         num_lanes: (`int`):
+
+    RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+    """
+    length = RoadRacer.LANE_LENGTH
+    size = 500
+
+    # sample states and actions
+    states = np.concatenate((
+        np.random.randint(0, length, (size, num_lanes)),
+        np.random.randint(0, num_lanes, (size, 1))
+    ), axis=1)
+    actions = np.random.randint(low=0, high=3, size=size)
+    correct_next_lane = np.clip(a=states[:, -1] + actions - 1, a_min=0, a_max=num_lanes - 1)
+
+    correct_lane_prob = np.array([
+        belief.sample().model.transition_model(
+            states[i],
+            actions[i])[-1][correct_next_lane[i]]
+        for i in range(size)
+    ])
+
+    return [('correct_agent_y_prob', correct_lane_prob)]
+
+
+def rr_lane_advances(
+        belief: ParticleFilter,
+        num_lanes: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
+    """ diagnoses the model on predicting lane change
+
+    Args:
+         belief: (`ParticleFilter`):
+         num_lanes: (`int`):
+
+    RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
+
+    """
+    length = RoadRacer.LANE_LENGTH
+    size = 500
+
+    # sample states and actions
+    states = np.concatenate((
+        np.random.randint(0, length, (size, num_lanes)),
+        np.random.randint(0, num_lanes, (size, 1))
+    ), axis=1)
+    actions = np.random.randint(low=0, high=3, size=size)
+
+    lane_prob = np.array([
+        belief.sample().model.transition_model(
+            states[i],
+            actions[i])[:-1]
+        for i in range(size)
+    ])
+
+    potential_next_lane = np.zeros((size, num_lanes, length), dtype=bool)
+    # HATE THIS but do not know how to do this indexing wise...
+    for i in range(size):
+        potential_next_lane[i, np.arange(num_lanes), states[i, :-1]] = True
+        potential_next_lane[i, np.arange(num_lanes), (states[i, :-1] - 1) % length] = True
+
+    incorrect_lane_prob = lane_prob[~potential_next_lane]
+    correct_lane_prob = lane_prob[potential_next_lane].reshape(size, num_lanes, 2)
+
+    # states where agent is blocking car
+    states[np.arange(size), states[:, -1]] = 1
+    actions = np.ones(size, dtype=int)
+
+    car_block_prob = np.array([
+        belief.sample().model.transition_model(
+            states[i],
+            actions[i])[RoadRacer.get_current_lane(states[i])][1]  # stay
+        for i in range(size)
+    ])
+
+    # randomly checking if passed cars are starting at start again
+    states = np.concatenate((
+        np.random.randint(0, length, (size, num_lanes)),
+        np.random.randint(0, num_lanes, (size, 1))
+    ), axis=1)
+    actions = np.random.randint(low=0, high=3, size=size)
+
+    random_lanes = np.random.randint(0, num_lanes, size)
+    states[np.arange(size), random_lanes] = 0
+
+    car_reappear_prob = np.array([
+        belief.sample().model.transition_model(
+            states[i],
+            actions[i])[random_lanes[i]]
+        for i in range(size)
+    ])
+
+    return [
+        ('incorrect_lane_advance_prob', incorrect_lane_prob),
+        ('correct_car_blocked_prob', car_block_prob),
+    ] + [
+        (f'advance_prob_lane_{i}', correct_lane_prob[:, i, 0])
+        for i in range(num_lanes)
+    ] + [
+        (f'car_stay_edge_prob_{i}', car_reappear_prob[random_lanes == i, 0])
+        for i in range(num_lanes)
+    ] + [
+        (f'car_reappear_edge_prob_{i}', car_reappear_prob[random_lanes == i, -1])
+        for i in range(num_lanes)
+    ]
+
+
 def count_unique_models(
         belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ returns number of unique models from 100 samples
@@ -266,6 +421,13 @@ def analyzer_factory(domain: str, domain_size: int) -> BeliefAnalysis:
         return chain_analysis([
             partial(ca_transition_analysis, size=domain_size),
             partial(ca_observation_analysis, size=domain_size),
+            count_unique_models
+        ])
+    if domain == 'road_racer':
+        return chain_analysis([
+            partial(rr_observation_analysis, num_lanes=domain_size),
+            partial(rr_agent_lane_change, num_lanes=domain_size),
+            partial(rr_lane_advances, num_lanes=domain_size),
             count_unique_models
         ])
 
