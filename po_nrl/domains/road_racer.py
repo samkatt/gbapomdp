@@ -150,7 +150,7 @@ class RoadRacer(Environment, Simulator):
         if self.logger.log_is_on(POBNRLogger.LogLevel.V2):
             self.logger.log(
                 POBNRLogger.LogLevel.V2,
-                f"lane={self.current_lane}, a={action}, o={step.observation[0]}, r={reward}"
+                f"lane={self.current_lane} and lanes {self.state[:-1]}, a={action}, o={step.observation[0]}, r={reward}"
             )
 
         return EnvironmentInteraction(step.observation, reward, terminal)
@@ -207,6 +207,7 @@ class RoadRacer(Environment, Simulator):
         if next_state[next_lane] != 0:
             next_state[self.agent_state_feature_index] = next_lane
 
+        # TODO: do this before moving again?
         # cars re-appear at the start of the lane when finishing
         next_state[:-1] = next_state[:-1] % self.lane_length
 
