@@ -243,18 +243,14 @@ class RoadRacer(Environment, Simulator):
         assert self.action_space.contains(action)
         assert self.state_space.contains(new_state)
 
-        previous_lane = RoadRacer.get_current_lane(state)
+        desired_lane = RoadRacer.get_current_lane(state) - 1 + action
+        current_lane = RoadRacer.get_current_lane(new_state)
 
-        bump = (
-            # action == 0 and previous_lane == 0 OR action == 2 and previous_lane == self.num_lanes - 1
-            not action + previous_lane or action + previous_lane == self.num_lanes + 1\
-            or\
-            new_state[previous_lane - 1 + action] == 0  # destined spot has a car
-        )
+        bump = action != RoadRacer.NO_OP and desired_lane != current_lane
 
         # return the distance of the car in the current lane
-        # penalize agent for moving (action of 0 or 2)
-        return new_state[RoadRacer.get_current_lane(new_state)] - bump
+        # penalize agent for bumping
+        return new_state[current_lane] - bump
 
     def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
         """ implements `po_nrl.environments.Simulator.terminal` """
