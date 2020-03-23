@@ -3,6 +3,7 @@
 from collections import deque, namedtuple
 from enum import Enum, auto
 from typing import Tuple, Deque, List, Any
+from typing_extensions import Protocol
 
 import numpy as np
 import torch
@@ -26,6 +27,34 @@ class Interaction(
              observation: (`np.ndarray`):
     """
     __slots__ = ()  # required to keep lightweight implementation of namedtuple
+
+
+class OptimizerBuilder(Protocol):
+    """ Defines the signature of optimizer builder"""
+
+    def __call__(self, parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
+        """ function call signature for building an optimizer
+
+        Args:
+             parameters: (torch parameters): the parameters to optimize
+             learning_rate: (`float`): learning rate of the optimizer
+
+        RETURNS (`torch.optim.Optimizer`):
+
+        """
+
+
+def sgd_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
+    """ builds the torch SGD optimizer to update `parameters` with `learning_rate` stepsize
+
+        Args:
+             parameters: (torch parameters): the parameters to optimize
+             learning_rate: (`float`): learning rate of the optimizer
+
+        RETURNS (`torch.optim.Optimizer`): Torch SGD optimizer
+
+        """
+    return torch.optim.SGD(parameters, lr=learning_rate)
 
 
 def adam_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
@@ -58,7 +87,8 @@ class DynamicsModel:
             network_size: int,
             learning_rate: float,
             batch_size: int,
-            dropout_rate: float):
+            dropout_rate: float,
+            optimizer_builder: OptimizerBuilder = sgd_builder):
         """ Creates a dynamic model
 
         Args:
@@ -82,6 +112,7 @@ class DynamicsModel:
         self.learning_rate = learning_rate
 
         self.criterion = torch.nn.CrossEntropyLoss()
+        self.optimizer_builder = optimizer_builder
 
         self.net_t = Net(
             input_size=self.state_space.ndim + self.action_space.n,
@@ -97,8 +128,8 @@ class DynamicsModel:
             dropout_rate=dropout_rate,
         ).to(device())
 
-        self.t_optimizer = adam_builder(self.net_t.parameters(), self.learning_rate)
-        self.o_optimizer = adam_builder(self.net_o.parameters(), self.learning_rate)
+        self.t_optimizer = self.optimizer_builder(self.net_t.parameters(), self.learning_rate)
+        self.o_optimizer = self.optimizer_builder(self.net_o.parameters(), self.learning_rate)
 
     def set_learning_rate(self, learning_rate: float) -> None:
         """ (re)sets the optimizers' learning rate
@@ -113,8 +144,8 @@ class DynamicsModel:
         """
         assert 0 < learning_rate < 1, f'learning rate must be [0,1], not {learning_rate}'
 
-        self.t_optimizer = adam_builder(self.net_t.parameters(), learning_rate)
-        self.o_optimizer = adam_builder(self.net_o.parameters(), learning_rate)
+        self.t_optimizer = self.optimizer_builder(self.net_t.parameters(), learning_rate)
+        self.o_optimizer = self.optimizer_builder(self.net_o.parameters(), learning_rate)
 
         self.learning_rate = learning_rate
 
@@ -354,8 +385,8 @@ class DynamicsModel:
         self.net_o.random_init_parameters()
         self.num_batches = 0
 
-        self.o_optimizer = adam_builder(self.net_o.parameters(), self.learning_rate)
-        self.t_optimizer = adam_builder(self.net_t.parameters(), self.learning_rate)
+        self.o_optimizer = self.optimizer_builder(self.net_o.parameters(), self.learning_rate)
+        self.t_optimizer = self.optimizer_builder(self.net_t.parameters(), self.learning_rate)
 
     def perturb_parameters(
             self,
