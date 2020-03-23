@@ -2,7 +2,7 @@
 
 from collections import deque, namedtuple
 from enum import Enum, auto
-from typing import Tuple, Deque, List
+from typing import Tuple, Deque, List, Any
 
 import numpy as np
 import torch
@@ -26,6 +26,19 @@ class Interaction(
              observation: (`np.ndarray`):
     """
     __slots__ = ()  # required to keep lightweight implementation of namedtuple
+
+
+def adam_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
+    """ builds the torch Adam optimizer to update `parameters` with `learning_rate` stepsize
+
+        Args:
+             parameters: (torch parameters): the parameters to optimize
+             learning_rate: (`float`): learning rate of the optimizer
+
+        RETURNS (`torch.optim.Optimizer`): Torch Adam optimizer
+
+        """
+    return torch.optim.Adam(parameters, lr=learning_rate)
 
 
 class DynamicsModel:
@@ -65,6 +78,11 @@ class DynamicsModel:
 
         self.experiences: Deque[Interaction] = deque([], batch_size)
 
+        self.num_batches = 0
+        self.learning_rate = learning_rate
+
+        self.criterion = torch.nn.CrossEntropyLoss()
+
         self.net_t = Net(
             input_size=self.state_space.ndim + self.action_space.n,
             output_size=np.sum(self.state_space.size),
@@ -79,20 +97,8 @@ class DynamicsModel:
             dropout_rate=dropout_rate,
         ).to(device())
 
-        self.t_optimizer = torch.optim.Adam(
-            self.net_t.parameters(),
-            lr=learning_rate
-        )
-
-        self.o_optimizer = torch.optim.Adam(
-            self.net_o.parameters(),
-            lr=learning_rate
-        )
-
-        self.criterion = torch.nn.CrossEntropyLoss()
-
-        self.num_batches = 0
-        self.learning_rate = learning_rate
+        self.t_optimizer = adam_builder(self.net_t.parameters(), self.learning_rate)
+        self.o_optimizer = adam_builder(self.net_o.parameters(), self.learning_rate)
 
     def set_learning_rate(self, learning_rate: float) -> None:
         """ (re)sets the optimizers' learning rate
@@ -107,15 +113,8 @@ class DynamicsModel:
         """
         assert 0 < learning_rate < 1, f'learning rate must be [0,1], not {learning_rate}'
 
-        self.t_optimizer = torch.optim.Adam(
-            self.net_t.parameters(),
-            lr=learning_rate
-        )
-
-        self.o_optimizer = torch.optim.Adam(
-            self.net_o.parameters(),
-            lr=learning_rate
-        )
+        self.t_optimizer = adam_builder(self.net_t.parameters(), learning_rate)
+        self.o_optimizer = adam_builder(self.net_o.parameters(), learning_rate)
 
         self.learning_rate = learning_rate
 
@@ -355,14 +354,8 @@ class DynamicsModel:
         self.net_o.random_init_parameters()
         self.num_batches = 0
 
-        self.o_optimizer = torch.optim.Adam(
-            self.net_o.parameters(),
-            lr=self.learning_rate
-        )
-        self.t_optimizer = torch.optim.Adam(
-            self.net_t.parameters(),
-            lr=self.learning_rate
-        )
+        self.o_optimizer = adam_builder(self.net_o.parameters(), self.learning_rate)
+        self.t_optimizer = adam_builder(self.net_t.parameters(), self.learning_rate)
 
     def perturb_parameters(
             self,

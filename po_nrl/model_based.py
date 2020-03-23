@@ -224,6 +224,14 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--optimizer", "-O",
+        default="SGD",
+        type=str,
+        choices=['SGD', 'Adam'],
+        help="The optimizer used to learn the networks"
+    )
+
+    parser.add_argument(
         "--learning_rate", "--alpha",
         default=1e-4,
         type=float,
