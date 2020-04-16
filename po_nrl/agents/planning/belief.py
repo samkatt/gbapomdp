@@ -329,8 +329,9 @@ def backprop_update(
 
     """
 
+    log_loss = False  # online we do not log the loss
     # `batch_update` expects batch_size x ... size. [None] adds a dimension
-    model.batch_update(state[None], action[None], next_state[None], observation[None], freeze_model_setting)
+    model.batch_update(state[None], action[None], next_state[None], observation[None], log_loss, freeze_model_setting)
 
 
 class ModelUpdatesChain():

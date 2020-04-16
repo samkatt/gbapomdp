@@ -66,7 +66,7 @@ class TestDynamicModel(unittest.TestCase):
         self.is_equal_models(test_model.net_o, copied_model.net_o, False)
 
         copied_model = copy.deepcopy(test_model)
-        test_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]), DynamicsModel.FreezeModelSetting.FREEZE_O)
+        test_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]), conf=DynamicsModel.FreezeModelSetting.FREEZE_O)
 
         self.is_equal_models(test_model.net_t, copied_model.net_t, False)
         self.is_equal_models(test_model.net_o, copied_model.net_o, True)
@@ -74,7 +74,7 @@ class TestDynamicModel(unittest.TestCase):
         copied_model = copy.deepcopy(test_model)
 
         self.is_equal_models(test_model.net_t, copied_model.net_t, True)
-        test_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]), DynamicsModel.FreezeModelSetting.FREEZE_T)
+        test_model.batch_update(np.array([[0]]), np.array([0]), np.array([[0]]), np.array([[0]]), conf=DynamicsModel.FreezeModelSetting.FREEZE_T)
 
         self.is_equal_models(test_model.net_o, copied_model.net_o, False)
         self.is_equal_models(test_model.net_t, copied_model.net_t, True)

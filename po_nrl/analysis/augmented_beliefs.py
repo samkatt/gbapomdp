@@ -59,7 +59,7 @@ def ca_transition_analysis(
         size: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ provides analysis on belief over collision avoidance transition model
 
-    returns the probability of
+    Returns the probability of
         - (deterministic) x position
         - (deterministic) y position
         - impossible obstacle transition
