@@ -92,6 +92,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_reward = domain.reward
         self.domain_terminal = domain.terminal
 
+        # TODO: set builder here
         self._models = [
             DynamicsModel(
                 domain.state_space,

@@ -100,7 +100,8 @@ class BeliefManager(POBNRLogger):
         if episode_reset_f:
             self._episode_reset = episode_reset_f
         else:
-            self._episode_reset = lambda _: self._reset()
+            # TODO: mypy complaint
+            self._episode_reset = lambda _: self.reset()
 
         # TODO: potentially just remove?
         self._belief = self._reset()
@@ -108,11 +109,13 @@ class BeliefManager(POBNRLogger):
     def reset(self) -> None:
         """ resets by sampling new belief """
 
+        # TODO: should return, instead of setting?
         self._belief = self._reset()
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset to {self._belief}")
 
+        # TODO: If some logic depends on this, then any _other_ reset given will fail us?
         self.episode = 0
 
     def episode_reset(self) -> None:

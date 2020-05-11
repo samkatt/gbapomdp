@@ -42,6 +42,7 @@ class TestDynamicModel(unittest.TestCase):
         If freeze_T then the observation should not change with update (O should)
         """
 
+        # TODO: set optimizer
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
             action_space=ActionSpace(2),
@@ -90,6 +91,7 @@ class TestDynamicModel(unittest.TestCase):
 
         """
 
+        # TODO: set optimizer
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
             action_space=ActionSpace(2),
@@ -110,6 +112,7 @@ class TestDynamicModel(unittest.TestCase):
         self.is_equal_models(test_model.net_t, copied_model.net_t, False)
         self.is_equal_models(test_model.net_o, copied_model.net_o, False)
 
+        # TODO: set optimizer
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
             action_space=ActionSpace(1),
