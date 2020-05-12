@@ -70,6 +70,23 @@ def adam_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer
     return torch.optim.Adam(parameters, lr=learning_rate)
 
 
+def get_optimizer_builder(option: str) -> OptimizerBuilder:
+    """ Returns the appropriate optimizer builder
+
+        Args:
+             state_space: (`po_nrl.misc.DiscreteSpace`):
+
+        RETURNS (`po_nrl.agents.neural_networks.OptimizerBuilder`):
+
+    """
+    if option == 'SGD':
+        return sgd_builder
+    if option == 'Adam':
+        return adam_builder
+
+    raise ValueError(f'Undefined optimizer {option}')
+
+
 class DynamicsModel:
     """ A neural network representing POMDP dynamics (s,a) -> p(s',o) """
 
@@ -88,7 +105,7 @@ class DynamicsModel:
             learning_rate: float,
             batch_size: int,
             dropout_rate: float,
-            optimizer_builder: OptimizerBuilder = sgd_builder):
+            optimizer_builder: OptimizerBuilder):
         """ Creates a dynamic model
 
         Args:
@@ -99,6 +116,7 @@ class DynamicsModel:
              learning_rate: (`float`): learning rate of the optimizers
              batch_size: (`int`): number of interactions to **remember** and update with
              dropout_rate: (`float`): dropout rate of the layers
+             optimizer_builder: (`OptimizerBuilder`): builder function for optimizer
 
         """
 

@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 import copy
 import numpy as np
 
-from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
+from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel, get_optimizer_builder
 from po_nrl.environments import ActionSpace, TerminalState
 from po_nrl.environments import Simulator, SimulationResult
 from po_nrl.misc import Space, DiscreteSpace, POBNRLogger
@@ -92,7 +92,8 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_reward = domain.reward
         self.domain_terminal = domain.terminal
 
-        # TODO: set builder here
+        optimizer_builder = get_optimizer_builder(conf.optimizer)
+
         self._models = [
             DynamicsModel(
                 domain.state_space,
@@ -101,7 +102,8 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 conf.network_size,
                 conf.learning_rate,
                 conf.batch_size,
-                conf.dropout_rate
+                conf.dropout_rate,
+                optimizer_builder
             ) for i in range(conf.num_nets)
         ]
 

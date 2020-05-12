@@ -8,13 +8,13 @@ import torch
 
 from po_nrl.agents.neural_networks.misc import perturb
 from po_nrl.agents.neural_networks.networks import Net
-from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
+from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel, sgd_builder, adam_builder, get_optimizer_builder
 from po_nrl.environments import ActionSpace
 from po_nrl.misc import DiscreteSpace
 
 
 class TestDynamicModel(unittest.TestCase):
-    """ Test unit fo the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
+    """ Test unit for the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
 
     def is_equal_models(self, model_a, model_b, is_equal: bool) -> None:
         """ checks whether provided models are equal
@@ -42,7 +42,6 @@ class TestDynamicModel(unittest.TestCase):
         If freeze_T then the observation should not change with update (O should)
         """
 
-        # TODO: set optimizer
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
             action_space=ActionSpace(2),
@@ -50,7 +49,8 @@ class TestDynamicModel(unittest.TestCase):
             network_size=5,
             learning_rate=.01,
             batch_size=0,
-            dropout_rate=0.5
+            dropout_rate=0.5,
+            optimizer_builder=sgd_builder
         )
 
         copied_model = copy.deepcopy(test_model)
@@ -91,7 +91,6 @@ class TestDynamicModel(unittest.TestCase):
 
         """
 
-        # TODO: set optimizer
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
             action_space=ActionSpace(2),
@@ -99,7 +98,8 @@ class TestDynamicModel(unittest.TestCase):
             network_size=5,
             learning_rate=.01,
             batch_size=0,
-            dropout_rate=0.5
+            dropout_rate=0.5,
+            optimizer_builder=sgd_builder
         )
 
         copied_model = copy.deepcopy(test_model)
@@ -120,8 +120,10 @@ class TestDynamicModel(unittest.TestCase):
             network_size=5,
             learning_rate=.01,
             batch_size=0,
-            dropout_rate=0.5
+            dropout_rate=0.5,
+            optimizer_builder=sgd_builder
         )
+
         copied_model = copy.deepcopy(test_model)
 
         copied_model.batch_update(np.array([[1]]), np.array([0]), np.array([[0]]), np.array([[1]]))
@@ -129,6 +131,11 @@ class TestDynamicModel(unittest.TestCase):
         self.is_equal_models(test_model.net_t, copied_model.net_t, False)
         self.is_equal_models(test_model.net_o, copied_model.net_o, False)
 
+    def test_optimizer_builder(self) -> None:
+        """ Simple tests to ensure the correct builder is returned """
+        self.assertEqual(get_optimizer_builder('SGD'), sgd_builder)
+        self.assertEqual(get_optimizer_builder('Adam'), adam_builder)
+        self.assertRaises(ValueError, get_optimizer_builder, 'a wrong value')
 
 class TestMisc(unittest.TestCase):
     """ Tests `po_nrl.agents.neural_networks.misc` """

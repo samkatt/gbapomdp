@@ -129,7 +129,7 @@ class QNet(QNetInterface, POBNRLogger):
             conf.prior_function_scale
         ).to(device())
 
-        self.update_target()  # make sure paramters are set equal
+        self.update_target()  # Make sure parameters are set equal
 
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=conf.learning_rate)
         self.criterion = RMSELoss()
