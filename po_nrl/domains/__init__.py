@@ -51,14 +51,16 @@ def create_environment(
 def create_prior(
         domain_name: str,
         domain_size: int,
-        prior_param: float,
+        prior_certainty: float,
+        prior_correctness: float,
         encoding: EncodeType) -> Prior:
-    """ create_prior
+    """ Builds the prior associated with input parameters
 
     Args:
          domain_name: (`str`): currently only accepting tiger
          domain_size: (`int`): size of domain
-         prior_param: (`float`): some parameter to help set the prior (domain depenedent)
+         prior_certainty: (`float`): Certainty of the prior: Tiger, CollisionAvoidance, RoadRacer -> total number of counts
+         prior_correctness: (`float`): Correctness of the prior: Tiger -> [0,1] -> [62.5, 85] observation probability
          encoding: (`EncodeType`): what observation encoding to use
 
     RETURNS (`po_nrl.domains.priors.Prior`):
@@ -66,12 +68,12 @@ def create_prior(
     """
 
     if domain_name == "tiger":
-        return TigerPrior(prior_param, encoding)
+        return TigerPrior(prior_certainty, prior_correctness, encoding)
     if domain_name == "gridworld":
         return GridWorldPrior(domain_size, encoding)
     if domain_name == 'collision_avoidance':
-        return CollisionAvoidancePrior(domain_size, prior_param)
+        return CollisionAvoidancePrior(domain_size, prior_certainty)
     if domain_name == 'road_racer':
-        return RoadRacerPrior(domain_size, prior_param)
+        return RoadRacerPrior(domain_size, prior_certainty)
 
     raise ValueError('no known priors for domain ' + domain_name)

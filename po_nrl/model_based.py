@@ -217,10 +217,18 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
-        "--prior_param",
+        "--prior_certainty",
         type=float,
         default=10,
-        help='currently only implemented for tiger: number of the total counts'
+        help='How "strong" the prior is, currently implemented for Tiger, CollisionAvoidance & RoadRacer as number of the total counts'
+    )
+
+    parser.add_argument(
+        "--prior_correctness",
+        type=float,
+        default=0,
+        help='How "correct" the prior is, currently implemented for Tiger: [0,1] -> [62.5,85] observation probability',
+        metavar="[0, 1]"
     )
 
     parser.add_argument(
@@ -360,7 +368,7 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
             return env
     elif conf.train_offline == 'on_prior':
         sim_sampler \
-            = create_prior(conf.domain, conf.domain_size, conf.prior_param, EncodeType.DEFAULT).sample
+            = create_prior(conf.domain, conf.domain_size, conf.prior_certainty, conf.prior_correctness, EncodeType.DEFAULT).sample
 
     def train_method(net: DynamicsModel):
         sim = sim_sampler()

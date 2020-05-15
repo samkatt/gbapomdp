@@ -28,38 +28,51 @@ class TigerPrior(Prior):
     """ standard prior over the tiger domain
 
     The transition model is known, however the probability of observing the
-    tiger correctly is not. Here we assume a Dir(.6 * total_counts ,.4 * total_counts) belief over this
-    distribution.
+    tiger correctly is not. Here we assume a `Dir(prior * total_counts
+    ,(1-prior) * total_counts)` belief over this distribution.
+
+    `prior` is computed by the `prior_correctness`: 1 -> .85, whereas 0 ->
+    .625, linear mapping in between
 
     """
 
-    def __init__(self, num_total_counts: float, encoding: EncodeType):
+    def __init__(self, num_total_counts: float, prior_correctness, encoding: EncodeType):
         """ initiate the prior, will make observation one-hot encoded
 
         Args:
-             num_total_counts: (`float`): number of total counts of Dir prior
+             num_total_counts: (`float`): Number of total counts of Dir prior
+             prior_correctness: (`float`): How correct the observation model is: [0, 1] -> [.625, .85]
              encoding: (`po_nrl.environments.EncodeType`):
 
         """
 
         if num_total_counts <= 0:
-            raise ValueError('Assume positive number of total counts')
+            raise ValueError(f'Assume positive number of total counts, not {num_total_counts}')
 
+        if not 0 <= prior_correctness < 1:
+            raise ValueError(f'`prior_correctness` must be [0,1], not {prior_correctness}')
+
+        # Linear mapping: [0, 1] -> [.625, .85]
+        self._observation_prob = .625 + (prior_correctness * .225)
         self._total_counts = num_total_counts
         self._encoding = encoding
 
     def sample(self) -> Simulator:
         """ returns a Tiger instance with some correct observation prob
 
-        This prior over the observation probability is a Dirichlet with alpha
-        [6,4]
+        This prior over the observation probability is a Dirichlet with total
+        counts and observation probability as defined during the initialization
 
         RETURNS (`po_nrl.environments.Simulator`):
 
         """
         sampled_observation_probs = [
-            np.random.dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0],
-            np.random.dirichlet([.6 * self._total_counts, .4 * self._total_counts])[0]
+            np.random.dirichlet([
+                self._observation_prob * self._total_counts,
+                (1 - self._observation_prob) * self._total_counts])[0],
+            np.random.dirichlet([
+                self._observation_prob * self._total_counts,
+                (1 - self._observation_prob) * self._total_counts])[0]
         ]
 
         return Tiger(encoding=self._encoding, correct_obs_probs=sampled_observation_probs)
