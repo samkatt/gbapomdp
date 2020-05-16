@@ -102,7 +102,7 @@ class RecNet(torch.nn.Module):  # type: ignore
             self,
             net_input: torch.Tensor,
             hidden: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]] = None
-    ) -> Tuple[torch.Tensor, Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]]:
+    ) -> Tuple[torch.Tensor, Tuple[Optional[Tuple[torch.Tensor, torch.Tensor]], Optional[Tuple[torch.Tensor, torch.Tensor]]]]:
         """ forward passes through the network
 
         Will pass the network input with optional hidden state and return the output plus new hidden state
@@ -128,22 +128,15 @@ class RecNet(torch.nn.Module):  # type: ignore
         # XXX: use packing for increased performance
         activations, hidden_net = self.rnn_layer(activations, hidden_net)
 
-        assert hidden_net
-
         if self.prior:
 
             # XXX: use packing for increased performance
             prior, hidden_prior = self.prior(net_input, hidden_prior)
 
-            assert hidden_prior
-
             return (
                 self.out(activations) + self.prior_scaling * prior,
                 (hidden_net, hidden_prior)
             )
-
-        # no prior
-        assert not hidden_prior
 
         return (
             self.out(activations),

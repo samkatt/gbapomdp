@@ -304,10 +304,12 @@ class DynamicsModel:
 
         """
 
+        transition_probabilities = self.transition_model(state, action)
+
         # sample value for each dimension iteratively
         return np.array([
-            torch.multinomial(torch.from_numpy(probs), num).item()
-            for probs in self.transition_model(state, action)
+            torch.multinomial(torch.from_numpy(probs), num, replacement=True).item()
+            for probs in transition_probabilities
         ], dtype=int)
 
     def sample_observation(
@@ -328,10 +330,12 @@ class DynamicsModel:
 
         """
 
+        observation_probabilities = self.observation_model(state, action, next_state)
+
         # sample value for each dimension iteratively
         return np.array([
-            torch.multinomial(torch.from_numpy(probs), num).item()
-            for probs in self.observation_model(state, action, next_state)
+            torch.multinomial(torch.from_numpy(probs), num, replacement=True).item()
+            for probs in observation_probabilities
         ], dtype=int)
 
     def transition_model(
@@ -340,8 +344,8 @@ class DynamicsModel:
             action: int) -> List[np.ndarray]:
         """ Returns the transition model (next state) for state-action pair
 
-        element i of the returned list is the transition probability of next
-        state dimension i
+        Element i of the returned list is the (batch, dim_size) probabilities
+        of dimension i as a numpy array
 
         Args:
              state: (`np.ndarray`):
@@ -371,7 +375,7 @@ class DynamicsModel:
             next_state: np.ndarray) -> List[np.ndarray]:
         """ Returns the observation model of a transition
 
-        element i of the returned list is the probability of observation
+        Element i of the returned list is the probability of observation
         dimension i
 
         Args:

@@ -23,26 +23,31 @@ def tiger_model_analysis(
 
     """
     # hear correct for state 0
+    left_state = np.array([0])
+    right_state = np.array([1])
+    open_door = 2
+
+    # hear correct for state left
     hear_correct_0 = np.array([
-        belief.sample().model.observation_model([0], 2, [0])[0][0]
+        belief.sample().model.observation_model(left_state, open_door, left_state)[0][0]
         for _ in range(1000)
     ])
 
-    # hear correct for state 1
+    # hear correct for state right
     hear_correct_1 = np.array([
-        belief.sample().model.observation_model([1], 2, [1])[0][1]
+        belief.sample().model.observation_model(right_state, open_door, )[0][1]
         for _ in range(1000)
     ])
 
     # tiger stays left when opening
     stay_left_prob = np.array([
-        belief.sample().model.transition_model([0], 2)[0][0]
+        belief.sample().model.transition_model(left_state, open_door)[0][0]
         for _ in range(1000)
     ])
 
-    # tiger stays left when opening
+    # tiger stays right when opening
     stay_right_prob = np.array([
-        belief.sample().model.transition_model([1], 2)[0][1]
+        belief.sample().model.transition_model(right_state, open_door)[0][1]
         for _ in range(1000)
     ])
 

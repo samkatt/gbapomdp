@@ -35,15 +35,13 @@ python {script} -h
 
 ## Development
 
-* static analysis & formatting: Run `./static_analyse.sh` in root and check
+* static analysis & formatting: Run `make static_analyse` in root and check
   whether the code is formatted correctly
 * testing: Run `python setup.py test` in root and check that all pass
 
 ### TODO
 
-* [ ] raise errors on illegal program arguments where appropriate
-* [ ] require parameter for some (now slightly) hidden program arguments
-* [ ] make `--train_offline` parameter a flag
-* [ ] revisit static analysis
-* [ ] profile (numba)
-
+* [ ] Raise errors on illegal program arguments where appropriate
+* [ ] Require parameter for some (now slightly) hidden program arguments
+* [ ] Make `--train_offline` parameter a flag
+* [ ] Revisit static analysis

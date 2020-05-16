@@ -125,7 +125,6 @@ class TestTigerPrior(unittest.TestCase):
         self.assertFalse(.624 <= obs_probs[1] <= .626, f'Rarely false; obs = {obs_probs[0]}')
 
 
-    
 class TestGridWorldPrior(unittest.TestCase):
     """ tests the prior over the gridworld problem """
 

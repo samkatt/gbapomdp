@@ -100,22 +100,18 @@ class BeliefManager(POBNRLogger):
         if episode_reset_f:
             self._episode_reset = episode_reset_f
         else:
-            # TODO: mypy complaint
-            self._episode_reset = lambda _: self.reset()
+            self._episode_reset = lambda _: self._reset()
 
-        # TODO: potentially just remove?
         self._belief = self._reset()
 
     def reset(self) -> None:
         """ resets by sampling new belief """
 
-        # TODO: should return, instead of setting?
         self._belief = self._reset()
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
             self.log(POBNRLogger.LogLevel.V3, f"Belief reset to {self._belief}")
 
-        # TODO: If some logic depends on this, then any _other_ reset given will fail us?
         self.episode = 0
 
     def episode_reset(self) -> None:
@@ -191,7 +187,7 @@ def importance_sampling(
         action: np.ndarray,
         observation: np.ndarray,
         minimal_sampling_size: int) -> WeightedFilter:
-    """ applies importance sampling **with resampling** as belief update
+    """ Applies importance sampling **with resampling** as belief update
 
     Assumes belief is over state and models, i.e.
     `po_nrl.domains.learned_environments.NeuralEnsemblePOMDP.AugmentedState`
@@ -218,14 +214,12 @@ def importance_sampling(
 
         next_domain_state = state.model.sample_state(state.domain_state, action)
 
+        observation_probability = state.model.observation_model(
+            state.domain_state, action, next_domain_state
+        )
+
         weight = np.prod([
-            distr[feature] for distr, feature in
-            zip(
-                state.model.observation_model(
-                    state.domain_state, action, next_domain_state
-                ),
-                observation
-            )
+            distr[feature] for distr, feature in zip(observation_probability, observation)
         ])
 
         next_belief.add_weighted_particle(WeightedParticle(
@@ -461,14 +455,12 @@ def augmented_importance_sampling(
             observation=observation
         )
 
+        observation_probability = state.model.observation_model(
+            state.domain_state, action, next_domain_state
+        )
+
         weight = np.prod([
-            distr[feature] for distr, feature in
-            zip(
-                state.model.observation_model(
-                    state.domain_state, action, next_domain_state
-                ),
-                observation
-            )
+            distr[feature] for distr, feature in zip(observation_probability, observation)
         ])
 
         state.domain_state = next_domain_state

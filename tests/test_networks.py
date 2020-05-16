@@ -112,7 +112,6 @@ class TestDynamicModel(unittest.TestCase):
         self.is_equal_models(test_model.net_t, copied_model.net_t, False)
         self.is_equal_models(test_model.net_o, copied_model.net_o, False)
 
-        # TODO: set optimizer
         test_model = DynamicsModel(
             state_space=DiscreteSpace([2]),
             action_space=ActionSpace(1),
@@ -136,6 +135,7 @@ class TestDynamicModel(unittest.TestCase):
         self.assertEqual(get_optimizer_builder('SGD'), sgd_builder)
         self.assertEqual(get_optimizer_builder('Adam'), adam_builder)
         self.assertRaises(ValueError, get_optimizer_builder, 'a wrong value')
+
 
 class TestMisc(unittest.TestCase):
     """ Tests `po_nrl.agents.neural_networks.misc` """

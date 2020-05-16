@@ -11,10 +11,10 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
     """ the chain environment
 
     The domains are indexed by problem size N and action mask W =
-    Ber(0.5)^NxN,with S={0,1}^NxN and A={0,1}. he agent begins each episode
-    inthe upper left-most state in the grid and deterministically falls one row
+    Ber(0.5)^NxN,with S={0,1}^NxN and A={0,1}. The agent begins each episode in
+    the upper left-most state in the grid and deterministically falls one row
     per time step. The state encodes the agent’s row and column as a one-hot
-    vectorst. The actions {0,1} move the agent left or right depending on the
+    vectors. The actions {0,1} move the agent left or right depending on the
     action mask W at state s, which remains fixed. The agent incurs a cost of
     0.01/N for moving right in all states except for the right-most, in which
     the reward is 1. The reward for action left is always zero. An episode ends
