@@ -1,15 +1,16 @@
 # Partially Observable Neural Reinforcement Learning
 
 A code base to run (Model-based Bayesian Neural) Reinforcement Learning
-experiments on partially observable domains. This project is meant for
-reinforcement learning researchers to compare different methods. It contains
-various different environments to test the methods on. Note that this project
-has mostly been written for personal use, research, and thus may lack the
-documentation that one would typically expect from open source projects.
+experiments on partially observable domains. This project allows reinforcement
+learning researchers to compare different methods. It contains environments to
+test the methods on. Note that this project is for personal use, research, and
+thus may lack the documentation that one would typically expect from open
+source projects.
 
 ## Use
 
 ### Installation
+
 Install the required python packages and dependencies:
 
 ```bash
@@ -17,6 +18,7 @@ pip install -r requirements.txt
 ```
 
 ffmpeg encoding
+
 ```bash
 sudo apt install ffmpeg
 ```
