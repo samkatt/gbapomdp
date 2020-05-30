@@ -1,7 +1,8 @@
 *.pyc
-doc/*
+*.swp
 *.out
 *.npy
+doc/*
 videos
 .mypy_cache
 .tensorboard/*

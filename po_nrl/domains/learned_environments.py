@@ -8,6 +8,7 @@ from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel, get_optim
 from po_nrl.environments import ActionSpace, TerminalState
 from po_nrl.environments import Simulator, SimulationResult
 from po_nrl.misc import Space, DiscreteSpace, POBNRLogger
+from po_nrl.pytorch_api import tensorboard_logging
 
 
 def train_from_uniform_steps(
@@ -47,9 +48,10 @@ def train_from_uniform_steps(
             except TerminalState:
                 continue
 
+    log_loss = tensorboard_logging()
     for _ in range(num_epochs):
         states, actions, new_states, observations = zip(*[sample_transition() for _ in range(batch_size)])
-        model.batch_update(np.array(states), np.array(actions), np.array(new_states), np.array(observations))
+        model.batch_update(np.array(states), np.array(actions), np.array(new_states), np.array(observations), log_loss)
 
 
 class NeuralEnsemblePOMDP(Simulator, POBNRLogger):

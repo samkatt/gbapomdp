@@ -13,7 +13,7 @@ from po_nrl.agents.neural_networks import Net
 from po_nrl.agents.neural_networks.misc import perturb
 from po_nrl.environments import ActionSpace
 from po_nrl.misc import DiscreteSpace
-from po_nrl.pytorch_api import log_tensorboard, device, tensorboard_logging
+from po_nrl.pytorch_api import log_tensorboard, device
 
 
 class Interaction(
@@ -194,6 +194,7 @@ class DynamicsModel:
             actions: np.ndarray,
             next_states: np.ndarray,
             obs: np.ndarray,
+            log_loss: bool = False,
             conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE) -> None:
         """ performs a batch update (single gradient descent step)
 
@@ -202,6 +203,7 @@ class DynamicsModel:
              actions: (`np.ndarray`): (batch_size,) array of actions
              next_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
              obs: (`np.ndarray`): (batch_size, obs_shape) array of observations
+             log_loss: (`bool`): whether to log the loss
              conf: (`FreezeModelSetting`): configurations for training
 
         """
@@ -229,7 +231,7 @@ class DynamicsModel:
             loss.backward()
             self.t_optimizer.step()
 
-            if tensorboard_logging():
+            if log_loss:
                 log_tensorboard(f'transition_loss/{self}', loss.item(), self.num_batches)
 
         # observation model
@@ -250,7 +252,7 @@ class DynamicsModel:
             loss.backward()
             self.o_optimizer.step()
 
-            if tensorboard_logging():
+            if log_loss:
                 log_tensorboard(f'observation_loss/{self}', loss.item(), self.num_batches)
 
         self.num_batches += 1
@@ -266,7 +268,8 @@ class DynamicsModel:
         """
         assert self.experiences, f'cannot self learn without data'
 
-        self.batch_update(*map(np.array, zip(*self.experiences)), conf=conf)  # type: ignore
+        log_loss = False  # no logging of loss online
+        self.batch_update(*map(np.array, zip(*self.experiences)), log_loss, conf)  # type: ignore
 
     def add_transition(
             self,

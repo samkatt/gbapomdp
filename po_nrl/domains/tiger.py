@@ -3,7 +3,7 @@
 from typing import List, Optional
 import numpy as np
 
-from po_nrl.environments import Environment, EnvironmentInteraction, ActionSpace
+from po_nrl.environments import Environment, EnvironmentInteraction, ActionSpace, TerminalState
 from po_nrl.environments import Simulator, SimulationResult, EncodeType
 from po_nrl.misc import DiscreteSpace, POBNRLogger
 
@@ -102,6 +102,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         if not self._use_one_hot_obs:
             return np.array([observation])
 
+        # TODO: try zeroes instead?
         # use one hot encoding
         obs = np.ones(2)
 
@@ -139,17 +140,17 @@ class Tiger(Environment, Simulator, POBNRLogger):
         return loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)
 
     def reset(self) -> np.ndarray:
-        """ resets internal state and return first observation
+        """ Resets internal state and return first observation
 
-        resets the intenral state randomly ([0] or [1])
-        returns [1,1] as a 'null' initial observation
+        Resets the internal state randomly ([0] or [1])
+        Returns [1,1] as a 'null' initial observation
 
         """
         self._state = self.sample_start_state()
         return self.encode_observation(self.LISTEN)
 
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
-        """ simulates stepping from state using action. Returns interaction
+        """ Simulates stepping from state using action. Returns interaction
 
         Will terminate episode when action is to open door,
         otherwise return an observation.

@@ -79,7 +79,7 @@ def log_tensorboard(tag: str, val: Union[float, np.ndarray], step: int) -> None:
 
 
 def tensorboard_logging() -> bool:
-    """ returns whether we are logging to tensorboard_logging
+    """ returns whether we are logging to tensorboard
 
     Args:
 
