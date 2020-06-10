@@ -6,7 +6,6 @@ from po_nrl.environments import Environment, EncodeType
 
 from .priors import Prior
 
-from .cartpole import Cartpole
 from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
 from .gridworld import GridWorld
@@ -34,8 +33,6 @@ def create_environment(
 
     if domain_name == "tiger":
         return Tiger(encoding)
-    if domain_name == "cartpole":
-        return Cartpole()
     if domain_name == "gridworld":
         return GridWorld(domain_size, encoding)
     if domain_name == "collision_avoidance":

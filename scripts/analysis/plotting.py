@@ -3,10 +3,13 @@
 import sys
 
 from typing import List
+import matplotlib
 import matplotlib.pyplot as plt
 import more_itertools as mitt
 import numpy as np
 
+
+# matplotlib.rc('font', size=20)
 
 def main(smoothing_argument: str, files: List[str]) -> None:
     """ main: validates user input and plots files
@@ -35,13 +38,17 @@ def plot_experiment(file_names: List[str], smooth_amount: int = 25) -> None:
 
     """
 
-    for file_name in file_names:
+    #   colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
+
+    for i, file_name in enumerate(file_names):
         returns = np.loadtxt(file_name, delimiter=',')[:, 0].tolist()
 
         returns = np.mean(list(mitt.windowed(returns, smooth_amount)), axis=1)
 
         plt.plot(returns, label=file_name)
+        # plt.plot(returns, label=file_name, color=colors[i])
 
+    plt.tight_layout()
     plt.legend()
     plt.show()
 

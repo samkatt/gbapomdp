@@ -1,6 +1,5 @@
 """ Contains networks """
 
-from typing import Tuple, Optional
 import torch
 
 
@@ -65,97 +64,6 @@ class Net(torch.nn.Module):  # type: ignore
         self.layer_1.reset_parameters()
         self.layer_2.reset_parameters()
         self.out.reset_parameters()
-
-        if self.prior:
-            self.prior.reset_parameters()
-
-
-class RecNet(torch.nn.Module):  # type: ignore
-    """ a standard 3-layer recurrent neural network """
-
-    def __init__(
-            self,
-            input_size: int,
-            output_size: int,
-            layer_size: int,
-            prior_scaling: float = 0):
-
-        print('Recurrent nets are not fully tested, so beware any weird results!')
-        super().__init__()
-
-        self.prior_scaling = prior_scaling
-        self.prior = torch.nn.LSTM(input_size, output_size, batch_first=True) if prior_scaling != 0 else None
-
-        if self.prior:
-            print('It is not entirely clear whether prior and recurrent networks fair well together')
-            self.prior.requires_grad_(False)
-
-        self.layer_1 = torch.nn.Linear(input_size, layer_size)
-        self.layer_2 = torch.nn.Linear(layer_size, layer_size)
-
-        self.rnn_layer = torch.nn.LSTM(layer_size, layer_size, batch_first=True)
-        self.out = torch.nn.Linear(layer_size, output_size)
-
-        self.random_init_parameters()
-
-    def forward(
-            self,
-            net_input: torch.Tensor,
-            hidden: Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]] = None
-    ) -> Tuple[torch.Tensor, Tuple[Optional[Tuple[torch.Tensor, torch.Tensor]], Optional[Tuple[torch.Tensor, torch.Tensor]]]]:
-        """ forward passes through the network
-
-        Will pass the network input with optional hidden state and return the output plus new hidden state
-
-        Args:
-             net_input: (`torch`):
-             Tensor:
-             hidden: (`Optional[Tuple[Tuple[torch.Tensor, torch.Tensor], Optional[Tuple[torch.Tensor, torch.Tensor]]]]`): hidden state of `this`
-
-        RETURNS (`Tuple[torch.Tensor, Tuple[Tuple[torch.Tensor,torch.Tensor],Optional[Tuple[torch.Tensor,torch.Tensor]]]]`):
-
-        """
-
-        hidden_net: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
-        hidden_prior: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
-
-        if hidden:
-            hidden_net, hidden_prior = hidden
-
-        activations = torch.tanh(self.layer_1(net_input))
-        activations = torch.tanh(self.layer_2(activations))
-
-        # XXX: use packing for increased performance
-        activations, hidden_net = self.rnn_layer(activations, hidden_net)
-
-        if self.prior:
-
-            # XXX: use packing for increased performance
-            prior, hidden_prior = self.prior(net_input, hidden_prior)
-
-            return (
-                self.out(activations) + self.prior_scaling * prior,
-                (hidden_net, hidden_prior)
-            )
-
-        return (
-            self.out(activations),
-            (hidden_net, None)
-        )
-
-    def random_init_parameters(self) -> None:
-        """ randomly resets / initiates parameters
-
-        Args:
-
-        RETURNS (`None`):
-
-        """
-
-        self.layer_1.reset_parameters()
-        self.layer_2.reset_parameters()
-        self.out.reset_parameters()
-        self.rnn_layer.reset_parameters()
 
         if self.prior:
             self.prior.reset_parameters()

@@ -2,7 +2,6 @@
 
 * DiscreteSpace
 * replay buffer
-* softmax sampling
 * random seed
 
 """

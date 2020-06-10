@@ -1,5 +1,8 @@
 .PHONY: profile clean static_analyse
 
+test:
+	python setup.py test
+
 profile_output = model_based.cprof
 profile_results = model_based.res
 

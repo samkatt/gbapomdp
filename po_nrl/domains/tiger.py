@@ -3,7 +3,7 @@
 from typing import List, Optional
 import numpy as np
 
-from po_nrl.environments import Environment, EnvironmentInteraction, ActionSpace, TerminalState
+from po_nrl.environments import Environment, EnvironmentInteraction, ActionSpace
 from po_nrl.environments import Simulator, SimulationResult, EncodeType
 from po_nrl.misc import DiscreteSpace, POBNRLogger
 
@@ -102,7 +102,6 @@ class Tiger(Environment, Simulator, POBNRLogger):
         if not self._use_one_hot_obs:
             return np.array([observation])
 
-        # TODO: try zeroes instead?
         # use one hot encoding
         obs = np.ones(2)
 
