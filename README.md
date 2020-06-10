@@ -25,8 +25,8 @@ sudo apt install ffmpeg
 
 ### Run the program
 
-Main scripts, `pouct_planning.py`, `model_based.py` and `model_free.py` are
-located in `scripts/experiments`
+Main scripts, `pouct_planning.py`, `model_based.py` are located in
+`scripts/experiments`
 
 ```bash
 python {script} -D tiger -v 2
@@ -36,8 +36,8 @@ python {script} -h
 ## Development
 
 * static analysis & formatting: Run `make static_analyse` in root and check
-  whether the code is formatted correctly
-* testing: Run `python setup.py test` in root and check that all pass
+  whether the code follows some basic rules
+* testing: Run `make test` in root and check that all pass
 
 ### TODO
 

@@ -1,7 +1,10 @@
-.PHONY: profile clean static_analyse
+.PHONY: profile clean static_analyse test documentation
 
 test:
 	python setup.py test
+
+documentation:
+	pdoc --html --html-dir=doc --overwrite po_nrl
 
 profile_output = model_based.cprof
 profile_results = model_based.res
