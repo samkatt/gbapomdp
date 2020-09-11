@@ -21,7 +21,7 @@ class TestPOUCTNode(unittest.TestCase):
 
         self.node = TreeNode(self.num_children, self.depth)
 
-        self.extended_child = self.node.child(0, 5)
+        self.extended_child = self.node.child(0, np.array(5))
 
     def test_creation(self):
         """ tests creating the nodes """
@@ -84,7 +84,7 @@ class TestPOUCTNode(unittest.TestCase):
             self.extended_child.children_visits, [0] * self.num_children
         )
 
-        self.assertTrue(self.extended_child is self.node.child(0, 5))
+        self.assertTrue(self.extended_child is self.node.child(0, np.array(5)))
 
 
 class TestPOUCT(unittest.TestCase):

@@ -92,7 +92,7 @@ class POBNRLogger:
         handler = logging.StreamHandler()
         handler.setFormatter(
             logging.Formatter(
-                f"[%(asctime)s] %(message)s",
+                "[%(asctime)s] %(message)s",
                 "%H:%M"
             )
         )
@@ -198,7 +198,7 @@ class DiscreteSpace(Space):
         RETURNS (`np.array`): a sample in the space of this
 
         """
-        return (np.random.random(self.ndim) * self.size).astype(int)
+        return (np.random.random(self.ndim) * self.size).astype(int)  # pylint: disable=no-member
 
     def index_of(self, elem: np.ndarray) -> int:
         """ returns the index of an element (projects to single dimension)

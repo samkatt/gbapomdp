@@ -55,7 +55,7 @@ def extract_statistics(input_content: List[np.ndarray]) -> List[Dict[str, np.nda
         if len(content.shape) == 1:  # planning results
 
             contains_planning_result = True
-            assert not contains_learning_result, f'found both plannign and learning results'
+            assert not contains_learning_result, 'found both plannign and learning results'
 
             statistics.append({
                 'mu': content[return_mean_index],
@@ -69,7 +69,7 @@ def extract_statistics(input_content: List[np.ndarray]) -> List[Dict[str, np.nda
                 f'unknown size content {content.shape}, expected 2-dimensional'
 
             contains_learning_result = True
-            assert not contains_planning_result, f'found both plannign and learning results'
+            assert not contains_planning_result, 'found both plannign and learning results'
 
             statistics.append({
                 'mu': content[:, return_mean_index],
