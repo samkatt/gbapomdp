@@ -244,25 +244,3 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         self._state = sim_step.state
 
         return EnvironmentInteraction(sim_step.observation, reward, terminal)
-
-    def obs2index(self, observation: np.array) -> int:
-        """ projects the observation as an int
-
-        Args:
-             observation: (`np.array`): observation to project
-
-        RETURNS (`int`): int representation of observation
-
-        """
-
-        assert self.observation_space.contains(observation), \
-            f"{observation} not in observation space {self.observation_space}"
-        assert np.all(self.size > observation) and np.all(observation >= 0)
-
-        if not self._one_hot_observations:
-            return self._observation_space.index_of(observation)
-
-        # one-hot
-
-        assert np.sum(observation) == 1
-        return observation.argmax()

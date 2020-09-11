@@ -136,7 +136,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         if not listening:
             return self.LISTEN
 
-        return loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)
+        return loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)  # pylint: disable=no-member
 
     def reset(self) -> np.ndarray:
         """ Resets internal state and return first observation

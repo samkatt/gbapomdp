@@ -72,7 +72,7 @@ def main(args: Optional[List[str]]) -> None:
             )
 
             if po_nrl.pytorch_api.tensorboard_logging():
-                po_nrl.pytorch_api.log_tensorboard(f'return', tmp_res[episode], episode)
+                po_nrl.pytorch_api.log_tensorboard('return', tmp_res[episode], episode)
 
         # update mean and variance
         delta = tmp_res - result_mean

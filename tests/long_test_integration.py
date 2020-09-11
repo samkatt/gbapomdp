@@ -2,6 +2,8 @@
 
 import unittest
 
+from typing import List
+
 from po_nrl.model_based import main as mb_main
 from po_nrl.pouct_planning import main as pouct_main
 
@@ -10,13 +12,13 @@ class TestPOMCP(unittest.TestCase):
     """ runs default PO-UCT with belief experiments """
 
     @staticmethod
-    def run_experiment(args):
+    def run_experiment(args: List[str]):
         """ runs an experiment with args as configuration
 
         Adds some default arguments to the experiment
 
         Args:
-             args: ['--arg=val', ...] the argument to run
+             args: (`List[str]`) the argument to run
 
         """
 

@@ -266,7 +266,7 @@ class DynamicsModel:
         RETURNS (`None`):
 
         """
-        assert self.experiences, f'cannot self learn without data'
+        assert self.experiences, 'cannot self learn without data'
 
         log_loss = False  # no logging of loss online
         self.batch_update(*map(np.array, zip(*self.experiences)), log_loss, conf)  # type: ignore
