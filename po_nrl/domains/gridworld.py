@@ -395,37 +395,6 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
         return EnvironmentInteraction(sim_step.observation, reward, terminal)
 
-    def obs2index(self, observation: np.array) -> int:
-        """ projects the observation as an int
-
-        Args:
-             observation: (`np.array`): observation to project
-
-        RETURNS (`int`): int representation of observation
-
-        """
-        assert self.observation_space.contains(observation), \
-            f"{observation} not in {self.observation_space}"
-        assert \
-            np.all(self.size > observation[:2]) \
-            and len(self.goals) > observation[2] \
-            and np.all(observation >= 0), \
-            f"{observation} not in {self.observation_space}"
-
-        if not self._one_hot_goal_encoding:
-            return self._obs_space.index_of(observation)
-
-        # one-hot goal encoding:
-        assert np.sum(observation[2:]) == 1, "only 1 goal may be true"
-
-        if observation[2] == 1:  # corner case: first potential goal
-            return observation[0] + observation[1] * self.size
-
-        # increment by goal
-        return observation[0] \
-            + observation[1] * self.size \
-            + self.size * self.size * pow(2, np.argmax(observation[2:]) - 1)
-
     @staticmethod
     def generate_slow_cells(size: int) -> Set[Tuple[int, int]]:
         """ returns a set of cells that the agent are slow on, depending on `size`

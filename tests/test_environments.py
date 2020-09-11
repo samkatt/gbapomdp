@@ -325,64 +325,6 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(observation[0], 0)
         self.assertEqual(observation[1], 0)
 
-    def test_observation_projection_one_hot_goal_encoding(self):
-        """ tests obs2index """
-
-        # one-hot goal encoding
-        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
-
-        obs = np.array([0, 0, 1, 0, 0])
-
-        for i in range(3):
-            obs[0] = i
-            self.assertEqual(env.obs2index(obs), i)
-
-        obs[0] = 1
-        obs[1] = 1
-        self.assertEqual(env.obs2index(obs), 4)
-
-        # increase goal index
-        obs[2] = 0
-        obs[3] = 1
-        self.assertEqual(env.obs2index(obs), 13)
-
-        obs[1] = 2
-        self.assertEqual(env.obs2index(obs), 16)
-
-        obs[-1] = 1
-        self.assertRaises(AssertionError, env.obs2index, obs)
-
-        obs = np.array([1, 2, 0, 0, 1])
-        self.assertEqual(env.obs2index(obs), 25)
-
-    def test_observation_projection_regular_encoding(self):
-        """ tests obs2index for regular encodings """
-
-        env = gridworld.GridWorld(3, EncodeType.DEFAULT)
-
-        obs = np.array([0, 0, 0])
-
-        for i in range(3):
-            obs[0] = i
-            self.assertEqual(env.obs2index(obs), i)
-
-        obs[0] = 1
-        obs[1] = 1
-        self.assertEqual(env.obs2index(obs), 4)
-
-        # increase goal index
-        obs[2] = 1
-        self.assertEqual(env.obs2index(obs), 13)
-
-        obs[1] = 2
-        self.assertEqual(env.obs2index(obs), 16)
-
-        obs[-1] = 3
-        self.assertRaises(AssertionError, env.obs2index, obs)
-
-        obs = np.array([1, 2, 2])
-        self.assertEqual(env.obs2index(obs), 25)
-
     def test_given_slow_cells(self) -> None:
         """ tests creation of gridworld without slow cells """
 
@@ -532,22 +474,6 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertTupleEqual(obs.shape, (3,))
         np.testing.assert_array_equal(obs[:2], [2, 4])
         self.assertIn(obs[2], list(range(7)))
-
-    def test_observation_projection(self):
-        """ tests obs2index """
-
-        env = collision_avoidance.CollisionAvoidance(domain_size=5)
-
-        self.assertEqual(env.obs2index(np.array([0, 0, 0])), 0)
-        self.assertEqual(env.obs2index(np.array([1, 0, 0])), 1)
-        self.assertEqual(env.obs2index(np.array([0, 1, 0])), 5)
-        self.assertEqual(env.obs2index(np.array([0, 0, 1])), 25)
-        self.assertEqual(env.obs2index(np.array([2, 0, 1])), 27)
-        self.assertEqual(env.obs2index(np.array([4, 4, 2])), 74)
-        self.assertEqual(env.obs2index(np.array([2, 3, 2])), 67)
-        self.assertEqual(env.obs2index(np.array([4, 4, 4])), 124)
-
-        self.assertRaises(AssertionError, env.obs2index, np.array([4, 4, 5]))
 
 
 class TestChainDomain(unittest.TestCase):
@@ -702,39 +628,6 @@ class TestChainDomain(unittest.TestCase):
             domain.state2observation(np.array([2, 3])),
             expected_obs.reshape(16)
         )
-
-    def test_observation_projection(self):
-        """ tests obs2index """
-
-        # regular compact obsevation
-        env = chain_domain.ChainDomain(size=4, encoding=EncodeType.DEFAULT)
-
-        self.assertEqual(env.obs2index(np.array([0, 0])), 0)
-        self.assertEqual(env.obs2index(np.array([1, 0])), 1)
-        self.assertEqual(env.obs2index(np.array([0, 1])), 4)
-        self.assertEqual(env.obs2index(np.array([2, 0])), 2)
-        self.assertEqual(env.obs2index(np.array([3, 2])), 11)
-        self.assertEqual(env.obs2index(np.array([2, 3])), 14)
-
-        # one-hot observation
-        env = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
-
-        def one_hot(obs: np.ndarray) -> np.ndarray:
-            encoding = np.zeros((4, 4))
-            encoding[obs[0], obs[1]] = 1
-
-            return encoding.reshape(16)
-
-        self.assertEqual(env.obs2index(one_hot(np.array([0, 0]))), 0)
-        self.assertEqual(env.obs2index(one_hot(np.array([0, 1]))), 1)
-        self.assertEqual(env.obs2index(one_hot(np.array([1, 0]))), 4)
-        self.assertEqual(env.obs2index(one_hot(np.array([0, 2]))), 2)
-        self.assertEqual(env.obs2index(one_hot(np.array([2, 3]))), 11)
-        self.assertEqual(env.obs2index(one_hot(np.array([3, 2]))), 14)
-
-        obs = np.zeros((5, 5))
-        obs[4, 4] = 1
-        self.assertRaises(AssertionError, env.obs2index, obs.reshape(25))
 
 
 class TestRoadRacer(unittest.TestCase):
@@ -904,20 +797,6 @@ class TestRoadRacer(unittest.TestCase):
             self.random_env.action_space.sample(),
             np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes - 1)]))
         ))
-
-    def test_obs2index(self) -> None:
-        """ tests the obs2index function
-
-        Args:
-
-        RETURNS (`None`):
-
-        """
-
-        random_observation = self.random_env.observation_space.sample()
-        should_be_index = random_observation[0]
-
-        self.assertEqual(self.random_env.obs2index(random_observation), should_be_index)
 
     def test_steps(self) -> None:
         """ tests the actual stepping functionality

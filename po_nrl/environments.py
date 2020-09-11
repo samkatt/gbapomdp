@@ -193,17 +193,6 @@ class Simulator(abc.ABC):
         """ returns a potential start state """
 
     @abc.abstractmethod
-    def obs2index(self, observation: np.ndarray) -> int:
-        """ projects the observation as an int
-
-        Args:
-             observation: (`np.ndarray`): observation to project
-
-        RETURNS (`int`): int representation of observation
-
-        """
-
-    @abc.abstractmethod
     def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
         """ the reward function
 

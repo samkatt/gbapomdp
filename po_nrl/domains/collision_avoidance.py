@@ -256,24 +256,6 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
             sim_step.observation, reward, terminal
         )
 
-    def obs2index(self, observation: np.array) -> int:
-        """ projects the observation as an int
-
-        Args:
-             observation: (`np.array`): observation to project
-
-        RETURNS (`int`): int representation of observation
-
-        """
-        assert self.observation_space.contains(observation), \
-            f"{observation} not in space {self.observation_space}"
-        assert np.all(self.size > observation) and np.all(observation >= 0),\
-            f"expecting all observation to be more than 0, {observation}"
-
-        return observation[0]\
-            + observation[1] * self.size\
-            + observation[2] * self.size * self.size
-
     def __repr__(self):
         return (f' Collision avoidance of size {self.size} with '
                 f' obstacle probabilities {self._block_policy}')

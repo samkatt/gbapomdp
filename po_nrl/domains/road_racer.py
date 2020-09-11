@@ -217,12 +217,6 @@ class RoadRacer(Environment, Simulator):
         """ implements `po_nrl.environments.Simulator.sample_start_state` """
         return np.concatenate((np.ones(self.num_lanes) * (self.lane_length - 1), [self.middle_lane])).astype(int)
 
-    def obs2index(self, observation: np.ndarray) -> int:
-        """ implements `po_nrl.environments.Simulator.obs2index` """
-        assert self.observation_space.contains(observation)
-
-        return observation[0]
-
     def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
         """ implements `po_nrl.environments.Simulator.reward`
 

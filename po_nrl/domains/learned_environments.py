@@ -89,7 +89,6 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             f"current limited to learning discrete POMDPs, not {domain}"
 
         self.sample_domain_start_state = domain.sample_start_state
-        self.domain_obs2index = domain.obs2index
 
         self.domain_reward = domain.reward
         self.domain_terminal = domain.terminal
@@ -198,17 +197,6 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
         """
         return self.domain_terminal(state.domain_state, action, new_state.domain_state)
-
-    def obs2index(self, observation: np.ndarray) -> int:
-        """ projects observation to single dimension (scalar)
-
-        Args:
-             observation: (`np.ndarray`):
-
-        RETURNS (`int`):
-
-        """
-        return self.domain_obs2index(observation)
 
     def reset(self, train_net_f: Callable[[DynamicsModel], None], learning_rate: float, online_learning_rate: float) -> None:
         """ resets the ensemble and re-trains them according
