@@ -1,4 +1,4 @@
-.PHONY: build install test documentation clean static_analyse
+.PHONY: build install test documentation clean static_analyse ctags
 
 build:
 	python setup.py build
@@ -14,6 +14,9 @@ documentation:
 
 static_analyse:
 	bash ./static_analyse.sh
+
+ctags:
+	ctags -R tests po_nrl
 
 clean:
 	rm -f .static_analysis.txt

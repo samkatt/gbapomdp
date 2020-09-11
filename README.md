@@ -9,6 +9,8 @@ source projects.
 
 ## Use
 
+Manually install [gym gridverse](https://github.com/abaisero/gym-gridverse)
+
 ### Installation
 
 Install the required python packages and dependencies:
