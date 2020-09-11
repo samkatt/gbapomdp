@@ -14,8 +14,18 @@ from po_nrl.misc import POBNRLogger
 _IterationResult = namedtuple('IterResult', 'ret depth length')
 
 
-class TreeNode():
-    """ node in the tree """
+class TreeNode:
+    """node in the tree
+
+    MTCS in POMDPs branches both in actions and states, which (naively) would
+    result in two types of nodes. However, in practice its easier to represent
+    both branches in a single node:
+
+    A node in this MCTS tree represents a particular 'future history' and thus
+    is associated with an action-observation history. Its children refers to
+    the next action-observations. Technically, it describes a _set_ of nodes,
+    each associated with an action.
+    """
 
     def __init__(self, num_children: int, depth: int):
         """ creates a node with `num_children` childs at some depth `depth`
@@ -28,7 +38,14 @@ class TreeNode():
 
         self.depth = depth
 
-        self._children: List[Dict[int, TreeNode]] = [{} for _ in range(num_children)]
+        # we expect MCTS to consider _all_ actions, so immediately initialize them as list
+        # however, there is no way of telling which observations, which could
+        # be many, are going to be generated, so their mapping is represented
+        # with a dictionary. Its entries are generated on the fly (see
+        # `child()`). Observations are encoded into tuples
+        self._children: List[Dict[Tuple[int], TreeNode]] = [
+            {} for _ in range(num_children)
+        ]
 
         # statistics
         self.avg_values = np.zeros(num_children)
@@ -55,25 +72,29 @@ class TreeNode():
 
         """
 
-        # probably faster than len() over a list
+        # probably faster than len() over a list?
         return self.avg_values.shape[0]
 
-    def child(self, action: int, observation: int) -> 'TreeNode':
+    def child(self, action: int, observation: np.ndarray) -> 'TreeNode':
         """ returns the child node associated with action-observation pair
 
         Args:
              action: (`int`): the chosen action
-             observation: (`int`): the perceived observation
+             observation: (`np.ndarray`): the perceived observation as array
 
         RETURNS (`po_nrl.agents.planning.pouct.TreeNode`):
 
         """
+        obs: Tuple[int] = tuple(observation.flatten().astype(int))  # type: ignore
 
-        if observation not in self._children[action]:
-            self._children[action][observation] \
-                = TreeNode(len(self._children), depth=self.depth + 1)
+        # initialize child if observation has not been seen before with this
+        # particular action
+        if obs not in self._children[action]:
+            self._children[action][obs] = TreeNode(
+                len(self._children), depth=self.depth + 1
+            )
 
-        return self._children[action][observation]
+        return self._children[action][obs]
 
     def update_value(self, child: int, value: float):
         """ updates the value `value` associated with child `child`
@@ -85,25 +106,34 @@ class TreeNode():
         """
 
         self.children_visits[child] += 1
-        self.avg_values[child] += \
-            (value - self.avg_values[child]) / self.children_visits[child]
+        self.avg_values[child] += (
+            value - self.avg_values[child]
+        ) / self.children_visits[child]
 
     def __repr__(self) -> str:
         """ prints out value and counts for each child """
         # [A(i): v (c) .... ]
-        return str([f'A({i}): {v:.2f} ({c})' for i, (c, v) in enumerate(zip(self.children_visits, self.avg_values))])
+        return str(
+            [
+                f'A({i}): {v:.2f} ({c})'
+                for i, (c, v) in enumerate(
+                    zip(self.children_visits, self.avg_values)
+                )
+            ]
+        )
 
 
 class POUCT(POBNRLogger):
     """ MCTS for POMDPs using UCB """
 
     def __init__(
-            self,
-            simulator: Simulator,
-            num_sims: int = 500,
-            exploration_constant: float = 1.,
-            planning_horizon: int = 10,
-            discount: float = .95):
+        self,
+        simulator: Simulator,
+        num_sims: int = 500,
+        exploration_constant: float = 1.0,
+        planning_horizon: int = 10,
+        discount: float = 0.95,
+    ):
         """ Creates the PO-UCT planner
 
         Args:
@@ -115,7 +145,9 @@ class POUCT(POBNRLogger):
 
         """
 
-        assert planning_horizon > 0, f"Cannot accept a negative planning horizon {planning_horizon}"
+        assert (
+            planning_horizon > 0
+        ), f"Cannot accept a negative planning horizon {planning_horizon}"
 
         POBNRLogger.__init__(self)
 
@@ -135,12 +167,11 @@ class POUCT(POBNRLogger):
 
         # + 1 for UCB1 (otherwise after trying 1 action all bonus == 0
         with np.errstate(divide='ignore', invalid='ignore'):
-            self._ucb_table = exploration_constant \
-                * np.sqrt(np.log(tot_visits + 1).T / action_visits)
+            self._ucb_table = exploration_constant * np.sqrt(
+                np.log(tot_visits + 1).T / action_visits
+            )
 
-    def select_action(
-            self,
-            belief: ParticleFilter) -> int:
+    def select_action(self, belief: ParticleFilter) -> int:
         """ selects an action given belief
 
         Args:
@@ -162,7 +193,9 @@ class POUCT(POBNRLogger):
         for run in range(self.num_sims):
             result = self._traverse_tree(belief.sample(), root)
 
-            self.log(POBNRLogger.LogLevel.V4, f"POUCT iteration {run}: {result}")
+            self.log(
+                POBNRLogger.LogLevel.V4, f"POUCT iteration {run}: {result}"
+            )
 
             min_return = min(min_return, result.ret)
             max_return = max(max_return, result.ret)
@@ -172,13 +205,15 @@ class POUCT(POBNRLogger):
         self.log(
             POBNRLogger.LogLevel.V3,
             f"POUCT: Q: {root}, returns {min_return} to {max_return} "
-            f"tree depth {tree_depth}, longest run {longest_iteration}"
+            f"tree depth {tree_depth}, longest run {longest_iteration}",
         )
 
         # pick best action from root
         return np.argmax(root.avg_values)
 
-    def _traverse_tree(self, state: np.ndarray, node: TreeNode) -> _IterationResult:
+    def _traverse_tree(
+        self, state: np.ndarray, node: TreeNode
+    ) -> _IterationResult:
         """ Travels down the tree
 
         Picks actions according to UCB, generates transitions according to
@@ -196,9 +231,12 @@ class POUCT(POBNRLogger):
             return _IterationResult(ret=0, depth=node.depth, length=node.depth)
 
         if node.num_visits == 0:
-            action, ret, length = self._rollout(state, self.planning_horizon - node.depth)
-            iteration_res \
-                = _IterationResult(ret=ret, depth=node.depth, length=length + node.depth)
+            action, ret, length = self._rollout(
+                state, self.planning_horizon - node.depth
+            )
+            iteration_res = _IterationResult(
+                ret=ret, depth=node.depth, length=length + node.depth
+            )
 
         else:
 
@@ -216,7 +254,7 @@ class POUCT(POBNRLogger):
                 self.log(
                     POBNRLogger.LogLevel.V5,
                     f"MCTS simulated action {action} in {state} -->"
-                    f" {step.state} and obs {step.observation}"
+                    f" {step.state} and obs {step.observation}",
                 )
 
             if not terminal:
@@ -224,8 +262,8 @@ class POUCT(POBNRLogger):
                 iteration_res = self._traverse_tree(
                     step.state,
                     node.child(
-                        action, self.simulator.obs2index(step.observation)
-                    )
+                        action, step.observation
+                    ),
                 )
 
                 iteration_res = iteration_res._replace(
@@ -252,7 +290,7 @@ class POUCT(POBNRLogger):
 
         """
 
-        ret = .0
+        ret = 0.0
         discount = 1.0
 
         first_action = self.simulator.action_space.sample()
@@ -278,9 +316,10 @@ class POUCT(POBNRLogger):
 
     @staticmethod
     def ucb(
-            action_values: np.array,  # of type floats
-            action_visits: np.array,  # of type int
-            ucb_table: np.ndarray) -> np.array:  # of type floats
+        action_values: np.array,  # of type floats
+        action_visits: np.array,  # of type int
+        ucb_table: np.ndarray,
+    ) -> np.array:  # of type floats
         """ Returns the UCB value given Qs, visits and ucb table
 
         Args:
@@ -290,10 +329,12 @@ class POUCT(POBNRLogger):
 
         """
 
-        assert action_values.shape == action_visits.shape,\
-            "expect the same number of values and # visits"
-        assert np.all(action_visits >= 0), \
-            f"visits must be positive, are not: {action_visits}"
+        assert (
+            action_values.shape == action_visits.shape
+        ), "expect the same number of values and # visits"
+        assert np.all(
+            action_visits >= 0
+        ), f"visits must be positive, are not: {action_visits}"
 
         total_visits = action_visits.sum()
         assert total_visits > 0, "must have at least visited once for ucb"
