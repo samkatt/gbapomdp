@@ -18,7 +18,7 @@ def set_random_seed(seed: int) -> None:
     RETURNS (`None`):
 
     """
-    torch.manual_seed(seed)
+    torch.manual_seed(seed)  # type: ignore
 
 
 def set_tensorboard_logging(log_dir: str) -> None:
@@ -32,8 +32,9 @@ def set_tensorboard_logging(log_dir: str) -> None:
     """
 
     global _TENSORBOARD_WRITER  # pylint: disable=global-statement
-    _TENSORBOARD_WRITER \
-        = torch.utils.tensorboard.SummaryWriter(log_dir=f'.tensorboard/{log_dir}')
+    _TENSORBOARD_WRITER = torch.utils.tensorboard.SummaryWriter(  # type: ignore
+        log_dir=f'.tensorboard/{log_dir}'
+    )
 
 
 def set_device(use_gpu: bool) -> None:
@@ -73,9 +74,9 @@ def log_tensorboard(tag: str, val: Union[float, np.ndarray], step: int) -> None:
     assert _TENSORBOARD_WRITER
 
     if np.isscalar(val):
-        _TENSORBOARD_WRITER.add_scalar(tag, val, step)
+        _TENSORBOARD_WRITER.add_scalar(tag, val, step)  # type: ignore
     else:
-        _TENSORBOARD_WRITER.add_histogram(tag, val, step)
+        _TENSORBOARD_WRITER.add_histogram(tag, val, step)  # type: ignore
 
 
 def tensorboard_logging() -> bool:

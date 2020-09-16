@@ -366,10 +366,12 @@ class DynamicsModel:
             logits = self.net_t(state_action_pair)
 
             return [
-                torch.distributions.utils.logits_to_probs(
+                torch.distributions.utils.logits_to_probs(  # type: ignore
                     logits[self.state_space.dim_cumsum[i]:self.state_space.dim_cumsum[i + 1]]
                 ).numpy() for i in range(self.state_space.ndim)
             ]
+
+        raise AssertionError()
 
     def observation_model(
             self,
@@ -398,10 +400,12 @@ class DynamicsModel:
             logits = self.net_o(state_action_state)
 
             return [
-                torch.distributions.utils.logits_to_probs(
+                torch.distributions.utils.logits_to_probs(  # type: ignore
                     logits[self.obs_space.dim_cumsum[i]:self.obs_space.dim_cumsum[i + 1]]
                 ).numpy() for i in range(self.obs_space.ndim)
             ]
+
+        raise AssertionError()
 
     def reset(self) -> None:
         """ resets the networks """
