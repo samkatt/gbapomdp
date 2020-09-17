@@ -1,5 +1,5 @@
 """A wrapper for domains found in gym-gridverse package"""
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
 from gym_gridverse.envs.gridworld import GridWorld as GverseEnv
@@ -8,135 +8,59 @@ from gym_gridverse.representations.observation_representations import \
     DefaultObservationRepresentation
 from gym_gridverse.representations.state_representations import \
     DefaultStateRepresentation
-from gym_gridverse.state import State as GverseState
 from po_nrl.environments import (ActionSpace, Environment,
                                  EnvironmentInteraction, SimulationResult,
                                  Simulator)
 from po_nrl.misc import DiscreteSpace, Space
 
 
-def object_type_index_on_agents_location(state: np.ndarray) -> int:
-    """gets the object type index of the object on the location of the agent's position
+def flatten_state_or_observation(
+    state_or_obs: Dict[str, np.ndarray]
+) -> np.ndarray:
+    """Represents a state or observation by concatenating its values
 
-    Depends on the state representation, assumes first channel in `state`
-    contains type indices
-
-    TODO: test
-
-    Args:
-        state (`np.ndarray`):
-
-    Returns:
-        `int`: the type index of the object on the agent's position
-    """
-    x, y = 0, 0  # TODO: nyi
-    return state[y, x, 0]
-
-
-def is_agent_on_goal(state: np.ndarray) -> bool:
-    """returns true if agent in `state` is located on a goal
-
-    Depends on the state representation, but in practice find the agent in the
-    state and check whether its position in the grid contains a goal
-
-    Calls `object_type_index_on_agents_location`
+    The return value for state or observation representations in grid verse
+    is a dictionary of string -> numpy arrays. This is the easiest way of
+    converting such representations into a single array
 
     Args:
-        state (`np.ndarray`):
+        state_or_obs (`Dict[str, np.ndarray]`): output of 'representation' in gridverse
 
     Returns:
-        `bool`: true if the agent is on the goal
+        `np.ndarray`: representation of input into single array
     """
-    return (
-        # pylint: disable=no-member
-        object_type_index_on_agents_location(state)
-        == Goal.type_index
-    )
+    return np.concatenate([x.flatten() for x in state_or_obs.values()])
 
 
-def has_agent_collided_into_obstacle(state: np.ndarray) -> bool:
-    """returns true if agent in `state` is located on an obstacle
+def reshape_state_or_observation(
+    flat_state_or_obs: np.ndarray, h: int, w: int
+) -> Dict[str, np.ndarray]:
+    """Reshapes a flattened state or observation back
 
-    Depends on the state representation, but in practice find the agent in the
-    state and check whether its position in the grid contains a obstacle
-
-    Calls `object_type_index_on_agents_location`
+    Basically reverse of `flatten_state_or_observation`: reverts a flat
+    state/observation representation into semantically useful things
 
     Args:
-        state (`np.ndarray`):
+        flat_state_or_obs (`np.ndarray`): flat (?,) vector array representing state or observation
+        h (`int`): height of grid
+        w (`int`): width of grid
 
     Returns:
-        `bool`: true if the agent is on an obstacle
-    """
-    return (
-        # pylint: disable=no-member
-        object_type_index_on_agents_location(state)
-        == MovingObstacle.type_index
-    )
+        `Dict[str, np.ndarray]`: mapping from string to semantically useful numpy arrays
+                                 dictionary contains {'grid', 'agent'}
 
-
-def will_agent_collide_into_wall(state: np.ndarray, action: int) -> bool:
-    """returns whether `action` in `state` will lead to a collision with a wall
-
-    Assumes walls do not move and actions are deterministic
-
-    TODO: test
-
-    Args:
-        state (`np.ndarray`):
-        action (`int`):
-
-    Returns:
-        `bool`: true if agent will run into a wall when doing `action` in `state`
-    """
-    intended_x, intended_y = 0, 0  # TODO: nyi
-    return (
-        # pylint: disable=no-member
-        state[intended_y, intended_x, 0]
-        == Wall.type_index
-    )
-
-
-def unpack_gridverse_state(s: GverseState) -> Dict[str, np.ndarray]:
-    """rigorous way of extracting information from the gridverse state
-
-    Will return basically whatever you will need to know in convenient shape as
-    different entries in the returned dictionary
-
-    Return:
-        'agent_pos' -> [x,y] `np.ndarray`
-        'agent_dir' -> [direction] `np.ndarray`
-        'obstacles' -> [[x_1,y_1] ... [x_n, y_n]] `np.ndarray`
-        'agent_pos' -> [x,y] `np.ndarray`
-        'array' -> concatenation of above as vector
-
-    Assumes grid only contains moving obstacles
-
-    TODO:  use and test or remove
-
-    Args:
-        s (`GverseState`):
-
-    Returns:
-        `Dict[str, np.ndarray]`:
     """
 
-    obstacles: List[List[int]] = []
-    for pos in s.grid.positions():
-        # pylint: disable=no-member
-        if s.grid[pos].type_index == MovingObstacle.type_index:
-            obstacles.append(*pos)
+    # hard coded knowledge: the last three elements describe the held item
+    # hard coded knowledge: the number of channels is 6
+    num_features = h * w * 6
 
-    agent_pos = np.array([s.agent.position.x, s.agent.position.y])
-    agent_dir = np.array([s.agent.orientation.value])
+    grid = flat_state_or_obs[:num_features].reshape((h, w, 6))
+    agent = flat_state_or_obs[num_features:]
 
     return {
-        'agent_pos': agent_pos,
-        'agent_dir': agent_dir,
-        'obstacles': np.array(obstacles),
-        'array': np.concatenate(
-            [agent_pos, agent_dir, np.array(obstacles).flatten()]
-        ),
+        'grid': grid,
+        'agent': agent,
     }
 
 
@@ -165,36 +89,22 @@ class GridverseDomain(Environment, Simulator):
         # TODO: nyi
         self._obs_space = DiscreteSpace([])
         self._state_space = DiscreteSpace([])
+        self.h, self.w = 7, 7
 
-    @staticmethod
-    def _concatenate_state_or_observation(
-        state_or_obs: Dict[str, np.ndarray]
-    ) -> np.ndarray:
-        """Represents a state or observation by concatenating its values
-
-        The return value for state or observation representations in grid verse
-        is a dictionary of string -> numpy arrays. This is the easiest way of
-        converting such representations into a single array
-
-        Args:
-            state_or_obs (`Dict[str, np.ndarray]`): output of 'representation' in gridverse
-
-        Returns:
-            `np.ndarray`: representation of input into single array
-        """
-        return np.concatenate([x.flatten() for x in state_or_obs.values()])
+        # helpers
+        self.item_layer = 3
 
     def reset(self) -> np.ndarray:
         """interface"""
         self._gverse_env.reset()
-        return self._concatenate_state_or_observation(
+        return flatten_state_or_observation(
             self._obs_rep.convert(self._gverse_env.observation)
         )
 
     def step(self, action: int) -> EnvironmentInteraction:
         """interface"""
         reward, terminal = self._gverse_env.step(action)
-        obs = self._concatenate_state_or_observation(
+        obs = flatten_state_or_observation(
             self._obs_rep.convert(self._gverse_env.observation)
         )
 
@@ -223,20 +133,29 @@ class GridverseDomain(Environment, Simulator):
 
     def sample_start_state(self) -> np.ndarray:
         """interface"""
-        return self._concatenate_state_or_observation(
-            self._gverse_env.functional_reset()
+        return flatten_state_or_observation(
+            self._state_rep.convert(self._gverse_env.functional_reset())
         )
 
     def reward(
         self, state: np.ndarray, action: int, new_state: np.ndarray
     ) -> float:
         """interface"""
-        if is_agent_on_goal(new_state):
+
+        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        grid = unpacked_state['grid']
+        y = unpacked_state['state'][0]
+        x = unpacked_state['state'][1]
+
+        item_under_agent = grid[y, x, self.item_layer]
+
+        if item_under_agent == Goal.type_index:  # pylint: disable=no-member
             return 1.0
 
-        if has_agent_collided_into_obstacle(
-            new_state
-        ) or will_agent_collide_into_wall(state, action):
+        # TODO: implement moving from previous state to conclude collision?
+
+        # pylint: disable=no-member
+        if item_under_agent in [Wall.type_index, MovingObstacle.type_index]:
             return -1
 
         return 0
@@ -245,8 +164,16 @@ class GridverseDomain(Environment, Simulator):
         self, state: np.ndarray, action: int, new_state: np.ndarray
     ) -> bool:
         """interface"""
-        return (
-            has_agent_collided_into_obstacle(new_state)
-            or is_agent_on_goal(new_state)
-            or will_agent_collide_into_wall(state, action)
-        )
+
+        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        grid = unpacked_state['grid']
+        y = unpacked_state['state'][0]
+        x = unpacked_state['state'][1]
+
+        item_under_agent = grid[y, x, self.item_layer]
+
+        return item_under_agent in [
+            Goal.type_index,  # pylint: disable=no-member
+            Wall.type_index,  # pylint: disable=no-member
+            MovingObstacle.type_inde,  # pylint: disable=no-member
+        ]

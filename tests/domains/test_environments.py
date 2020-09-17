@@ -1,12 +1,11 @@
 """ runs tests on the domains """
 
+import random
 import unittest
 
-import random
-
 import numpy as np
-
-from po_nrl.domains import gridworld, tiger, collision_avoidance, chain_domain, road_racer
+from po_nrl.domains import (chain_domain, collision_avoidance, gridworld,
+                            road_racer, tiger)
 from po_nrl.environments import EncodeType, TerminalState
 from po_nrl.misc import DiscreteSpace
 
@@ -70,7 +69,9 @@ class TestTiger(unittest.TestCase):
         # test opening correct door
         for _ in range(0, 5):
             self.one_hot_env.reset()
-            open_correct_door = self.one_hot_env.state[0]  # implementation knowledge
+            open_correct_door = self.one_hot_env.state[
+                0
+            ]  # implementation knowledge
             step = self.one_hot_env.step(open_correct_door)
 
             np.testing.assert_array_equal(step.observation, [1, 1])
@@ -80,7 +81,9 @@ class TestTiger(unittest.TestCase):
         # test opening correct door
         for _ in range(0, 5):
             self.one_hot_env.reset()
-            open_wrong_door = 1 - self.one_hot_env.state[0]  # implementation knowledge
+            open_wrong_door = (
+                1 - self.one_hot_env.state[0]
+            )  # implementation knowledge
             step = self.one_hot_env.step(open_wrong_door)
 
             np.testing.assert_array_equal(step.observation, [1, 1])
@@ -90,7 +93,9 @@ class TestTiger(unittest.TestCase):
     def test_sample_start_state(self):
         """ tests sampling start states """
 
-        start_states = [self.one_hot_env.sample_start_state() for _ in range(10)]
+        start_states = [
+            self.one_hot_env.sample_start_state() for _ in range(10)
+        ]
 
         self.assertIn([0], start_states)
         self.assertIn([1], start_states)
@@ -116,8 +121,12 @@ class TestTiger(unittest.TestCase):
     def test_observation_projection(self):
         """ tests tiger.obs2index """
 
-        self.assertEqual(self.one_hot_env.obs2index(self.one_hot_env.reset()), 2)
-        self.assertEqual(self.one_hot_env.obs2index(self.one_hot_env.reset()), 2)
+        self.assertEqual(
+            self.one_hot_env.obs2index(self.one_hot_env.reset()), 2
+        )
+        self.assertEqual(
+            self.one_hot_env.obs2index(self.one_hot_env.reset()), 2
+        )
 
         self.assertEqual(self.one_hot_env.obs2index(np.array([1, 0])), 0)
         self.assertEqual(self.one_hot_env.obs2index(np.array([0, 1])), 1)
@@ -128,9 +137,15 @@ class TestTiger(unittest.TestCase):
     def test_observation_encoding(self):
         """ tests encoding of observation in Tiger """
 
-        np.testing.assert_array_equal(self.one_hot_env.encode_observation(0), [1, 0])
-        np.testing.assert_array_equal(self.one_hot_env.encode_observation(1), [0, 1])
-        np.testing.assert_array_equal(self.one_hot_env.encode_observation(2), [1, 1])
+        np.testing.assert_array_equal(
+            self.one_hot_env.encode_observation(0), [1, 0]
+        )
+        np.testing.assert_array_equal(
+            self.one_hot_env.encode_observation(1), [0, 1]
+        )
+        np.testing.assert_array_equal(
+            self.one_hot_env.encode_observation(2), [1, 1]
+        )
 
         np.testing.assert_array_equal(self.env.encode_observation(0), [0])
         np.testing.assert_array_equal(self.env.encode_observation(1), [1])
@@ -139,13 +154,19 @@ class TestTiger(unittest.TestCase):
     def test_tiger_obs_prob(self):
         """ tests changing the observation probability """
 
-        deterministic_tiger = tiger.Tiger(EncodeType.DEFAULT, correct_obs_probs=[1., 1.])
+        deterministic_tiger = tiger.Tiger(
+            EncodeType.DEFAULT, correct_obs_probs=[1.0, 1.0]
+        )
 
         deterministic_tiger.reset()
 
-        step_result = deterministic_tiger.step(action=deterministic_tiger.LISTEN)
+        step_result = deterministic_tiger.step(
+            action=deterministic_tiger.LISTEN
+        )
 
-        self.assertEqual(step_result.observation[0], deterministic_tiger.state[0])
+        self.assertEqual(
+            step_result.observation[0], deterministic_tiger.state[0]
+        )
 
 
 class TestGridWorld(unittest.TestCase):
@@ -157,11 +178,10 @@ class TestGridWorld(unittest.TestCase):
         observation = env.reset()
 
         np.testing.assert_array_equal(env.state[0], [0, 0])
-        self.assertIn(observation[2:].astype(int).tolist(), [
-            [0, 0, 1],
-            [0, 1, 0],
-            [1, 0, 0]
-        ])
+        self.assertIn(
+            observation[2:].astype(int).tolist(),
+            [[0, 0, 1], [0, 1, 0], [1, 0, 0]],
+        )
 
         env = gridworld.GridWorld(3, EncodeType.DEFAULT)
         observation = env.reset()
@@ -299,7 +319,7 @@ class TestGridWorld(unittest.TestCase):
 
         # generate_observation
         np.testing.assert_array_almost_equal(
-            env.obs_mult, [.05, .05, .8, .05, .05]
+            env.obs_mult, [0.05, 0.05, 0.8, 0.05, 0.05]
         )
         env.obs_mult = np.array([0, 0, 1, 0, 0])
 
@@ -311,7 +331,7 @@ class TestGridWorld(unittest.TestCase):
         np.testing.assert_array_equal(observation[2:], [0, 1, 0])
         np.testing.assert_array_equal(observation[:2], [1, 1])
 
-        env.obs_mult = np.array([0, .5, 0, .5, 0])
+        env.obs_mult = np.array([0, 0.5, 0, 0.5, 0])
         observation = env.generate_observation(np.array([0, 0, 2]))
         self.assertIn(observation[0], [0, 1])
         self.assertIn(observation[1], [0, 1])
@@ -333,7 +353,9 @@ class TestGridWorld(unittest.TestCase):
         )
         self.assertFalse(gw_no_cells.slow_cells)
 
-        gw_simple_cell = gridworld.GridWorld(domain_size=5, encoding=EncodeType.DEFAULT, slow_cells={(0, 1)})
+        gw_simple_cell = gridworld.GridWorld(
+            domain_size=5, encoding=EncodeType.DEFAULT, slow_cells={(0, 1)}
+        )
         self.assertSetEqual(gw_simple_cell.slow_cells, {(0, 1)})
 
     def test_goals(self) -> None:
@@ -453,9 +475,7 @@ class TestCollisionAvoidance(unittest.TestCase):
         # observation_space
         self.assertEqual(env.observation_space.n, 7 * 7 * 7)
         self.assertEqual(env.observation_space.ndim, 3)
-        np.testing.assert_array_equal(
-            env.observation_space.size, [7, 7, 7]
-        )
+        np.testing.assert_array_equal(env.observation_space.size, [7, 7, 7])
 
         # bound_in_grid
         self.assertEqual(env.bound_in_grid(8), 6)
@@ -485,8 +505,9 @@ class TestChainDomain(unittest.TestCase):
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 3])
-        np.testing.assert_array_equal(obs, [0, 0, 0, 1, 0, 0, 0, 0,
-                                            0, 0, 0, 0, 0, 0, 0, 0])
+        np.testing.assert_array_equal(
+            obs, [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        )
         domain = chain_domain.ChainDomain(size=10, encoding=EncodeType.ONE_HOT)
 
         obs = domain.reset()
@@ -552,17 +573,21 @@ class TestChainDomain(unittest.TestCase):
         domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.ONE_HOT)
 
         # test if all effects go right
-        step = domain.step(domain._action_mapping[0])  # pylint: disable=protected-access
+        step = domain.step(
+            domain._action_mapping[0]  # pylint: disable=protected-access
+        )
 
         self.assertFalse(step.terminal)
-        self.assertAlmostEqual(step.reward, -.0033333333)
+        self.assertAlmostEqual(step.reward, -0.0033333333)
         np.testing.assert_array_equal(
             step.observation, [0, 0, 0, 0, 1, 0, 0, 0, 0]
         )
 
-        step = domain.step((domain._action_mapping[1]))  # pylint: disable=protected-access
+        step = domain.step(
+            (domain._action_mapping[1])  # pylint: disable=protected-access
+        )
         self.assertTrue(step.terminal)
-        self.assertAlmostEqual(step.reward, 1 - .0033333333)
+        self.assertAlmostEqual(step.reward, 1 - 0.0033333333)
         np.testing.assert_array_equal(
             step.observation, [0, 0, 0, 0, 0, 0, 1, 0, 0]
         )
@@ -572,14 +597,18 @@ class TestChainDomain(unittest.TestCase):
         domain.reset()
 
         # test going left
-        step = domain.step(not domain._action_mapping[0])  # pylint: disable=protected-access
+        step = domain.step(
+            not domain._action_mapping[0]
+        )  # pylint: disable=protected-access
         self.assertFalse(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(
             step.observation, [0, 1, 0, 0, 0, 0, 0, 0, 0]
         )
 
-        step = domain.step(not domain._action_mapping[0])  # pylint: disable=protected-access
+        step = domain.step(
+            not domain._action_mapping[0]
+        )  # pylint: disable=protected-access
         self.assertTrue(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(
@@ -595,15 +624,23 @@ class TestChainDomain(unittest.TestCase):
         """
 
         for size in 3, 9:
-            domain = chain_domain.ChainDomain(size=size, encoding=EncodeType.DEFAULT)
+            domain = chain_domain.ChainDomain(
+                size=size, encoding=EncodeType.DEFAULT
+            )
             self.assertEqual(domain.size, size)
 
         # compact observation state2observation
         domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.DEFAULT)
 
-        np.testing.assert_array_equal(domain.state2observation(np.array([0, 0])), [0, 0])
-        np.testing.assert_array_equal(domain.state2observation(np.array([2, 0])), [2, 0])
-        np.testing.assert_array_equal(domain.state2observation(np.array([2, 3])), [2, 3])
+        np.testing.assert_array_equal(
+            domain.state2observation(np.array([0, 0])), [0, 0]
+        )
+        np.testing.assert_array_equal(
+            domain.state2observation(np.array([2, 0])), [2, 0]
+        )
+        np.testing.assert_array_equal(
+            domain.state2observation(np.array([2, 3])), [2, 3]
+        )
 
         # one hot state2observation
         domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
@@ -611,22 +648,19 @@ class TestChainDomain(unittest.TestCase):
         expected_obs = np.zeros((4, 4))
         expected_obs[0, 0] = 1
         np.testing.assert_array_equal(
-            domain.state2observation(np.array([0, 0])),
-            expected_obs.reshape(16)
+            domain.state2observation(np.array([0, 0])), expected_obs.reshape(16)
         )
 
         expected_obs = np.zeros((4, 4))
         expected_obs[2, 0] = 1
         np.testing.assert_array_equal(
-            domain.state2observation(np.array([2, 0])),
-            expected_obs.reshape(16)
+            domain.state2observation(np.array([2, 0])), expected_obs.reshape(16)
         )
 
         expected_obs = np.zeros((4, 4))
         expected_obs[2, 3] = 1
         np.testing.assert_array_equal(
-            domain.state2observation(np.array([2, 3])),
-            expected_obs.reshape(16)
+            domain.state2observation(np.array([2, 3])), expected_obs.reshape(16)
         )
 
 
@@ -652,9 +686,15 @@ class TestRoadRacer(unittest.TestCase):
 
         """
 
-        self.assertRaises(AssertionError, road_racer.RoadRacer, np.array([.5, .7]))
-        self.assertRaises(AssertionError, road_racer.RoadRacer, np.array([.5, .7, 1.1]))
-        self.assertRaises(AssertionError, road_racer.RoadRacer, np.array([.5, .7, -.1]))
+        self.assertRaises(
+            AssertionError, road_racer.RoadRacer, np.array([0.5, 0.7])
+        )
+        self.assertRaises(
+            AssertionError, road_racer.RoadRacer, np.array([0.5, 0.7, 1.1])
+        )
+        self.assertRaises(
+            AssertionError, road_racer.RoadRacer, np.array([0.5, 0.7, -0.1])
+        )
 
     def test_properties(self) -> None:
         """ tests basic properties
@@ -685,7 +725,7 @@ class TestRoadRacer(unittest.TestCase):
         assert isinstance(state_space, DiscreteSpace)
         np.testing.assert_array_equal(
             state_space.size,
-            [self.length] * (self.num_lanes) + [self.num_lanes]
+            [self.length] * (self.num_lanes) + [self.num_lanes],
         )
 
     def test_functional(self) -> None:
@@ -700,7 +740,7 @@ class TestRoadRacer(unittest.TestCase):
         state = np.random.randint(
             low=2,
             high=np.random.randint(low=3, high=5),
-            size=np.random.randint(low=3, high=5)
+            size=np.random.randint(low=3, high=5),
         )
 
         state[-1] = 0
@@ -710,15 +750,21 @@ class TestRoadRacer(unittest.TestCase):
         self.assertEqual(road_racer.RoadRacer.get_current_lane(state), 3)
 
         state[-1] = -1
-        self.assertRaises(AssertionError, road_racer.RoadRacer.get_current_lane, state)
+        self.assertRaises(
+            AssertionError, road_racer.RoadRacer.get_current_lane, state
+        )
 
         dist = state[0]
         state[-1] = 0
-        np.testing.assert_array_equal(self.random_env.get_observation(state), [dist])
+        np.testing.assert_array_equal(
+            self.random_env.get_observation(state), [dist]
+        )
 
         dist = state[1]
         state[-1] = 1
-        np.testing.assert_array_equal(self.random_env.get_observation(state), [dist], f'state={state}')
+        np.testing.assert_array_equal(
+            self.random_env.get_observation(state), [dist], f'state={state}'
+        )
 
     def test_reset(self) -> None:
         """ tests resetting the environment
@@ -728,7 +774,9 @@ class TestRoadRacer(unittest.TestCase):
         RETURNS (`None`):
 
         """
-        np.testing.assert_array_equal(self.random_env.reset(), [self.length - 1])
+        np.testing.assert_array_equal(
+            self.random_env.reset(), [self.length - 1]
+        )
 
     def test_start_start(self) -> None:
         """ tests whether the start state are sampled correctly
@@ -742,7 +790,9 @@ class TestRoadRacer(unittest.TestCase):
         start_state = np.ones(self.num_lanes + 1) * self.length - 1
         start_state[-1] = int(self.num_lanes / 2)
 
-        np.testing.assert_array_equal(self.random_env.sample_start_state(), start_state)
+        np.testing.assert_array_equal(
+            self.random_env.sample_start_state(), start_state
+        )
 
     def test_reward(self) -> None:
         """ test whether rewards are generated correctly
@@ -754,33 +804,57 @@ class TestRoadRacer(unittest.TestCase):
         """
 
         state = np.random.randint(
-            low=2,
-            high=self.length - 1,
-            size=self.num_lanes + 1
+            low=2, high=self.length - 1, size=self.num_lanes + 1
         )
 
         # put agent in first lane
         state[-1] = 0
 
-        next_state = self.random_env.simulation_step(state, road_racer.RoadRacer.NO_OP).state
+        next_state = self.random_env.simulation_step(
+            state, road_racer.RoadRacer.NO_OP
+        ).state
 
         dist = next_state[0]
 
-        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.NO_OP, new_state=next_state), dist, f'{state} -> {next_state}')
+        self.assertEqual(
+            self.random_env.reward(
+                state, road_racer.RoadRacer.NO_OP, new_state=next_state
+            ),
+            dist,
+            f'{state} -> {next_state}',
+        )
 
         # imagine agent tried to go up -> penalty of 1
-        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.GO_UP, new_state=next_state), dist - 1, f'{state} -> {next_state}')
+        self.assertEqual(
+            self.random_env.reward(
+                state, road_racer.RoadRacer.GO_UP, new_state=next_state
+            ),
+            dist - 1,
+            f'{state} -> {next_state}',
+        )
 
         # imagine agent went down
         next_state[-1] = 1
         dist = next_state[1]
-        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.GO_DOWN, new_state=next_state), dist, f'{state} -> {next_state}')
+        self.assertEqual(
+            self.random_env.reward(
+                state, road_racer.RoadRacer.GO_DOWN, new_state=next_state
+            ),
+            dist,
+            f'{state} -> {next_state}',
+        )
 
         # imagine agent **tried** to go down but was not possible
         next_state[1] = 0
         next_state[-1] = 0
         dist = next_state[0]
-        self.assertEqual(self.random_env.reward(state, road_racer.RoadRacer.GO_DOWN, new_state=next_state), dist - 1, f'{state} -> {next_state}')
+        self.assertEqual(
+            self.random_env.reward(
+                state, road_racer.RoadRacer.GO_DOWN, new_state=next_state
+            ),
+            dist - 1,
+            f'{state} -> {next_state}',
+        )
 
     def test_terminal(self) -> None:
         """  tests that it never returns terminal
@@ -792,11 +866,27 @@ class TestRoadRacer(unittest.TestCase):
         """
 
         # test any random <s,a,s'> transition
-        self.assertFalse(self.random_env.terminal(
-            np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes - 1)])),
-            self.random_env.action_space.sample(),
-            np.concatenate((np.random.randint(low=1, high=self.length, size=self.num_lanes), [random.randint(0, self.num_lanes - 1)]))
-        ))
+        self.assertFalse(
+            self.random_env.terminal(
+                np.concatenate(
+                    (
+                        np.random.randint(
+                            low=1, high=self.length, size=self.num_lanes
+                        ),
+                        [random.randint(0, self.num_lanes - 1)],
+                    )
+                ),
+                self.random_env.action_space.sample(),
+                np.concatenate(
+                    (
+                        np.random.randint(
+                            low=1, high=self.length, size=self.num_lanes
+                        ),
+                        [random.randint(0, self.num_lanes - 1)],
+                    )
+                ),
+            )
+        )
 
     def test_steps(self) -> None:
         """ tests the actual stepping functionality
@@ -812,12 +902,18 @@ class TestRoadRacer(unittest.TestCase):
         go_down = road_racer.RoadRacer.GO_DOWN
 
         # test regular step: all lanes should either stay or advance one
-        state = np.random.randint(low=2, high=self.length - 1, size=self.num_lanes + 1)
+        state = np.random.randint(
+            low=2, high=self.length - 1, size=self.num_lanes + 1
+        )
         state[-1] = 1
 
         next_state = self.random_env.simulation_step(state, stay).state
         for feature, value in enumerate(next_state):
-            self.assertIn(value, [state[feature], state[feature] - 1], f'{state} -> {next_state}, failing at feature {feature}')
+            self.assertIn(
+                value,
+                [state[feature], state[feature] - 1],
+                f'{state} -> {next_state}, failing at feature {feature}',
+            )
 
         # test that lane advance p=1 will advance, and p=0 will stay
         self.random_env.lane_probs = np.ones(self.num_lanes)
@@ -825,53 +921,87 @@ class TestRoadRacer(unittest.TestCase):
         next_state = state - 1
         next_state[-1] = state[-1]
 
-        np.testing.assert_array_equal(self.random_env.simulation_step(state, stay).state, next_state)
+        np.testing.assert_array_equal(
+            self.random_env.simulation_step(state, stay).state, next_state
+        )
 
         self.random_env.lane_probs = np.zeros(self.num_lanes)
-        np.testing.assert_array_equal(self.random_env.simulation_step(state, stay).state, state)
+        np.testing.assert_array_equal(
+            self.random_env.simulation_step(state, stay).state, state
+        )
 
         # test changing lane
         state[-1] = 0
-        self.assertEqual(self.random_env.simulation_step(state, go_down).state[-1], 1)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_down).state[-1], 1
+        )
 
         state[-1] = self.num_lanes - 1
-        self.assertEqual(self.random_env.simulation_step(state, go_up).state[-1], self.num_lanes - 2)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_up).state[-1],
+            self.num_lanes - 2,
+        )
 
         state[-1] = 1
-        self.assertEqual(self.random_env.simulation_step(state, go_down).state[-1], 2)
-        self.assertEqual(self.random_env.simulation_step(state, go_up).state[-1], 0)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_down).state[-1], 2
+        )
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_up).state[-1], 0
+        )
 
         # test changing lane on border will not change
         state[-1] = 0
-        self.assertEqual(self.random_env.simulation_step(state, go_up).state[-1], 0)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_up).state[-1], 0
+        )
 
         state[-1] = self.num_lanes - 1
-        self.assertEqual(self.random_env.simulation_step(state, go_down).state[-1], self.num_lanes - 1)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_down).state[-1],
+            self.num_lanes - 1,
+        )
 
         # test that changing lane into a car will not change lane
         state[-1] = 0
-        self.assertEqual(self.random_env.simulation_step(state, go_down).state[-1], 1)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_down).state[-1], 1
+        )
 
         state[-1] = self.num_lanes - 1
-        self.assertEqual(self.random_env.simulation_step(state, go_up).state[-1], self.num_lanes - 2)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_up).state[-1],
+            self.num_lanes - 2,
+        )
 
         state[-1] = 1
-        self.assertEqual(self.random_env.simulation_step(state, go_down).state[-1], 2)
-        self.assertEqual(self.random_env.simulation_step(state, go_up).state[-1], 0)
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_down).state[-1], 2
+        )
+        self.assertEqual(
+            self.random_env.simulation_step(state, go_up).state[-1], 0
+        )
 
         # test cars starting in lane again after being passed
         self.random_env.lane_probs = np.ones(self.num_lanes)
         state[0] = 0
         state[-1] = 1
-        np.testing.assert_array_equal(self.random_env.simulation_step(state, stay).state[0], self.length - 1)
+        np.testing.assert_array_equal(
+            self.random_env.simulation_step(state, stay).state[0],
+            self.length - 1,
+        )
 
         # test lane will not advance if agent is blocking
         state[1] = 1
-        np.testing.assert_array_equal(self.random_env.simulation_step(state, stay).state[1], 1)
+        np.testing.assert_array_equal(
+            self.random_env.simulation_step(state, stay).state[1], 1
+        )
 
         # test throwing terminal state if given state where agent is on car
         state[road_racer.RoadRacer.get_current_lane(state)] = 0
-        self.assertRaises(TerminalState, self.random_env.simulation_step, state, stay)
+        self.assertRaises(
+            TerminalState, self.random_env.simulation_step, state, stay
+        )
 
 
 if __name__ == '__main__':

@@ -12,6 +12,7 @@ from .gridworld import GridWorld
 from .learned_environments import NeuralEnsemblePOMDP  # NOQA, ignore unused import
 from .road_racer import RoadRacer
 from .tiger import Tiger
+from .gridverse_domain import GridverseDomain
 
 from .priors import TigerPrior, GridWorldPrior, CollisionAvoidancePrior, RoadRacerPrior
 
