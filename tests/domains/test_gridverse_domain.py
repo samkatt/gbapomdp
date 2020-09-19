@@ -28,24 +28,24 @@ class TestGridverseDomain(unittest.TestCase):
     def test_state_or_observation_conversions(self):
         """Tests conversions between `flatten_..` and `reshape...`"""
 
-        grid_shape = (7, 7, 6)
+        grid_shape = (7, 7)
 
         s = self.env.sample_start_state()
         o = self.env.reset()
 
         # initial values are as expected
         self.assertTupleEqual(
-            s.shape, (reduce(mul, grid_shape) + 6,),
+            s.shape, (reduce(mul, grid_shape) + 3,),
         )
         self.assertTupleEqual(
-            o.shape, (reduce(mul, grid_shape) + 3,),
+            o.shape, (reduce(mul, grid_shape),),
         )
 
         reshaped = gverse.reshape_state_or_observation(s, 7, 7)
         # conversion produces similar values
         self.assertTupleEqual(reshaped['grid'].shape, grid_shape)
-        # init should be (0,0) facing east (= 2)
-        np.testing.assert_array_equal(reshaped['agent'], [1, 1, 2, 0, 0, 0])
+        # initial position should be (0,0) facing east (= 2)
+        np.testing.assert_array_equal(reshaped['agent'], [1, 1, 2])
 
     def test_sample_start_state(self):
         """Basic property tests on initial state"""
@@ -55,9 +55,13 @@ class TestGridverseDomain(unittest.TestCase):
         )
 
         # position of goal
-        self.assertEqual(s['grid'][-2, -2, 3], 4)
+        self.assertEqual(s['grid'][-2, -2], 4)
         # initial agent position should be (1,1) facing east (= 2)
         np.testing.assert_array_equal(s['agent'][:3], [1, 1, 2])
+
+    def test_spaces(self):
+        """tests the action/state/observation space of grid verse"""
+        self.assertEqual(self.env.action_space.n, 6)
 
     def test_functions_do_not_crash(self):
         """calls all untested functions to make sure they at least run"""
@@ -69,7 +73,6 @@ class TestGridverseDomain(unittest.TestCase):
         self.env.step(0)
 
         # TODO: actually test properties of
-        self.assertIsInstance(self.env.action_space, ActionSpace)
         self.assertIsInstance(self.env.observation_space, DiscreteSpace)
         self.assertIsInstance(self.env.state_space, DiscreteSpace)
 

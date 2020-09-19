@@ -2,6 +2,7 @@
 from typing import Dict
 
 import numpy as np
+from gym_gridverse.actions import TRANSLATION_ACTIONS
 from gym_gridverse.actions import Actions as GverseAction
 from gym_gridverse.envs.gridworld import GridWorld as GverseEnv
 from gym_gridverse.grid_object import Goal, MovingObstacle, Wall
@@ -30,7 +31,9 @@ def flatten_state_or_observation(
     Returns:
         `np.ndarray`: representation of input into single array
     """
-    return np.concatenate([x.flatten() for x in state_or_obs.values()])
+    return np.concatenate(
+        [state_or_obs['grid'][:, :, 3].flatten(), state_or_obs['agent'][:-3]]
+    )
 
 
 def reshape_state_or_observation(
@@ -53,10 +56,9 @@ def reshape_state_or_observation(
     """
 
     # hard coded knowledge: the last three elements describe the held item
-    # hard coded knowledge: the number of channels is 6
-    num_features = h * w * 6
+    num_features = h * w
 
-    grid = flat_state_or_obs[:num_features].reshape((h, w, 6))
+    grid = flat_state_or_obs[:num_features].reshape((h, w))
     agent = flat_state_or_obs[num_features:]
 
     return {
@@ -70,6 +72,12 @@ class GridverseDomain(Environment, Simulator):
 
     The gridverse repository can be found at
     `https://github.com/abaisero/gym-gridverse`.
+
+    Limited to plain goal-seeking and moving obstacle domains.
+
+    - limited actions to turning and moving (excluding pick/drop and execution
+    - only consider the type-index layer
+
     """
 
     def __init__(
@@ -83,17 +91,12 @@ class GridverseDomain(Environment, Simulator):
             self._gverse_env.observation_space
         )
 
-        self._action_space = ActionSpace(
-            self._gverse_env.action_space.num_actions
-        )
+        self._action_space = ActionSpace(6)
 
         # TODO: nyi
         self._obs_space = DiscreteSpace([])
         self._state_space = DiscreteSpace([])
         self.h, self.w = 7, 7
-
-        # helpers
-        self.item_layer = 3
 
     def reset(self) -> np.ndarray:
         """interface"""
@@ -141,22 +144,35 @@ class GridverseDomain(Environment, Simulator):
     def reward(
         self, state: np.ndarray, action: int, new_state: np.ndarray
     ) -> float:
-        """interface"""
+        """interface
 
-        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
-        grid = unpacked_state['grid']
-        y = unpacked_state['agent'][0]
-        x = unpacked_state['agent'][1]
-
-        item_under_agent = grid[y, x, self.item_layer]
-
-        if item_under_agent == Goal.type_index:  # pylint: disable=no-member
-            return 1.0
-
-        # TODO: implement moving from previous state to conclude collision?
+        -1 if:
+            - agent is on a wall or moving obstacle in new state
+            - agent 'moved' but stayed on the same location
+        1 if:
+            - agent is on a goal in new state
+        else 0
+        """
 
         # pylint: disable=no-member
-        if item_under_agent in [Wall.type_index, MovingObstacle.type_index]:
+
+        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        y, x = unpacked_state['agent'][0], unpacked_state['agent'][1]
+        item_under_agent = unpacked_state['grid'][y, x]
+
+        if item_under_agent == Goal.type_index:
+            return 1.0
+
+        if item_under_agent in [MovingObstacle.type_index, Wall.type_index]:
+            return -1
+
+        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        prev_y, prev_x = unpacked_state['agent'][0], unpacked_state['agent'][1]
+
+        same_position = y == prev_y and x == prev_x
+        translating = action in TRANSLATION_ACTIONS
+
+        if translating and same_position:
             return -1
 
         return 0
@@ -164,17 +180,26 @@ class GridverseDomain(Environment, Simulator):
     def terminal(
         self, state: np.ndarray, action: int, new_state: np.ndarray
     ) -> bool:
-        """interface"""
+        """interface
+
+        True if:
+            - agent is on a wall, goal or moving obstacle in new state
+            - agent 'moved' but stayed on the same location
+        """
 
         unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
-        grid = unpacked_state['grid']
-        y = unpacked_state['agent'][0]
-        x = unpacked_state['agent'][1]
+        y, x = unpacked_state['agent'][0], unpacked_state['agent'][1]
+        item_under_agent = unpacked_state['grid'][y, x]
 
-        item_under_agent = grid[y, x, self.item_layer]
+        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        prev_y, prev_x = unpacked_state['agent'][0], unpacked_state['agent'][1]
 
+        same_position = y == prev_y and x == prev_x
+        translating = action in TRANSLATION_ACTIONS
+
+        # pylint: disable=no-member
         return item_under_agent in [
-            Goal.type_index,  # pylint: disable=no-member
-            Wall.type_index,  # pylint: disable=no-member
-            MovingObstacle.type_index,  # pylint: disable=no-member
-        ]
+            Goal.type_index,
+            Wall.type_index,
+            MovingObstacle.type_index,
+        ] or (translating and same_position)
