@@ -12,6 +12,8 @@ from gym_gridverse.info import Agent as GverseAgent
 from gym_gridverse.info import Grid as GverseGrid
 from gym_gridverse.state import State as GverseState
 from po_nrl.domains import GridverseDomain
+from po_nrl.environments import ActionSpace
+from po_nrl.misc import DiscreteSpace
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -21,10 +23,6 @@ class TestGridverseDomain(unittest.TestCase):
 
         self.env = GridverseDomain(
             gym_minigrid_from_descr('MiniGrid-Empty-5x5-v0')
-        )
-
-        self.random_env = GridverseDomain(
-            gym_minigrid_from_descr('MiniGrid-Empty-Random-5x5-v0')
         )
 
     def test_state_or_observation_conversions(self):
@@ -58,8 +56,25 @@ class TestGridverseDomain(unittest.TestCase):
 
         # position of goal
         self.assertEqual(s['grid'][-2, -2, 3], 4)
-        # init should be (0,0) facing east (= 2)
+        # initial agent position should be (1,1) facing east (= 2)
         np.testing.assert_array_equal(s['agent'][:3], [1, 1, 2])
+
+    def test_functions_do_not_crash(self):
+        """calls all untested functions to make sure they at least run"""
+
+        s = self.env.sample_start_state()
+        self.assertRaises(NotImplementedError, self.env.simulation_step, s, 1)
+
+        self.env.reset()
+        self.env.step(0)
+
+        # TODO: actually test properties of
+        self.assertIsInstance(self.env.action_space, ActionSpace)
+        self.assertIsInstance(self.env.observation_space, DiscreteSpace)
+        self.assertIsInstance(self.env.state_space, DiscreteSpace)
+
+        self.assertEqual(self.env.reward(s, 3, s), 0)
+        self.assertFalse(self.env.terminal(s, 3, s))
 
 
 if __name__ == '__main__':

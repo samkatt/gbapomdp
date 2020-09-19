@@ -2,6 +2,7 @@
 from typing import Dict
 
 import numpy as np
+from gym_gridverse.actions import Actions as GverseAction
 from gym_gridverse.envs.gridworld import GridWorld as GverseEnv
 from gym_gridverse.grid_object import Goal, MovingObstacle, Wall
 from gym_gridverse.representations.observation_representations import \
@@ -103,7 +104,7 @@ class GridverseDomain(Environment, Simulator):
 
     def step(self, action: int) -> EnvironmentInteraction:
         """interface"""
-        reward, terminal = self._gverse_env.step(action)
+        reward, terminal = self._gverse_env.step(GverseAction(action))
         obs = flatten_state_or_observation(
             self._obs_rep.convert(self._gverse_env.observation)
         )
@@ -144,8 +145,8 @@ class GridverseDomain(Environment, Simulator):
 
         unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
         grid = unpacked_state['grid']
-        y = unpacked_state['state'][0]
-        x = unpacked_state['state'][1]
+        y = unpacked_state['agent'][0]
+        x = unpacked_state['agent'][1]
 
         item_under_agent = grid[y, x, self.item_layer]
 
@@ -167,13 +168,13 @@ class GridverseDomain(Environment, Simulator):
 
         unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
         grid = unpacked_state['grid']
-        y = unpacked_state['state'][0]
-        x = unpacked_state['state'][1]
+        y = unpacked_state['agent'][0]
+        x = unpacked_state['agent'][1]
 
         item_under_agent = grid[y, x, self.item_layer]
 
         return item_under_agent in [
             Goal.type_index,  # pylint: disable=no-member
             Wall.type_index,  # pylint: disable=no-member
-            MovingObstacle.type_inde,  # pylint: disable=no-member
+            MovingObstacle.type_index,  # pylint: disable=no-member
         ]
