@@ -42,6 +42,8 @@ def create_environment(
         return ChainDomain(domain_size, encoding)
     if domain_name == "road_racer":
         return RoadRacer(np.arange(1, domain_size + 1) / (domain_size + 1))
+    if domain_name == "gridverse":
+        return GridverseDomain()
 
     raise ValueError('unknown domain ' + domain_name)
 

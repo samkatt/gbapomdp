@@ -4,6 +4,7 @@ from typing import Dict
 import numpy as np
 from gym_gridverse.actions import TRANSLATION_ACTIONS
 from gym_gridverse.actions import Actions as GverseAction
+from gym_gridverse.envs.env import Environment as GverseEnv
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
 from gym_gridverse.geometry import Orientation
 from gym_gridverse.grid_object import Goal, MovingObstacle, Wall
@@ -82,8 +83,12 @@ class GridverseDomain(Environment, Simulator):
     """
 
     def __init__(
-        self, gverse_env=gym_minigrid_from_descr("MiniGrid-Empty-5x5-v0")
+        self,
+        gverse_env: GverseEnv = gym_minigrid_from_descr(
+            "MiniGrid-Empty-5x5-v0"
+        ),
     ):
+        """TODO"""
 
         self._gverse_env = gverse_env
 
