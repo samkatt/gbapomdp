@@ -45,7 +45,7 @@ def sample_transitions_uniform_from_simulator(sim: Simulator) -> Tuple[np.ndarra
             continue
 
 
-def train_from_uniform_steps(
+def train_from_samples(
         model: DynamicsModel,
         sampler: TransitionSampler,
         num_epochs: int,
