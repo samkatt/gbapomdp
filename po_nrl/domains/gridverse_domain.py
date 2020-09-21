@@ -4,7 +4,8 @@ from typing import Dict
 import numpy as np
 from gym_gridverse.actions import TRANSLATION_ACTIONS
 from gym_gridverse.actions import Actions as GverseAction
-from gym_gridverse.envs.gridworld import GridWorld as GverseEnv
+from gym_gridverse.envs.factory import gym_minigrid_from_descr
+from gym_gridverse.geometry import Orientation
 from gym_gridverse.grid_object import Goal, MovingObstacle, Wall
 from gym_gridverse.representations.observation_representations import \
     DefaultObservationRepresentation
@@ -81,9 +82,11 @@ class GridverseDomain(Environment, Simulator):
     """
 
     def __init__(
-        self, gridverse_domain: GverseEnv,
+        self, gverse_env=gym_minigrid_from_descr("MiniGrid-Empty-5x5-v0")
     ):
-        self._gverse_env = gridverse_domain
+
+        self._gverse_env = gverse_env
+
         self._state_rep = DefaultStateRepresentation(
             self._gverse_env.state_space
         )
@@ -91,12 +94,21 @@ class GridverseDomain(Environment, Simulator):
             self._gverse_env.observation_space
         )
 
+        self.h = self._gverse_env.state_space.grid_shape.height
+        self.w = self._gverse_env.state_space.grid_shape.width
+        self.obs_h = self._gverse_env.observation_space.grid_shape.height
+        self.obs_w = self._gverse_env.observation_space.grid_shape.width
+
         self._action_space = ActionSpace(6)
 
-        # TODO: nyi
-        self._obs_space = DiscreteSpace([])
-        self._state_space = DiscreteSpace([])
-        self.h, self.w = 7, 7
+        # pylint: disable=no-member
+        self._obs_space = DiscreteSpace(
+            [Goal.type_index] * self.obs_h * self.obs_w
+        )
+        self._state_space = DiscreteSpace(
+            [Goal.type_index] * self.h * self.w
+            + [self.h, self.w, len(Orientation)]
+        )
 
     def reset(self) -> np.ndarray:
         """interface"""
@@ -166,7 +178,7 @@ class GridverseDomain(Environment, Simulator):
         if item_under_agent in [MovingObstacle.type_index, Wall.type_index]:
             return -1
 
-        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        unpacked_state = reshape_state_or_observation(state, self.h, self.w)
         prev_y, prev_x = unpacked_state['agent'][0], unpacked_state['agent'][1]
 
         same_position = y == prev_y and x == prev_x
@@ -191,7 +203,7 @@ class GridverseDomain(Environment, Simulator):
         y, x = unpacked_state['agent'][0], unpacked_state['agent'][1]
         item_under_agent = unpacked_state['grid'][y, x]
 
-        unpacked_state = reshape_state_or_observation(new_state, self.h, self.w)
+        unpacked_state = reshape_state_or_observation(state, self.h, self.w)
         prev_y, prev_x = unpacked_state['agent'][0], unpacked_state['agent'][1]
 
         same_position = y == prev_y and x == prev_x

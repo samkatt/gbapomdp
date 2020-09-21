@@ -6,13 +6,7 @@ from operator import mul
 import numpy as np
 import po_nrl.domains.gridverse_domain as gverse
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
-from gym_gridverse.geometry import Orientation as GverseOrientation
-from gym_gridverse.geometry import Position as GversePos
-from gym_gridverse.info import Agent as GverseAgent
-from gym_gridverse.info import Grid as GverseGrid
-from gym_gridverse.state import State as GverseState
 from po_nrl.domains import GridverseDomain
-from po_nrl.environments import ActionSpace
 from po_nrl.misc import DiscreteSpace
 
 
