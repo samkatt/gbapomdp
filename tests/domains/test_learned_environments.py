@@ -6,9 +6,10 @@ from functools import partial
 import numpy as np
 from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
                                                          sgd_builder)
-from po_nrl.domains import Tiger
+from po_nrl.domains import GridverseDomain, Tiger
 from po_nrl.domains.learned_environments import (
-    sample_transitions_uniform_from_simulator, train_from_samples)
+    create_transition_sampler, sample_transitions_uniform_from_simulator,
+    train_from_samples)
 from po_nrl.environments import EncodeType
 
 
@@ -64,6 +65,24 @@ class TestTrainFromSamples(unittest.TestCase):
         # the model should have learned that the transition probability of staying in the same state is high
         self.assertLessEqual(
             initial_transition_model[s[0]], final_transition_model[s[0]]
+        )
+
+
+class TestCreateTransitionSampler(unittest.TestCase):
+    """Tests factory for transition samplers"""
+
+    def test_default(self):
+        """Test none-gridverse"""
+        self.assertEqual(
+            create_transition_sampler(None).func.__name__,  # type: ignore
+            'sample_transitions_uniform_from_simulator',
+        )
+
+    def test_gridverse(self):
+        """Test gridverse"""
+        self.assertEqual(
+            create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
+            'sample_from_gridverse',
         )
 
 

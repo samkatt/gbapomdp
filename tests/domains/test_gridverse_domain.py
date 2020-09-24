@@ -61,7 +61,9 @@ class TestGridverseDomain(unittest.TestCase):
         """calls all untested functions to make sure they at least run"""
 
         s = self.env.sample_start_state()
-        self.assertRaises(NotImplementedError, self.env.simulation_step, s, 1)
+        self.assertRaises(
+            NotImplementedError, self.env.simulation_step, s, action=1
+        )
 
         self.env.reset()
         self.env.step(0)

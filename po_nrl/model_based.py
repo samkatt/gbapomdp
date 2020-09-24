@@ -1,6 +1,5 @@
 """ the main entrance for model-free learning experiments """
 
-from functools import partial
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from typing import Optional, List, Callable
 import numpy as np
@@ -9,7 +8,7 @@ from po_nrl.agents.model_based_agents import create_learning_agent
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import create_environment, EncodeType, create_prior
 from po_nrl.domains.learned_environments import NeuralEnsemblePOMDP
-from po_nrl.domains.learned_environments import train_from_samples, sample_transitions_uniform_from_simulator
+from po_nrl.domains.learned_environments import train_from_samples, create_transition_sampler
 from po_nrl.environments import Simulator
 from po_nrl.episode import run_episode
 from po_nrl.misc import POBNRLogger, set_random_seed
@@ -374,7 +373,7 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
     def train_method(net: DynamicsModel):
         sim = sim_sampler()
         logger.log(logger.LogLevel.V1, f'Training network on {sim}')
-        sampler = partial(sample_transitions_uniform_from_simulator, sim=sim)
+        sampler = create_transition_sampler(sim)
         train_from_samples(net, sampler, conf.num_pretrain_epochs, conf.batch_size)
 
     return train_method

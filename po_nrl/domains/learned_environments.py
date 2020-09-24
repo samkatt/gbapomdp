@@ -1,24 +1,33 @@
 """ domains either learned or constructed from other domains """
 
-from typing import Callable, Tuple
 import copy
-import numpy as np
-from typing_extensions import Protocol
+import random
+from functools import partial
+from typing import Callable, Tuple
 
-from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel, get_optimizer_builder
-from po_nrl.environments import ActionSpace, TerminalState
-from po_nrl.environments import Simulator, SimulationResult
-from po_nrl.misc import Space, DiscreteSpace, POBNRLogger
+import numpy as np
+from gym_gridverse.data_gen import \
+    sample_transitions as sample_gverse_transitions
+from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
+                                                         get_optimizer_builder)
+from po_nrl.domains.gridverse_domain import GridverseDomain
+from po_nrl.environments import (ActionSpace, SimulationResult, Simulator,
+                                 TerminalState)
+from po_nrl.misc import DiscreteSpace, POBNRLogger, Space
 from po_nrl.pytorch_api import tensorboard_logging
+from typing_extensions import Protocol
 
 
 class TransitionSampler(Protocol):
     """type to represent a transition sampler for learning environments"""
+
     def __call__(self) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
         """plain call to generate s,a,s',o sample"""
 
 
-def sample_transitions_uniform_from_simulator(sim: Simulator) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
+def sample_transitions_uniform_from_simulator(
+    sim: Simulator,
+) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
     """Samples transitions uniformly from simulator
 
     Samples state-action pairs uniformly from the environment (the next state
@@ -45,11 +54,68 @@ def sample_transitions_uniform_from_simulator(sim: Simulator) -> Tuple[np.ndarra
             continue
 
 
+def sample_from_gridverse(
+    d: GridverseDomain,
+) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
+    """Generates the sampler for the Gridverse environments
+
+    Uses the 'reset' function of Gridverse domain, but then randomly positions
+    the agent, to ensure the whole state space is visited
+
+    The implementation involves defining a state-sampler from `d` and then
+    using the Gridverse library build sampling function
+
+    Args:
+        d (`GridverseDomain`):
+
+    Returns:
+        Tuple[np.ndarray, int, np.ndarray, np.ndarray]: (s,a,s',o)
+    """
+
+    def state_sampler():
+        s = (
+            d._gverse_env.sample_start_state()
+        )  # pylint: disable=protected-access
+
+        y, x = random.randint(1, d.h - 1), random.randint(1, d.w - 1)
+        s.agent.position.x, s.agent.position.y = x, y
+
+        import ipdb
+
+        ipdb.set_trace()
+
+        return s
+
+    return sample_gverse_transitions(
+        1, state_sampler, lambda x: d.action_space.sample(), d
+    )[0]
+
+
+def create_transition_sampler(sim: Simulator) -> TransitionSampler:
+    """Factory method for generating transition samplers
+
+    Basically returns the correct sampler, at this point there are really 2
+    possibilities: either a Gridverse-specific sampler, or the uniform
+    state-action sampler is returned
+
+    Args:
+        sim (`Simulator`):
+
+    Returns:
+        `TransitionSampler`:
+    """
+    if isinstance(sim, GridverseDomain):
+        return partial(sample_from_gridverse, d=sim)
+
+    return partial(sample_transitions_uniform_from_simulator, sim=sim)
+
+
 def train_from_samples(
-        model: DynamicsModel,
-        sampler: TransitionSampler,
-        num_epochs: int,
-        batch_size: int) -> None:
+    model: DynamicsModel,
+    sampler: TransitionSampler,
+    num_epochs: int,
+    batch_size: int,
+) -> None:
     """ trains a model with data uniformly sampled from (S,A) space
 
     Performs `num_epochs` updates of size `batch_size` by sampling from sampler
@@ -61,13 +127,20 @@ def train_from_samples(
          batch_size: (`int`): size of a batch update
 
     RETURNS (`None`):
-
     """
 
     log_loss = tensorboard_logging()
     for _ in range(num_epochs):
-        states, actions, new_states, observations = zip(*[sampler() for _ in range(batch_size)])
-        model.batch_update(np.array(states), np.array(actions), np.array(new_states), np.array(observations), log_loss)
+        states, actions, new_states, observations = zip(
+            *[sampler() for _ in range(batch_size)]
+        )
+        model.batch_update(
+            np.array(states),
+            np.array(actions),
+            np.array(new_states),
+            np.array(observations),
+            log_loss,
+        )
 
 
 class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
@@ -99,10 +172,12 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_action_space = domain.action_space
         self.domain_obs_space = domain.observation_space
 
-        assert isinstance(self.domain_obs_space, DiscreteSpace),\
-            f"current limited to learning discrete POMDPs, not {domain}"
-        assert isinstance(domain.state_space, DiscreteSpace),\
-            f"current limited to learning discrete POMDPs, not {domain}"
+        assert isinstance(
+            self.domain_obs_space, DiscreteSpace
+        ), f"current limited to learning discrete POMDPs, not {domain}"
+        assert isinstance(
+            domain.state_space, DiscreteSpace
+        ), f"current limited to learning discrete POMDPs, not {domain}"
 
         self.sample_domain_start_state = domain.sample_start_state
 
@@ -120,8 +195,9 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
                 conf.learning_rate,
                 conf.batch_size,
                 conf.dropout_rate,
-                optimizer_builder
-            ) for i in range(conf.num_nets)
+                optimizer_builder,
+            )
+            for i in range(conf.num_nets)
         ]
 
     @property
@@ -152,8 +228,9 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         RETURNS (`po_nrl.misc.Space`):
 
         """
-        assert isinstance(self.domain_obs_space, DiscreteSpace),\
-            f"current limited to learning discrete POMDPs, not {self.domain_obs_space}"
+        assert isinstance(
+            self.domain_obs_space, DiscreteSpace
+        ), f"current limited to learning discrete POMDPs, not {self.domain_obs_space}"
         return self.domain_obs_space
 
     def sample_start_state(self) -> 'AugmentedState':
@@ -166,13 +243,12 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """
         return self.AugmentedState(
             self.sample_domain_start_state(),
-            copy.deepcopy(np.random.choice(self._models))
+            copy.deepcopy(np.random.choice(self._models)),
         )
 
     def simulation_step(
-            self,
-            state: AugmentedState,
-            action: int) -> SimulationResult:
+        self, state: AugmentedState, action: int
+    ) -> SimulationResult:
         """ Performs simulation step
 
         Args:
@@ -184,11 +260,17 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         """
 
         # use model to generate a step
-        new_domain_state, obs = state.model.simulation_step(state.domain_state, action)
+        new_domain_state, obs = state.model.simulation_step(
+            state.domain_state, action
+        )
 
-        return SimulationResult(self.AugmentedState(new_domain_state, state.model), obs)
+        return SimulationResult(
+            self.AugmentedState(new_domain_state, state.model), obs
+        )
 
-    def reward(self, state: AugmentedState, action: int, new_state: AugmentedState) -> float:
+    def reward(
+        self, state: AugmentedState, action: int, new_state: AugmentedState
+    ) -> float:
         """ the reward function of the underlying environment
 
         Args:
@@ -199,9 +281,13 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         RETURNS (`float`): the reward of the transition
 
         """
-        return self.domain_reward(state.domain_state, action, new_state.domain_state)
+        return self.domain_reward(
+            state.domain_state, action, new_state.domain_state
+        )
 
-    def terminal(self, state: AugmentedState, action: int, new_state: AugmentedState) -> bool:
+    def terminal(
+        self, state: AugmentedState, action: int, new_state: AugmentedState
+    ) -> bool:
         """ the termination function of the underlying environment
 
         Args:
@@ -212,9 +298,16 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         RETURNS (`bool`): whether the transition is terminal
 
         """
-        return self.domain_terminal(state.domain_state, action, new_state.domain_state)
+        return self.domain_terminal(
+            state.domain_state, action, new_state.domain_state
+        )
 
-    def reset(self, train_net_f: Callable[[DynamicsModel], None], learning_rate: float, online_learning_rate: float) -> None:
+    def reset(
+        self,
+        train_net_f: Callable[[DynamicsModel], None],
+        learning_rate: float,
+        online_learning_rate: float,
+    ) -> None:
         """ resets the ensemble and re-trains them according
 
         After training, the learning rate is reset to `online_learning_rate`
@@ -233,7 +326,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
 
             self.log(
                 POBNRLogger.LogLevel.V1,
-                f'Training Dynamics Neural Ensemble member {i+1}/{len(self._models)}'
+                f'Training Dynamics Neural Ensemble member {i+1}/{len(self._models)}',
             )
 
             model.reset()
