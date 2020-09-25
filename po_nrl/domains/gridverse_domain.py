@@ -34,6 +34,10 @@ def flatten_state_or_observation(
     is a dictionary of string -> numpy arrays. This is the easiest way of
     converting such representations into a single array
 
+    Note that this implementation keeps only the 'item index' and ignores the
+    other layers. This because it is assumed that all the domains currently
+    used hold no information in those layers
+
     Args:
         state_or_obs (`Dict[str, np.ndarray]`): output of 'representation' in gridverse
 
@@ -122,12 +126,16 @@ class GridverseDomain(Environment, Simulator):
 
         self._action_space = ActionSpace(6)
 
-        # pylint: disable=no-member
+        # TODO: extend to include moving obstacles when the time is ripe
         self._obs_space = DiscreteSpace(
-            [Goal.type_index] * self.obs_h * self.obs_w
+            # pylint: disable=no-member
+            [Goal.type_index + 1]
+            * self.obs_h
+            * self.obs_w
         )
         self._state_space = DiscreteSpace(
-            [Goal.type_index] * self.h * self.w
+            # pylint: disable=no-member
+            [Goal.type_index + 1] * self.h * self.w
             + [self.h, self.w, len(Orientation)]
         )
 
@@ -250,7 +258,7 @@ class GridverseDomain(Environment, Simulator):
 
         - the state from the 'reset' function (which we assume generates all
           reachable states!)
-            - excplicitly set the position of the agent randomly
+            - explicitly set the position of the agent randomly
         - the action is sampled randomly from _our_ action space
 
         Then the next state and observation is sampled from the actual
@@ -266,6 +274,9 @@ class GridverseDomain(Environment, Simulator):
         def state_sampler():
             s = self._gverse_sim.env.functional_reset()
 
+            # set random agent position, it is assumed here that (apart from
+            # the agent position) all other reachable states are sampled
+            # through the functional reset
             s.agent.position = GversePosition(
                 random.randint(1, self.h - 1), random.randint(1, self.w - 1)
             )
@@ -276,6 +287,7 @@ class GridverseDomain(Environment, Simulator):
             1, state_sampler, action_sampler, self._gverse_sim
         )[0]
 
+        # TODO: this does not generalize to different representations
         s = flatten_state_or_observation(gverse_transition.state)
         a = gverse_transition.action.value
         ss = flatten_state_or_observation(gverse_transition.next_state)

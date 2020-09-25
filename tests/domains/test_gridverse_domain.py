@@ -53,9 +53,37 @@ class TestGridverseDomain(unittest.TestCase):
         # initial agent position should be (1,1) facing east (= 2)
         np.testing.assert_array_equal(s['agent'][:3], [1, 1, 2])
 
-    def test_spaces(self):
-        """tests the action/state/observation space of grid verse"""
+    def test_action_space(self):
+        """tests the action space of grid verse"""
+        # action
         self.assertEqual(self.env.action_space.n, 6)
+
+    def test_state_space(self):
+        """tests the state space of grid verse"""
+
+        self.assertEqual(self.env.state_space.ndim, 3 + self.env.h * self.env.w)
+
+        state_space_size = np.ones(self.env.state_space.ndim, dtype=int) * 5
+        state_space_size[-3] = self.env.h
+        state_space_size[-2] = self.env.w
+        state_space_size[-1] = 4  # four orientations
+
+        np.testing.assert_array_equal(
+            self.env.state_space.size, state_space_size  # type: ignore
+        )
+
+    def test_obs_space(self):
+        """tests the obs space of grid verse"""
+
+        self.assertEqual(
+            self.env.observation_space.ndim, self.env.obs_h * self.env.obs_w
+        )
+
+        obs_space_size = np.ones(self.env.observation_space.ndim, dtype=int) * 5
+
+        np.testing.assert_array_equal(
+            self.env.observation_space.size, obs_space_size  # type: ignore
+        )
 
     def test_functions_do_not_crash(self):
         """calls all untested functions to make sure they at least run"""
@@ -67,10 +95,6 @@ class TestGridverseDomain(unittest.TestCase):
 
         self.env.reset()
         self.env.step(0)
-
-        # TODO: actually test properties of
-        self.assertIsInstance(self.env.observation_space, DiscreteSpace)
-        self.assertIsInstance(self.env.state_space, DiscreteSpace)
 
         self.assertEqual(self.env.reward(s, 3, s), 0)
         self.assertFalse(self.env.terminal(s, 3, s))
