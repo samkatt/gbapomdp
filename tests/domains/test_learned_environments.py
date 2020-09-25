@@ -8,8 +8,8 @@ from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
                                                          sgd_builder)
 from po_nrl.domains import GridverseDomain, Tiger
 from po_nrl.domains.learned_environments import (
-    create_transition_sampler, sample_transitions_uniform_from_simulator,
-    train_from_samples)
+    create_transition_sampler, sample_from_gridverse,
+    sample_transitions_uniform_from_simulator, train_from_samples)
 from po_nrl.environments import EncodeType
 
 
@@ -68,18 +68,39 @@ class TestTrainFromSamples(unittest.TestCase):
         )
 
 
+class TestSampleFromGridverse(unittest.TestCase):
+    """Tests generating transitions from gridverse"""
+
+    def test_that_it_runs(self):
+        """basic call to ensure it does not crash"""
+        d = GridverseDomain()
+
+        try:
+            _, _, _, _ = sample_from_gridverse(d)
+        except Exception as e:  # pylint: disable=broad-except
+            self.fail(f"This code should run, causes {e}")
+
+
 class TestCreateTransitionSampler(unittest.TestCase):
-    """Tests factory for transition samplers"""
+    """Tests factory for transition samplers
+
+    This test assumes (knows) that the factory function returns a partial.  The
+    name of that partial is being checked. Although silly, it catches the
+    otherwise hard-to-notice evil bug
+
+    """
+
+    # pylint: disable=no-member
 
     def test_default(self):
-        """Test none-gridverse"""
+        """Test none-Gridverse """
         self.assertEqual(
             create_transition_sampler(None).func.__name__,  # type: ignore
             'sample_transitions_uniform_from_simulator',
         )
 
     def test_gridverse(self):
-        """Test gridverse"""
+        """Test Gridverse """
         self.assertEqual(
             create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
             'sample_from_gridverse',

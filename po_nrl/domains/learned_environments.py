@@ -1,13 +1,10 @@
 """ domains either learned or constructed from other domains """
 
 import copy
-import random
 from functools import partial
 from typing import Callable, Tuple
 
 import numpy as np
-from gym_gridverse.data_gen import \
-    sample_transitions as sample_gverse_transitions
 from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
                                                          get_optimizer_builder)
 from po_nrl.domains.gridverse_domain import GridverseDomain
@@ -71,24 +68,7 @@ def sample_from_gridverse(
     Returns:
         Tuple[np.ndarray, int, np.ndarray, np.ndarray]: (s,a,s',o)
     """
-
-    def state_sampler():
-        s = (
-            d._gverse_env.sample_start_state()
-        )  # pylint: disable=protected-access
-
-        y, x = random.randint(1, d.h - 1), random.randint(1, d.w - 1)
-        s.agent.position.x, s.agent.position.y = x, y
-
-        import ipdb
-
-        ipdb.set_trace()
-
-        return s
-
-    return sample_gverse_transitions(
-        1, state_sampler, lambda x: d.action_space.sample(), d
-    )[0]
+    return d.sample_transition()
 
 
 def create_transition_sampler(sim: Simulator) -> TransitionSampler:
