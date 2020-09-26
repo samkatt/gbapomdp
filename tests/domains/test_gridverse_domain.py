@@ -7,7 +7,6 @@ import numpy as np
 import po_nrl.domains.gridverse_domain as gverse
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
 from po_nrl.domains import GridverseDomain
-from po_nrl.misc import DiscreteSpace
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -29,29 +28,28 @@ class TestGridverseDomain(unittest.TestCase):
 
         # initial values are as expected
         self.assertTupleEqual(
-            s.shape, (reduce(mul, grid_shape) + 3,),
+            s.shape, (reduce(mul, grid_shape) + 6,),
         )
         self.assertTupleEqual(
             o.shape, (reduce(mul, grid_shape),),
         )
 
-        reshaped = gverse.reshape_state_or_observation(s, 7, 7)
+        reshaped = gverse.reshape_state(s, 7, 7)
         # conversion produces similar values
         self.assertTupleEqual(reshaped['grid'].shape, grid_shape)
         # initial position should be (0,0) facing east (= 2)
+
         np.testing.assert_array_equal(reshaped['agent'], [1, 1, 2])
 
     def test_sample_start_state(self):
         """Basic property tests on initial state"""
 
-        s = gverse.reshape_state_or_observation(
-            self.env.sample_start_state(), 7, 7
-        )
+        s = gverse.reshape_state(self.env.sample_start_state(), 7, 7)
 
         # position of goal
         self.assertEqual(s['grid'][-2, -2], 4)
         # initial agent position should be (1,1) facing east (= 2)
-        np.testing.assert_array_equal(s['agent'][:3], [1, 1, 2])
+        np.testing.assert_array_equal(s['agent'], [1, 1, 2])
 
     def test_action_space(self):
         """tests the action space of grid verse"""
@@ -61,12 +59,12 @@ class TestGridverseDomain(unittest.TestCase):
     def test_state_space(self):
         """tests the state space of grid verse"""
 
-        self.assertEqual(self.env.state_space.ndim, 3 + self.env.h * self.env.w)
+        self.assertEqual(self.env.state_space.ndim, 6 + self.env.h * self.env.w)
 
         state_space_size = np.ones(self.env.state_space.ndim, dtype=int) * 5
-        state_space_size[-3] = self.env.h
-        state_space_size[-2] = self.env.w
-        state_space_size[-1] = 4  # four orientations
+        state_space_size[-6] = self.env.h
+        state_space_size[-5] = self.env.w
+        state_space_size[-4:] = 2  # four orientations, hot-encoded
 
         np.testing.assert_array_equal(
             self.env.state_space.size, state_space_size  # type: ignore
