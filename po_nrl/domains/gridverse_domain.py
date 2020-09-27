@@ -53,12 +53,30 @@ class StateEncoding(abc.ABC):
             `Tuple[np.ndarray, GversePosition, Orientation]`: semantic meaning of state: grid (h x w), y, x
         """
 
+    @property
+    @abc.abstractmethod
+    def state_space(self) -> DiscreteSpace:
+        """since encoding determines the state space, this functionality belongs here"""
+
 
 class OneHotStateEncoding(StateEncoding):
     """one-hot encoding for both position and orientation of the agent"""
 
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
+        self._state_space = DiscreteSpace(
+            # pylint: disable=no-member
+            [self._rep.state_space.max_grid_object_type + 1]
+            * self._rep.state_space.grid_shape.height
+            * self._rep.state_space.grid_shape.width
+            # one-hot encoding of position and orientation
+            + [2]
+            * (
+                self._rep.state_space.grid_shape.height
+                + self._rep.state_space.grid_shape.width
+                + len(Orientation)
+            )
+        )
 
     def encode(self, s: GverseState) -> np.ndarray:
         """Represents a state as a numpy array, hot encoding position and orientation
@@ -130,6 +148,10 @@ class OneHotStateEncoding(StateEncoding):
             GversePosition(agent_y, agent_x),
             Orientation(agent_orientation),
         )
+
+    @property
+    def state_space(self) -> DiscreteSpace:
+        return self._state_space
 
 
 def flatten_observation(
@@ -215,14 +237,6 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             * self.obs_h
             * self.obs_w
         )
-        self._state_space = DiscreteSpace(
-            # pylint: disable=no-member
-            [self._gverse_env.state_space.max_grid_object_type + 1]
-            * self.h
-            * self.w
-            # one-hot encoding of position and orientation
-            + [2] * (self.h + self.w + len(Orientation))
-        )
 
     def _convert_gverse_obs(self, o: GverseObs) -> np.ndarray:
         return flatten_observation(o, self._gverse_obs_rep)
@@ -259,7 +273,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
     @property
     def state_space(self) -> Space:
         """interface"""
-        return self._state_space
+        return self._state_encoding.state_space
 
     def simulation_step(
         self, state: np.ndarray, action: int
