@@ -4,7 +4,6 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
-import po_nrl.domains.gridverse_domain as gverse
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
 from po_nrl.domains import GridverseDomain
 
@@ -28,28 +27,42 @@ class TestGridverseDomain(unittest.TestCase):
 
         # initial values are as expected
         self.assertTupleEqual(
-            s.shape, (reduce(mul, grid_shape) + 6,),
+            s.shape, (reduce(mul, grid_shape) + 7 + 7 + 4,),
         )
         self.assertTupleEqual(
             o.shape, (reduce(mul, grid_shape),),
         )
 
-        reshaped = gverse.reshape_state(s, 7, 7)
-        # conversion produces similar values
-        self.assertTupleEqual(reshaped['grid'].shape, grid_shape)
-        # initial position should be (0,0) facing east (= 2)
+        np.testing.assert_array_equal(
+            s[7 * 7:],
+            np.concatenate(
+                [[0, 1], np.zeros(5), [0, 1], np.zeros(5), [0, 0, 1, 0]]
+            ),
+        )
 
-        np.testing.assert_array_equal(reshaped['agent'], [1, 1, 2])
+        # pylint: disable=protected-access
+        grid, pos, orient = self.env._state_encoding.decode(s)
+
+        # conversion produces similar values
+        self.assertTupleEqual(grid.shape, grid_shape)
+
+        # initial position should be (1,1) facing east (= 2)
+        np.testing.assert_array_equal(pos, [1, 1])
+        self.assertEqual(orient.value, 2)
 
     def test_sample_start_state(self):
         """Basic property tests on initial state"""
 
-        s = gverse.reshape_state(self.env.sample_start_state(), 7, 7)
+        # pylint: disable=protected-access
+        grid, pos, orient = self.env._state_encoding.decode(
+            self.env.sample_start_state()
+        )
 
         # position of goal
-        self.assertEqual(s['grid'][-2, -2], 4)
+        self.assertEqual(grid[-2, -2], 4)
         # initial agent position should be (1,1) facing east (= 2)
-        np.testing.assert_array_equal(s['agent'], [1, 1, 2])
+        np.testing.assert_array_equal(pos, [1, 1])
+        self.assertEqual(orient.value, 2)
 
     def test_action_space(self):
         """tests the action space of grid verse"""
@@ -59,12 +72,19 @@ class TestGridverseDomain(unittest.TestCase):
     def test_state_space(self):
         """tests the state space of grid verse"""
 
-        self.assertEqual(self.env.state_space.ndim, 6 + self.env.h * self.env.w)
+        num_grid_dim = self.env.h * self.env.w
+        num_pos_dim = self.env.h + self.env.w
+        num_orientation_dim = 4
+
+        self.assertEqual(
+            self.env.state_space.ndim,
+            num_grid_dim + num_pos_dim + num_orientation_dim,
+        )
 
         state_space_size = np.ones(self.env.state_space.ndim, dtype=int) * 5
-        state_space_size[-6] = self.env.h
-        state_space_size[-5] = self.env.w
-        state_space_size[-4:] = 2  # four orientations, hot-encoded
+
+        # one-hot encoding of position and orientation
+        state_space_size[num_grid_dim:] = 2
 
         np.testing.assert_array_equal(
             self.env.state_space.size, state_space_size  # type: ignore
