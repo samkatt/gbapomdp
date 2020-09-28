@@ -4,12 +4,9 @@ from functools import reduce
 from operator import mul
 
 import numpy as np
-from gym_gridverse.envs.factory import gym_minigrid_from_descr
 from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.domains import GridverseDomain
-from po_nrl.domains.gridverse_domain import (CompactStateEncoding,
-                                             OneHotOrientationEncoding,
-                                             OneHotStateEncoding)
+from po_nrl.domains.gridverse_domain import StateEncoding
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -17,9 +14,7 @@ class TestGridverseDomain(unittest.TestCase):
 
     def setUp(self):
 
-        self.env = GridverseDomain(
-            gym_minigrid_from_descr('MiniGrid-Empty-5x5-v0')
-        )
+        self.env = GridverseDomain('one-hot-state', 'MiniGrid-Empty-5x5-v0')
 
     def test_state_or_observation_conversions(self):
         """Tests conversions between `flatten_..` and `reshape...`"""
@@ -125,23 +120,25 @@ class TestGridverseDomain(unittest.TestCase):
 class TestStateEncodings(unittest.TestCase):
     """tests implementations of `StateEncoding`"""
 
+    # pylint: disable=protected-access
     def setUp(self):
         # XXX: ugliest way of initiating possible
         self.obst_index = MovingObstacle.type_index  # pylint: disable=no-member
 
         self.env = GridverseDomain(
-            gym_minigrid_from_descr("MiniGrid-Dynamic-Obstacles-Random-5x5-v0")
+            "compact", "MiniGrid-Dynamic-Obstacles-Random-5x5-v0"
         )
 
-        self.compact_encoding = CompactStateEncoding(
-            self.env._state_encoding._rep  # pylint: disable=protected-access
-        )
-        self.one_hot_orientation = OneHotOrientationEncoding(
-            self.env._state_encoding._rep  # pylint: disable=protected-access
+        self.compact_encoding = StateEncoding.construct(
+            "compact", self.env._state_encoding._rep,  # type: ignore
         )
 
-        self.one_hot_encoding = OneHotStateEncoding(
-            self.env._state_encoding._rep  # pylint: disable=protected-access
+        self.one_hot_orientation = StateEncoding.construct(
+            "one-hot-orientation", self.env._state_encoding._rep  # type: ignore
+        )
+
+        self.one_hot_encoding = StateEncoding.construct(
+            "one-hot-state", self.env._state_encoding._rep,  # type: ignore
         )
 
     def test_state_space(self):

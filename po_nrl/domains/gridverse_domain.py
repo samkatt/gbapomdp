@@ -6,7 +6,6 @@ from typing import Tuple
 import numpy as np
 from gym_gridverse.actions import TRANSLATION_ACTIONS
 from gym_gridverse.actions import Actions as GverseAction
-from gym_gridverse.envs.env import Environment as GverseEnv
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
 from gym_gridverse.geometry import Orientation
 from gym_gridverse.geometry import Position as GversePosition
@@ -58,9 +57,34 @@ class StateEncoding(abc.ABC):
     def state_space(self) -> DiscreteSpace:
         """since encoding determines the state space, this functionality belongs here"""
 
+    @staticmethod
+    def construct(
+        descr: str, rep: DefaultStateRepresentation
+    ) -> 'StateEncoding':
+        """factory construction function
+
+        expects descr to be either: 'compact', 'one-hot-state' or 'one-hot-orientation'
+
+        Args:
+            descr (`str`): string representation of the encoding
+            rep (`DefaultStateRepresentation`):
+
+        Returns:
+            'StateEncoding':
+        """
+
+        if descr == "compact":
+            return CompactStateEncoding(rep)
+        if descr == "one-hot-orientation":
+            return OneHotOrientationEncoding(rep)
+        if descr == "one-hot-state":
+            return OneHotStateEncoding(rep)
+
+        raise ValueError(f"cannot map {descr} to an encoding")
+
 
 class CompactStateEncoding(StateEncoding):
-    """default encoding, no one-hot encoding applied"""
+    """default encoding, no one - hot encoding applied"""
 
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
@@ -79,7 +103,7 @@ class CompactStateEncoding(StateEncoding):
         the position and orientation is concatenated (as is)
 
         Args:
-            s (`GverseState`):
+            s(`GverseState`):
 
         Returns:
             `np.ndarray`:
@@ -93,12 +117,12 @@ class CompactStateEncoding(StateEncoding):
     def decode(
         self, s: np.ndarray
     ) -> Tuple[np.ndarray, GversePosition, Orientation]:
-        """decodes a numpy array (generated from `encode`) and extracts info
+        """decodes a numpy array(generated from `encode`) and extracts info
 
-        Returns (grid (h x w), position (y, x), orientation)
+        Returns(grid(h x w), position(y, x), orientation)
 
         Args:
-            s (`np.ndarray`):
+            s(`np.ndarray`):
 
         Returns:
             `Tuple[np.ndarray, GversePosition, Orientation]`:
@@ -118,7 +142,7 @@ class CompactStateEncoding(StateEncoding):
 
 
 class OneHotOrientationEncoding(StateEncoding):
-    """one-hot encoding of only orientation, not of position"""
+    """one - hot encoding of only orientation, not of position"""
 
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
@@ -132,12 +156,12 @@ class OneHotOrientationEncoding(StateEncoding):
         )
 
     def encode(self, s: GverseState) -> np.ndarray:
-        """encodes the orientation as one-hot
+        """encodes the orientation as one - hot
 
         Otherwise just concatenates flattened grid and positions
 
         Args:
-            s (`GverseState`):
+            s(`GverseState`):
 
         Returns:
             `np.ndarray`:
@@ -160,10 +184,10 @@ class OneHotOrientationEncoding(StateEncoding):
     ) -> Tuple[np.ndarray, GversePosition, Orientation]:
         """interprets encoded `s` (from `encode`) and return info
 
-        Basically interprets hot-encoding of orientation
+        Basically interprets hot - encoding of orientation
 
         Args:
-            s (`np.ndarray`):
+            s(`np.ndarray`):
 
         Returns:
             `Tuple[np.ndarray, GversePosition, Orientation]`:
@@ -186,7 +210,7 @@ class OneHotOrientationEncoding(StateEncoding):
 
 
 class OneHotStateEncoding(StateEncoding):
-    """one-hot encoding for both position and orientation of the agent"""
+    """one - hot encoding for both position and orientation of the agent"""
 
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
@@ -203,7 +227,7 @@ class OneHotStateEncoding(StateEncoding):
     def encode(self, s: GverseState) -> np.ndarray:
         """Represents a state as a numpy array, hot encoding position and orientation
 
-        Flattens the 'grid' and concatenates a one-hot encoding of the agent's
+        Flattens the 'grid' and concatenates a one - hot encoding of the agent's
         position and orientation
 
         Note that this implementation keeps only the 'item index' and ignores the
@@ -211,7 +235,7 @@ class OneHotStateEncoding(StateEncoding):
         used hold no information in those layers
 
         Args:
-            s (`GverseState`): state in Gridverse
+            s(`GverseState`): state in Gridverse
 
         Returns:
             `np.ndarray`: representation of input into single array
@@ -242,10 +266,10 @@ class OneHotStateEncoding(StateEncoding):
     ) -> Tuple[np.ndarray, GversePosition, Orientation]:
         """reshapes a flattened state back into semantic info
 
-        Assumes one-hot encoded state as implemented in `encode` and extracts the grid and position & orientation of the agent
+        Assumes one - hot encoded state as implemented in `encode` and extracts the grid and position & orientation of the agent
 
         Args:
-            s (`np.ndarray`): flat (?,) vector array representing state
+            s(`np.ndarray`): flat(?,) vector array representing state
 
         Returns:
             `Tuple[np.ndarray, GversePosition, Orientation]`:
@@ -285,15 +309,15 @@ def flatten_observation(
     string -> numpy arrays. This is the easiest way of converting such
     representations into a single array
 
-    This function returns the grid part (obs['grid']) and flattens it.
+    This function returns the grid part(obs['grid']) and flattens it.
 
     Note that this implementation keeps only the 'item index' and ignores the
     other layers. This because it is assumed that all the domains currently
     used hold no information in those layers
 
     Args:
-        obs (`GverseObs`): observation in Gridverse
-        rep (`DefaultObservationRepresentation`): representation of `obs` into multiply arrays
+        obs(`GverseObs`): observation in Gridverse
+        rep(`DefaultObservationRepresentation`): representation of `obs` into multiply arrays
 
     Returns:
         `np.ndarray`: representation of input into single array
@@ -305,22 +329,21 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
     """ Wrapper around gridverse domains
 
     The gridverse repository can be found at
-    `https://github.com/abaisero/gym-gridverse`.
+    `https: // github.com / abaisero / gym - gridverse`.
 
-    Limited to plain goal-seeking and moving obstacle domains.
+    Limited to plain goal - seeking and moving obstacle domains.
 
-    - limited actions to turning and moving (excluding pick/drop and execution
-    - only consider the type-index layer
+    - limited actions to turning and moving(excluding pick / drop and execution
+    - only consider the type - index layer
 
     """
 
     def __init__(
         self,
-        gverse_env: GverseEnv = gym_minigrid_from_descr(
-            "MiniGrid-Empty-5x5-v0"
-        ),
+        encoding_descr: str = "compact",
+        env_descr: str = "MiniGrid-Empty-5x5-v0",
     ):
-        """The only input to our grid-verse wrapper is the actual gverse domain itself
+        """The only input to our grid - verse wrapper is the actual gverse domain itself
 
         Our class wraps the domain basically twice: it also wraps it into the
         Gridverse simulator, which provides functionality to convert abstract
@@ -328,13 +351,21 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
 
         This is basically just an interface between the grid verse simulator
         and our code. Its biggest responsibility is translating the dictionary
-        of numpy arrays generated by gridverse into a single array (see
+        of numpy arrays generated by gridverse into a single array(see
         `flatten_state_or_observation` and `reshape_state`).
 
         Args:
-            gverse_env (`GverseEnv, optional`):
+            encoding_descr(`str`): compact, one-hot-orientation or one-hot-state
+            env_descr(`str`): gym_minigrid description
         """
         POBNRLogger.__init__(self)
+
+        self.log(
+            POBNRLogger.LogLevel.V1,
+            f"Initiating {env_descr} GridverseDomain with {encoding_descr} encoding",
+        )
+
+        gverse_env = gym_minigrid_from_descr(env_descr)
 
         self._gverse_obs_rep = DefaultObservationRepresentation(
             gverse_env.observation_space
@@ -342,8 +373,8 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
 
         self._gverse_env = gverse_env
 
-        self._state_encoding = OneHotStateEncoding(
-            DefaultStateRepresentation(gverse_env.state_space)
+        self._state_encoding = StateEncoding.construct(
+            encoding_descr, DefaultStateRepresentation(gverse_env.state_space)
         )
 
         self.h = gverse_env.state_space.grid_shape.height
@@ -412,7 +443,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
     ) -> float:
         """interface
 
-        -1 if:
+        - 1 if:
             - agent is on a wall or moving obstacle in new state
             - agent 'moved' but stayed on the same location
         1 if:
@@ -478,7 +509,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
 
         First samples a state and action:
 
-        - the state from the 'reset' function (which we assume generates all
+        - the state from the 'reset' function(which we assume generates all
           reachable states!)
             - explicitly set the position of the agent randomly
         - the action is sampled randomly from _our_ action space
@@ -486,8 +517,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         Then the next state and observation is sampled from the actual
         dynamics.
 
-        Returns:
-            `Tuple[np.ndarray, int, np.ndarray, np.ndarray]`: state-action-state-observation
+        Returns: `Tuple[np.ndarray, int, np.ndarray, np.ndarray]`: state - action - state - observation
         """
 
         a = GverseAction(self.action_space.sample())
@@ -508,4 +538,11 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             a.value,
             self._state_encoding.encode(next_s),
             self._convert_gverse_obs(o),
+        )
+
+    def __repr__(self):
+        return (
+            f"Gridverse domain with with {self.action_space}, "
+            f"observation space {self.observation_space} and "
+            f"state space {self.state_space}"
         )

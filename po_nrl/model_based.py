@@ -1,18 +1,20 @@
 """ the main entrance for model-free learning experiments """
 
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from typing import Optional, List, Callable
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from typing import Callable, List, Optional
+
 import numpy as np
 
+import po_nrl.pytorch_api
 from po_nrl.agents.model_based_agents import create_learning_agent
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
-from po_nrl.domains import create_environment, EncodeType, create_prior
-from po_nrl.domains.learned_environments import NeuralEnsemblePOMDP
-from po_nrl.domains.learned_environments import train_from_samples, create_transition_sampler
+from po_nrl.domains import EncodeType, create_environment, create_prior
+from po_nrl.domains.learned_environments import (NeuralEnsemblePOMDP,
+                                                 create_transition_sampler,
+                                                 train_from_samples)
 from po_nrl.environments import Simulator
 from po_nrl.episode import run_episode
 from po_nrl.misc import POBNRLogger, set_random_seed
-import po_nrl.pytorch_api
 
 
 def main(args: Optional[List[str]]) -> None:
@@ -36,7 +38,7 @@ def main(args: Optional[List[str]]) -> None:
         set_random_seed(conf.random_seed)
 
     # environment and agent setup
-    env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT)
+    env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT, conf.domain_description)
     assert isinstance(env, Simulator)
 
     sim = NeuralEnsemblePOMDP(env, conf=conf)
@@ -131,6 +133,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         type=int,
         default=0,
         help="size of domain (gridworld is size of grid)"
+    )
+
+    parser.add_argument(
+        "--domain_description",
+        help="domain description, depends on domain used (currently only used by GridverseDomain)",
+        default="",
+        type=str
     )
 
     parser.add_argument(

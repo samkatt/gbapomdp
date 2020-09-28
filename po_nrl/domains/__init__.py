@@ -1,26 +1,26 @@
 """ all the domains in which an agent can act """
 
 import numpy as np
-
-from po_nrl.environments import Environment, EncodeType
-
-from .priors import Prior
+from po_nrl.environments import EncodeType, Environment
 
 from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
+from .gridverse_domain import GridverseDomain
 from .gridworld import GridWorld
-from .learned_environments import NeuralEnsemblePOMDP  # NOQA, ignore unused import
+from .learned_environments import \
+    NeuralEnsemblePOMDP  # NOQA, ignore unused import
+from .priors import (CollisionAvoidancePrior, GridWorldPrior, Prior,
+                     RoadRacerPrior, TigerPrior)
 from .road_racer import RoadRacer
 from .tiger import Tiger
-from .gridverse_domain import GridverseDomain
-
-from .priors import TigerPrior, GridWorldPrior, CollisionAvoidancePrior, RoadRacerPrior
 
 
 def create_environment(
-        domain_name: str,
-        domain_size: int,
-        encoding: EncodeType) -> Environment:
+    domain_name: str,
+    domain_size: int,
+    encoding: EncodeType,
+    description: str = "",
+) -> Environment:
     """ the factory function to construct environmentss
 
     Args:
@@ -43,17 +43,22 @@ def create_environment(
     if domain_name == "road_racer":
         return RoadRacer(np.arange(1, domain_size + 1) / (domain_size + 1))
     if domain_name == "gridverse":
-        return GridverseDomain()
+
+        if not description:
+            return GridverseDomain()
+
+        return GridverseDomain(*description.split(" "))
 
     raise ValueError('unknown domain ' + domain_name)
 
 
 def create_prior(
-        domain_name: str,
-        domain_size: int,
-        prior_certainty: float,
-        prior_correctness: float,
-        encoding: EncodeType) -> Prior:
+    domain_name: str,
+    domain_size: int,
+    prior_certainty: float,
+    prior_correctness: float,
+    encoding: EncodeType,
+) -> Prior:
     """ Builds the prior associated with input parameters
 
     Args:
