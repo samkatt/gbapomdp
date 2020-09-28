@@ -238,7 +238,7 @@ class DynamicsModel:
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_O:
 
             state_action_state_triplets = torch.from_numpy(np.concatenate(
-                [states, actions, next_states], axis=1
+                [states, actions, next_states.cpu()], axis=1
             )).to(device()).float()
             observation_logits = self.net_o(state_action_state_triplets)
 

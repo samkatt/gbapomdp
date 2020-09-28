@@ -168,7 +168,7 @@ class OneHotOrientationEncoding(StateEncoding):
         """
         state = self._rep.convert(s)
 
-        one_hot_orientation = np.zeros(len(Orientation))
+        one_hot_orientation = np.zeros(len(Orientation), dtype=int)
         one_hot_orientation[s.agent.orientation.value] = 1
 
         return np.concatenate(
@@ -523,12 +523,13 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         a = GverseAction(self.action_space.sample())
         s = self._gverse_env.functional_reset()
 
-        # set random agent position, it is assumed here that (apart from
-        # the agent position) all other reachable states are sampled
+        # set random agent, it is assumed here that (apart from the agent
+        # position and orientation) all other reachable states are sampled
         # through the functional reset
         s.agent.position = GversePosition(
             random.randint(1, self.h - 1), random.randint(1, self.w - 1)
         )
+        s.agent.orientation = np.random.choice(Orientation)
 
         next_s, _, _ = self._gverse_env.functional_step(s, a)
         o = self._gverse_env.functional_observation(next_s)
