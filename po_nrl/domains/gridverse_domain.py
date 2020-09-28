@@ -59,23 +59,145 @@ class StateEncoding(abc.ABC):
         """since encoding determines the state space, this functionality belongs here"""
 
 
+class CompactStateEncoding(StateEncoding):
+    """default encoding, no one-hot encoding applied"""
+
+    def __init__(self, rep: DefaultStateRepresentation):
+        self._rep = rep
+
+        h, w = self._rep.state_space.grid_shape
+        self._state_space = DiscreteSpace(
+            # pylint: disable=no-member
+            [self._rep.state_space.max_grid_object_type + 1] * h * w
+            + [h, w, len(Orientation)]
+        )
+
+    def encode(self, s: GverseState) -> np.ndarray:
+        """encodes `s` into a compact numpy array
+
+        From `s` the grid type indices are taken and flattened, ontop of which
+        the position and orientation is concatenated (as is)
+
+        Args:
+            s (`GverseState`):
+
+        Returns:
+            `np.ndarray`:
+        """
+        state = self._rep.convert(s)
+
+        return np.concatenate(
+            [state['grid'][:, :, 3].flatten(), state['agent'][:3]]
+        )
+
+    def decode(
+        self, s: np.ndarray
+    ) -> Tuple[np.ndarray, GversePosition, Orientation]:
+        """decodes a numpy array (generated from `encode`) and extracts info
+
+        Returns (grid (h x w), position (y, x), orientation)
+
+        Args:
+            s (`np.ndarray`):
+
+        Returns:
+            `Tuple[np.ndarray, GversePosition, Orientation]`:
+        """
+        h, w = self._rep.state_space.grid_shape
+        num_grid_dim = h * w
+
+        return (
+            s[:num_grid_dim].reshape(h, w),
+            GversePosition(*s[-3:-1]),
+            Orientation(s[-1]),
+        )
+
+    @property
+    def state_space(self) -> DiscreteSpace:
+        return self._state_space
+
+
+class OneHotOrientationEncoding(StateEncoding):
+    """one-hot encoding of only orientation, not of position"""
+
+    def __init__(self, rep: DefaultStateRepresentation):
+        self._rep = rep
+
+        h, w = self._rep.state_space.grid_shape
+
+        self._state_space = DiscreteSpace(
+            # pylint: disable=no-member
+            [self._rep.state_space.max_grid_object_type + 1] * h * w
+            + [h, w, 2, 2, 2, 2]
+        )
+
+    def encode(self, s: GverseState) -> np.ndarray:
+        """encodes the orientation as one-hot
+
+        Otherwise just concatenates flattened grid and positions
+
+        Args:
+            s (`GverseState`):
+
+        Returns:
+            `np.ndarray`:
+        """
+        state = self._rep.convert(s)
+
+        one_hot_orientation = np.zeros(len(Orientation))
+        one_hot_orientation[s.agent.orientation.value] = 1
+
+        return np.concatenate(
+            [
+                state['grid'][:, :, 3].flatten(),
+                list(s.agent.position),
+                one_hot_orientation,
+            ]
+        )
+
+    def decode(
+        self, s: np.ndarray
+    ) -> Tuple[np.ndarray, GversePosition, Orientation]:
+        """interprets encoded `s` (from `encode`) and return info
+
+        Basically interprets hot-encoding of orientation
+
+        Args:
+            s (`np.ndarray`):
+
+        Returns:
+            `Tuple[np.ndarray, GversePosition, Orientation]`:
+        """
+        h, w = self._rep.state_space.grid_shape
+        grid_ndim = h * w
+
+        orientation = np.argmax(s[-len(Orientation):])
+
+        return (
+            s[:grid_ndim].reshape(h, w),
+            # 2 positions
+            GversePosition(*s[grid_ndim: grid_ndim + 2]),
+            Orientation(orientation),
+        )
+
+    @property
+    def state_space(self) -> DiscreteSpace:
+        return self._state_space
+
+
 class OneHotStateEncoding(StateEncoding):
     """one-hot encoding for both position and orientation of the agent"""
 
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
+
+        h, w = self._rep.state_space.grid_shape
+
         self._state_space = DiscreteSpace(
             # pylint: disable=no-member
-            [self._rep.state_space.max_grid_object_type + 1]
-            * self._rep.state_space.grid_shape.height
-            * self._rep.state_space.grid_shape.width
+            [self._rep.state_space.max_grid_object_type + 1] * h * w
             # one-hot encoding of position and orientation
-            + [2]
-            * (
-                self._rep.state_space.grid_shape.height
-                + self._rep.state_space.grid_shape.width
-                + len(Orientation)
-            )
+            + [2] * (h + w + len(Orientation))
         )
 
     def encode(self, s: GverseState) -> np.ndarray:

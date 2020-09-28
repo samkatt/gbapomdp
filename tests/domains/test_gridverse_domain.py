@@ -5,7 +5,11 @@ from operator import mul
 
 import numpy as np
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
+from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.domains import GridverseDomain
+from po_nrl.domains.gridverse_domain import (CompactStateEncoding,
+                                             OneHotOrientationEncoding,
+                                             OneHotStateEncoding)
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -116,6 +120,78 @@ class TestGridverseDomain(unittest.TestCase):
 
         self.assertEqual(self.env.reward(s, 3, s), 0)
         self.assertFalse(self.env.terminal(s, 3, s))
+
+
+class TestStateEncodings(unittest.TestCase):
+    """tests implementations of `StateEncoding`"""
+
+    def setUp(self):
+        # XXX: ugliest way of initiating possible
+        self.obst_index = MovingObstacle.type_index  # pylint: disable=no-member
+
+        self.env = GridverseDomain(
+            gym_minigrid_from_descr("MiniGrid-Dynamic-Obstacles-Random-5x5-v0")
+        )
+
+        self.compact_encoding = CompactStateEncoding(
+            self.env._state_encoding._rep  # pylint: disable=protected-access
+        )
+        self.one_hot_orientation = OneHotOrientationEncoding(
+            self.env._state_encoding._rep  # pylint: disable=protected-access
+        )
+
+        self.one_hot_encoding = OneHotStateEncoding(
+            self.env._state_encoding._rep  # pylint: disable=protected-access
+        )
+
+    def test_state_space(self):
+        """tests `.state_space` implementation"""
+
+        # compact
+        compact_space = self.compact_encoding.state_space
+
+        self.assertEqual(compact_space.ndim, 7 * 7 + 3)
+        np.testing.assert_array_equal(
+            compact_space.size, [self.obst_index + 1] * 7 * 7 + [7, 7, 4]
+        )
+
+        # one-hot orientation
+        one_hot_orientation_space = self.one_hot_orientation.state_space
+
+        self.assertEqual(one_hot_orientation_space.ndim, 7 * 7 + 2 + 4)
+        np.testing.assert_array_equal(
+            one_hot_orientation_space.size,
+            [self.obst_index + 1] * 7 * 7 + [7, 7, 2, 2, 2, 2],
+        )
+
+        # one-hot
+        one_hot_space = self.one_hot_encoding.state_space
+
+        self.assertEqual(one_hot_space.ndim, 7 * 7 + 7 + 7 + 4)
+        np.testing.assert_array_equal(
+            one_hot_space.size,
+            [self.obst_index + 1] * 7 * 7 + [2] * (7 + 7 + 4),
+        )
+
+    def test_codings(self):
+        """tests encoding and decoding"""
+
+        s = (
+            self.env._gverse_env.functional_reset()  # pylint: disable=protected-access
+        )
+
+        for coding in [
+            self.compact_encoding,
+            self.one_hot_orientation,
+            self.one_hot_encoding,
+        ]:
+            encoding = coding.encode(s)
+
+            self.assertTrue(coding.state_space.contains(encoding))
+            _, pos, orient = coding.decode(encoding)
+
+            self.assertEqual(pos, s.agent.position)
+            self.assertEqual(orient, s.agent.orientation)
 
 
 if __name__ == '__main__':
