@@ -208,16 +208,15 @@ class DynamicsModel:
 
         """
 
-        actions = [self.action_space.one_hot(a) for a in actions]
+        states = torch.from_numpy(states).float().to(device())
+        actions = torch.tensor([self.action_space.one_hot(a) for a in actions]).float().to(device())
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
 
         # transition model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_T:
 
-            state_action_pairs = torch.from_numpy(np.concatenate(
-                [states, actions], axis=1
-            )).to(device()).float()
+            state_action_pairs = torch.cat((states, actions), dim=1)
             next_state_logits = self.net_t(state_action_pairs)
 
             loss = torch.stack([
@@ -237,9 +236,9 @@ class DynamicsModel:
         # observation model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_O:
 
-            state_action_state_triplets = torch.from_numpy(np.concatenate(
-                [states, actions, next_states.cpu()], axis=1
-            )).to(device()).float()
+            state_action_state_triplets = torch.cat(
+                (states, actions, next_states.float()), dim=1
+            )
             observation_logits = self.net_o(state_action_state_triplets)
 
             loss = torch.stack([

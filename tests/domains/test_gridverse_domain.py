@@ -122,7 +122,7 @@ class TestStateEncodings(unittest.TestCase):
 
     # pylint: disable=protected-access
     def setUp(self):
-        # XXX: ugliest way of initiating possible
+        # NOTE: ugliest way of initiating possible
         self.obst_index = MovingObstacle.type_index  # pylint: disable=no-member
 
         self.env = GridverseDomain(
