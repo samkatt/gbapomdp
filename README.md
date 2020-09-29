@@ -44,7 +44,7 @@ Additionally, some code tinkering was done after some of the experiments, so
 results may change slightly. However, here are some commands ran to reproduce
 the results published in BADDr.
 
-####  Tiger
+#### Tiger
 
 ```shell
 base_params="-D tiger --runs 10000 --episodes 400 -v 1 -H 30"
@@ -56,9 +56,10 @@ extra_params="--prior_correct 0 --online_learning_rate .005 --backprop"
 python model_based.py $base_params $planning_params $prior_params $learn_params $extra_params
 ```
 
-####  Road Race
+#### Road Race
 
 3 lanes:
+
 ```shell
 base_params="-D road_racer --domain_size 3 --runs 10000 --episodes 300 -v 1 -H 20"
 planning_params="--expl 15 --num_sims 128 --num_part 1024 --search_depth 3 -B rejection_sampling"
@@ -69,8 +70,8 @@ python model_based.py $base_params $planning_params $prior_params $learn_params 
 ```
 
 9 lanes:
-```shell
 
+```shell
 base_params="-D road_racer --domain_size 9 --runs 10000 --episodes 200 -v 1 -H 20"
 planning_params="--expl 15 --num_sims 128 --num_part 1024 --search_depth 3 -B rejection_sampling"
 prior_params="--num_pretrain 16384 --alpha .0025 --train on_prior --prior_cert 1000 --num_nets 1"
