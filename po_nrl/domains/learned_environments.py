@@ -72,7 +72,7 @@ def sample_from_gridverse(
 
 
 def create_transition_sampler(sim: Simulator) -> TransitionSampler:
-    """Factory method for generating transition samplers
+    """factory method for generating transition samplers
 
     Basically returns the correct sampler, at this point there are really 2
     possibilities: either a Gridverse-specific sampler, or the uniform
@@ -123,6 +123,58 @@ def train_from_samples(
         )
 
 
+def create_dynamics_model(
+    state_space: DiscreteSpace,
+    action_space: ActionSpace,
+    obs_space: Space,
+    conf,
+) -> DynamicsModel:
+    """factory function for creating `DynamicsModel`
+
+    The `DynamicsModel` consists of a transition and observation model. Either
+    of those can be a neural network, or a (known) function. The model itself
+    cares little about what its models are like. This function will assemble
+    the correct ones according to the configuration
+
+    Args:
+        state_space (`DiscreteSpace`):
+        action_space (`ActionSpace`):
+        obs_space (`Space`):
+        conf (namespace):
+
+    Returns:
+        `DynamicsModel`:
+    """
+
+    assert isinstance(
+        obs_space, DiscreteSpace
+    ), "This method assumes discrete spaces"
+
+    optimizer_builder = get_optimizer_builder(conf.optimizer)
+    return DynamicsModel(
+        state_space,
+        action_space,
+        conf.batch_size,
+        DynamicsModel.TNet(
+            state_space,
+            action_space,
+            optimizer_builder,
+            conf.learning_rate,
+            conf.network_size,
+            conf.dropout_rate,
+        ),
+        DynamicsModel.ONet(
+            state_space,
+            action_space,
+            obs_space,
+            optimizer_builder,
+            conf.learning_rate,
+            conf.network_size,
+            conf.dropout_rate,
+        ),
+    )
+
+
 class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
     """ A simulator over (`po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`, state) states """
 
@@ -164,18 +216,12 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_reward = domain.reward
         self.domain_terminal = domain.terminal
 
-        optimizer_builder = get_optimizer_builder(conf.optimizer)
-
         self._models = [
-            DynamicsModel(
+            create_dynamics_model(
                 domain.state_space,
                 domain.action_space,
-                self.domain_obs_space,
-                conf.network_size,
-                conf.learning_rate,
-                conf.batch_size,
-                conf.dropout_rate,
-                optimizer_builder,
+                domain.observation_space,
+                conf,
             )
             for i in range(conf.num_nets)
         ]

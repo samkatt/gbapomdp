@@ -38,15 +38,31 @@ class TestTrainFromSamples(unittest.TestCase):
 
         batch_size = 16
 
-        model = DynamicsModel(
+        t_net = DynamicsModel.TNet(
+            sim.state_space,
+            sim.action_space,
+            sgd_builder,
+            learning_rate=0.1,
+            network_size=16,
+            dropout_rate=0.0,
+        )
+
+        o_net = DynamicsModel.ONet(
             sim.state_space,
             sim.action_space,
             sim.observation_space,
-            network_size=16,
+            sgd_builder,
             learning_rate=0.1,
+            network_size=16,
+            dropout_rate=0.0,
+        )
+
+        model = DynamicsModel(
+            sim.state_space,
+            sim.action_space,
             batch_size=batch_size,
-            dropout_rate=0,
-            optimizer_builder=sgd_builder,
+            t_model=t_net,
+            o_model=o_net,
         )
 
         s = np.array([random.randint(0, 1)])

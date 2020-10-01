@@ -607,8 +607,8 @@ class TestChainDomain(unittest.TestCase):
         )
 
         step = domain.step(
-            not domain._action_mapping[0]
-        )  # pylint: disable=protected-access
+            not domain._action_mapping[0]  # pylint: disable=protected-access
+        )
         self.assertTrue(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(

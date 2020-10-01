@@ -1,6 +1,6 @@
 """ runs tests on misc functionality
 
-* DiscreteSpace
+* `DiscreteSpace`
 * replay buffer
 * random seed
 
