@@ -5,8 +5,9 @@ from operator import mul
 
 import numpy as np
 from gym_gridverse.grid_object import MovingObstacle
+from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import GridverseDomain
-from po_nrl.domains.gridverse_domain import StateEncoding
+from po_nrl.domains.gridverse_domain import ObservationModel, StateEncoding
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -189,6 +190,43 @@ class TestStateEncodings(unittest.TestCase):
 
             self.assertEqual(pos, s.agent.position)
             self.assertEqual(orient, s.agent.orientation)
+
+
+class TestObservationModel(unittest.TestCase):
+    """Tests `gridverse_domain.ObservationModel`"""
+
+    def setUp(self):
+        self.d = GridverseDomain()
+
+        # pylint: disable=protected-access
+        self.model = ObservationModel(
+            obs_size=7,
+            encoding=self.d._state_encoding,
+            max_item_index=self.d._gverse_env.state_space.max_grid_object_type + 1,
+        )
+
+    def test_sample(self):  # pylint: disable=no-self-use
+        """basic `.sample()` functionality tests"""
+
+        # initial state
+        o = self.d.reset()
+        s = self.d.state
+        a = self.d.action_space.sample()
+
+        np.testing.assert_equal(o, self.model.sample(s, a, s, num=1))
+
+        s, a, next_s, o = self.d.sample_transition()
+        np.testing.assert_equal(o, self.model.sample(s, a, next_s, num=1))
+
+    def test_model(self):
+        """tests basic properties of `.model()`"""
+
+        s, a, next_s, o = self.d.sample_transition()
+        O = self.model.model(s, a, next_s)
+
+        np.testing.assert_array_equal(
+            o, DynamicsModel.sample_from_model(O, num=1)
+        )
 
 
 if __name__ == '__main__':

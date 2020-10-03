@@ -343,6 +343,13 @@ def parse_arguments(args: Optional[List[str]] = None):
         choices=['', 'T', 'O']
     )
 
+    parser.add_argument(
+        '--known_model',
+        type=str,
+        help='What parts of the models is known prior learning (and thus need not be learned)',
+        choices=['', 'T', 'O'],
+    )
+
     parsed_args = parser.parse_args(args)
 
     # post process

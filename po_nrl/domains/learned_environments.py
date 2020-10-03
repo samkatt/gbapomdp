@@ -146,32 +146,46 @@ def create_dynamics_model(
         `DynamicsModel`:
     """
 
-    assert isinstance(
-        obs_space, DiscreteSpace
-    ), "This method assumes discrete spaces"
+    def create_o_model() -> DynamicsModel.O:
+        if conf.known_model != 'O':
+
+            assert isinstance(
+                obs_space, DiscreteSpace
+            ), "This method assumes discrete spaces"
+
+            return DynamicsModel.ONet(
+                state_space,
+                action_space,
+                obs_space,
+                optimizer_builder,
+                conf.learning_rate,
+                conf.network_size,
+                conf.dropout_rate,
+            )
+
+        raise ValueError("Currently no support for known models")
+
+    def create_t_model() -> DynamicsModel.T:
+        if conf.known_model != 'T':
+
+            return DynamicsModel.TNet(
+                state_space,
+                action_space,
+                optimizer_builder,
+                conf.learning_rate,
+                conf.network_size,
+                conf.dropout_rate,
+            )
+
+        raise ValueError("Currently no support for known models")
 
     optimizer_builder = get_optimizer_builder(conf.optimizer)
     return DynamicsModel(
         state_space,
         action_space,
         conf.batch_size,
-        DynamicsModel.TNet(
-            state_space,
-            action_space,
-            optimizer_builder,
-            conf.learning_rate,
-            conf.network_size,
-            conf.dropout_rate,
-        ),
-        DynamicsModel.ONet(
-            state_space,
-            action_space,
-            obs_space,
-            optimizer_builder,
-            conf.learning_rate,
-            conf.network_size,
-            conf.dropout_rate,
-        ),
+        create_t_model(),
+        create_o_model(),
     )
 
 
