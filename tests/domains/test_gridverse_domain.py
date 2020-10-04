@@ -7,7 +7,8 @@ import numpy as np
 from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import GridverseDomain
-from po_nrl.domains.gridverse_domain import ObservationModel, StateEncoding
+from po_nrl.domains.gridverse_domain import ObservationModel as GverseObsModel
+from po_nrl.domains.gridverse_domain import StateEncoding
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -199,10 +200,11 @@ class TestObservationModel(unittest.TestCase):
         self.d = GridverseDomain()
 
         # pylint: disable=protected-access
-        self.model = ObservationModel(
+        self.model = GverseObsModel(
             obs_size=7,
             encoding=self.d._state_encoding,
-            max_item_index=self.d._gverse_env.state_space.max_grid_object_type + 1,
+            max_item_index=self.d._gverse_env.state_space.max_grid_object_type
+            + 1,
         )
 
     def test_sample(self):  # pylint: disable=no-self-use

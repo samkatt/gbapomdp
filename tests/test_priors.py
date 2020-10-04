@@ -54,7 +54,7 @@ class TestTigerPrior(unittest.TestCase):
         RETURNS (`None`):
 
         """
-        num_total_counts = 100000.
+        num_total_counts = 1000000.
         prior_level = .9999
 
         # randomly pick encoding

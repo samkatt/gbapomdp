@@ -7,10 +7,12 @@ import numpy as np
 from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
                                                          sgd_builder)
 from po_nrl.domains import GridverseDomain, Tiger
+from po_nrl.domains.gridverse_domain import ObservationModel as GverseObsModel
 from po_nrl.domains.learned_environments import (
-    create_transition_sampler, sample_from_gridverse,
+    create_dynamics_model, create_transition_sampler, sample_from_gridverse,
     sample_transitions_uniform_from_simulator, train_from_samples)
 from po_nrl.environments import EncodeType
+from po_nrl.model_based import parse_arguments
 
 
 class TestSampleFromSimulator(unittest.TestCase):
@@ -121,6 +123,48 @@ class TestCreateTransitionSampler(unittest.TestCase):
             create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
             'sample_from_gridverse',
         )
+
+
+class TestCreateDynamicsModel(unittest.TestCase):
+    """tests the factory function for `DynamicsModel`"""
+
+    def setUp(self):
+        """basic config file"""
+        self.c = parse_arguments(["-D=gridverse", "-B=rejection_sampling"])
+
+        self.d = GridverseDomain()
+
+    def test_known_model_settings(self):
+        """tests setting the `known_model` configuration"""
+
+        # should raise error when asking for known model
+        self.c.domain = "tiger"
+        for setting in ["O", "T"]:
+            self.c.known_model = setting
+            self.assertRaises(
+                ValueError,
+                create_dynamics_model,
+                domain=self.d,
+                conf=self.c,
+            )
+
+        # unless gridverse!
+        self.c.domain = "gridverse"
+        self.c.known_model = "T"
+        self.assertRaises(
+            ValueError,
+            create_dynamics_model,
+            domain=self.d,
+            conf=self.c,
+        )
+
+        self.c.known_model = "O"
+        dynamics_model = create_dynamics_model(
+            self.d,
+            self.c,
+        )
+
+        self.assertIsInstance(dynamics_model.o, GverseObsModel)
 
 
 if __name__ == '__main__':

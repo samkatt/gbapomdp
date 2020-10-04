@@ -326,6 +326,119 @@ def flatten_observation(
     return rep.convert(obs)['grid'][:, :, 3].flatten()
 
 
+class ObservationModel(DynamicsModel.O):
+    """known observation model for Gridverse to use by `DynamicsModel`"""
+
+    def __init__(
+        self, obs_size: int, encoding: StateEncoding, max_item_index: int
+    ):
+        assert obs_size % 2 == 1, f"Assume odd size, not {obs_size}"
+        self._size = obs_size
+        self._enc = encoding
+        self._max_item_index = max_item_index
+
+    @property
+    def _half_size(self) -> int:
+        return self._size // 2
+
+    def model(
+        self, state: np.ndarray, action: int, next_state: np.ndarray
+    ) -> List[np.ndarray]:
+        """`DynamicsModel.O` interface
+
+        The observation model is deterministic, and here we simply call
+        `self.sample(...)` to determine the true observation, and make sure the
+        model predicts this observation with 100%
+        """
+
+        deterministic_observation = self.sample(state, action, next_state, 1)
+        ndim = len(deterministic_observation)
+
+        observation_model = np.zeros((ndim, self._max_item_index))
+
+        observation_model[np.arange(ndim), deterministic_observation] = 1
+
+        return observation_model
+
+    def sample(
+        self, state: np.ndarray, action: int, next_state: np.ndarray, num: int,
+    ) -> np.ndarray:
+        """`DynamicsModel.O` interface
+
+        Gridverse has deterministic observations. They basically are a cropped
+        and rotated version of the POV of the agent. This function does exactly
+        that: returns the visible area from the agent's POV
+        """
+
+        # the observation is a fairly straightforward: take the grid of the
+        # next state and crop + orient it from the agent's perspective
+        grid, (y, x), orient = self._enc.decode(next_state)
+
+        _, w = grid.shape
+
+        ret = (
+            np.ones((self._size, self._size), dtype=int)
+            * Hidden.type_index  # pylint: disable=no-member
+        )
+
+        # rotate grid and position to pretend we are facing north to simplify
+        # the rest of the computation
+        grid, y, x = self.rotate(grid, y, x, orient)
+
+        # get the respective indices of the grids, assuming orientation is north
+        ymin_in_grid = max(0, y - self._size + 1)
+        ymin_in_obs = max(0, self._size - y - 1)
+
+        xmin_in_grid = max(0, x - self._half_size)
+        xmin_in_obs = max(0, self._half_size - x)
+
+        xmax_in_grid = min(w - 1, x + self._half_size)
+        xmax_in_obs = min(self._size, self._half_size + (w - x)) - 1
+
+        # complete the mapping by filling in the observation
+        ret[ymin_in_obs:, xmin_in_obs: xmax_in_obs + 1] = grid[
+            ymin_in_grid: y + 1, xmin_in_grid: xmax_in_grid + 1
+        ]
+
+        return ret.flatten()
+
+    @staticmethod
+    def rotate(
+        grid: np.ndarray, y: int, x: int, orient: Orientation
+    ) -> Tuple[np.ndarray, int, int]:
+        """rotates a `grid` and (`y`, `x`) position according to `orient`
+
+        Args:
+            grid (`np.ndarray`):
+            y (`int`):
+            x (`int`):
+            orient (`Orientation`):
+
+        Returns:
+            `Tuple[np.ndarray, int, int]`:
+        """
+        h, w = grid.shape
+        rotations = {
+            Orientation.N: 0,
+            Orientation.E: 1,
+            Orientation.S: 2,
+            Orientation.W: 3,
+        }
+
+        grid = np.rot90(grid, rotations[orient])
+
+        if orient == Orientation.N:
+            new_y, new_x = y, x
+        if orient == Orientation.S:
+            new_y, new_x = h - y - 1, w - x - 1
+        if orient == Orientation.E:
+            new_y, new_x = w - x - 1, y
+        if orient == Orientation.W:
+            new_y, new_x = x, h - y - 1
+
+        return grid, new_y, new_x
+
+
 class GridverseDomain(Environment, Simulator, POBNRLogger):
     """ Wrapper around gridverse domains
 
@@ -554,115 +667,9 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             f"state space {self.state_space}"
         )
 
-
-class ObservationModel(DynamicsModel.O):
-    """known observation model for Gridverse to use by `DynamicsModel`"""
-
-    def __init__(
-        self, obs_size: int, encoding: StateEncoding, max_item_index: int
-    ):
-        assert obs_size % 2 == 1, f"Assume odd size, not {obs_size}"
-        self._size = obs_size
-        self._enc = encoding
-        self._max_item_index = max_item_index
-
-    @property
-    def _half_size(self) -> int:
-        return self._size // 2
-
-    def model(
-        self, state: np.ndarray, action: int, next_state: np.ndarray
-    ) -> List[np.ndarray]:
-        """`DynamicsModel.O` interface
-
-        The observation model is deterministic, and here we simply call
-        `self.sample(...)` to determine the true observation, and make sure the
-        model predicts this observation with 100%
-        """
-
-        deterministic_observation = self.sample(state, action, next_state, 1)
-        ndim = len(deterministic_observation)
-
-        observation_model = np.zeros((ndim, self._max_item_index))
-
-        observation_model[np.arange(ndim), deterministic_observation] = 1
-
-        return observation_model
-
-    def sample(
-        self, state: np.ndarray, action: int, next_state: np.ndarray, num: int,
-    ) -> np.ndarray:
-        """`DynamicsModel.O` interface
-
-        Gridverse has deterministic observations. They basically are a cropped
-        and rotated version of the POV of the agent. This function does exactly
-        that: returns the visible area from the agent's POV
-        """
-
-        # the observation is a fairly straightforward: take the grid of the
-        # next state and crop + orient it from the agent's perspective
-        grid, (y, x), orient = self._enc.decode(next_state)
-
-        _, w = grid.shape
-
-        ret = (
-            np.ones((self._size, self._size), dtype=int)
-            * Hidden.type_index  # pylint: disable=no-member
+    def create_dynamics_observation_model(self) -> DynamicsModel.O:
+        return ObservationModel(
+            self.obs_h,
+            self._state_encoding,
+            self._gverse_env.state_space.max_grid_object_type,
         )
-
-        # rotate grid and position to pretend we are facing north to simplify
-        # the rest of the computation
-        grid, y, x = self.rotate(grid, y, x, orient)
-
-        # get the respective indices of the grids, assuming orientation is north
-        ymin_in_grid = max(0, y - self._size + 1)
-        ymin_in_obs = max(0, self._size - y - 1)
-
-        xmin_in_grid = max(0, x - self._half_size)
-        xmin_in_obs = max(0, self._half_size - x)
-
-        xmax_in_grid = min(w - 1, x + self._half_size)
-        xmax_in_obs = min(self._size, self._half_size + (w - x)) - 1
-
-        # complete the mapping by filling in the observation
-        ret[ymin_in_obs:, xmin_in_obs: xmax_in_obs + 1] = grid[
-            ymin_in_grid: y + 1, xmin_in_grid: xmax_in_grid + 1
-        ]
-
-        return ret.flatten()
-
-    @staticmethod
-    def rotate(
-        grid: np.ndarray, y: int, x: int, orient: Orientation
-    ) -> Tuple[np.ndarray, int, int]:
-        """rotates a `grid` and (`y`, `x`) position according to `orient`
-
-        Args:
-            grid (`np.ndarray`):
-            y (`int`):
-            x (`int`):
-            orient (`Orientation`):
-
-        Returns:
-            `Tuple[np.ndarray, int, int]`:
-        """
-        h, w = grid.shape
-        rotations = {
-            Orientation.N: 0,
-            Orientation.E: 1,
-            Orientation.S: 2,
-            Orientation.W: 3,
-        }
-
-        grid = np.rot90(grid, rotations[orient])
-
-        if orient == Orientation.N:
-            new_y, new_x = y, x
-        if orient == Orientation.S:
-            new_y, new_x = h - y - 1, w - x - 1
-        if orient == Orientation.E:
-            new_y, new_x = w - x - 1, y
-        if orient == Orientation.W:
-            new_y, new_x = x, h - y - 1
-
-        return grid, new_y, new_x

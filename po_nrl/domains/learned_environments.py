@@ -12,7 +12,7 @@ from po_nrl.environments import (ActionSpace, SimulationResult, Simulator,
                                  TerminalState)
 from po_nrl.misc import DiscreteSpace, POBNRLogger, Space
 from po_nrl.pytorch_api import tensorboard_logging
-from typing_extensions import Protocol
+from typing_extensions import Protocol  # pylint: disable=wrong-import-order
 
 
 class TransitionSampler(Protocol):
@@ -123,12 +123,7 @@ def train_from_samples(
         )
 
 
-def create_dynamics_model(
-    state_space: DiscreteSpace,
-    action_space: ActionSpace,
-    obs_space: Space,
-    conf,
-) -> DynamicsModel:
+def create_dynamics_model(domain: Simulator, conf,) -> DynamicsModel:
     """factory function for creating `DynamicsModel`
 
     The `DynamicsModel` consists of a transition and observation model. Either
@@ -137,9 +132,7 @@ def create_dynamics_model(
     the correct ones according to the configuration
 
     Args:
-        state_space (`DiscreteSpace`):
-        action_space (`ActionSpace`):
-        obs_space (`Space`):
+        domain (`Simulator`):
         conf (namespace):
 
     Returns:
@@ -150,27 +143,41 @@ def create_dynamics_model(
         if conf.known_model != 'O':
 
             assert isinstance(
-                obs_space, DiscreteSpace
+                domain.observation_space, DiscreteSpace
+            ), "This method assumes discrete spaces"
+
+            assert isinstance(
+                domain.state_space, DiscreteSpace
             ), "This method assumes discrete spaces"
 
             return DynamicsModel.ONet(
-                state_space,
-                action_space,
-                obs_space,
+                domain.state_space,
+                domain.action_space,
+                domain.observation_space,
                 optimizer_builder,
                 conf.learning_rate,
                 conf.network_size,
                 conf.dropout_rate,
             )
 
-        raise ValueError("Currently no support for known models")
+        if conf.domain != "gridverse":
+            raise ValueError(
+                "Currently no support for known models for domains other than gridverse"
+            )
+
+        assert isinstance(domain, GridverseDomain)
+        return domain.create_dynamics_observation_model()
 
     def create_t_model() -> DynamicsModel.T:
         if conf.known_model != 'T':
 
+            assert isinstance(
+                domain.state_space, DiscreteSpace
+            ), "This method assumes discrete spaces"
+
             return DynamicsModel.TNet(
-                state_space,
-                action_space,
+                domain.state_space,
+                domain.action_space,
                 optimizer_builder,
                 conf.learning_rate,
                 conf.network_size,
@@ -179,10 +186,14 @@ def create_dynamics_model(
 
         raise ValueError("Currently no support for known models")
 
+    assert isinstance(
+        domain.state_space, DiscreteSpace
+    ), "This method assumes discrete spaces"
+
     optimizer_builder = get_optimizer_builder(conf.optimizer)
     return DynamicsModel(
-        state_space,
-        action_space,
+        domain.state_space,
+        domain.action_space,
         conf.batch_size,
         create_t_model(),
         create_o_model(),
@@ -231,13 +242,7 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_terminal = domain.terminal
 
         self._models = [
-            create_dynamics_model(
-                domain.state_space,
-                domain.action_space,
-                domain.observation_space,
-                conf,
-            )
-            for i in range(conf.num_nets)
+            create_dynamics_model(domain, conf) for i in range(conf.num_nets)
         ]
 
     @property

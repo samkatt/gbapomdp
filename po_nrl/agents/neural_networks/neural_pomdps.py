@@ -13,7 +13,7 @@ from po_nrl.agents.neural_networks.misc import perturb
 from po_nrl.environments import ActionSpace
 from po_nrl.misc import DiscreteSpace
 from po_nrl.pytorch_api import device, log_tensorboard
-from typing_extensions import Protocol
+from typing_extensions import Protocol# pylint: disable=wrong-import-order
 
 
 class Interaction(
@@ -342,7 +342,7 @@ class DynamicsModel:
                                 i
                             ]: self.state_space.dim_cumsum[i + 1]
                         ]
-                    ).numpy()
+                    ).cpu().numpy()
                     for i in range(self.state_space.ndim)
                 ]
 
@@ -451,7 +451,7 @@ class DynamicsModel:
                                 i
                             ]: self.obs_space.dim_cumsum[i + 1]
                         ]
-                    ).numpy()
+                    ).cpu().numpy()
                     for i in range(self.obs_space.ndim)
                 ]
 
