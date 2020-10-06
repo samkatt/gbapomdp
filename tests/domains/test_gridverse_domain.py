@@ -1,11 +1,13 @@
 """ runs tests on the grid verse domain """
+
 import unittest
-from functools import reduce
+from functools import partial, reduce
 from operator import mul
 from typing import Dict
 
 import numpy as np
 from gym_gridverse.actions import Actions as GverseAction
+from gym_gridverse.geometry import Orientation
 from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import GridverseDomain
@@ -236,10 +238,25 @@ class TestObservationModel(unittest.TestCase):
 class TestRolloutPolicy(unittest.TestCase):
     """tests `gridverse_domain.rollout_policy`"""
 
+    def setUp(self):
+        self.d = GridverseDomain()
+        self.pol = partial(
+            rollout_policy,
+            encoding=self.d._state_encoding,  # pylint: disable=protected-access
+        )
+
+    def test_walls(self):
+        """tests that policy does not go forward into walls"""
+        s = self.d.sample_start_state()
+        s[-1] = Orientation.N.value
+
+        for _ in range(10):
+            self.assertNotEqual(self.pol(s), GverseAction.MOVE_FORWARD)
+
     def test_basic(self):
         """tests whether all possible actions are sampled (and only those) and their frequency"""
 
-        actions = [rollout_policy(_) for _ in range(20)]
+        actions = [self.pol(self.d.sample_start_state()) for _ in range(20)]
 
         self.assertSetEqual(
             set(sorted(actions)),

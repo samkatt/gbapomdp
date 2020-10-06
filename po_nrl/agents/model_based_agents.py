@@ -14,8 +14,8 @@ from po_nrl.agents.planning.particle_filters import (FlatFilter,
 from po_nrl.agents.planning.pouct import POUCT, RolloutPolicy
 from po_nrl.analysis.augmented_beliefs import analyzer_factory
 from po_nrl.domains import NeuralEnsemblePOMDP
-from po_nrl.domains.gridverse_domain import rollout_policy
-from po_nrl.environments import Simulator
+from po_nrl.domains.gridverse_domain import GridverseDomain, rollout_policy
+from po_nrl.environments import Environment, Simulator
 from po_nrl.misc import POBNRLogger
 
 
@@ -158,19 +158,23 @@ def _create_learning_belief_manager(
     )
 
 
-def create_rollout_policy(domain_name: str) -> Optional[RolloutPolicy]:
+def create_rollout_policy(domain: Environment) -> Optional[RolloutPolicy]:
     """returns, if available, a domain specific rollout policy
 
-    Currently only returns for `domain_name` == 'gridverse'
+    Currently only returns for gridverse domain
 
     Args:
-        domain_name (`str`): name of the domain
+        domain (`Environment`): environment
 
     Returns:
         `Optional[RolloutPolicy]`:
     """
-    if domain_name == "gridverse":
-        return rollout_policy
+
+    if isinstance(domain, GridverseDomain):
+        return partial(
+            rollout_policy,
+            encoding=domain._state_encoding,  # pylint: disable=protected-access
+        )
 
     return None
 
