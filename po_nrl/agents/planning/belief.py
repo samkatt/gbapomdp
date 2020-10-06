@@ -171,7 +171,12 @@ def rejection_sampling(
 
     next_belief = type(belief)()
 
+    logger = POBNRLogger("rejection sampler")
+    attempts = 0
+
     while next_belief.size < belief.size:
+
+        attempts += 1
 
         state = belief.sample()
         transition = sim.simulation_step(state, action)
@@ -179,6 +184,7 @@ def rejection_sampling(
         if np.all(transition.observation == observation):
             next_belief.add_particle(transition.state)
 
+    logger.log(logger.LogLevel.V3, f"{attempts} attempts")
     return next_belief
 
 
@@ -387,7 +393,12 @@ def augmented_rejection_sampling(
 
     next_belief = type(belief)()
 
+    logger = POBNRLogger("rejection sampler")
+    attempts = 0
+
     while next_belief.size < belief.size:
+
+        attempts += 1
 
         state = belief.sample()
         sample_state, sample_observation \
@@ -408,6 +419,7 @@ def augmented_rejection_sampling(
                 NeuralEnsemblePOMDP.AugmentedState(sample_state, next_model)
             )
 
+    logger.log(logger.LogLevel.V3, f"{attempts} attempts")
     return next_belief
 
 
