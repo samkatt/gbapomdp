@@ -668,8 +668,41 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         )
 
     def create_dynamics_observation_model(self) -> DynamicsModel.O:
+        """returns the observation model of the domain
+
+        The observation model is a s,a,s' -> p(o) model. This is a member
+        function since the (numpy array) representation of these elements are
+        kinda dependent on the implementation.
+
+        Returns:
+            `DynamicsModel.O`:
+        """
         return ObservationModel(
             self.obs_h,
             self._state_encoding,
             self._gverse_env.state_space.max_grid_object_type,
         )
+
+
+def rollout_policy(state: np.ndarray) -> int:  # pylint: disable=unused-argument
+    """rollout policy for Gridverse domain
+
+    Basically samples 'forward' 80%, and otherwise turns either direction. The
+    idea being is that this results in a random walk that covers relatively
+    large amount of distance
+
+    Follows the `POUCT.RolloutPolicy` 'interface'
+
+    Args:
+        _ (`np.ndarray`): unused state
+
+    Returns:
+        int: sampled action
+    """
+    if random.random() < 0.8:
+        return GverseAction.MOVE_FORWARD.value
+
+    if random.choice([True, False]):
+        return GverseAction.TURN_LEFT.value
+
+    return GverseAction.TURN_RIGHT.value

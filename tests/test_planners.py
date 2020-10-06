@@ -5,10 +5,10 @@ import random
 import unittest
 
 import numpy as np
-
-from po_nrl.agents.planning.pouct import POUCT, TreeNode
+from po_nrl.agents.planning.particle_filters import FlatFilter
+from po_nrl.agents.planning.pouct import POUCT, TreeNode, random_policy
 from po_nrl.domains import Tiger
-from po_nrl.environments import EncodeType
+from po_nrl.environments import ActionSpace, EncodeType
 
 
 class TestPOUCTNode(unittest.TestCase):
@@ -99,23 +99,31 @@ class TestPOUCT(unittest.TestCase):
 
         self.assertRaises(
             AssertionError,
-            POUCT.ucb, np.array([1]), np.array([1, 1]), functional_table
+            POUCT.ucb,
+            np.array([1]),
+            np.array([1, 1]),
+            functional_table,
         )
 
         self.assertRaises(
             AssertionError,
-            POUCT.ucb, np.array([1, 1]), np.array([1]), functional_table
+            POUCT.ucb,
+            np.array([1, 1]),
+            np.array([1]),
+            functional_table,
         )
 
         self.assertRaises(
             AssertionError,
-            POUCT.ucb, np.array([1]), np.array([-1]), functional_table
+            POUCT.ucb,
+            np.array([1]),
+            np.array([-1]),
+            functional_table,
         )
 
         bad_table = np.array([[]])
         self.assertRaises(
-            IndexError,
-            POUCT.ucb, np.array([1]), np.array([1]), bad_table
+            IndexError, POUCT.ucb, np.array([1]), np.array([1]), bad_table
         )
 
         q_vals = np.array([1, 2])
@@ -141,7 +149,7 @@ class TestPOUCT(unittest.TestCase):
             POUCT.ucb(q_vals, visits, infinite_table), [float('inf')] * 2
         )
 
-        q_vals = np.array([.5, -.2])
+        q_vals = np.array([0.5, -0.2])
         visits = np.array([5, 2])
 
         np.testing.assert_array_equal(
@@ -163,9 +171,7 @@ class TestPOUCT(unittest.TestCase):
         domain = Tiger(EncodeType.DEFAULT)
 
         table = POUCT(  # pylint: disable=protected-access
-            domain,
-            num_sims=5,
-            exploration_constant=1
+            domain, num_sims=5, exploration_constant=1
         )._ucb_table
 
         self.assertTupleEqual(table.shape, (5, 5))
@@ -177,15 +183,32 @@ class TestPOUCT(unittest.TestCase):
         self.assertAlmostEqual(table[3, 4], math.sqrt(math.log(4) / 4))
 
         table = POUCT(  # pylint: disable=protected-access
-            domain,
-            num_sims=5,
-            exploration_constant=50.3
+            domain, num_sims=5, exploration_constant=50.3
         )._ucb_table
 
         self.assertAlmostEqual(table[1, 1], 50.3 * math.sqrt(math.log(2) / 1))
         self.assertAlmostEqual(table[1, 2], 50.3 * math.sqrt(math.log(2) / 2))
         self.assertAlmostEqual(table[3, 2], 50.3 * math.sqrt(math.log(4) / 2))
         self.assertAlmostEqual(table[3, 4], 50.3 * math.sqrt(math.log(4) / 4))
+
+    def test_run(self):  # pylint: disable=no-self-use
+        """basic test to see whether POUCT runs correctly"""
+
+        domain = Tiger(EncodeType.DEFAULT)
+        planner = POUCT(domain, num_sims=32)
+
+        belief = FlatFilter()
+        belief.add_particle(domain.state)
+
+        planner.select_action(belief)
+
+    def test_random_rollout(self):
+        """tests `pouct.random_policy`"""
+
+        space = ActionSpace(4)
+        actions = {random_policy(_, space) for _ in range(20)}
+
+        self.assertSetEqual(actions, {0, 1, 2, 3})
 
 
 if __name__ == '__main__':

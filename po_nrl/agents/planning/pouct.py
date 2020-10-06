@@ -1,15 +1,14 @@
 """ Particle Observable UCT """
-
-from collections import namedtuple
-from typing import List, Dict, Tuple
 import random
+from collections import namedtuple
+from functools import partial
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-
 from po_nrl.agents.planning.particle_filters import ParticleFilter
-from po_nrl.environments import Simulator
+from po_nrl.environments import ActionSpace, Simulator
 from po_nrl.misc import POBNRLogger
-
+from typing_extensions import Protocol  # pylint: disable=wrong-import-order
 
 _IterationResult = namedtuple('IterResult', 'ret depth length')
 
@@ -123,6 +122,36 @@ class TreeNode:
         )
 
 
+class RolloutPolicy(Protocol):
+    """interface for rollout policies: state -> action"""
+
+    def __call__(self, state: np.ndarray) -> int:
+        """returns an action given `state`
+
+        Args:
+            state (`np.ndarray`):
+
+        Returns:
+            int: action of the policy
+        """
+
+
+def random_policy(
+    state: np.ndarray,  # pylint: disable=unused-argument
+    action_space: ActionSpace,
+) -> int:
+    """random policy selects a random action from the action space
+
+    Args:
+        _ (`np.ndarray`): state, ignored, part of `RolloutPolicy` interface
+        action_space (`ActionSpace`):
+
+    Returns:
+        int: action
+    """
+    return action_space.sample()
+
+
 class POUCT(POBNRLogger):
     """ MCTS for POMDPs using UCB """
 
@@ -133,6 +162,7 @@ class POUCT(POBNRLogger):
         exploration_constant: float = 1.0,
         planning_horizon: int = 10,
         discount: float = 0.95,
+        rollout_policy: Optional[RolloutPolicy] = None,
     ):
         """ Creates the PO-UCT planner
 
@@ -155,6 +185,13 @@ class POUCT(POBNRLogger):
         self.planning_horizon = planning_horizon
         self.discount = discount
         self.simulator = simulator
+
+        if not rollout_policy:
+            rollout_policy = partial(
+                random_policy, action_space=self.simulator.action_space
+            )
+
+        self.rollout_policy = rollout_policy
 
         tot_visits = action_visits = np.arange(self.num_sims).reshape(1, -1)
 
@@ -260,10 +297,7 @@ class POUCT(POBNRLogger):
             if not terminal:
 
                 iteration_res = self._traverse_tree(
-                    step.state,
-                    node.child(
-                        action, step.observation
-                    ),
+                    step.state, node.child(action, step.observation),
                 )
 
                 iteration_res = iteration_res._replace(
@@ -293,9 +327,10 @@ class POUCT(POBNRLogger):
         ret = 0.0
         discount = 1.0
 
-        first_action = self.simulator.action_space.sample()
-
+        # save this as output
+        first_action = self.rollout_policy(state)
         action = first_action
+
         for time_step in range(hor):
 
             step = self.simulator.simulation_step(state, action)
@@ -309,7 +344,7 @@ class POUCT(POBNRLogger):
             if terminal:
                 break
 
-            action = self.simulator.action_space.sample()
+            action = self.rollout_policy(step.state)
             state = step.state
 
         return (first_action, ret, time_step)

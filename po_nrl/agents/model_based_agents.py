@@ -1,14 +1,20 @@
 """ agents that act by learning a model of the environments """
 
 from functools import partial
-import numpy as np
+from typing import Optional
 
+import numpy as np
 from po_nrl.agents.agent import Agent
-from po_nrl.agents.planning.belief import BeliefManager, rejection_sampling, belief_update_factory
-from po_nrl.agents.planning.particle_filters import ParticleFilter, FlatFilter, WeightedFilter
-from po_nrl.agents.planning.pouct import POUCT
+from po_nrl.agents.planning.belief import (BeliefManager,
+                                           belief_update_factory,
+                                           rejection_sampling)
+from po_nrl.agents.planning.particle_filters import (FlatFilter,
+                                                     ParticleFilter,
+                                                     WeightedFilter)
+from po_nrl.agents.planning.pouct import POUCT, RolloutPolicy
 from po_nrl.analysis.augmented_beliefs import analyzer_factory
 from po_nrl.domains import NeuralEnsemblePOMDP
+from po_nrl.domains.gridverse_domain import rollout_policy
 from po_nrl.environments import Simulator
 from po_nrl.misc import POBNRLogger
 
@@ -56,15 +62,13 @@ class PrototypeAgent(Agent, POBNRLogger):
 
         """
 
-        self._last_action = self._planner.select_action(self._belief_manager.particle_filter)
+        self._last_action = self._planner.select_action(
+            self._belief_manager.particle_filter
+        )
 
         return self._last_action
 
-    def update(
-            self,
-            observation: np.ndarray,
-            _reward: float,
-            _terminal: bool):
+    def update(self, observation: np.ndarray, _reward: float, _terminal: bool):
         """ calls at the end of a real step to allow the agent to update
 
         Will update the belief given the observation (and last action)
@@ -79,7 +83,9 @@ class PrototypeAgent(Agent, POBNRLogger):
         self._belief_manager.update(self._last_action, observation)
 
 
-def episode_reset_belief(p_filter: ParticleFilter, sim: NeuralEnsemblePOMDP) -> ParticleFilter:
+def episode_reset_belief(
+    p_filter: ParticleFilter, sim: NeuralEnsemblePOMDP
+) -> ParticleFilter:
     """ resets the belief in between episodes
 
     In between episodes the (state) belief has to be reset to represent the
@@ -100,7 +106,9 @@ def episode_reset_belief(p_filter: ParticleFilter, sim: NeuralEnsemblePOMDP) -> 
     return p_filter
 
 
-def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefManager:
+def _create_learning_belief_manager(
+    sim: NeuralEnsemblePOMDP, conf
+) -> BeliefManager:
     """ returns a belief manager for the learning context
 
     return rejection sampling belief manager by setting the belief manager
@@ -114,38 +122,57 @@ def _create_learning_belief_manager(sim: NeuralEnsemblePOMDP, conf) -> BeliefMan
 
     """
 
-    assert conf.belief in ["rejection_sampling", "importance_sampling"], \
-        f"belief {conf.belief} not legal"
+    assert conf.belief in [
+        "rejection_sampling",
+        "importance_sampling",
+    ], f"belief {conf.belief} not legal"
 
     analyser = analyzer_factory(conf.domain, conf.domain_size)
 
     belief_update = belief_update_factory(conf, sim)
 
-    episode_reset = partial(
-        episode_reset_belief, sim=sim
-    )
+    episode_reset = partial(episode_reset_belief, sim=sim)
 
     if conf.belief == 'rejection_sampling':
         reset = partial(
             FlatFilter.create_from_process,
             sample_process=sim.sample_start_state,
-            size=conf.num_particles
+            size=conf.num_particles,
         )
     elif conf.belief == 'importance_sampling':
         reset = partial(
             WeightedFilter.create_from_process,
             sample_process=sim.sample_start_state,
-            size=conf.num_particles
+            size=conf.num_particles,
         )
     else:
-        raise ValueError(f"belief must be 'rejection_sampling' or 'importance_sampling', not {conf.belief}")
+        raise ValueError(
+            f"belief must be 'rejection_sampling' or 'importance_sampling', not {conf.belief}"
+        )
 
     return BeliefManager(
         reset_f=reset,
         update_belief_f=belief_update,
         episode_reset_f=episode_reset,
-        belief_analyzer=analyser
+        belief_analyzer=analyser,
     )
+
+
+def create_rollout_policy(domain_name: str) -> Optional[RolloutPolicy]:
+    """returns, if available, a domain specific rollout policy
+
+    Currently only returns for `domain_name` == 'gridverse'
+
+    Args:
+        domain_name (`str`): name of the domain
+
+    Returns:
+        `Optional[RolloutPolicy]`:
+    """
+    if domain_name == "gridverse":
+        return rollout_policy
+
+    return None
 
 
 def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
@@ -159,20 +186,19 @@ def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
 
     """
 
+    pol = create_rollout_policy(conf.domain)
     planner = POUCT(
         sim,
         conf.num_sims,
         conf.exploration,
         conf.search_depth,
-        conf.gamma
+        conf.gamma,
+        pol,
     )
 
     belief_manager = _create_learning_belief_manager(sim, conf)
 
-    return PrototypeAgent(
-        planner,
-        belief_manager,
-    )
+    return PrototypeAgent(planner, belief_manager,)
 
 
 def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
@@ -189,23 +215,23 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
     if conf.belief != 'rejection_sampling':
         raise ValueError('belief must be rejection_sampling')
 
+    pol = create_rollout_policy(conf.domain)
     planner = POUCT(
         sim,
         conf.num_sims,
         conf.exploration,
         conf.search_depth,
-        conf.gamma
+        conf.gamma,
+        pol,
     )
 
     believe_manager = BeliefManager(
         reset_f=partial(
             FlatFilter.create_from_process,
-            sample_process=sim.sample_start_state, size=conf.num_particles
+            sample_process=sim.sample_start_state,
+            size=conf.num_particles,
         ),
-        update_belief_f=partial(rejection_sampling, sim=sim)
+        update_belief_f=partial(rejection_sampling, sim=sim),
     )
 
-    return PrototypeAgent(
-        planner,
-        believe_manager
-    )
+    return PrototypeAgent(planner, believe_manager)

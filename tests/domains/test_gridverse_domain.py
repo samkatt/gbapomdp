@@ -2,13 +2,15 @@
 import unittest
 from functools import reduce
 from operator import mul
+from typing import Dict
 
 import numpy as np
+from gym_gridverse.actions import Actions as GverseAction
 from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import GridverseDomain
 from po_nrl.domains.gridverse_domain import ObservationModel as GverseObsModel
-from po_nrl.domains.gridverse_domain import StateEncoding
+from po_nrl.domains.gridverse_domain import StateEncoding, rollout_policy
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -228,6 +230,38 @@ class TestObservationModel(unittest.TestCase):
 
         np.testing.assert_array_equal(
             o, DynamicsModel.sample_from_model(O, num=1)
+        )
+
+
+class TestRolloutPolicy(unittest.TestCase):
+    """tests `gridverse_domain.rollout_policy`"""
+
+    def test_basic(self):
+        """tests whether all possible actions are sampled (and only those) and their frequency"""
+
+        actions = [rollout_policy(_) for _ in range(20)]
+
+        self.assertSetEqual(
+            set(sorted(actions)),
+            {
+                GverseAction.TURN_LEFT.value,
+                GverseAction.TURN_RIGHT.value,
+                GverseAction.MOVE_FORWARD.value,
+            },
+        )
+
+        freq: Dict[int, int] = {}
+        for a in actions:
+            freq[a] = freq.get(a, 0) + 1
+
+        self.assertGreaterEqual(
+            freq[GverseAction.MOVE_FORWARD.value],
+            freq[GverseAction.TURN_LEFT.value],
+        )
+
+        self.assertGreaterEqual(
+            freq[GverseAction.MOVE_FORWARD.value],
+            freq[GverseAction.TURN_RIGHT.value],
         )
 
 
