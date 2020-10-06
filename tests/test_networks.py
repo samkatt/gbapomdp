@@ -27,7 +27,7 @@ class TestDynamicModel(unittest.TestCase):
             s_space,
             a_space,
             sgd_builder,
-            learning_rate=0.01,
+            learning_rate=0.1,
             network_size=5,
             dropout_rate=0.5,
         )
@@ -36,7 +36,7 @@ class TestDynamicModel(unittest.TestCase):
             a_space,
             o_space,
             sgd_builder,
-            learning_rate=0.01,
+            learning_rate=0.1,
             network_size=5,
             dropout_rate=0.5,
         )
