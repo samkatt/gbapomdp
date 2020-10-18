@@ -572,9 +572,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
 
         # pylint: disable=no-member
 
-        grid, pos, _ = self._state_encoding.decode(new_state)
-
-        y, x = pos
+        grid, (y, x), _ = self._state_encoding.decode(new_state)
         item_under_agent = grid[y, x]
 
         if item_under_agent == Goal.type_index:
@@ -583,8 +581,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         if item_under_agent in [MovingObstacle.type_index, Wall.type_index]:
             return -1
 
-        grid, pos, _ = self._state_encoding.decode(state)
-        prev_y, prev_x = pos
+        grid, (prev_y, prev_x), _ = self._state_encoding.decode(state)
 
         same_position = y == prev_y and x == prev_x
         translating = action in TRANSLATION_ACTIONS
@@ -604,22 +601,27 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             - agent 'moved' but stayed on the same location
         """
 
-        grid, pos, _ = self._state_encoding.decode(new_state)
-        y, x = pos
+        grid, (y, x), _ = self._state_encoding.decode(new_state)
         item_under_agent = grid[y, x]
 
-        grid, pos, _ = self._state_encoding.decode(state)
-        prev_y, prev_x = pos
+        grid, (prev_y, prev_x), _ = self._state_encoding.decode(state)
+
+        # pylint: disable=no-member
+
+        if item_under_agent in [
+            Goal.type_index,
+            Wall.type_index,
+            MovingObstacle.type_index,
+        ]:
+            return True
 
         same_position = y == prev_y and x == prev_x
         translating = action in TRANSLATION_ACTIONS
 
-        # pylint: disable=no-member
-        return item_under_agent in [
-            Goal.type_index,
-            Wall.type_index,
-            MovingObstacle.type_index,
-        ] or (translating and same_position)
+        if translating and same_position:
+            return True
+
+        return False
 
     def sample_transition(
         self,
