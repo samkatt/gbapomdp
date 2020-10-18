@@ -14,7 +14,10 @@ from po_nrl.agents.planning.particle_filters import (FlatFilter,
 from po_nrl.agents.planning.pouct import POUCT, RolloutPolicy
 from po_nrl.analysis.augmented_beliefs import analyzer_factory
 from po_nrl.domains import NeuralEnsemblePOMDP
-from po_nrl.domains.gridverse_domain import GridverseDomain, rollout_policy
+from po_nrl.domains.gridverse_domain import GridverseDomain
+from po_nrl.domains.gridverse_domain import \
+    default_rollout_policy as gridverse_regular_rollout
+from po_nrl.domains.gridverse_domain import straight_or_turn_policy
 from po_nrl.environments import Environment, Simulator
 from po_nrl.misc import POBNRLogger
 
@@ -158,25 +161,39 @@ def _create_learning_belief_manager(
     )
 
 
-def create_rollout_policy(domain: Environment) -> Optional[RolloutPolicy]:
+def create_rollout_policy(
+    domain: Environment, rollout_descr: str
+) -> Optional[RolloutPolicy]:
     """returns, if available, a domain specific rollout policy
 
     Currently only returns for gridverse domain
 
     Args:
         domain (`Environment`): environment
+        rollout_descr (`str`):
 
     Returns:
         `Optional[RolloutPolicy]`:
     """
 
-    if isinstance(domain, GridverseDomain):
-        return partial(
-            rollout_policy,
-            encoding=domain._state_encoding,  # pylint: disable=protected-access
-        )
+    if not rollout_descr:
+        return None
 
-    return None
+    if isinstance(domain, GridverseDomain):
+        if rollout_descr == "default":
+            return partial(
+                gridverse_regular_rollout,
+                encoding=domain._state_encoding,  # pylint: disable=protected-access
+            )
+        if rollout_descr == "gridverse-extra":
+            return partial(
+                straight_or_turn_policy,
+                encoding=domain._state_encoding,  # pylint: disable=protected-access
+            )
+
+    raise ValueError(
+        f"{rollout_descr} not accepted as rollout policy for domain {domain}"
+    )
 
 
 def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
@@ -190,7 +207,7 @@ def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
 
     """
 
-    pol = create_rollout_policy(conf.domain)
+    pol = create_rollout_policy(conf.domain, conf.rollout_policy)
     planner = POUCT(
         sim,
         conf.num_sims,
@@ -219,7 +236,7 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
     if conf.belief != 'rejection_sampling':
         raise ValueError('belief must be rejection_sampling')
 
-    pol = create_rollout_policy(conf.domain)
+    pol = create_rollout_policy(conf.domain, conf.rollout_policy)
     planner = POUCT(
         sim,
         conf.num_sims,

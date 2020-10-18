@@ -12,7 +12,9 @@ from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import GridverseDomain
 from po_nrl.domains.gridverse_domain import ObservationModel as GverseObsModel
-from po_nrl.domains.gridverse_domain import StateEncoding, rollout_policy
+from po_nrl.domains.gridverse_domain import (StateEncoding,
+                                             default_rollout_policy,
+                                             straight_or_turn_policy)
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -235,13 +237,13 @@ class TestObservationModel(unittest.TestCase):
         )
 
 
-class TestRolloutPolicy(unittest.TestCase):
-    """tests `gridverse_domain.rollout_policy`"""
+class TestDefaultRolloutPolicy(unittest.TestCase):
+    """tests `gridverse_domain.default_rollout_policy`"""
 
     def setUp(self):
         self.d = GridverseDomain()
         self.pol = partial(
-            rollout_policy,
+            default_rollout_policy,
             encoding=self.d._state_encoding,  # pylint: disable=protected-access
         )
 
@@ -280,6 +282,35 @@ class TestRolloutPolicy(unittest.TestCase):
             freq[GverseAction.MOVE_FORWARD.value],
             freq[GverseAction.TURN_RIGHT.value],
         )
+
+
+class TestStraightOrTurnRolloutPolicy(unittest.TestCase):
+    """tests `gridverse_domain.straight_or_turn_policy`"""
+
+    def setUp(self):
+        self.d = GridverseDomain()
+        self.pol = partial(
+            straight_or_turn_policy,
+            encoding=self.d._state_encoding,  # pylint: disable=protected-access
+        )
+
+    def test_walls(self):
+        """tests that policy does not go forward into walls"""
+
+        s = self.d.sample_start_state()
+        s[-1] = Orientation.N.value
+
+        actions = sorted({self.pol(s) for _ in range(25)})
+        self.assertListEqual(
+            actions,
+            [GverseAction.TURN_LEFT.value, GverseAction.TURN_RIGHT.value],
+        )
+
+    def test_basic(self):
+        """tests whether all possible actions are sampled (and only those) and their frequency"""
+
+        actions = {self.pol(self.d.sample_start_state()) for _ in range(25)}
+        self.assertSetEqual(actions, {GverseAction.MOVE_FORWARD.value})
 
 
 if __name__ == '__main__':

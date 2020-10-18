@@ -686,7 +686,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         )
 
 
-def rollout_policy(
+def default_rollout_policy(
     state: np.ndarray, encoding: StateEncoding
 ) -> int:  # pylint: disable=unused-argument
     """rollout policy for Gridverse domain
@@ -721,6 +721,46 @@ def rollout_policy(
 
         if grid[y, x] != Wall.type_index:  # pylint: disable=no-member
             return GverseAction.MOVE_FORWARD.value
+
+    if random.choice([True, False]):
+        return GverseAction.TURN_LEFT.value
+
+    return GverseAction.TURN_RIGHT.value
+
+
+def straight_or_turn_policy(
+    state: np.ndarray, encoding: StateEncoding
+) -> int:  # pylint: disable=unused-argument
+    """rollout policy for Gridverse domain
+
+    Goes straight forward unless faced with a wall, after which it will turn
+    either left or right with 50% chance
+
+    Follows the `POUCT.RolloutPolicy` 'interface'
+
+    Args:
+        state (`np.ndarray`): unused state
+        encoding (`StateEncoding`): how the state is encoded
+
+    Returns:
+        int: sampled action
+    """
+
+    grid, (y, x), orient = encoding.decode(state)
+
+    # position in front of agent
+    y, x = (
+        np.array([y, x], dtype=int)
+        + {
+            Orientation.N: [-1, 0],
+            Orientation.S: [1, 0],
+            Orientation.E: [0, 1],
+            Orientation.W: [0, -1],
+        }[orient]
+    )
+
+    if grid[y, x] != Wall.type_index:  # pylint: disable=no-member
+        return GverseAction.MOVE_FORWARD.value
 
     if random.choice([True, False]):
         return GverseAction.TURN_LEFT.value

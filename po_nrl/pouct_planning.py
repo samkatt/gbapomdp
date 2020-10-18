@@ -151,6 +151,15 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
+        "--rollout_policy",
+        type=str,
+        choices=["", "default", "gridverse-extra"],
+        default="",
+        help="Rollout policy description; currently only applicable to gridverse,\
+                which accepts 'gridverse-extra' for the extra-good rollout",
+    )
+
+    parser.add_argument(
         "--search_depth", "-d",
         type=int,
         default=0,
