@@ -8,3 +8,4 @@ videos
 .tensorboard/*
 build
 po_nrl.egg-info
+tags

@@ -26,6 +26,15 @@ from po_nrl.misc import DiscreteSpace, POBNRLogger, Space
 class StateEncoding(abc.ABC):
     """contains 'encoding' and 'decoding' paired functionality"""
 
+    @property
+    @abc.abstractmethod
+    def grid_size(self) -> int:
+        """returns the size of the (square) grid
+
+        Returns:
+            int: size
+        """
+
     @abc.abstractmethod
     def encode(self, s: GverseState) -> np.ndarray:
         """encodes a state in Gridverse into a single numpy array
@@ -97,6 +106,13 @@ class CompactStateEncoding(StateEncoding):
             + [h, w, len(Orientation)]
         )
 
+        assert h == w, f"Expecting square grid, not {h} by {w}"
+        self._grid_size = h
+
+    @property
+    def grid_size(self) -> int:
+        return self._grid_size
+
     def encode(self, s: GverseState) -> np.ndarray:
         """encodes `s` into a compact numpy array
 
@@ -156,6 +172,13 @@ class OneHotOrientationEncoding(StateEncoding):
             + [h, w, 2, 2, 2, 2]
         )
 
+        assert h == w, f"Expecting square grid, not {h} by {w}"
+        self._grid_size = h
+
+    @property
+    def grid_size(self) -> int:
+        return self._grid_size
+
     def encode(self, s: GverseState) -> np.ndarray:
         """encodes the orientation as one - hot
 
@@ -196,6 +219,7 @@ class OneHotOrientationEncoding(StateEncoding):
         h, w = self._rep.state_space.grid_shape
         grid_ndim = h * w
 
+        # NOTE: assumes state is _legal_ and this is a proper 1-one encoding
         orientation = np.argmax(s[-len(Orientation):])
 
         return (
@@ -224,6 +248,13 @@ class OneHotStateEncoding(StateEncoding):
             # one-hot encoding of position and orientation
             + [2] * (h + w + len(Orientation))
         )
+
+        assert h == w, f"Expecting square grid, not {h} by {w}"
+        self._grid_size = h
+
+    @property
+    def grid_size(self) -> int:
+        return self._grid_size
 
     def encode(self, s: GverseState) -> np.ndarray:
         """Represents a state as a numpy array, hot encoding position and orientation
@@ -284,10 +315,12 @@ class OneHotStateEncoding(StateEncoding):
         grid = s[:num_grid_dim].reshape((h, w))
 
         # decode one-hot encoding of the position
+        # NOTE: assumes state is _legal_ and this is a proper 1-one encoding
         agent_y = np.argmax(s[num_grid_dim: num_grid_dim + h])
         agent_x = np.argmax(s[num_grid_dim + h: num_grid_dim + h + w])
 
         # decode one-hot encoding of the orientation
+        # NOTE: assumes state is _legal_ and this is a proper 1-one encoding
         agent_orientation = np.argmax(s[-num_orientation_dim:])
 
         return (
@@ -719,8 +752,13 @@ def default_rollout_policy(
             }[orient]
         )
 
-        if grid[y, x] != Wall.type_index:  # pylint: disable=no-member
-            return GverseAction.MOVE_FORWARD.value
+        if min(x, y) >= 0 and max(x, y) < encoding.grid_size:
+
+            # we safely can do this operation:
+            cell_in_front = grid[y, x]
+
+            if cell_in_front != Wall.type_index:  # pylint: disable=no-member
+                return GverseAction.MOVE_FORWARD.value
 
     if random.choice([True, False]):
         return GverseAction.TURN_LEFT.value
@@ -759,8 +797,13 @@ def straight_or_turn_policy(
         }[orient]
     )
 
-    if grid[y, x] != Wall.type_index:  # pylint: disable=no-member
-        return GverseAction.MOVE_FORWARD.value
+    if min(x, y) >= 0 and max(x, y) < encoding.grid_size:
+
+        # we safely can do this operation:
+        cell_in_front = grid[y, x]
+
+        if cell_in_front != Wall.type_index:  # pylint: disable=no-member
+            return GverseAction.MOVE_FORWARD.value
 
     if random.choice([True, False]):
         return GverseAction.TURN_LEFT.value

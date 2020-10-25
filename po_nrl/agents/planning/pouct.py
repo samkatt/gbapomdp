@@ -2,7 +2,7 @@
 import random
 from collections import namedtuple
 from functools import partial
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from po_nrl.agents.planning.particle_filters import ParticleFilter
@@ -158,11 +158,11 @@ class POUCT(POBNRLogger):
     def __init__(
         self,
         simulator: Simulator,
+        rollout_policy: RolloutPolicy,
         num_sims: int = 500,
         exploration_constant: float = 1.0,
         planning_horizon: int = 10,
         discount: float = 0.95,
-        rollout_policy: Optional[RolloutPolicy] = None,
     ):
         """ Creates the PO-UCT planner
 

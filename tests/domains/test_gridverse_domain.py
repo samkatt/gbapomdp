@@ -149,6 +149,13 @@ class TestStateEncodings(unittest.TestCase):
             "one-hot-state", self.env._state_encoding._rep,  # type: ignore
         )
 
+    def test_grid_size(self):
+        """tests `.grid_size` property """
+
+        self.assertEqual(self.compact_encoding.grid_size, 7)
+        self.assertEqual(self.one_hot_encoding.grid_size, 7)
+        self.assertEqual(self.one_hot_orientation.grid_size, 7)
+
     def test_state_space(self):
         """tests `.state_space` implementation"""
 

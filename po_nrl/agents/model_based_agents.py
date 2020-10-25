@@ -1,7 +1,6 @@
 """ agents that act by learning a model of the environments """
 
 from functools import partial
-from typing import Optional
 
 import numpy as np
 from po_nrl.agents.agent import Agent
@@ -11,14 +10,14 @@ from po_nrl.agents.planning.belief import (BeliefManager,
 from po_nrl.agents.planning.particle_filters import (FlatFilter,
                                                      ParticleFilter,
                                                      WeightedFilter)
-from po_nrl.agents.planning.pouct import POUCT, RolloutPolicy
+from po_nrl.agents.planning.pouct import POUCT, RolloutPolicy, random_policy
 from po_nrl.analysis.augmented_beliefs import analyzer_factory
 from po_nrl.domains import NeuralEnsemblePOMDP
 from po_nrl.domains.gridverse_domain import GridverseDomain
 from po_nrl.domains.gridverse_domain import \
     default_rollout_policy as gridverse_regular_rollout
 from po_nrl.domains.gridverse_domain import straight_or_turn_policy
-from po_nrl.environments import Environment, Simulator
+from po_nrl.environments import Simulator
 from po_nrl.misc import POBNRLogger
 
 
@@ -162,22 +161,19 @@ def _create_learning_belief_manager(
 
 
 def create_rollout_policy(
-    domain: Environment, rollout_descr: str
-) -> Optional[RolloutPolicy]:
+    domain: Simulator, rollout_descr: str
+) -> RolloutPolicy:
     """returns, if available, a domain specific rollout policy
 
     Currently only returns for gridverse domain
 
     Args:
-        domain (`Environment`): environment
+        domain (`Simulator`): environment
         rollout_descr (`str`):
 
     Returns:
         `Optional[RolloutPolicy]`:
     """
-
-    if not rollout_descr:
-        return None
 
     if isinstance(domain, GridverseDomain):
         if rollout_descr == "default":
@@ -191,30 +187,51 @@ def create_rollout_policy(
                 encoding=domain._state_encoding,  # pylint: disable=protected-access
             )
 
-    raise ValueError(
-        f"{rollout_descr} not accepted as rollout policy for domain {domain}"
-    )
+    if rollout_descr:
+        raise ValueError(
+            f"{rollout_descr} not accepted as rollout policy for domain {domain}"
+        )
+
+    return partial(random_policy, action_space=domain.action_space)
 
 
-def create_learning_agent(sim: NeuralEnsemblePOMDP, conf) -> PrototypeAgent:
+def create_learning_agent(
+    sim: NeuralEnsemblePOMDP, conf, domain: Simulator
+) -> PrototypeAgent:
     """ factory function to construct model based learning agents
+
+    NOTE: unfortunately requires `domain` in order to pass it onto
+    `create_rollout_policy`. Ideally the learning agent does not know anything
+    about the environment, but system design is hard, so here we are.
 
     Args:
          sim: (`po_nrl.environments.Simulator`) simulator
          conf: (`namespace`) configurations
+         domain: (`po_nrl.environments.Simulator`) environment passed to `create_rollout_policy`
 
     RETURNS (`po_nrl.agents.model_based_agents.PrototypeAgent`)
 
     """
 
-    pol = create_rollout_policy(conf.domain, conf.rollout_policy)
+    pol = create_rollout_policy(domain, conf.rollout_policy)
+
+    def rollout(augmented_state) -> int:
+        """
+        So normally PO-UCT expects states to be numpy arrays and everything is
+        dandy, but we are planning in augmented space here in secret. So the
+        typical rollout policy of the environment will not work: it does not
+        expect an `AugmentedState`. So here we gently provide it the underlying
+        state and all is well
+        """
+        return pol(augmented_state.domain_state)
+
     planner = POUCT(
         sim,
+        rollout,  # type: ignore
         conf.num_sims,
         conf.exploration,
         conf.search_depth,
         conf.gamma,
-        pol,
     )
 
     belief_manager = _create_learning_belief_manager(sim, conf)
@@ -236,14 +253,14 @@ def create_planning_agent(sim: Simulator, conf) -> PrototypeAgent:
     if conf.belief != 'rejection_sampling':
         raise ValueError('belief must be rejection_sampling')
 
-    pol = create_rollout_policy(conf.domain, conf.rollout_policy)
+    pol = create_rollout_policy(sim, conf.rollout_policy)
     planner = POUCT(
         sim,
+        pol,
         conf.num_sims,
         conf.exploration,
         conf.search_depth,
         conf.gamma,
-        pol,
     )
 
     believe_manager = BeliefManager(

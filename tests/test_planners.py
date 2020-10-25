@@ -3,6 +3,7 @@
 import math
 import random
 import unittest
+from functools import partial
 
 import numpy as np
 from po_nrl.agents.planning.particle_filters import FlatFilter
@@ -171,7 +172,10 @@ class TestPOUCT(unittest.TestCase):
         domain = Tiger(EncodeType.DEFAULT)
 
         table = POUCT(  # pylint: disable=protected-access
-            domain, num_sims=5, exploration_constant=1
+            domain,
+            partial(random_policy, action_space=domain.action_space),
+            num_sims=5,
+            exploration_constant=1,
         )._ucb_table
 
         self.assertTupleEqual(table.shape, (5, 5))
@@ -183,7 +187,10 @@ class TestPOUCT(unittest.TestCase):
         self.assertAlmostEqual(table[3, 4], math.sqrt(math.log(4) / 4))
 
         table = POUCT(  # pylint: disable=protected-access
-            domain, num_sims=5, exploration_constant=50.3
+            domain,
+            partial(random_policy, action_space=domain.action_space),
+            num_sims=5,
+            exploration_constant=50.3,
         )._ucb_table
 
         self.assertAlmostEqual(table[1, 1], 50.3 * math.sqrt(math.log(2) / 1))
@@ -195,7 +202,11 @@ class TestPOUCT(unittest.TestCase):
         """basic test to see whether POUCT runs correctly"""
 
         domain = Tiger(EncodeType.DEFAULT)
-        planner = POUCT(domain, num_sims=32)
+        planner = POUCT(
+            domain,
+            partial(random_policy, action_space=domain.action_space),
+            num_sims=32,
+        )
 
         belief = FlatFilter()
         belief.add_particle(domain.state)

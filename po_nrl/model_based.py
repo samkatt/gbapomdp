@@ -42,7 +42,7 @@ def main(args: Optional[List[str]]) -> None:
     assert isinstance(env, Simulator)
 
     sim = NeuralEnsemblePOMDP(env, conf=conf)
-    agent = create_learning_agent(sim, conf)
+    agent = create_learning_agent(sim, conf, domain=env)
     train_method = create_train_method(env, conf)
 
     # results init

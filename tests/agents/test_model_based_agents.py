@@ -2,18 +2,25 @@
 import unittest
 
 from po_nrl.agents.model_based_agents import create_rollout_policy
-from po_nrl.domains.gridverse_domain import GridverseDomain
+from po_nrl.domains import GridverseDomain, Tiger
+from po_nrl.environments import EncodeType
 
 
 class TestCreateRolloutPolicy(unittest.TestCase):
     """tests the factory function for rollouts"""
 
-    def test_return_null(self):
+    def test_return_random(self):
         """tests default return: none"""
-        self.assertIsNone(create_rollout_policy(None, ""))  # type: ignore
+        # pylint: disable=no-member
+        d = Tiger(EncodeType.DEFAULT)
 
-        d = GridverseDomain()
-        self.assertIsNone(create_rollout_policy(d, ""))
+        self.assertEqual(
+            create_rollout_policy(d, "").func.__name__,  # type: ignore
+            "random_policy",
+        )
+
+        self.assertRaises(ValueError, create_rollout_policy, d, "default")
+        self.assertRaises(ValueError, create_rollout_policy, d, "bla")
 
     def test_gridverse_policies(self):
         """tests rollouts for gridverse domain"""
