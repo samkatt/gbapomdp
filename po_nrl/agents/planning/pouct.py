@@ -208,6 +208,17 @@ class POUCT(POBNRLogger):
                 np.log(tot_visits + 1).T / action_visits
             )
 
+        self.log(
+            POBNRLogger.LogLevel.V1,
+            # Please appreciate the beauty of calling `__str__()` here. It
+            # seems my incredible aptitude for butchering python leads to
+            # unfathomably horrific code. If this does not break at some point
+            # then that means this project led nowhere interesting
+            f"Initiated PO-uUCT on {simulator} using rollout {self.rollout_policy.__str__()} and: "
+            f" (horizon: {self.planning_horizon}) (simulations :{self.num_sims}) "
+            f"(exploration constant: {exploration_constant}) (discount: {self.discount})",
+        )
+
     def select_action(self, belief: ParticleFilter) -> int:
         """ selects an action given belief
 
@@ -290,8 +301,10 @@ class POUCT(POBNRLogger):
             if self.log_is_on(POBNRLogger.LogLevel.V5):
                 self.log(
                     POBNRLogger.LogLevel.V5,
-                    f"MCTS simulated action {action} in {state} -->"
-                    f" {step.state} and obs {step.observation}",
+                    f"MCTS simulated action {self.simulator.action_to_string(action)} "
+                    f"in {self.simulator.state_to_string(state)} --> "
+                    f"{self.simulator.state_to_string(step.state)} and "
+                    f"obs {self.simulator.observation_to_string(step.observation)}",
                 )
 
             if not terminal:

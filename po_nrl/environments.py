@@ -1,16 +1,17 @@
 """environments interface """
 
+import abc
+from collections import namedtuple
 from enum import Enum
 
-from collections import namedtuple
-import abc
 import numpy as np
 
-from po_nrl.misc import Space, DiscreteSpace
+from po_nrl.misc import DiscreteSpace, Space
 
 
 class EncodeType(Enum):
     """ AgentType """
+
     DEFAULT = 0
     ONE_HOT = 1
 
@@ -68,7 +69,8 @@ class ActionSpace(DiscreteSpace):
 
 
 class EnvironmentInteraction(
-        namedtuple('environments_interaction', 'observation reward terminal')):
+    namedtuple('environments_interaction', 'observation reward terminal')
+):
     """ The tuple returned by domains doing steps
 
         Contains:
@@ -124,12 +126,63 @@ class Environment(abc.ABC):
         """
 
     def __repr__(self):
-        return (f"{self.__class__} with action space {self.action_space}, "
-                f"observation space {self.observation_space}")
+        return (
+            f"{self.__class__} with action space {self.action_space}, "
+            f"observation space {self.observation_space}"
+        )
+
+    def state_to_string(  # pylint: disable=no-self-use
+        self, state: np.ndarray
+    ) -> str:
+        """Returns a string representation of the `state`
+
+        Exists so that other environments can override this, and hopefully
+        provide more useful info than the array representation
+
+        Args:
+            state (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return str(state)
+
+    def action_to_string(  # pylint: disable=no-self-use
+        self, action: int
+    ) -> str:
+        """Returns a string representation of the `action`
+
+        Exists so that other environments can override this, and hopefully
+        provide more useful info than the int representation
+
+        Args:
+            action (`int`):
+
+        Returns:
+            `str`:
+        """
+        return str(action)
+
+    def observation_to_string(  # pylint: disable=no-self-use
+        self, observation: np.ndarray
+    ) -> str:
+        """Returns a string representation of the `observation`
+
+        Exists so that other environments can override this, and hopefully
+        provide more useful info than the array representation
+
+        Args:
+            observation (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return str(observation)
 
 
 class SimulationResult(
-        namedtuple('simulated_interaction', 'state observation')):
+    namedtuple('simulated_interaction', 'state observation')
+):
     """ The tuple returned by simulations doing steps
 
         Contains:
@@ -175,7 +228,9 @@ class Simulator(abc.ABC):
         """
 
     @abc.abstractmethod
-    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
+    def simulation_step(
+        self, state: np.ndarray, action: int
+    ) -> SimulationResult:
         """ generates a transition
 
         May raise `TerminalState`
@@ -193,7 +248,9 @@ class Simulator(abc.ABC):
         """ returns a potential start state """
 
     @abc.abstractmethod
-    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+    def reward(
+        self, state: np.ndarray, action: int, new_state: np.ndarray
+    ) -> float:
         """ the reward function
 
         Args:
@@ -206,7 +263,9 @@ class Simulator(abc.ABC):
         """
 
     @abc.abstractmethod
-    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+    def terminal(
+        self, state: np.ndarray, action: int, new_state: np.ndarray
+    ) -> bool:
         """ the termination function
 
         Args:
@@ -217,3 +276,51 @@ class Simulator(abc.ABC):
         RETURNS (`bool`): whether the transition is terminal
 
         """
+
+    def state_to_string(  # pylint: disable=no-self-use
+        self, state: np.ndarray
+    ) -> str:
+        """Returns a string representation of the `state`
+
+        Exists so that other environments can override this, and hopefully
+        provide more useful info than the array representation
+
+        Args:
+            state (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return str(state)
+
+    def action_to_string(  # pylint: disable=no-self-use
+        self, action: int
+    ) -> str:
+        """Returns a string representation of the `action`
+
+        Exists so that other environments can override this, and hopefully
+        provide more useful info than the int representation
+
+        Args:
+            action (`int`):
+
+        Returns:
+            `str`:
+        """
+        return str(action)
+
+    def observation_to_string(  # pylint: disable=no-self-use
+        self, observation: np.ndarray
+    ) -> str:
+        """Returns a string representation of the `observation`
+
+        Exists so that other environments can override this, and hopefully
+        provide more useful info than the array representation
+
+        Args:
+            observation (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return str(observation)

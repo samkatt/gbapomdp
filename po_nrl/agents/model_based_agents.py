@@ -215,6 +215,8 @@ def create_learning_agent(
 
     pol = create_rollout_policy(domain, conf.rollout_policy)
 
+    pol_descr = str(pol)
+
     def rollout(augmented_state) -> int:
         """
         So normally PO-UCT expects states to be numpy arrays and everything is
@@ -224,6 +226,13 @@ def create_learning_agent(
         state and all is well
         """
         return pol(augmented_state.domain_state)
+
+    # Turns out that the most ugly code here really exists for some stupid
+    # logging. I dislike how there is no way of telling what function `rollout`
+    # calls, so here I am inserting that information. Any normal programmer
+    # would have been able to think of a better way, but alas there is only me,
+    # so here we are
+    rollout.__str__ = lambda: pol_descr  # type: ignore
 
     planner = POUCT(
         sim,
