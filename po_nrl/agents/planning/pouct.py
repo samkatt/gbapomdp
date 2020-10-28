@@ -301,7 +301,7 @@ class POUCT(POBNRLogger):
             if self.log_is_on(POBNRLogger.LogLevel.V5):
                 self.log(
                     POBNRLogger.LogLevel.V5,
-                    f"MCTS simulated action {self.simulator.action_to_string(action)} "
+                    f"UCB picked {self.simulator.action_to_string(action)} "
                     f"in {self.simulator.state_to_string(state)} --> "
                     f"{self.simulator.state_to_string(step.state)} and "
                     f"obs {self.simulator.observation_to_string(step.observation)}",
@@ -356,6 +356,15 @@ class POUCT(POBNRLogger):
 
             if terminal:
                 break
+
+            if self.log_is_on(POBNRLogger.LogLevel.V5):
+                self.log(
+                    POBNRLogger.LogLevel.V5,
+                    f"Rollout policy picked {self.simulator.action_to_string(action)} "
+                    f"in {self.simulator.state_to_string(state)} --> "
+                    f"{self.simulator.state_to_string(step.state)} and "
+                    f"obs {self.simulator.observation_to_string(step.observation)} (reward: {reward})",
+                )
 
             action = self.rollout_policy(step.state)
             state = step.state
