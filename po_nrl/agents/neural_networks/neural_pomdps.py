@@ -237,7 +237,7 @@ class DynamicsModel:
 
             """
             assert (
-                0 < learning_rate < 1
+                0 <= learning_rate < 1
             ), f'learning rate must be [0,1], not {learning_rate}'
             self._learning_rate = learning_rate
 

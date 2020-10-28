@@ -718,6 +718,16 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             self._gverse_env.state_space.max_grid_object_type,
         )
 
+    def state_to_string(self, state: np.ndarray) -> str:
+        _, pos, orient = self._state_encoding.decode(state)
+        return f"Agent on {pos} facing {orient}"
+
+    def observation_to_string(self, observation: np.ndarray) -> str:
+        return "___"
+
+    def action_to_string(self, action: int) -> str:
+        return str(GverseAction(action))
+
 
 def default_rollout_policy(
     state: np.ndarray, encoding: StateEncoding
