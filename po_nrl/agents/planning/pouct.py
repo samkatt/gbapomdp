@@ -214,8 +214,8 @@ class POUCT(POBNRLogger):
             # seems my incredible aptitude for butchering python leads to
             # unfathomably horrific code. If this does not break at some point
             # then that means this project led nowhere interesting
-            f"Initiated PO-uUCT on {simulator} using rollout {self.rollout_policy.__str__()} and: "
-            f" (horizon: {self.planning_horizon}) (simulations :{self.num_sims}) "
+            f"PO-UCT initiated on {simulator} using rollout {self.rollout_policy.__str__()} and: "
+            f"(horizon: {self.planning_horizon}) (simulations :{self.num_sims}) "
             f"(exploration constant: {exploration_constant}) (discount: {self.discount})",
         )
 
@@ -242,7 +242,7 @@ class POUCT(POBNRLogger):
             result = self._traverse_tree(belief.sample(), root)
 
             self.log(
-                POBNRLogger.LogLevel.V4, f"POUCT iteration {run}: {result}"
+                POBNRLogger.LogLevel.V4, f"PO-UCT iteration {run}: {result}"
             )
 
             min_return = min(min_return, result.ret)
@@ -252,7 +252,7 @@ class POUCT(POBNRLogger):
 
         self.log(
             POBNRLogger.LogLevel.V3,
-            f"POUCT: Q: {root}, returns {min_return} to {max_return} "
+            f"PO-UCT: Q: {root}, returns {min_return} to {max_return} "
             f"tree depth {tree_depth}, longest run {longest_iteration}",
         )
 
@@ -301,7 +301,7 @@ class POUCT(POBNRLogger):
             if self.log_is_on(POBNRLogger.LogLevel.V5):
                 self.log(
                     POBNRLogger.LogLevel.V5,
-                    f"UCB picked {self.simulator.action_to_string(action)} "
+                    f"PO-UCT: UCB picked {self.simulator.action_to_string(action)} "
                     f"in {self.simulator.state_to_string(state)} --> "
                     f"{self.simulator.state_to_string(step.state)} and "
                     f"obs {self.simulator.observation_to_string(step.observation)}",
@@ -354,17 +354,17 @@ class POUCT(POBNRLogger):
 
             discount *= self.discount
 
-            if terminal:
-                break
-
             if self.log_is_on(POBNRLogger.LogLevel.V5):
                 self.log(
                     POBNRLogger.LogLevel.V5,
-                    f"Rollout policy picked {self.simulator.action_to_string(action)} "
+                    f"PO-UCT: Rollout policy picked {self.simulator.action_to_string(action)} "
                     f"in {self.simulator.state_to_string(state)} --> "
                     f"{self.simulator.state_to_string(step.state)} and "
                     f"obs {self.simulator.observation_to_string(step.observation)} (reward: {reward})",
                 )
+
+            if terminal:
+                break
 
             action = self.rollout_policy(step.state)
             state = step.state
