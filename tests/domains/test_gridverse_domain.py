@@ -256,7 +256,7 @@ class TestRolloutPolicy(unittest.TestCase):
     def test_basic(self):
         """tests whether all possible actions are sampled (and only those) and their frequency"""
 
-        actions = [self.pol(self.d.sample_start_state()) for _ in range(25)]
+        actions = [self.pol(self.d.sample_start_state()) for _ in range(50)]
 
         self.assertSetEqual(
             set(sorted(actions)),
