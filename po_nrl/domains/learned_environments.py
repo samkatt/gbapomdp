@@ -241,6 +241,10 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
         self.domain_reward = domain.reward
         self.domain_terminal = domain.terminal
 
+        self.domain_state_to_string = domain.state_to_string
+        self.domain_action_to_string = domain.action_to_string
+        self.domain_observation_to_string = domain.observation_to_string
+
         self._models = [
             create_dynamics_model(domain, conf) for i in range(conf.num_nets)
         ]
@@ -381,3 +385,44 @@ class NeuralEnsemblePOMDP(Simulator, POBNRLogger):
             # after training models we use this low learning rate
             # for online updates
             model.set_learning_rate(online_learning_rate)
+
+    def state_to_string(self, state: AugmentedState) -> str:
+        """Returns a string representation of the `state`
+
+        Prints underlying state
+
+        Args:
+            state (`AugmentedState`):
+
+        Returns:
+            `str`:
+        """
+        return (
+            f"Augmented state {self.domain_state_to_string(state.domain_state)}"
+        )
+
+    def action_to_string(self, action: int) -> str:
+        """Returns a string representation of the `action`
+
+        Prints domain action
+
+        Args:
+            action (`int`):
+
+        Returns:
+            `str`:
+        """
+        return self.domain_action_to_string(action)
+
+    def observation_to_string(self, observation: np.ndarray) -> str:
+        """Returns a string representation of the `observation`
+
+        Prints domain observation
+
+        Args:
+            observation (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return self.domain_observation_to_string(observation)

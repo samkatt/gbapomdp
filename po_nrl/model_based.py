@@ -42,7 +42,7 @@ def main(args: Optional[List[str]]) -> None:
     assert isinstance(env, Simulator)
 
     sim = NeuralEnsemblePOMDP(env, conf=conf)
-    agent = create_learning_agent(sim, conf)
+    agent = create_learning_agent(sim, conf, domain=env)
     train_method = create_train_method(env, conf)
 
     # results init
@@ -191,7 +191,17 @@ def parse_arguments(args: Optional[List[str]] = None):
     )
 
     parser.add_argument(
-        "--search_depth", "-d",
+        "--rollout_policy",
+        type=str,
+        choices=["", "default", "gridverse-extra"],
+        default="",
+        help="Rollout policy description; currently only applicable to gridverse,\
+                which accepts 'gridverse-extra' for the extra-good rollout",
+    )
+
+    parser.add_argument(
+        "--search_depth",
+        "-d",
         type=int,
         default=0,
         help="The max depth of the MCTS search tree, if not set will be horizon"
