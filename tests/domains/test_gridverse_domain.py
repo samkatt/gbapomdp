@@ -6,8 +6,9 @@ from operator import mul
 from typing import Dict
 
 import numpy as np
-from gym_gridverse.actions import Actions as GverseAction
-from gym_gridverse.geometry import Orientation
+
+from gym_gridverse.action import Action as GverseAction
+from gym_gridverse.geometry import Orientation, Position
 from gym_gridverse.grid_object import MovingObstacle
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import GridverseDomain
@@ -54,7 +55,7 @@ class TestGridverseDomain(unittest.TestCase):
         self.assertTupleEqual(grid.shape, grid_shape)
 
         # initial position should be (1,1) facing east (= 2)
-        np.testing.assert_array_equal(pos, [1, 1])
+        np.testing.assert_array_equal(pos, Position(1, 1))
         self.assertEqual(orient.value, 2)
 
     def test_sample_start_state(self):
@@ -68,7 +69,7 @@ class TestGridverseDomain(unittest.TestCase):
         # position of goal
         self.assertEqual(grid[-2, -2], 4)
         # initial agent position should be (1,1) facing east (= 2)
-        np.testing.assert_array_equal(pos, [1, 1])
+        np.testing.assert_array_equal(pos, Position(1, 1))
         self.assertEqual(orient.value, 2)
 
     def test_action_space(self):

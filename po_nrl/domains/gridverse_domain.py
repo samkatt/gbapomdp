@@ -4,8 +4,9 @@ import random
 from typing import List, Tuple
 
 import numpy as np
-from gym_gridverse.actions import TRANSLATION_ACTIONS
-from gym_gridverse.actions import Actions as GverseAction
+
+from gym_gridverse.action import TRANSLATION_ACTIONS
+from gym_gridverse.action import Action as GverseAction
 from gym_gridverse.envs.factory import gym_minigrid_from_descr
 from gym_gridverse.geometry import Orientation
 from gym_gridverse.geometry import Position as GversePosition
@@ -99,7 +100,9 @@ class CompactStateEncoding(StateEncoding):
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
 
-        h, w = self._rep.state_space.grid_shape
+        h = self._rep.state_space.grid_shape.height
+        w = self._rep.state_space.grid_shape.width
+
         self._state_space = DiscreteSpace(
             # pylint: disable=no-member
             [self._rep.state_space.max_grid_object_type + 1] * h * w
@@ -144,7 +147,8 @@ class CompactStateEncoding(StateEncoding):
         Returns:
             `Tuple[np.ndarray, GversePosition, Orientation]`:
         """
-        h, w = self._rep.state_space.grid_shape
+        h = self._rep.state_space.grid_shape.height
+        w = self._rep.state_space.grid_shape.width
         num_grid_dim = h * w
 
         return (
@@ -164,7 +168,8 @@ class OneHotOrientationEncoding(StateEncoding):
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
 
-        h, w = self._rep.state_space.grid_shape
+        h = self._rep.state_space.grid_shape.height
+        w = self._rep.state_space.grid_shape.width
 
         self._state_space = DiscreteSpace(
             # pylint: disable=no-member
@@ -216,7 +221,8 @@ class OneHotOrientationEncoding(StateEncoding):
         Returns:
             `Tuple[np.ndarray, GversePosition, Orientation]`:
         """
-        h, w = self._rep.state_space.grid_shape
+        h = self._rep.state_space.grid_shape.height
+        w = self._rep.state_space.grid_shape.width
         grid_ndim = h * w
 
         # NOTE: assumes state is _legal_ and this is a proper 1-one encoding
@@ -240,7 +246,8 @@ class OneHotStateEncoding(StateEncoding):
     def __init__(self, rep: DefaultStateRepresentation):
         self._rep = rep
 
-        h, w = self._rep.state_space.grid_shape
+        h = self._rep.state_space.grid_shape.height
+        w = self._rep.state_space.grid_shape.width
 
         self._state_space = DiscreteSpace(
             # pylint: disable=no-member
@@ -307,7 +314,8 @@ class OneHotStateEncoding(StateEncoding):
             `Tuple[np.ndarray, GversePosition, Orientation]`:
 
         """
-        h, w = self._rep.state_space.grid_shape
+        h = self._rep.state_space.grid_shape.height
+        w = self._rep.state_space.grid_shape.width
 
         num_grid_dim = h * w
         num_orientation_dim = 4
