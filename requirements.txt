@@ -1,9 +1,7 @@
-opencv-python
 torch
 typing_extensions
-pdoc
 matplotlib
 more_itertools
 tensorboard
 mypy_extensions
-numpy<1.17
+numpy

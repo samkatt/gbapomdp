@@ -7,7 +7,7 @@ import numpy as np
 
 from gym_gridverse.action import TRANSLATION_ACTIONS
 from gym_gridverse.action import Action as GverseAction
-from gym_gridverse.envs.factory import gym_minigrid_from_descr
+from gym_gridverse.envs.factory import env_from_descr
 from gym_gridverse.geometry import Orientation
 from gym_gridverse.geometry import Position as GversePosition
 from gym_gridverse.grid_object import Goal, Hidden, MovingObstacle, Wall
@@ -496,7 +496,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
     def __init__(
         self,
         encoding_descr: str = "compact",
-        env_descr: str = "MiniGrid-Empty-5x5-v0",
+        env_descr: str = "Empty-5x5-v0",
     ):
         """The only input to our grid - verse wrapper is the actual gverse domain itself
 
@@ -520,7 +520,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             f"Initiating {env_descr} GridverseDomain with {encoding_descr} encoding",
         )
 
-        gverse_env = gym_minigrid_from_descr(env_descr)
+        gverse_env = env_from_descr(env_descr)
 
         self._gverse_obs_rep = DefaultObservationRepresentation(
             gverse_env.observation_space

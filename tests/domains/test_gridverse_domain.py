@@ -23,7 +23,7 @@ class TestGridverseDomain(unittest.TestCase):
 
     def setUp(self):
 
-        self.env = GridverseDomain('one-hot-state', 'MiniGrid-Empty-5x5-v0')
+        self.env = GridverseDomain('one-hot-state', 'Empty-5x5-v0')
 
     def test_state_or_observation_conversions(self):
         """Tests conversions between `flatten_..` and `reshape...`"""
@@ -135,7 +135,7 @@ class TestStateEncodings(unittest.TestCase):
         self.obst_index = MovingObstacle.type_index  # pylint: disable=no-member
 
         self.env = GridverseDomain(
-            "compact", "MiniGrid-Dynamic-Obstacles-Random-5x5-v0"
+            "compact", "Dynamic-Obstacles-Random-5x5-v0"
         )
 
         self.compact_encoding = StateEncoding.construct(
