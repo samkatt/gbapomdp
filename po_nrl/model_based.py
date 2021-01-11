@@ -9,16 +9,18 @@ import po_nrl.pytorch_api
 from po_nrl.agents.model_based_agents import create_learning_agent
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
 from po_nrl.domains import EncodeType, create_environment, create_prior
-from po_nrl.domains.learned_environments import (NeuralEnsemblePOMDP,
-                                                 create_transition_sampler,
-                                                 train_from_samples)
+from po_nrl.domains.learned_environments import (
+    BADDr,
+    create_transition_sampler,
+    train_from_samples,
+)
 from po_nrl.environments import Simulator
 from po_nrl.episode import run_episode
 from po_nrl.misc import POBNRLogger, set_random_seed
 
 
 def main(args: Optional[List[str]]) -> None:
-    """ runs PO-UCT planner with a belief on given configurations
+    """runs PO-UCT planner with a belief on given configurations
 
     Args:
          args: (`Optional[List[str]]`): optional list of arguments
@@ -32,16 +34,18 @@ def main(args: Optional[List[str]]) -> None:
     po_nrl.pytorch_api.set_device(conf.use_gpu)
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
-    logger = POBNRLogger('model based main')
+    logger = POBNRLogger("model based main")
 
     if conf.random_seed:
         set_random_seed(conf.random_seed)
 
     # environment and agent setup
-    env = create_environment(conf.domain, conf.domain_size, EncodeType.DEFAULT, conf.domain_description)
+    env = create_environment(
+        conf.domain, conf.domain_size, EncodeType.DEFAULT, conf.domain_description
+    )
     assert isinstance(env, Simulator)
 
-    sim = NeuralEnsemblePOMDP(env, conf=conf)
+    sim = BADDr(env, conf=conf)
     agent = create_learning_agent(sim, conf, domain=env)
     train_method = create_train_method(env, conf)
 
@@ -53,7 +57,9 @@ def main(args: Optional[List[str]]) -> None:
     for run in range(conf.runs):
 
         if conf.tensorboard_logdir:
-            po_nrl.pytorch_api.set_tensorboard_logging(f'{conf.tensorboard_logdir}-{run}')
+            po_nrl.pytorch_api.set_tensorboard_logging(
+                f"{conf.tensorboard_logdir}-{run}"
+            )
 
         sim.reset(train_method, conf.learning_rate, conf.online_learning_rate)
         agent.reset()
@@ -70,11 +76,11 @@ def main(args: Optional[List[str]]) -> None:
 
             logger.log(
                 POBNRLogger.LogLevel.V1,
-                f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}"
+                f"run {run} episode {episode}: avg return: {np.mean(tmp_res[max(0, episode - 100):episode+1])}",
             )
 
             if po_nrl.pytorch_api.tensorboard_logging():
-                po_nrl.pytorch_api.log_tensorboard('return', tmp_res[episode], episode)
+                po_nrl.pytorch_api.log_tensorboard("return", tmp_res[episode], episode)
 
         # update mean and variance
         delta = tmp_res - result_mean
@@ -87,23 +93,18 @@ def main(args: Optional[List[str]]) -> None:
 
         # process results into rows of for each episode
         # return avg, return var, return #, return stder
-        summary = np.transpose([
-            result_mean,
-            ret_var,
-            [run + 1] * conf.episodes,
-            stder
-        ])
+        summary = np.transpose([result_mean, ret_var, [run + 1] * conf.episodes, stder])
 
         np.savetxt(
             conf.file,
             summary,
-            delimiter=', ',
-            header=f"{conf}\nreturn mean, return var, return count, return stder"
+            delimiter=", ",
+            header=f"{conf}\nreturn mean, return var, return count, return stder",
         )
 
 
 def parse_arguments(args: Optional[List[str]] = None):
-    """ converges arguments from commandline (or string) to namespace
+    """converges arguments from commandline (or string) to namespace
 
     Args:
          args: (`Optional[List[str]]`): a string of arguments, uses cmdline if None
@@ -112,82 +113,70 @@ def parse_arguments(args: Optional[List[str]] = None):
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         choices=[0, 1, 2, 3, 4, 5],
         default=1,
         type=int,
-        help="level of logging"
+        help="level of logging",
     )
 
     parser.add_argument(
-        "--domain", "-D",
+        "--domain",
+        "-D",
         help="which domain to use method on",
         required=True,
         choices=[
-            "tiger", "gridworld", "collision_avoidance", "chain", "road_racer", "gridverse"
-        ]
+            "tiger",
+            "gridworld",
+            "collision_avoidance",
+            "chain",
+            "road_racer",
+            "gridverse",
+        ],
     )
 
     parser.add_argument(
         "--domain_size",
         type=int,
         default=0,
-        help="size of domain (gridworld is size of grid)"
+        help="size of domain (gridworld is size of grid)",
     )
 
     parser.add_argument(
         "--domain_description",
         help="domain description, depends on domain used (currently only used by GridverseDomain)",
         default="",
-        type=str
+        type=str,
+    )
+
+    parser.add_argument("--file", "-f", default="results.npy", help="output file path")
+
+    parser.add_argument(
+        "--runs", default=1, type=int, help="number of runs to average returns over"
     )
 
     parser.add_argument(
-        "--file", "-f",
-        default="results.npy",
-        help="output file path"
+        "--horizon", "-H", default=1000, type=int, help="length of the problem"
     )
 
     parser.add_argument(
-        "--runs",
-        default=1,
-        type=int,
-        help="number of runs to average returns over"
+        "--episodes", default=1000, type=int, help="number of episodes to run"
     )
 
     parser.add_argument(
-        "--horizon", "-H",
-        default=1000,
-        type=int,
-        help="length of the problem"
-    )
-
-    parser.add_argument(
-        "--episodes",
-        default=1000,
-        type=int,
-        help="number of episodes to run"
-    )
-
-    parser.add_argument(
-        "--gamma",
-        default=0.95,
-        type=float,
-        help="discount factor to be used"
+        "--gamma", default=0.95, type=float, help="discount factor to be used"
     )
 
     parser.add_argument(
         "--num_sims",
         default=512,
         type=int,
-        help="number of simulations/iterations to run per step"
+        help="number of simulations/iterations to run per step",
     )
 
     parser.add_argument(
-        "--exploration",
-        type=float,
-        default=1,
-        help="PO-UCT (UCB) exploration constant"
+        "--exploration", type=float, default=1, help="PO-UCT (UCB) exploration constant"
     )
 
     parser.add_argument(
@@ -204,42 +193,40 @@ def parse_arguments(args: Optional[List[str]] = None):
         "-d",
         type=int,
         default=0,
-        help="The max depth of the MCTS search tree, if not set will be horizon"
+        help="The max depth of the MCTS search tree, if not set will be horizon",
     )
 
     parser.add_argument(
-        "--belief", "-B",
+        "--belief",
+        "-B",
         help="type of belief update",
-        choices=['rejection_sampling', 'importance_sampling'],
-        required=True
+        choices=["rejection_sampling", "importance_sampling"],
+        required=True,
     )
 
     parser.add_argument(
-        "--num_particles",
-        default=512,
-        help='number of particles in belief',
-        type=int
+        "--num_particles", default=512, help="number of particles in belief", type=int
     )
 
     parser.add_argument(
         "--belief_minimal_sample_size",
         default=0,
-        help='Threshold before resampling during importance sampling, default is resampling every step',
-        type=float
+        help="Threshold before resampling during importance sampling, default is resampling every step",
+        type=float,
     )
 
     parser.add_argument(
         "--train_offline",
-        choices=['on_true', 'on_prior'],
-        default='on_true',
-        help='which, if applicable, type of learning to use'
+        choices=["on_true", "on_prior"],
+        default="on_true",
+        help="which, if applicable, type of learning to use",
     )
 
     parser.add_argument(
         "--prior_certainty",
         type=float,
         default=10,
-        help='How "strong" the prior is, currently implemented for Tiger, CollisionAvoidance & RoadRacer as number of the total counts'
+        help='How "strong" the prior is, currently implemented for Tiger, CollisionAvoidance & RoadRacer as number of the total counts',
     )
 
     parser.add_argument(
@@ -247,117 +234,102 @@ def parse_arguments(args: Optional[List[str]] = None):
         type=float,
         default=0,
         help='How "correct" the prior is, currently implemented for Tiger: [0,1] -> [62.5,85] observation probability',
-        metavar="[0, 1]"
+        metavar="[0, 1]",
     )
 
     parser.add_argument(
-        "--optimizer", "-O",
+        "--optimizer",
+        "-O",
         default="SGD",
         type=str,
-        choices=['SGD', 'Adam'],
-        help="The optimizer used to learn the networks"
+        choices=["SGD", "Adam"],
+        help="The optimizer used to learn the networks",
     )
 
     parser.add_argument(
-        "--learning_rate", "--alpha",
+        "--learning_rate",
+        "--alpha",
         default=1e-4,
         type=float,
-        help="learning rate of the policy gradient descent"
+        help="learning rate of the policy gradient descent",
     )
 
     parser.add_argument(
-        "--online_learning_rate", "--online_alpha",
+        "--online_learning_rate",
+        "--online_alpha",
         default=1e-4,
         type=float,
-        help="learning rate of the policy gradient descent"
+        help="learning rate of the policy gradient descent",
     )
 
     parser.add_argument(
         "--network_size",
-        help='the number of hidden nodes in the q-network',
+        help="the number of hidden nodes in the q-network",
         default=32,
-        type=int
+        type=int,
     )
 
     parser.add_argument(
-        "--num_nets",
-        default=1,
-        type=int,
-        help='number of learned dynamic models'
+        "--num_nets", default=1, type=int, help="number of learned dynamic models"
     )
 
     parser.add_argument(
-        "--batch_size",
-        default=32,
-        type=int,
-        help="size of learning batch"
+        "--batch_size", default=32, type=int, help="size of learning batch"
     )
 
     parser.add_argument(
         "--num_pretrain_epochs",
         default=100,
         type=int,
-        help="number of batch training offline"
+        help="number of batch training offline",
+    )
+
+    parser.add_argument("--use_gpu", action="store_true", help="enables gpu usage")
+
+    parser.add_argument(
+        "--random_seed", "--seed", default=0, type=int, help="set random seed"
     )
 
     parser.add_argument(
-        "--use_gpu",
-        action='store_true',
-        help='enables gpu usage'
-    )
-
-    parser.add_argument(
-        "--random_seed", "--seed",
-        default=0,
-        type=int,
-        help='set random seed'
-    )
-
-    parser.add_argument(
-        '--tensorboard_logdir',
-        default='',
+        "--tensorboard_logdir",
+        default="",
         type=str,
-        help='the log directory for tensorboard'
+        help="the log directory for tensorboard",
     )
 
     parser.add_argument(
-        '--perturb_stdev',
+        "--perturb_stdev",
         default=0,
         type=float,
-        help='the amount of parameter pertubation applies during belief updates'
+        help="the amount of parameter pertubation applies during belief updates",
     )
 
     parser.add_argument(
-        '--backprop',
-        action='store_true',
-        help='whether to apply backprop during belief updates'
+        "--backprop",
+        action="store_true",
+        help="whether to apply backprop during belief updates",
+    )
+
+    parser.add_argument("--dropout_rate", type=float, help="dropout rate", default=0)
+
+    parser.add_argument(
+        "--replay_update",
+        action="store_true",
+        help="whether to do updates from the replay buffer during belief updates",
     )
 
     parser.add_argument(
-        '--dropout_rate',
-        type=float,
-        help='dropout rate',
-        default=0
-    )
-
-    parser.add_argument(
-        '--replay_update',
-        action='store_true',
-        help='whether to do updates from the replay buffer during belief updates'
-    )
-
-    parser.add_argument(
-        '--freeze_model',
+        "--freeze_model",
         type=str,
-        help='What parts of the models to freeze after prior learning',
-        choices=['', 'T', 'O']
+        help="What parts of the models to freeze after prior learning",
+        choices=["", "T", "O"],
     )
 
     parser.add_argument(
-        '--known_model',
+        "--known_model",
         type=str,
-        help='What parts of the models is known prior learning (and thus need not be learned)',
-        choices=['', 'T', 'O'],
+        help="What parts of the models is known prior learning (and thus need not be learned)",
+        choices=["", "T", "O"],
     )
 
     parsed_args = parser.parse_args(args)
@@ -372,7 +344,7 @@ def parse_arguments(args: Optional[List[str]] = None):
 
 
 def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]:
-    """ creates a model training method
+    """creates a model training method
 
     This returns a function that can be called on any
     `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` net to be
@@ -386,19 +358,26 @@ def create_train_method(env: Simulator, conf) -> Callable[[DynamicsModel], None]
 
     """
 
-    logger = POBNRLogger('Prior')
+    logger = POBNRLogger("Prior")
 
     # select train_on_true versus train_on_prior
-    if conf.train_offline == 'on_true':
+    if conf.train_offline == "on_true":
+
         def sim_sampler() -> Simulator:
             return env
-    elif conf.train_offline == 'on_prior':
-        sim_sampler \
-            = create_prior(conf.domain, conf.domain_size, conf.prior_certainty, conf.prior_correctness, EncodeType.DEFAULT).sample
+
+    elif conf.train_offline == "on_prior":
+        sim_sampler = create_prior(
+            conf.domain,
+            conf.domain_size,
+            conf.prior_certainty,
+            conf.prior_correctness,
+            EncodeType.DEFAULT,
+        ).sample
 
     def train_method(net: DynamicsModel):
         sim = sim_sampler()
-        logger.log(logger.LogLevel.V1, f'Training network on {sim}')
+        logger.log(logger.LogLevel.V1, f"Training network on {sim}")
         sampler = create_transition_sampler(sim)
         train_from_samples(net, sampler, conf.num_pretrain_epochs, conf.batch_size)
 

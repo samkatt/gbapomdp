@@ -10,7 +10,7 @@ test:
 	python setup.py test
 
 documentation:
-	pdoc --html --html-dir=doc --overwrite po_nrl
+	pdoc3 --html --html-dir=doc --overwrite po_nrl
 
 static_analyse:
 	bash ./static_analyse.sh

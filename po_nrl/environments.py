@@ -185,6 +185,8 @@ class SimulationResult(
 ):
     """ The tuple returned by simulations doing steps
 
+    TODO: use `typing.NamedTuple`
+
         Contains:
              state: (`Any`)
              observation: (`np.ndarray`)

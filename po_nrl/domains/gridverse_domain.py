@@ -4,7 +4,6 @@ import random
 from typing import List, Tuple
 
 import numpy as np
-
 from gym_gridverse.action import TRANSLATION_ACTIONS
 from gym_gridverse.action import Action as GverseAction
 from gym_gridverse.envs.factory import env_from_descr

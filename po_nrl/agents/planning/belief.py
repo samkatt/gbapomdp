@@ -1,37 +1,30 @@
 """ contains algorithms and classes for maintaining beliefs """
 
-from functools import partial
-from typing import Callable, Optional, Union, Tuple, List
-import copy
+from typing import Callable, List, Optional, Tuple, Union
 
-from typing_extensions import Protocol
 import numpy as np
-
-from po_nrl.misc import POBNRLogger
-from po_nrl.environments import Simulator
-from po_nrl.pytorch_api import log_tensorboard, tensorboard_logging
-
 from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
-from po_nrl.agents.planning.particle_filters import ParticleFilter, WeightedFilter, WeightedParticle, resample
-from po_nrl.domains.learned_environments import NeuralEnsemblePOMDP
+from po_nrl.agents.planning.particle_filters import Belief, create_belief_update
+from po_nrl.environments import Simulator
+from po_nrl.misc import POBNRLogger
+from po_nrl.pytorch_api import log_tensorboard, tensorboard_logging
+from typing_extensions import Protocol  # pylint: disable=wrong-import-order
 
 
 class BeliefUpdate(Protocol):
     """ Defines the signature of a update function for a particle """
 
     def __call__(
-            self,
-            belief: ParticleFilter,
-            action: np.ndarray,
-            observation: np.ndarray) -> ParticleFilter:
-        """ function call signature for particle update functions
+        self, belief: Belief, action: np.ndarray, observation: np.ndarray
+    ) -> Belief:
+        """function call signature for particle update functions
 
         Args:
-             particle_filter: (`ParticleFilter`):
+             particle_filter: (`Belief`):
              action: (`np.ndarray`):
              observation: (`np.ndarray`):
 
-        RETURNS (`ParticleFilter`):
+        RETURNS (`Belief`):
 
         """
 
@@ -39,14 +32,21 @@ class BeliefUpdate(Protocol):
 class BeliefAnalysis(Protocol):
     """ defines the protocol for analyzing a belief """
 
-    def __call__(self, belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
-        """ anylsis `belief` and return some tagged value
+    def __call__(
+        self, belief: Belief
+    ) -> List[
+        Tuple[
+            str,
+            Union[float, np.ndarray],  # pylint: disable=unsubscriptable-object
+        ]
+    ]:
+        """anylsis `belief` and return some tagged value
 
         Returns a tuple with 2 values. 1 is a tag/description term of the
         analysis, whereas the 2nd is the values as a result of the analysis
 
         Args:
-             belief: (`ParticleFilter`):
+             belief: (`Belief`):
 
         RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
 
@@ -54,37 +54,43 @@ class BeliefAnalysis(Protocol):
 
 
 def noop_analysis(
-        belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:  # pylint: disable=unused-argument
-    """  default, no-op analysis
+    belief: Belief,
+) -> List[
+    Tuple[str, Union[float, np.ndarray]]  # pylint: disable=unsubscriptable-object
+]:  # pylint: disable=unused-argument
+    """default, no-op analysis
 
     returns a simple non-like thing
 
     Args:
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
 
     """
-    return [('', 0)]
+    return [("", 0)]
 
 
 class BeliefManager(POBNRLogger):
     """ manages a belief """
 
     def __init__(
-            self,
-            reset_f: Callable[[], ParticleFilter],
-            update_belief_f: BeliefUpdate,
-            episode_reset_f: Optional[Callable[[ParticleFilter], ParticleFilter]] = None,
-            belief_analyzer: BeliefAnalysis = noop_analysis):
-        """ Maintians a belief
+        self,
+        reset_f: Callable[[], Belief],
+        update_belief_f: BeliefUpdate,
+        episode_reset_f: Optional[  # pylint: disable=unsubscriptable-object
+            Callable[[Belief], Belief]
+        ] = None,
+        belief_analyzer: BeliefAnalysis = noop_analysis,
+    ):
+        """Maintians a belief
 
         Manages belief by initializing, updating, and returning it.
 
         Args:
-             reset_f: (`Callable[[], ParticleFilter]`): the function to call to reset the belief
+             reset_f: (`Callable[[], Belief]`): the function to call to reset the belief
              update_belief_f: (`BeliefUpdate`): the function to call to update the belief
-             episode_reset_f: (`Optional[Callable[[` `ParticleFilter` `], `ParticleFilter` ]]`): the episode reset function to call
+             episode_reset_f: (`Optional[Callable[[` `Belief` `], `Belief` ]]`): the episode reset function to call
 
         Default value for `episode_reset_f` is to do the same as `reset_f`
 
@@ -120,7 +126,10 @@ class BeliefManager(POBNRLogger):
         self._belief = self._episode_reset(self.particle_filter)
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
-            self.log(POBNRLogger.LogLevel.V3, f"Belief reset for new episode {self._belief}")
+            self.log(
+                POBNRLogger.LogLevel.V3,
+                f"Belief reset for new episode {self._belief}",
+            )
 
         if tensorboard_logging():
             for tag, val in self._analyse(self._belief):
@@ -129,7 +138,7 @@ class BeliefManager(POBNRLogger):
         self.episode += 1
 
     def update(self, action: int, observation: np.ndarray):
-        """ updates belief given action and observation
+        """updates belief given action and observation
 
         Args:
              action: (`int`):
@@ -137,110 +146,28 @@ class BeliefManager(POBNRLogger):
 
         """
 
-        self._belief = self._update(belief=self._belief, action=action, observation=observation)
+        self._belief = self._update(
+            belief=self._belief, action=action, observation=observation
+        )
 
         if self.log_is_on(POBNRLogger.LogLevel.V3):
-            self.log(POBNRLogger.LogLevel.V3, f"BELIEF: update after a({action}), o({observation}): {self._belief}")
+            self.log(
+                POBNRLogger.LogLevel.V3,
+                f"BELIEF: update after a({action}), o({observation}): {self._belief}",
+            )
 
     @property
-    def particle_filter(self) -> ParticleFilter:
-        """ returns the belief
+    def particle_filter(self) -> Belief:
+        """returns the belief
 
-        RETURNS (`ParticleFilter`):
+        RETURNS (`Belief`):
 
         """
         return self._belief
 
 
-def rejection_sampling(
-        belief: ParticleFilter,
-        action: np.ndarray,
-        observation: np.ndarray,
-        sim: Simulator) -> ParticleFilter:
-    """ performs vanilla rejection sampling as belief update
-
-    Args:
-         belief: (`ParticleFilter`):
-         action: (`np.ndarray`):
-         observation: (`np.ndarray`):
-         sim: (`Simulator`):
-
-    RETURNS (`ParticleFilter`):
-
-    """
-
-    next_belief = type(belief)()
-
-    logger = POBNRLogger("rejection sampler")
-    attempts = 0
-
-    while next_belief.size < belief.size:
-
-        attempts += 1
-
-        state = belief.sample()
-        transition = sim.simulation_step(state, action)
-
-        if np.all(transition.observation == observation):
-            next_belief.add_particle(transition.state)
-
-    logger.log(logger.LogLevel.V3, f"{attempts} attempts")
-    return next_belief
-
-
-def importance_sampling(
-        belief: ParticleFilter,
-        action: np.ndarray,
-        observation: np.ndarray,
-        minimal_sampling_size: int) -> WeightedFilter:
-    """ Applies importance sampling **with resampling** as belief update
-
-    Assumes belief is over state and models, i.e.
-    `po_nrl.domains.learned_environments.NeuralEnsemblePOMDP.AugmentedState`
-
-    Args:
-         belief: (`ParticleFilter`):
-         action: (`np.ndarray`):
-         observation: (`np.ndarray`):
-         minimal_sampling_size: (`int`): will resample if belief drops below this threshold
-
-    RETURNS (`WeightedFilter`):
-
-    """
-
-    assert minimal_sampling_size > 0, f'desired sample size must be positive, not {minimal_sampling_size}'
-
-    next_belief = WeightedFilter()
-
-    assert isinstance(belief, WeightedFilter)
-
-    for weighted_particle in belief.particles:
-
-        state = weighted_particle.value
-
-        next_domain_state = state.model.sample_state(state.domain_state, action)
-
-        observation_probability = state.model.observation_model(
-            state.domain_state, action, next_domain_state
-        )
-
-        weight = np.prod([
-            distr[feature] for distr, feature in zip(observation_probability, observation)
-        ])
-
-        next_belief.add_weighted_particle(WeightedParticle(
-            NeuralEnsemblePOMDP.AugmentedState(next_domain_state, state.model),
-            weight * weighted_particle.weight
-        ))
-
-    if next_belief.effective_sample_size() < minimal_sampling_size:
-        next_belief = resample(next_belief)
-
-    return next_belief
-
-
 class ModelUpdate(Protocol):
-    """ Defines the signature of a model update function
+    """Defines the signature of a model update function
 
     These functions are used to **augment** the importance sampling update.
     I.e. this function will enable the model to be updated
@@ -248,24 +175,26 @@ class ModelUpdate(Protocol):
     """
 
     def __call__(
-            self,
-            model: DynamicsModel,
-            state: np.ndarray,
-            action: np.ndarray,
-            next_state: np.ndarray,
-            observation: np.ndarray) -> None:
+        self,
+        model: DynamicsModel,
+        state: np.ndarray,
+        action: np.ndarray,
+        next_state: np.ndarray,
+        observation: np.ndarray,
+    ) -> None:
         pass
 
 
 def perturb_parameters(
-        model: DynamicsModel,
-        state: np.ndarray,  # pylint: disable=unused-argument
-        action: np.ndarray,  # pylint: disable=unused-argument
-        next_state: np.ndarray,  # pylint: disable=unused-argument
-        observation: np.ndarray,  # pylint: disable=unused-argument
-        stdev: float,
-        freeze_model_setting: DynamicsModel.FreezeModelSetting) -> None:
-    """ A type of belief update: applies gaussian noise to model parameters
+    model: DynamicsModel,
+    state: np.ndarray,  # pylint: disable=unused-argument
+    action: np.ndarray,  # pylint: disable=unused-argument
+    next_state: np.ndarray,  # pylint: disable=unused-argument
+    observation: np.ndarray,  # pylint: disable=unused-argument
+    stdev: float,
+    freeze_model_setting: DynamicsModel.FreezeModelSetting,
+) -> None:
+    """A type of belief update: applies gaussian noise to model parameters
 
     Args:
          model: (`DynamicsModel`):
@@ -284,13 +213,14 @@ def perturb_parameters(
 
 
 def replay_buffer_update(
-        model: DynamicsModel,
-        state: np.ndarray,
-        action: np.ndarray,
-        next_state: np.ndarray,
-        observation: np.ndarray,
-        freeze_model_setting: DynamicsModel.FreezeModelSetting) -> None:
-    """ will add transition to model and then invoke a `self learn` step
+    model: DynamicsModel,
+    state: np.ndarray,
+    action: np.ndarray,
+    next_state: np.ndarray,
+    observation: np.ndarray,
+    freeze_model_setting: DynamicsModel.FreezeModelSetting,
+) -> None:
+    """will add transition to model and then invoke a `self learn` step
 
     Args:
          model: (`DynamicsModel`):
@@ -309,13 +239,14 @@ def replay_buffer_update(
 
 
 def backprop_update(
-        model: DynamicsModel,
-        state: np.ndarray,
-        action: np.ndarray,
-        next_state: np.ndarray,
-        observation: np.ndarray,
-        freeze_model_setting: DynamicsModel.FreezeModelSetting) -> None:
-    """ A type of belief update: applies a simple backprop call to the model
+    model: DynamicsModel,
+    state: np.ndarray,
+    action: np.ndarray,
+    next_state: np.ndarray,
+    observation: np.ndarray,
+    freeze_model_setting: DynamicsModel.FreezeModelSetting,
+) -> None:
+    """A type of belief update: applies a simple backprop call to the model
 
     Args:
          model: (`DynamicsModel`):
@@ -331,17 +262,24 @@ def backprop_update(
 
     log_loss = False  # online we do not log the loss
     # `batch_update` expects batch_size x ... size. [None] adds a dimension
-    model.batch_update(state[None], action[None], next_state[None], observation[None], log_loss, freeze_model_setting)
+    model.batch_update(
+        state[None],
+        action[None],
+        next_state[None],
+        observation[None],
+        log_loss,
+        freeze_model_setting,
+    )
 
 
-class ModelUpdatesChain():
-    """ chains `ModelUpdate` into a single call
+class ModelUpdatesChain:
+    """chains `ModelUpdate` into a single call
 
     Returns a class that will apply all updates sequentially
     """
 
     def __init__(self, chain: List[ModelUpdate]):
-        """ registers which model updates to apply
+        """registers which model updates to apply
 
         Args:
              chain: (`List[ModelUpdate]`):
@@ -351,13 +289,14 @@ class ModelUpdatesChain():
         self.model_updates = chain
 
     def __call__(
-            self,
-            model: DynamicsModel,
-            state: np.ndarray,
-            action: np.ndarray,
-            next_state: np.ndarray,
-            observation: np.ndarray) -> None:
-        """ applies all model updates on model, given transition
+        self,
+        model: DynamicsModel,
+        state: np.ndarray,
+        action: np.ndarray,
+        next_state: np.ndarray,
+        observation: np.ndarray,
+    ) -> None:
+        """applies all model updates on model, given transition
 
         Args:
              model: (`DynamicsModel`):
@@ -374,122 +313,8 @@ class ModelUpdatesChain():
             update(model, state, action, next_state, observation)
 
 
-def augmented_rejection_sampling(
-        belief: ParticleFilter,
-        action: np.ndarray,
-        observation: np.ndarray,
-        update_model: ModelUpdate) -> ParticleFilter:
-    """ rejection sampling augmented with additional update methods
-
-    Args:
-         belief: (`ParticleFilter`): current belief
-         action: (`np.ndarray`):  taken action
-         observation: (`np.ndarray`): perceived observation
-         update_model: (`ModelUpdate`): the update to apply
-
-    RETURNS (`ParticleFilter`):
-
-    """
-
-    next_belief = type(belief)()
-
-    logger = POBNRLogger("rejection sampler")
-    attempts = 0
-
-    while next_belief.size < belief.size:
-
-        attempts += 1
-
-        state = belief.sample()
-        sample_state, sample_observation \
-            = state.model.simulation_step(state.domain_state, action)
-
-        if np.all(sample_observation == observation):
-
-            next_model = copy.deepcopy(state.model)
-            update_model(
-                model=next_model,
-                state=state.domain_state,
-                action=action,
-                next_state=sample_state,
-                observation=observation
-            )
-
-            next_belief.add_particle(
-                NeuralEnsemblePOMDP.AugmentedState(sample_state, next_model)
-            )
-
-    logger.log(logger.LogLevel.V3, f"{attempts} attempts")
-    return next_belief
-
-
-def augmented_importance_sampling(
-        belief: ParticleFilter,
-        action: np.ndarray,
-        observation: np.ndarray,
-        update_model: ModelUpdate,
-        minimal_sampling_size: int) -> ParticleFilter:
-    """ Core algorithm for this project. Updates the model during belief update
-
-    Assuming a belief p(state, dynamics), this function will compute an
-    importance sampling belief update. It differs from `importance_sampling` in
-    that it also updates the models. The specific update that is applied is
-    determined by the `update_model` parameter.
-
-    Args:
-         belief: (`ParticleFilter`):
-         action: (`np.ndarray`):
-         observation: (`np.ndarray`):
-         update_model: (`ModelUpdate`):
-         minimal_sampling_size: (`int`): will resample if belief drops below this threshold
-
-    RETURNS (`ParticleFilter`):
-
-    """
-
-    if not minimal_sampling_size > 0:
-        ValueError(f'desired sample size must be positive, not {minimal_sampling_size}')
-
-    assert isinstance(belief, WeightedFilter)
-
-    next_belief = WeightedFilter()
-
-    for weighted_particle in belief.particles:
-
-        state = weighted_particle.value
-
-        next_domain_state = state.model.sample_state(state.domain_state, action)
-
-        update_model(
-            model=state.model,
-            state=state.domain_state,
-            action=action,
-            next_state=next_domain_state,
-            observation=observation
-        )
-
-        observation_probability = state.model.observation_model(
-            state.domain_state, action, next_domain_state
-        )
-
-        weight = np.prod([
-            distr[feature] for distr, feature in zip(observation_probability, observation)
-        ])
-
-        state.domain_state = next_domain_state
-        next_belief.add_weighted_particle(WeightedParticle(
-            state,
-            weighted_particle.weight * weight
-        ))
-
-    if next_belief.effective_sample_size() < minimal_sampling_size:
-        next_belief = resample(next_belief)
-
-    return next_belief
-
-
-def belief_update_factory(conf, sim: Simulator) -> BeliefUpdate:
-    """ returns an importance sampling method depending on the configurations
+def create_beliefupdate_for_learning(conf, sim: Simulator) -> BeliefUpdate:
+    """returns an importance sampling method depending on the configurations
 
     Args:
          conf: (`namespace`) program configurations
@@ -499,41 +324,18 @@ def belief_update_factory(conf, sim: Simulator) -> BeliefUpdate:
 
     """
 
-    assert conf.belief in ["rejection_sampling", "importance_sampling"], \
-        f"belief {conf.belief} not legal"
+    assert conf.belief in [
+        "rejection_sampling",
+        "importance_sampling",
+    ], f"belief {conf.belief} not legal"
 
-    # basic, no enhancements
-    if conf.perturb_stdev == 0 and not conf.backprop and not conf.replay_update:
-        if conf.belief == 'importance_sampling':
-            return partial(importance_sampling, minimal_sampling_size=conf.belief_minimal_sample_size)
-        if conf.belief == 'rejection_sampling':
-            return partial(rejection_sampling, sim=sim)
-
-    # set filter method
-    if conf.belief == 'importance_sampling':
-        filter_method = partial(augmented_importance_sampling, minimal_sampling_size=conf.belief_minimal_sample_size)
-    elif conf.belief == 'rejection_sampling':
-        # ignoring typing here because mypy does not realize these two
-        # have the same type:
-        # partial signature is the same as augmented rejection sampling signature
-        filter_method = augmented_rejection_sampling  # type: ignore
-
-    freeze_model_setting = get_model_freeze_setting(conf.freeze_model)
-
-    # set model update method
-    updates: List[ModelUpdate] = []
-    if conf.backprop:
-        updates.append(partial(backprop_update, freeze_model_setting=freeze_model_setting))
-    if conf.replay_update:
-        updates.append(partial(replay_buffer_update, freeze_model_setting=freeze_model_setting))
-    if conf.perturb_stdev:
-        updates.append(partial(perturb_parameters, stdev=conf.perturb_stdev, freeze_model_setting=freeze_model_setting))
-
-    return partial(filter_method, update_model=ModelUpdatesChain(updates))
+    return create_belief_update(conf, sim)
 
 
-def get_model_freeze_setting(freeze_model: str) -> DynamicsModel.FreezeModelSetting:
-    """ returns the model freeze setting given configuration string
+def get_model_freeze_setting(
+    freeze_model: str,
+) -> DynamicsModel.FreezeModelSetting:
+    """returns the model freeze setting given configuration string
 
     Args:
          freeze_model: (`str`):
@@ -550,4 +352,4 @@ def get_model_freeze_setting(freeze_model: str) -> DynamicsModel.FreezeModelSett
     if freeze_model == "O":
         return DynamicsModel.FreezeModelSetting.FREEZE_O
 
-    raise ValueError('Wrong value given to freeze model argument')
+    raise ValueError("Wrong value given to freeze model argument")

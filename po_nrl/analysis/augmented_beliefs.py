@@ -4,20 +4,20 @@ from typing import Union, Tuple, List
 from functools import partial
 import numpy as np
 
-from po_nrl.agents.planning.particle_filters import ParticleFilter
+from po_nrl.agents.planning.particle_filters import Belief
 from po_nrl.agents.planning.belief import BeliefAnalysis
 
 from po_nrl.domains.road_racer import RoadRacer
 
 
 def tiger_model_analysis(
-        belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
+        belief: Belief) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ inspects the belief over the observation model
 
     Collects the prediction of hearing correctly from 100 sampled models
 
     Args:
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
 
@@ -29,25 +29,25 @@ def tiger_model_analysis(
 
     # hear correct for state left
     hear_correct_0 = np.array([
-        belief.sample().model.observation_model(left_state, open_door, left_state)[0][0]
+        belief().model.observation_model(left_state, open_door, left_state)[0][0]
         for _ in range(1000)
     ])
 
     # hear correct for state right
     hear_correct_1 = np.array([
-        belief.sample().model.observation_model(right_state, open_door, )[0][1]
+        belief().model.observation_model(right_state, open_door, )[0][1]
         for _ in range(1000)
     ])
 
     # tiger stays left when opening
     stay_left_prob = np.array([
-        belief.sample().model.transition_model(left_state, open_door)[0][0]
+        belief().model.transition_model(left_state, open_door)[0][0]
         for _ in range(1000)
     ])
 
     # tiger stays right when opening
     stay_right_prob = np.array([
-        belief.sample().model.transition_model(right_state, open_door)[0][1]
+        belief().model.transition_model(right_state, open_door)[0][1]
         for _ in range(1000)
     ])
 
@@ -60,7 +60,7 @@ def tiger_model_analysis(
 
 
 def ca_transition_analysis(
-        belief: ParticleFilter,
+        belief: Belief,
         size: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ provides analysis on belief over collision avoidance transition model
 
@@ -72,7 +72,7 @@ def ca_transition_analysis(
 
     Args:
          size: (`int`):
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
 
@@ -91,12 +91,12 @@ def ca_transition_analysis(
     correct_next_y = np.clip(non_terminal_states[:, 1] + actions - 1, 0, size - 1)
 
     correct_agent_x_prob = np.array([
-        belief.sample().model.transition_model(non_terminal_states[i], actions[i])[0][non_terminal_states[i][0] - 1]
+        belief().model.transition_model(non_terminal_states[i], actions[i])[0][non_terminal_states[i][0] - 1]
         for i in range(sample_size)
     ])
 
     correct_agent_y_prob = np.array([
-        belief.sample().model.transition_model(non_terminal_states[i], actions[i])[1][correct_next_y[i]]
+        belief().model.transition_model(non_terminal_states[i], actions[i])[1][correct_next_y[i]]
         for i in range(sample_size)
     ])
 
@@ -107,7 +107,7 @@ def ca_transition_analysis(
     ), axis=1)
 
     impossible_obst_transition_prob = np.concatenate([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             non_terminal_obst_bottom_states[i],
             actions[i]
         )[2][2:]
@@ -115,7 +115,7 @@ def ca_transition_analysis(
     ])
 
     obs_stay_bottom_prob = np.array([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             non_terminal_obst_bottom_states[i],
             actions[i]
         )[2][0]
@@ -129,7 +129,7 @@ def ca_transition_analysis(
     ), axis=1)
 
     obst_stay_mid_prob = np.array([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             non_terminal_obst_middle_states[i],
             actions[i]
         )[2][mid]
@@ -146,7 +146,7 @@ def ca_transition_analysis(
 
 
 def ca_observation_analysis(
-        belief: ParticleFilter,
+        belief: Belief,
         size: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ provides analysis on belief over collision avoidance observation model
 
@@ -157,7 +157,7 @@ def ca_observation_analysis(
 
     Args:
          size: (`int`):
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
 
@@ -177,12 +177,12 @@ def ca_observation_analysis(
     next_states = np.stack((non_terminal_x - 1, next_y_position, obs), axis=1)
 
     correct_x_pos_prob = np.array([
-        belief.sample().model.observation_model(non_terminal_states[i], actions[i], next_states[i])[0][next_states[i][0]]
+        belief().model.observation_model(non_terminal_states[i], actions[i], next_states[i])[0][next_states[i][0]]
         for i in range(sample_size)
     ])
 
     correct_y_pos_prob = np.array([
-        belief.sample().model.observation_model(non_terminal_states[i], actions[i], next_states[i])[1][next_states[i][1]]
+        belief().model.observation_model(non_terminal_states[i], actions[i], next_states[i])[1][next_states[i][1]]
         for i in range(sample_size)
     ])
 
@@ -191,7 +191,7 @@ def ca_observation_analysis(
     next_states = np.stack((non_terminal_x - 1, next_y_position, obs), axis=1)
 
     correct_bottom_obstacle_obs_prob = np.array([
-        belief.sample().model.observation_model(
+        belief().model.observation_model(
             non_terminal_states[i],
             actions[i], next_states[i]
         )[2][0]
@@ -203,7 +203,7 @@ def ca_observation_analysis(
     next_states = np.stack((non_terminal_x - 1, next_y_position, obs), axis=1)
 
     correct_mid_obstacle_obs_prob = np.array([
-        belief.sample().model.observation_model(
+        belief().model.observation_model(
             non_terminal_states[i],
             actions[i], next_states[i]
         )[2][mid]
@@ -219,12 +219,12 @@ def ca_observation_analysis(
 
 
 def rr_observation_analysis(
-        belief: ParticleFilter,
+        belief: Belief,
         num_lanes: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ checks whether the deterministic observation function is learned properly
 
     Args:
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
          num_lanes: (`int`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
@@ -239,7 +239,7 @@ def rr_observation_analysis(
         np.random.randint(0, num_lanes, (size, 1))
     ), axis=1)
     actions = np.random.randint(low=0, high=3, size=size)
-    models = [belief.sample().model for _ in range(size)]
+    models = [belief().model for _ in range(size)]
 
     next_states = np.array([
         models[i].sample_state(states[i], actions[i])
@@ -258,12 +258,12 @@ def rr_observation_analysis(
 
 
 def rr_agent_lane_change(
-        belief: ParticleFilter,
+        belief: Belief,
         num_lanes: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ diagnoses the model on predicting lane change
 
     Args:
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
          num_lanes: (`int`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
@@ -281,7 +281,7 @@ def rr_agent_lane_change(
     correct_next_lane = np.clip(a=states[:, -1] + actions - 1, a_min=0, a_max=num_lanes - 1)
 
     correct_lane_prob = np.array([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             states[i],
             actions[i])[-1][correct_next_lane[i]]
         for i in range(size)
@@ -291,12 +291,12 @@ def rr_agent_lane_change(
 
 
 def rr_lane_advances(
-        belief: ParticleFilter,
+        belief: Belief,
         num_lanes: int) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ diagnoses the model on predicting lane change
 
     Args:
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
          num_lanes: (`int`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
@@ -313,7 +313,7 @@ def rr_lane_advances(
     actions = np.random.randint(low=0, high=3, size=size)
 
     lane_prob = np.array([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             states[i],
             actions[i])[:-1]
         for i in range(size)
@@ -333,7 +333,7 @@ def rr_lane_advances(
     actions = np.ones(size, dtype=int)
 
     car_block_prob = np.array([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             states[i],
             actions[i])[RoadRacer.get_current_lane(states[i])][1]  # stay
         for i in range(size)
@@ -350,7 +350,7 @@ def rr_lane_advances(
     states[np.arange(size), random_lanes] = 0
 
     car_reappear_prob = np.array([
-        belief.sample().model.transition_model(
+        belief().model.transition_model(
             states[i],
             actions[i])[random_lanes[i]]
         for i in range(size)
@@ -372,17 +372,17 @@ def rr_lane_advances(
 
 
 def count_unique_models(
-        belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
+        belief: Belief) -> List[Tuple[str, Union[float, np.ndarray]]]:
     """ returns number of unique models from 100 samples
 
     Args:
-         belief: (`ParticleFilter`):
+         belief: (`Belief`):
 
     RETURNS (`List[Tuple[str, Union[float,np.ndarray]]]`):
 
     """
 
-    num_unique = len({belief.sample().model for _ in range(100)})
+    num_unique = len({belief().model for _ in range(100)})
 
     return [('unique_models_per_100', num_unique)]
 
@@ -397,7 +397,7 @@ def chain_analysis(to_chain: List[BeliefAnalysis]) -> BeliefAnalysis:
 
     """
 
-    def chain(belief: ParticleFilter) -> List[Tuple[str, Union[float, np.ndarray]]]:
+    def chain(belief: Belief) -> List[Tuple[str, Union[float, np.ndarray]]]:
 
         chained_analysis: List[Tuple[str, Union[float, np.ndarray]]] = []
 

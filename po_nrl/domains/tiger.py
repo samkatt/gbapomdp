@@ -65,8 +65,8 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         """
 
-        assert state.shape == (1,)
-        assert 2 > state[0] >= 0
+        assert state.shape == (1,), f"{state} not correct shape"
+        assert 2 > state[0] >= 0, f"{state} not valid"
 
         self._state = state
 
@@ -184,9 +184,9 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         """
 
-        assert self.state_space.contains(state)
-        assert self.state_space.contains(new_state)
-        assert self.action_space.contains(action)
+        assert self.state_space.contains(state), f"{state} not in space"
+        assert self.state_space.contains(new_state), f"{new_state} not in space"
+        assert self.action_space.contains(action), f"{action} not in space"
 
         if action == self.LISTEN:
             return self.LISTEN_REWARD
@@ -205,9 +205,9 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         """
 
-        assert self.state_space.contains(state)
-        assert self.state_space.contains(new_state)
-        assert self.action_space.contains(action)
+        assert self.state_space.contains(state), f"{state} not in space"
+        assert self.state_space.contains(new_state), f"{new_state} not in space"
+        assert self.action_space.contains(action), f"{action} not in space"
 
         return bool(action != self.LISTEN)
 
@@ -254,7 +254,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         """
 
-        assert self.observation_space.contains(observation)
+        assert self.observation_space.contains(observation), f"{observation} not in space"
 
         if not self._use_one_hot_obs:
             return observation[0]

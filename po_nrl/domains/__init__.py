@@ -7,10 +7,14 @@ from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
 from .gridverse_domain import GridverseDomain
 from .gridworld import GridWorld
-from .learned_environments import \
-    NeuralEnsemblePOMDP  # NOQA, ignore unused import
-from .priors import (CollisionAvoidancePrior, GridWorldPrior, Prior,
-                     RoadRacerPrior, TigerPrior)
+from .learned_environments import BADDr  # NOQA, ignore unused import
+from .priors import (
+    CollisionAvoidancePrior,
+    GridWorldPrior,
+    Prior,
+    RoadRacerPrior,
+    TigerPrior,
+)
 from .road_racer import RoadRacer
 from .tiger import Tiger
 
@@ -21,7 +25,7 @@ def create_environment(
     encoding: EncodeType,
     description: str = "",
 ) -> Environment:
-    """ the factory function to construct environmentss
+    """the factory function to construct environmentss
 
     Args:
          domain_name: (`str`): determines which domain is created
@@ -49,7 +53,7 @@ def create_environment(
 
         return GridverseDomain(*description.split(" "))
 
-    raise ValueError('unknown domain ' + domain_name)
+    raise ValueError("unknown domain " + domain_name)
 
 
 def create_prior(
@@ -59,7 +63,7 @@ def create_prior(
     prior_correctness: float,
     encoding: EncodeType,
 ) -> Prior:
-    """ Builds the prior associated with input parameters
+    """Builds the prior associated with input parameters
 
     Args:
          domain_name: (`str`): currently only accepting tiger
@@ -76,9 +80,9 @@ def create_prior(
         return TigerPrior(prior_certainty, prior_correctness, encoding)
     if domain_name == "gridworld":
         return GridWorldPrior(domain_size, encoding)
-    if domain_name == 'collision_avoidance':
+    if domain_name == "collision_avoidance":
         return CollisionAvoidancePrior(domain_size, prior_certainty)
-    if domain_name == 'road_racer':
+    if domain_name == "road_racer":
         return RoadRacerPrior(domain_size, prior_certainty)
 
-    raise ValueError('no known priors for domain ' + domain_name)
+    raise ValueError("no known priors for domain " + domain_name)

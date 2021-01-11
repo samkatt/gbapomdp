@@ -1,10 +1,10 @@
 """ miscellaneous functions """
 
-from enum import Enum
-from typing import List, Union
 import abc
 import logging
 import random
+from enum import Enum
+from typing import List, Union
 
 import numpy as np
 
@@ -12,7 +12,7 @@ import po_nrl.pytorch_api
 
 
 def set_random_seed(seed: int) -> None:
-    """ sets the random seed of our program
+    """sets the random seed of our program
 
     NOTE that this function is not designed to be able to replicate
     experiments, this would require more code. This is merely to **ensure
@@ -40,16 +40,17 @@ class POBNRLogger:
 
     class LogLevel(Enum):
         """ log levels """
+
         V0 = 1000  # NO messages
-        V1 = 30    # print results and setup
-        V2 = 20    # print episodes
-        V3 = 15    # print episode level agent things
-        V4 = 10    # print time steps level agent things
-        V5 = 5     # hardcore debugging
+        V1 = 30  # print results and setup
+        V2 = 20  # print episodes
+        V3 = 15  # print episode level agent things
+        V4 = 10  # print time steps level agent things
+        V5 = 5  # hardcore debugging
 
         @staticmethod
         def create(level: int) -> 'POBNRLogger.LogLevel':
-            """ creates a loglevel from string
+            """creates a loglevel from string
 
             Args:
                  level: (`int`): in [0 ... 5]
@@ -65,7 +66,7 @@ class POBNRLogger:
 
     @classmethod
     def set_level(cls, level: LogLevel):
-        """ sets level of the loggers
+        """sets level of the loggers
 
         Anything that is logged with a **lower** level will be displayed
 
@@ -91,10 +92,7 @@ class POBNRLogger:
 
         handler = logging.StreamHandler()
         handler.setFormatter(
-            logging.Formatter(
-                "[%(asctime)s] %(message)s",
-                "%H:%M"
-            )
+            logging.Formatter("[%(asctime)s] %(message)s", "%H:%M")
         )
         self.logger.addHandler(handler)
 
@@ -114,7 +112,7 @@ class POBNRLogger:
 
     @classmethod
     def log_is_on(cls, lvl: LogLevel) -> bool:
-        """ returns whether logging is on for given level
+        """returns whether logging is on for given level
 
         Args:
              lvl: (`LogLevel`): level to check
@@ -146,7 +144,7 @@ class DiscreteSpace(Space):
     """ DiscreteSpace discrete uninterupted space of some shape """
 
     def __init__(self, size: Union[List[int], np.ndarray]):
-        """ initiates a discrete space of size size
+        """initiates a discrete space of size size
 
         Args:
              size: (`Union[List[int], np.ndarray]`): is a list of dimension ranges
@@ -155,12 +153,14 @@ class DiscreteSpace(Space):
 
         self.size = np.array(size).astype(int)
         self.num_elements: int = np.prod(self.size)
-        self._indexing_steps = np.array([np.prod(self.size[:i]) for i in range(len(self.size))]).astype(int)
+        self._indexing_steps = np.array(
+            [np.prod(self.size[:i]) for i in range(len(self.size))]
+        ).astype(int)
         self.dim_cumsum = np.concatenate([[0], np.cumsum(self.size)])
 
     @property
     def n(self) -> int:  # pylint: disable=invalid-name
-        """ Number of elements in space
+        """Number of elements in space
 
         While the naming is pretty awful, it is consistent with the `Space`
         class of open AI gym, which I prioritized here
@@ -172,7 +172,7 @@ class DiscreteSpace(Space):
 
     @property
     def ndim(self) -> int:
-        """ returns the numbe of dimensions
+        """returns the numbe of dimensions
 
         RETURNS (`int`): number of dimensions
 
@@ -180,7 +180,7 @@ class DiscreteSpace(Space):
         return len(self.size)
 
     def contains(self, elem: np.ndarray) -> bool:
-        """ returns `this` contains `elem`
+        """returns `this` contains `elem`
 
         Args:
              elem: (`np.ndarray`): element to check against
@@ -189,19 +189,24 @@ class DiscreteSpace(Space):
 
         """
 
-        return elem.shape == (self.ndim,) and \
-            (elem >= 0).all() and (elem < self.size).all()
+        return (
+            elem.shape == (self.ndim,)
+            and (elem >= 0).all()
+            and (elem < self.size).all()
+        )
 
     def sample(self) -> np.ndarray:
-        """ returns a sample from the space at random
+        """returns a sample from the space at random
 
         RETURNS (`np.array`): a sample in the space of this
 
         """
-        return (np.random.random(self.ndim) * self.size).astype(int)  # pylint: disable=no-member
+        return (
+            np.random.random(self.ndim) * self.size  # pylint: disable=no-member
+        ).astype(int)
 
     def index_of(self, elem: np.ndarray) -> int:
-        """ returns the index of an element (projects to single dimension)
+        """returns the index of an element (projects to single dimension)
 
         Args:
              elem: (`np.ndarray`): the element to project

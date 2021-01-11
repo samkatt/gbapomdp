@@ -28,7 +28,7 @@ sudo apt install ffmpeg
 
 ### Run the program
 
-Main scripts, `pouct_planning.py`, `model_based.py` are located in
+Main scripts, `pouct_planning.py`, `model_based.py` are in
 `scripts/experiments`
 
 ```bash

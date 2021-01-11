@@ -9,3 +9,4 @@ videos
 build
 po_nrl.egg-info
 tags
+.eggs
