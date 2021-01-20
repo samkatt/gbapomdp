@@ -5,18 +5,20 @@ import unittest
 
 import numpy as np
 import torch
-from po_nrl.agents.neural_networks.misc import perturb
-from po_nrl.agents.neural_networks.networks import Net
-from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
-                                                         adam_builder,
-                                                         get_optimizer_builder,
-                                                         sgd_builder)
-from po_nrl.environments import ActionSpace
-from po_nrl.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.agents.neural_networks.misc import perturb
+from general_bayes_adaptive_pomdps.agents.neural_networks.networks import Net
+from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+    DynamicsModel,
+    adam_builder,
+    get_optimizer_builder,
+    sgd_builder,
+)
+from general_bayes_adaptive_pomdps.environments import ActionSpace
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
 class TestDynamicModel(unittest.TestCase):
-    """ Test unit for the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel` """
+    """ Test unit for the `general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel` """
 
     def setUp(self):
         s_space = DiscreteSpace([2])
@@ -50,7 +52,7 @@ class TestDynamicModel(unittest.TestCase):
         )
 
     def is_equal_models(self, model_a, model_b, is_equal: bool) -> None:
-        """ checks whether provided models are equal
+        """checks whether provided models are equal
 
         Args:
              model_a:
@@ -63,16 +65,14 @@ class TestDynamicModel(unittest.TestCase):
 
         test = self.assertTrue if is_equal else self.assertFalse
 
-        for tensor_a, tensor_b in zip(
-            model_a.parameters(), model_b.parameters()
-        ):
+        for tensor_a, tensor_b in zip(model_a.parameters(), model_b.parameters()):
             test(
                 torch.equal(tensor_a.data, tensor_b.data),
-                f'{tensor_a} vs {tensor_b}',
+                f"{tensor_a} vs {tensor_b}",
             )
 
     def test_freeze(self) -> None:
-        """ tests whether freezing models works properly
+        """tests whether freezing models works properly
 
         If freeze_O then the observation should not change with update (T should)
         If freeze_T then the observation should not change with update (O should)
@@ -121,7 +121,7 @@ class TestDynamicModel(unittest.TestCase):
         self.is_equal_models(self.test_model.t.net, copied_model.t.net, True)  # type: ignore
 
     def test_copy(self) -> None:
-        """ tests the copy function of the `po_nrl.agents.neural_networks.neural_pomdps.DynamicsModel`
+        """tests the copy function of the `general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel`
 
         Basically double checking whether the standard implementation works as
         **I** expect
@@ -162,16 +162,16 @@ class TestDynamicModel(unittest.TestCase):
 
     def test_optimizer_builder(self) -> None:
         """ Simple tests to ensure the correct builder is returned """
-        self.assertEqual(get_optimizer_builder('SGD'), sgd_builder)
-        self.assertEqual(get_optimizer_builder('Adam'), adam_builder)
-        self.assertRaises(ValueError, get_optimizer_builder, 'a wrong value')
+        self.assertEqual(get_optimizer_builder("SGD"), sgd_builder)
+        self.assertEqual(get_optimizer_builder("Adam"), adam_builder)
+        self.assertRaises(ValueError, get_optimizer_builder, "a wrong value")
 
 
 class TestMisc(unittest.TestCase):
-    """ Tests `po_nrl.agents.neural_networks.misc` """
+    """ Tests `general_bayes_adaptive_pomdps.agents.neural_networks.misc` """
 
     def test_perturbations(self) -> None:  # pylint: disable=no-self-use
-        """ tests `po_nrl.agents.neural_networks.misc.perturb`
+        """tests `general_bayes_adaptive_pomdps.agents.neural_networks.misc.perturb`
 
         Args:
 
@@ -197,9 +197,7 @@ class TestNetwork(unittest.TestCase):
     def test_dropout(self) -> None:
         """ some basic sanity checks of dropout functionality """
 
-        net_input = torch.tensor(  # pylint: disable=not-callable
-            [0.1, 4.0, -0.2]
-        )
+        net_input = torch.tensor([0.1, 4.0, -0.2])  # pylint: disable=not-callable
 
         no_dropout = Net(
             input_size=3,
@@ -208,9 +206,7 @@ class TestNetwork(unittest.TestCase):
             prior_scaling=0,
             dropout_rate=0,
         )
-        self.assertTrue(
-            torch.eq(no_dropout(net_input), no_dropout(net_input)).all()
-        )
+        self.assertTrue(torch.eq(no_dropout(net_input), no_dropout(net_input)).all())
 
         no_dropout = Net(
             input_size=3,
@@ -219,10 +215,8 @@ class TestNetwork(unittest.TestCase):
             prior_scaling=0,
             dropout_rate=0.5,
         )
-        self.assertFalse(
-            torch.eq(no_dropout(net_input), no_dropout(net_input)).all()
-        )
+        self.assertFalse(torch.eq(no_dropout(net_input), no_dropout(net_input)).all())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

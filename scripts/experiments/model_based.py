@@ -2,7 +2,7 @@
 
 """ runs model-based learning algorithms """
 
-from po_nrl.model_based import main
+from general_bayes_adaptive_pomdps.model_based import main
 
 
 if __name__ == '__main__':

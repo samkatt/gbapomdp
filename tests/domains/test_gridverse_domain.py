@@ -10,12 +10,18 @@ import numpy as np
 from gym_gridverse.action import Action as GverseAction
 from gym_gridverse.geometry import Orientation, Position
 from gym_gridverse.grid_object import MovingObstacle
-from po_nrl.agents.neural_networks.neural_pomdps import DynamicsModel
-from po_nrl.domains import GridverseDomain
-from po_nrl.domains.gridverse_domain import ObservationModel as GverseObsModel
-from po_nrl.domains.gridverse_domain import (StateEncoding,
-                                             default_rollout_policy,
-                                             straight_or_turn_policy)
+from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+    DynamicsModel,
+)
+from general_bayes_adaptive_pomdps.domains import GridverseDomain
+from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
+    ObservationModel as GverseObsModel,
+)
+from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
+    StateEncoding,
+    default_rollout_policy,
+    straight_or_turn_policy,
+)
 
 
 class TestGridverseDomain(unittest.TestCase):
@@ -23,7 +29,7 @@ class TestGridverseDomain(unittest.TestCase):
 
     def setUp(self):
 
-        self.env = GridverseDomain('one-hot-state', 'Empty-5x5-v0')
+        self.env = GridverseDomain("one-hot-state", "Empty-5x5-v0")
 
     def test_state_or_observation_conversions(self):
         """Tests conversions between `flatten_..` and `reshape...`"""
@@ -35,17 +41,17 @@ class TestGridverseDomain(unittest.TestCase):
 
         # initial values are as expected
         self.assertTupleEqual(
-            s.shape, (reduce(mul, grid_shape) + 7 + 7 + 4,),
+            s.shape,
+            (reduce(mul, grid_shape) + 7 + 7 + 4,),
         )
         self.assertTupleEqual(
-            o.shape, (reduce(mul, grid_shape),),
+            o.shape,
+            (reduce(mul, grid_shape),),
         )
 
         np.testing.assert_array_equal(
-            s[7 * 7:],
-            np.concatenate(
-                [[0, 1], np.zeros(5), [0, 1], np.zeros(5), [0, 0, 1, 0]]
-            ),
+            s[7 * 7 :],
+            np.concatenate([[0, 1], np.zeros(5), [0, 1], np.zeros(5), [0, 0, 1, 0]]),
         )
 
         # pylint: disable=protected-access
@@ -115,9 +121,7 @@ class TestGridverseDomain(unittest.TestCase):
         """calls all untested functions to make sure they at least run"""
 
         s = self.env.sample_start_state()
-        self.assertRaises(
-            NotImplementedError, self.env.simulation_step, s, action=1
-        )
+        self.assertRaises(NotImplementedError, self.env.simulation_step, s, action=1)
 
         self.env.reset()
         self.env.step(0)
@@ -134,12 +138,11 @@ class TestStateEncodings(unittest.TestCase):
         # NOTE: ugliest way of initiating possible
         self.obst_index = MovingObstacle.type_index  # pylint: disable=no-member
 
-        self.env = GridverseDomain(
-            "compact", "Dynamic-Obstacles-Random-5x5-v0"
-        )
+        self.env = GridverseDomain("compact", "Dynamic-Obstacles-Random-5x5-v0")
 
         self.compact_encoding = StateEncoding.construct(
-            "compact", self.env._state_encoding._rep,  # type: ignore
+            "compact",
+            self.env._state_encoding._rep,  # type: ignore
         )
 
         self.one_hot_orientation = StateEncoding.construct(
@@ -147,7 +150,8 @@ class TestStateEncodings(unittest.TestCase):
         )
 
         self.one_hot_encoding = StateEncoding.construct(
-            "one-hot-state", self.env._state_encoding._rep,  # type: ignore
+            "one-hot-state",
+            self.env._state_encoding._rep,  # type: ignore
         )
 
     def test_grid_size(self):
@@ -189,9 +193,7 @@ class TestStateEncodings(unittest.TestCase):
     def test_codings(self):
         """tests encoding and decoding"""
 
-        s = (
-            self.env._gverse_env.functional_reset()  # pylint: disable=protected-access
-        )
+        s = self.env._gverse_env.functional_reset()  # pylint: disable=protected-access
 
         for coding in [
             self.compact_encoding,
@@ -217,8 +219,7 @@ class TestObservationModel(unittest.TestCase):
         self.model = GverseObsModel(
             obs_size=7,
             encoding=self.d._state_encoding,
-            max_item_index=self.d._gverse_env.state_space.max_grid_object_type
-            + 1,
+            max_item_index=self.d._gverse_env.state_space.max_grid_object_type + 1,
         )
 
     def test_sample(self):  # pylint: disable=no-self-use
@@ -238,10 +239,10 @@ class TestObservationModel(unittest.TestCase):
         """tests basic properties of `.model()`"""
 
         s, a, next_s, o = self.d.sample_transition()
-        O = self.model.model(s, a, next_s)
+        obs_model = self.model.model(s, a, next_s)
 
         np.testing.assert_array_equal(
-            o, DynamicsModel.sample_from_model(O, num=1)
+            o, DynamicsModel.sample_from_model(obs_model, num=1)
         )
 
 
@@ -321,5 +322,5 @@ class TestStraightOrTurnRolloutPolicy(unittest.TestCase):
         self.assertSetEqual(actions, {GverseAction.MOVE_FORWARD.value})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

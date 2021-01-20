@@ -2,8 +2,8 @@
 
 import unittest
 
-from po_nrl.agents.planning.pouct import random_policy
-from po_nrl.environments import ActionSpace
+from general_bayes_adaptive_pomdps.agents.planning.pouct import random_policy
+from general_bayes_adaptive_pomdps.environments import ActionSpace
 
 
 class TestPOUCT(unittest.TestCase):
@@ -18,5 +18,5 @@ class TestPOUCT(unittest.TestCase):
         self.assertSetEqual(actions, {0, 1, 2, 3})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

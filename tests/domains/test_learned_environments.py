@@ -4,15 +4,23 @@ import unittest
 from functools import partial
 
 import numpy as np
-from po_nrl.agents.neural_networks.neural_pomdps import (DynamicsModel,
-                                                         sgd_builder)
-from po_nrl.domains import GridverseDomain, Tiger
-from po_nrl.domains.gridverse_domain import ObservationModel as GverseObsModel
-from po_nrl.domains.learned_environments import (
-    create_dynamics_model, create_transition_sampler, sample_from_gridverse,
-    sample_transitions_uniform_from_simulator, train_from_samples)
-from po_nrl.environments import EncodeType
-from po_nrl.model_based import parse_arguments
+from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+    DynamicsModel,
+    sgd_builder,
+)
+from general_bayes_adaptive_pomdps.domains import GridverseDomain, Tiger
+from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
+    ObservationModel as GverseObsModel,
+)
+from general_bayes_adaptive_pomdps.domains.learned_environments import (
+    create_dynamics_model,
+    create_transition_sampler,
+    sample_from_gridverse,
+    sample_transitions_uniform_from_simulator,
+    train_from_samples,
+)
+from general_bayes_adaptive_pomdps.environments import EncodeType
+from general_bayes_adaptive_pomdps.model_based import parse_arguments
 
 
 class TestSampleFromSimulator(unittest.TestCase):
@@ -114,14 +122,14 @@ class TestCreateTransitionSampler(unittest.TestCase):
         """Test none-Gridverse """
         self.assertEqual(
             create_transition_sampler(None).func.__name__,  # type: ignore
-            'sample_transitions_uniform_from_simulator',
+            "sample_transitions_uniform_from_simulator",
         )
 
     def test_gridverse(self):
         """Test Gridverse """
         self.assertEqual(
             create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
-            'sample_from_gridverse',
+            "sample_from_gridverse",
         )
 
 
@@ -167,5 +175,5 @@ class TestCreateDynamicsModel(unittest.TestCase):
         self.assertIsInstance(dynamics_model.o, GverseObsModel)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,33 +1,73 @@
-""" installation script of po_nrl """
+#!/usr/bin/env python
 
-from setuptools import find_packages, setup
+"""The setup script."""
 
+from setuptools import setup, find_packages
+
+with open("README.rst") as readme_file:
+    readme = readme_file.read()
+
+with open("HISTORY.rst") as history_file:
+    history = history_file.read()
+
+# TODO: update requirements after overhaul is done
 requirements = [
-    "pomdp_belief_tracking @ git+ssh://git@github.com/samkatt/pomdp-belief-tracking.git@main",
-    "online_pomdp_planning @ git+ssh://git@github.com/samkatt/online-pomdp-planning.git@master",
-    "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
-    "opencv-python",
     "torch",
     "typing_extensions",
-    "pdoc3",
     "matplotlib",
     "more_itertools",
     "tensorboard",
     "mypy_extensions",
+    "online_pomdp_planning @ git+ssh://git@github.com/samkatt/online-pomdp-planning.git@master",
+    "pomdp_belief_tracking @ git+ssh://git@github.com/samkatt/pomdp-belief-tracking.git@main",
+    "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
     "numpy",
 ]
 
+setup_requirements = [
+    "pytest-runner",
+]
+
+test_requirements = [
+    "pytest>=3",
+]
+
 setup(
-    name='po_nrl',
-    version='0.1.0',
-    packages=find_packages(),
-    test_suite='tests',
+    author="sammie katt",
+    author_email="sammie.katt@gmail.com",
+    python_requires=">=3.5",
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+    ],
+    description="A library to create Bayes-adaptive POMDPs for Bayesian RL",
     install_requires=requirements,
+    license="MIT license",
+    long_description=readme + "\n\n" + history,
+    include_package_data=True,
+    keywords="general_bayes_adaptive_pomdps",
+    name="general_bayes_adaptive_pomdps",
+    packages=find_packages(
+        include=["general_bayes_adaptive_pomdps", "general_bayes_adaptive_pomdps.*"]
+    ),
+    setup_requires=setup_requirements,
+    test_suite="tests",
+    tests_require=test_requirements,
+    url="https://github.com/samkatt/general_bayes_adaptive_pomdps",
+    version="0.1.0",
+    zip_safe=False,
     scripts=[
-        'scripts/experiments/model_based.py',
-        'scripts/experiments/pouct_planning.py',
-        'scripts/experiments/sequential_distr_learning.py',
-        'scripts/analysis/merge_result_files.py',
-        'scripts/analysis/plotting.py'
-    ]
+        "scripts/experiments/model_based.py",
+        "scripts/experiments/pouct_planning.py",
+        "scripts/experiments/sequential_distr_learning.py",
+        "scripts/analysis/merge_result_files.py",
+        "scripts/analysis/plotting.py",
+    ],
 )

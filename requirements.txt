@@ -1,9 +1,0 @@
-torch
-typing_extensions
-matplotlib
-more_itertools
-tensorboard
-mypy_extensions
-git+ssh://git@github.com/samkatt/online-pomdp-planning.git@master
-git+ssh://git@github.com/samkatt/pomdp-belief-tracking.git@main
-numpy

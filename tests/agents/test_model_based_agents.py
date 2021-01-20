@@ -1,9 +1,11 @@
 """tests `agents/model_based_agents.py` module"""
 import unittest
 
-from po_nrl.agents.model_based_agents import create_rollout_policy
-from po_nrl.domains import GridverseDomain, Tiger
-from po_nrl.environments import EncodeType
+from general_bayes_adaptive_pomdps.agents.model_based_agents import (
+    create_rollout_policy,
+)
+from general_bayes_adaptive_pomdps.domains import GridverseDomain, Tiger
+from general_bayes_adaptive_pomdps.environments import EncodeType
 
 
 class TestCreateRolloutPolicy(unittest.TestCase):
@@ -39,5 +41,5 @@ class TestCreateRolloutPolicy(unittest.TestCase):
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

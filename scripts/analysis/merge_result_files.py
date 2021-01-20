@@ -3,7 +3,7 @@
 
 import sys
 
-from po_nrl.analysis.merge_result_files import merge
+from general_bayes_adaptive_pomdps.analysis.merge_result_files import merge
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@
 import sys
 from typing import List
 
-from po_nrl.analysis.visualization import default_plot_style, plot_experiment
+from general_bayes_adaptive_pomdps.analysis.visualization import default_plot_style, plot_experiment
 
 
 def main(smoothing_argument: str, files: List[str]) -> None:

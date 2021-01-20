@@ -9,8 +9,8 @@ import sys
 import numpy as np
 import torch
 
-from po_nrl.agents.neural_networks import Net
-import po_nrl.pytorch_api
+from general_bayes_adaptive_pomdps.agents.neural_networks import Net
+import general_bayes_adaptive_pomdps.pytorch_api
 
 
 def main() -> None:
@@ -27,15 +27,15 @@ def main() -> None:
 
     conf = parse_arguments()
 
-    po_nrl.pytorch_api.set_device(conf.use_gpu)
-    po_nrl.pytorch_api.set_tensorboard_logging(conf.tensorboard_logdir)
+    general_bayes_adaptive_pomdps.pytorch_api.set_device(conf.use_gpu)
+    general_bayes_adaptive_pomdps.pytorch_api.set_tensorboard_logging(conf.tensorboard_logdir)
 
     net = Net(
         input_size=1,
         output_size=2,
         layer_size=conf.network_size,
         dropout_rate=conf.dropout_rate,
-    ).to(po_nrl.pytorch_api.device())
+    ).to(general_bayes_adaptive_pomdps.pytorch_api.device())
 
     optimizer = torch.optim.Adam(
         net.parameters(),
@@ -65,7 +65,7 @@ def main() -> None:
                     for _ in range(100)
                 ])
 
-            po_nrl.pytorch_api.log_tensorboard(f'prob {i}', prob_distr, episode)
+            general_bayes_adaptive_pomdps.pytorch_api.log_tensorboard(f'prob {i}', prob_distr, episode)
 
         sys.stdout.write('#')
         sys.stdout.flush()

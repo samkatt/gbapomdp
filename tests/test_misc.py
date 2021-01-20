@@ -11,9 +11,9 @@ import unittest
 
 import numpy as np
 
-from po_nrl.agents.neural_networks.misc import ReplayBuffer
-from po_nrl.environments import ActionSpace
-from po_nrl.misc import DiscreteSpace, set_random_seed
+from general_bayes_adaptive_pomdps.agents.neural_networks.misc import ReplayBuffer
+from general_bayes_adaptive_pomdps.environments import ActionSpace
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, set_random_seed
 
 
 class TestSpaces(unittest.TestCase):
@@ -152,5 +152,5 @@ class TestRandomSeed(unittest.TestCase):
         self.assertAlmostEqual(random_np_sample, np.random.uniform(0, 1))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
