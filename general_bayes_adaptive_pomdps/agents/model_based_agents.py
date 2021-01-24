@@ -3,6 +3,7 @@
 from functools import partial
 
 import numpy as np
+
 from general_bayes_adaptive_pomdps.agents.agent import Agent
 from general_bayes_adaptive_pomdps.agents.planning.belief import (
     BeliefManager,
@@ -20,7 +21,6 @@ from general_bayes_adaptive_pomdps.agents.planning.pouct import (
     random_policy,
 )
 from general_bayes_adaptive_pomdps.analysis.augmented_beliefs import analyzer_factory
-from general_bayes_adaptive_pomdps.domains import BADDr
 from general_bayes_adaptive_pomdps.domains.gridverse_domain import GridverseDomain
 from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
     default_rollout_policy as gridverse_regular_rollout,
@@ -30,6 +30,7 @@ from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
 )
 from general_bayes_adaptive_pomdps.environments import Simulator
 from general_bayes_adaptive_pomdps.misc import POBNRLogger
+from general_bayes_adaptive_pomdps.models.baddr import BADDr
 
 
 class PrototypeAgent(Agent, POBNRLogger):
@@ -108,7 +109,9 @@ def episode_reset_belief(p_filter: Belief, sim: BADDr) -> Belief:
 
     """
 
-    def reset_domain_state(s: BADDr.AugmentedState) -> BADDr.AugmentedState:
+    def reset_domain_state(
+        s: BADDr.AugmentedState,
+    ) -> BADDr.AugmentedState:
         s.domain_state = sim.sample_domain_start_state()
         return s
 

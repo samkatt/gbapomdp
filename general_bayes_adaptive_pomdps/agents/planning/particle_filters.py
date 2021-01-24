@@ -14,8 +14,9 @@ import numpy as np
 import pomdp_belief_tracking.pf.importance_sampling as LibIS
 import pomdp_belief_tracking.pf.particle_filter as LibPF
 import pomdp_belief_tracking.pf.rejection_sampling as LibRS
-from general_bayes_adaptive_pomdps.domains.learned_environments import BADDr
+
 from general_bayes_adaptive_pomdps.environments import Simulator
+from general_bayes_adaptive_pomdps.models.baddr import BADDr
 
 
 class Belief(abc.ABC):
@@ -254,5 +255,4 @@ def create_belief_update(conf, sim: Simulator):
     if conf.belief == "importance_sampling":
         assert isinstance(sim, BADDr)
         return create_importance_sampling(sim, conf.num_particles)
-
     assert False, f"{conf.belief} is not a valid belief configuration"

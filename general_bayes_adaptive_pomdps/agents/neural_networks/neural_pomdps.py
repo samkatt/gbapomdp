@@ -8,12 +8,13 @@ from typing import Any, Deque, List, Tuple
 import numpy as np
 import torch
 import torch.distributions.utils
+from typing_extensions import Protocol
+
 from general_bayes_adaptive_pomdps.agents.neural_networks import Net
 from general_bayes_adaptive_pomdps.agents.neural_networks.misc import perturb
 from general_bayes_adaptive_pomdps.environments import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 from general_bayes_adaptive_pomdps.pytorch_api import device, log_tensorboard
-from typing_extensions import Protocol  # pylint: disable=wrong-import-order
 
 
 class Interaction(namedtuple("interaction", "state action next_state observation")):
@@ -350,8 +351,6 @@ class DynamicsModel:
                     for i in range(self.state_space.ndim)
                 ]
 
-            raise AssertionError("If only mypy could understand this is unreachable...")
-
         def sample(
             self,
             state: np.ndarray,
@@ -461,8 +460,6 @@ class DynamicsModel:
                     .numpy()
                     for i in range(self.obs_space.ndim)
                 ]
-
-            raise AssertionError("If only we understood this is unreachable...")
 
         def sample(
             self,

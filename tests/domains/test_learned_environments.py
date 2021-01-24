@@ -4,6 +4,7 @@ import unittest
 from functools import partial
 
 import numpy as np
+
 from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
     DynamicsModel,
     sgd_builder,
@@ -12,15 +13,9 @@ from general_bayes_adaptive_pomdps.domains import GridverseDomain, Tiger
 from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
     ObservationModel as GverseObsModel,
 )
-from general_bayes_adaptive_pomdps.domains.learned_environments import (
-    create_dynamics_model,
-    create_transition_sampler,
-    sample_from_gridverse,
-    sample_transitions_uniform_from_simulator,
-    train_from_samples,
-)
 from general_bayes_adaptive_pomdps.environments import EncodeType
 from general_bayes_adaptive_pomdps.model_based import parse_arguments
+from general_bayes_adaptive_pomdps.models import baddr
 
 
 class TestSampleFromSimulator(unittest.TestCase):
@@ -30,7 +25,7 @@ class TestSampleFromSimulator(unittest.TestCase):
         """run once on tiger and check if result is viable"""
         sim = Tiger(EncodeType.DEFAULT)
 
-        s, a, news, o = sample_transitions_uniform_from_simulator(sim)
+        s, a, news, o = baddr.sample_transitions_uniform_from_simulator(sim)
 
         self.assertTrue(sim.state_space.contains(s))
         self.assertTrue(sim.action_space.contains(a))
@@ -44,7 +39,7 @@ class TestTrainFromSamples(unittest.TestCase):
     def test_improve_performance(self):
         """Tests whether learning in tiger environment improves model"""
         sim = Tiger(EncodeType.DEFAULT)
-        sampler = sample_transitions_uniform_from_simulator
+        sampler = baddr.sample_transitions_uniform_from_simulator
 
         batch_size = 16
 
@@ -79,7 +74,7 @@ class TestTrainFromSamples(unittest.TestCase):
 
         initial_transition_model = model.transition_model(s, Tiger.LISTEN)[0]
 
-        train_from_samples(
+        baddr.train_from_samples(
             model,
             partial(sampler, sim=sim),
             num_epochs=256,
@@ -102,7 +97,7 @@ class TestSampleFromGridverse(unittest.TestCase):
         d = GridverseDomain()
 
         try:
-            _, _, _, _ = sample_from_gridverse(d)
+            _, _, _, _ = baddr.sample_from_gridverse(d)
         except Exception as e:  # pylint: disable=broad-except
             self.fail(f"This code should run, causes {e}")
 
@@ -121,14 +116,14 @@ class TestCreateTransitionSampler(unittest.TestCase):
     def test_default(self):
         """Test none-Gridverse """
         self.assertEqual(
-            create_transition_sampler(None).func.__name__,  # type: ignore
+            baddr.create_transition_sampler(None).func.__name__,  # type: ignore
             "sample_transitions_uniform_from_simulator",
         )
 
     def test_gridverse(self):
         """Test Gridverse """
         self.assertEqual(
-            create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
+            baddr.create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
             "sample_from_gridverse",
         )
 
@@ -151,7 +146,7 @@ class TestCreateDynamicsModel(unittest.TestCase):
             self.c.known_model = setting
             self.assertRaises(
                 ValueError,
-                create_dynamics_model,
+                baddr.create_dynamics_model,
                 domain=self.d,
                 conf=self.c,
             )
@@ -161,13 +156,13 @@ class TestCreateDynamicsModel(unittest.TestCase):
         self.c.known_model = "T"
         self.assertRaises(
             ValueError,
-            create_dynamics_model,
+            baddr.create_dynamics_model,
             domain=self.d,
             conf=self.c,
         )
 
         self.c.known_model = "O"
-        dynamics_model = create_dynamics_model(
+        dynamics_model = baddr.create_dynamics_model(
             self.d,
             self.c,
         )

@@ -5,7 +5,7 @@ from typing import Callable, List, Optional
 
 import numpy as np
 
-import general_bayes_adaptive_pomdps.pytorch_api
+from general_bayes_adaptive_pomdps import pytorch_api
 from general_bayes_adaptive_pomdps.agents.model_based_agents import (
     create_learning_agent,
 )
@@ -17,14 +17,14 @@ from general_bayes_adaptive_pomdps.domains import (
     create_environment,
     create_prior,
 )
-from general_bayes_adaptive_pomdps.domains.learned_environments import (
+from general_bayes_adaptive_pomdps.environments import Simulator
+from general_bayes_adaptive_pomdps.episode import run_episode
+from general_bayes_adaptive_pomdps.misc import POBNRLogger, set_random_seed
+from general_bayes_adaptive_pomdps.models.baddr import (
     BADDr,
     create_transition_sampler,
     train_from_samples,
 )
-from general_bayes_adaptive_pomdps.environments import Simulator
-from general_bayes_adaptive_pomdps.episode import run_episode
-from general_bayes_adaptive_pomdps.misc import POBNRLogger, set_random_seed
 
 
 def main(args: Optional[List[str]]) -> None:
@@ -39,7 +39,7 @@ def main(args: Optional[List[str]]) -> None:
 
     conf = parse_arguments(args)
 
-    general_bayes_adaptive_pomdps.pytorch_api.set_device(conf.use_gpu)
+    pytorch_api.set_device(conf.use_gpu)
 
     POBNRLogger.set_level(POBNRLogger.LogLevel.create(conf.verbose))
     logger = POBNRLogger("model based main")
@@ -65,9 +65,7 @@ def main(args: Optional[List[str]]) -> None:
     for run in range(conf.runs):
 
         if conf.tensorboard_logdir:
-            general_bayes_adaptive_pomdps.pytorch_api.set_tensorboard_logging(
-                f"{conf.tensorboard_logdir}-{run}"
-            )
+            pytorch_api.set_tensorboard_logging(f"{conf.tensorboard_logdir}-{run}")
 
         sim.reset(train_method, conf.learning_rate, conf.online_learning_rate)
         agent.reset()
@@ -88,10 +86,8 @@ def main(args: Optional[List[str]]) -> None:
                         {np.mean(tmp_res[max(0, episode - 100):episode+1])}",
             )
 
-            if general_bayes_adaptive_pomdps.pytorch_api.tensorboard_logging():
-                general_bayes_adaptive_pomdps.pytorch_api.log_tensorboard(
-                    "return", tmp_res[episode], episode
-                )
+            if pytorch_api.tensorboard_logging():
+                pytorch_api.log_tensorboard("return", tmp_res[episode], episode)
 
         # update mean and variance
         delta = tmp_res - result_mean

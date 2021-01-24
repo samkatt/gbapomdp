@@ -1,16 +1,15 @@
-""" domains either learned or constructed from other domains """
-
 import copy
 from functools import partial
 from typing import Callable, List, Tuple
 
 import numpy as np
-from typing_extensions import Protocol  # pylint: disable=wrong-import-order
+from typing_extensions import Protocol
 
 from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
 )
+from general_bayes_adaptive_pomdps.domains.gbapomdp import GBAPOMDP
 from general_bayes_adaptive_pomdps.domains.gridverse_domain import GridverseDomain
 from general_bayes_adaptive_pomdps.environments import (
     ActionSpace,
@@ -27,6 +26,39 @@ class TransitionSampler(Protocol):
 
     def __call__(self) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
         """plain call to generate s,a,s',o sample"""
+
+
+def train_from_samples(
+    theta: DynamicsModel,
+    sampler: TransitionSampler,
+    num_epochs: int,
+    batch_size: int,
+) -> None:
+    """trains a theta with data uniformly sampled from (S,A) space
+
+    Performs `num_epochs` updates of size `batch_size` by sampling from sampler
+
+    Args:
+         theta: (`general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel`):
+         sampler: (`TransitionSampler`): method to sample transitions from
+         num_epochs: (`int`): number of batch updates
+         batch_size: (`int`): size of a batch update
+
+    RETURNS (`None`):
+    """
+
+    log_loss = tensorboard_logging()
+    for _ in range(num_epochs):
+        states, actions, new_states, observations = zip(
+            *[sampler() for _ in range(batch_size)]
+        )
+        theta.batch_update(
+            np.array(states),
+            np.array(actions),
+            np.array(new_states),
+            np.array(observations),
+            log_loss,
+        )
 
 
 def sample_transitions_uniform_from_simulator(
@@ -95,39 +127,6 @@ def create_transition_sampler(sim: Simulator) -> TransitionSampler:
         return partial(sample_from_gridverse, d=sim)
 
     return partial(sample_transitions_uniform_from_simulator, sim=sim)
-
-
-def train_from_samples(
-    theta: DynamicsModel,
-    sampler: TransitionSampler,
-    num_epochs: int,
-    batch_size: int,
-) -> None:
-    """trains a theta with data uniformly sampled from (S,A) space
-
-    Performs `num_epochs` updates of size `batch_size` by sampling from sampler
-
-    Args:
-         theta: (`general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel`):
-         sampler: (`TransitionSampler`): method to sample transitions from
-         num_epochs: (`int`): number of batch updates
-         batch_size: (`int`): size of a batch update
-
-    RETURNS (`None`):
-    """
-
-    log_loss = tensorboard_logging()
-    for _ in range(num_epochs):
-        states, actions, new_states, observations = zip(
-            *[sampler() for _ in range(batch_size)]
-        )
-        theta.batch_update(
-            np.array(states),
-            np.array(actions),
-            np.array(new_states),
-            np.array(observations),
-            log_loss,
-        )
 
 
 def create_dynamics_model(
@@ -229,57 +228,27 @@ class ModelUpdate(Protocol):
         pass
 
 
-def perturb_parameters(
-    model: DynamicsModel,
-    state: np.ndarray,  # pylint: disable=unused-argument
-    action: np.ndarray,  # pylint: disable=unused-argument
-    next_state: np.ndarray,  # pylint: disable=unused-argument
-    observation: np.ndarray,  # pylint: disable=unused-argument
-    stdev: float,
-    freeze_model_setting: DynamicsModel.FreezeModelSetting,
-) -> None:
-    """A type of belief update: applies gaussian noise to model parameters
+def get_model_freeze_setting(
+    freeze_model: str,
+) -> DynamicsModel.FreezeModelSetting:
+    """returns the model freeze setting given configuration string
 
     Args:
-         model: (`DynamicsModel`):
-         _: (`np.ndarray`): ignored
-         __: (`np.ndarray`): ignored
-         ___: (`np.ndarray`): ignored
-         _____: (`np.ndarray`): ignored
-         stdev: (`float`): the standard deviation of the applied noise
-         freeze_model_setting: (`FreezeModelSetting`)
+         freeze_model: (`str`):
 
-    RETURNS (`None`):
+    RETURNS ( `general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`):
 
     """
+    if not freeze_model:
+        return DynamicsModel.FreezeModelSetting.FREEZE_NONE
 
-    model.perturb_parameters(stdev, freeze_model_setting)
+    if freeze_model == "T":
+        return DynamicsModel.FreezeModelSetting.FREEZE_T
 
+    if freeze_model == "O":
+        return DynamicsModel.FreezeModelSetting.FREEZE_O
 
-def replay_buffer_update(
-    model: DynamicsModel,
-    state: np.ndarray,
-    action: np.ndarray,
-    next_state: np.ndarray,
-    observation: np.ndarray,
-    freeze_model_setting: DynamicsModel.FreezeModelSetting,
-) -> None:
-    """will add transition to model and then invoke a `self learn` step
-
-    Args:
-         model: (`DynamicsModel`):
-         state: (`np.ndarray`):
-         action: (`np.ndarray`):
-         next_state: (`np.ndarray`):
-         observation: (`np.ndarray`):
-         freeze_model_setting: (`FreezeModelSetting`)
-
-    RETURNS (`None`):
-
-    """
-
-    model.add_transition(state, action, next_state, observation)
-    model.self_learn(freeze_model_setting)
+    raise ValueError("Wrong value given to freeze model argument")
 
 
 def backprop_update(
@@ -316,30 +285,87 @@ def backprop_update(
     )
 
 
-def get_model_freeze_setting(
-    freeze_model: str,
-) -> DynamicsModel.FreezeModelSetting:
-    """returns the model freeze setting given configuration string
+def replay_buffer_update(
+    model: DynamicsModel,
+    state: np.ndarray,
+    action: np.ndarray,
+    next_state: np.ndarray,
+    observation: np.ndarray,
+    freeze_model_setting: DynamicsModel.FreezeModelSetting,
+) -> None:
+    """will add transition to model and then invoke a `self learn` step
 
     Args:
-         freeze_model: (`str`):
+         model: (`DynamicsModel`):
+         state: (`np.ndarray`):
+         action: (`np.ndarray`):
+         next_state: (`np.ndarray`):
+         observation: (`np.ndarray`):
+         freeze_model_setting: (`FreezeModelSetting`)
 
-    RETURNS ( `general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`):
+    RETURNS (`None`):
 
     """
-    if not freeze_model:
-        return DynamicsModel.FreezeModelSetting.FREEZE_NONE
 
-    if freeze_model == "T":
-        return DynamicsModel.FreezeModelSetting.FREEZE_T
-
-    if freeze_model == "O":
-        return DynamicsModel.FreezeModelSetting.FREEZE_O
-
-    raise ValueError("Wrong value given to freeze model argument")
+    model.add_transition(state, action, next_state, observation)
+    model.self_learn(freeze_model_setting)
 
 
-class BADDr(Simulator, POBNRLogger):
+def perturb_parameters(
+    model: DynamicsModel,
+    state: np.ndarray,
+    action: np.ndarray,
+    next_state: np.ndarray,
+    observation: np.ndarray,
+    stdev: float,
+    freeze_model_setting: DynamicsModel.FreezeModelSetting,
+) -> None:
+    """A type of belief update: applies gaussian noise to model parameters
+
+    Args:
+         model: (`DynamicsModel`):
+         _: (`np.ndarray`): ignored
+         __: (`np.ndarray`): ignored
+         ___: (`np.ndarray`): ignored
+         _____: (`np.ndarray`): ignored
+         stdev: (`float`): the standard deviation of the applied noise
+         freeze_model_setting: (`FreezeModelSetting`)
+
+    RETURNS (`None`):
+
+    """
+
+    model.perturb_parameters(stdev, freeze_model_setting)
+
+
+def create_model_updates(conf) -> List[ModelUpdate]:  # set model update method
+    freeze_model_setting = get_model_freeze_setting(conf.freeze_model)
+    updates: List[ModelUpdate] = []
+
+    if conf.backprop:
+        updates.append(
+            partial(backprop_update, freeze_model_setting=freeze_model_setting)
+        )
+    if conf.replay_update:
+        updates.append(
+            partial(
+                replay_buffer_update,
+                freeze_model_setting=freeze_model_setting,
+            )
+        )
+    if conf.perturb_stdev:
+        updates.append(
+            partial(
+                perturb_parameters,
+                stdev=conf.perturb_stdev,
+                freeze_model_setting=freeze_model_setting,
+            )
+        )
+
+    return updates
+
+
+class BADDr(Simulator, POBNRLogger, GBAPOMDP):
     """A simulator over augmented states
 
     The augmented states are
@@ -389,34 +415,10 @@ class BADDr(Simulator, POBNRLogger):
         self.domain_observation_to_string = domain.observation_to_string
 
         self._models = [
-            create_dynamics_model(domain, conf) for i in range(conf.num_nets)
+            create_dynamics_model(domain, conf) for _ in range(conf.num_nets)
         ]
 
-        # set model update method
-        freeze_model_setting = get_model_freeze_setting(conf.freeze_model)
-        updates: List[ModelUpdate] = []
-
-        if conf.backprop:
-            updates.append(
-                partial(backprop_update, freeze_model_setting=freeze_model_setting)
-            )
-        if conf.replay_update:
-            updates.append(
-                partial(
-                    replay_buffer_update,
-                    freeze_model_setting=freeze_model_setting,
-                )
-            )
-        if conf.perturb_stdev:
-            updates.append(
-                partial(
-                    perturb_parameters,
-                    stdev=conf.perturb_stdev,
-                    freeze_model_setting=freeze_model_setting,
-                )
-            )
-
-        self._theta_updates = updates
+        self._theta_updates = create_model_updates(conf)
 
     @property
     def state_space(self) -> Space:

@@ -1,13 +1,13 @@
 """ all the domains in which an agent can act """
 
 import numpy as np
+
 from general_bayes_adaptive_pomdps.environments import EncodeType, Environment
 
 from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance
 from .gridverse_domain import GridverseDomain
 from .gridworld import GridWorld
-from .learned_environments import BADDr  # NOQA, ignore unused import
 from .priors import (
     CollisionAvoidancePrior,
     GridWorldPrior,
