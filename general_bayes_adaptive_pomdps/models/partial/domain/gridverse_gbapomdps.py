@@ -149,18 +149,20 @@ def create_gridverse_prior(
             )
 
             if tboard_logging:
-                log_tensorboard(f"transition_loss/{net}", loss, batch)
+                log_tensorboard(f"transition_loss/model-{i}", loss, batch)
+
+    obs_rep = partial(
+        gverse_obs2array,
+        domain,
+        DefaultObservationRepresentation(domain.observation_space),
+    )
 
     def prior() -> GridversePositionAugmentedState:
         return GridversePositionAugmentedState(
             domain.functional_reset(),
             random.choice(deepcopy(models)),
             domain,
-            partial(
-                gverse_obs2array,
-                domain,
-                DefaultObservationRepresentation(domain.observation_space),
-            ),
+            obs_rep,
         )
 
     return prior
