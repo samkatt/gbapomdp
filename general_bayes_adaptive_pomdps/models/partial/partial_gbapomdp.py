@@ -5,8 +5,7 @@ that should simplify creating GBA-POMDPs:
 
     - :class:`GBAPOMDPThroughAugmentedState`
 """
-from copy import deepcopy
-from typing import Callable
+from typing import Callable, Tuple
 
 import numpy as np
 from typing_extensions import Protocol
@@ -22,13 +21,14 @@ from general_bayes_adaptive_pomdps.environments import (
 class AugmentedGodState(Protocol):
     """The protocol for an augmented state that implements all the details of a GBA-POMDP"""
 
-    def update_theta(
+    def update_model_distribution(
         self,
         state: "AugmentedGodState",
         action: int,
         next_state: "AugmentedGodState",
         obs: np.ndarray,
-    ):
+        optimize: bool = False,
+    ) -> "AugmentedGodState":
         """Updates the model posterior of ``self`` given (``state``, ``action``, ``next_state``, ``obs``
 
         Given the transition (s,a,s',o), this function updates the model parameters
@@ -39,12 +39,20 @@ class AugmentedGodState(Protocol):
         :param action:
         :param next_state:
         :param obs:
+        :param optimize: optimization flag.
+            If set to true, the model in ``self`` is _not_ copied, and thus
+            ``self`` _is modified_. If there is no need to keep the old model,
+            then setting this flag skips a then needless copy operation, which
+            can be significant
+        :return: A new state with updated model parameters
         """
 
-    def update_domain_state(self, action: int) -> np.ndarray:
-        """Updates _in place_ the domain state under ``action`` and generate observation
+    def domain_step(self, action: int) -> Tuple["AugmentedGodState", np.ndarray]:
+        """Simulates a step in the domain
 
-        NOTE: modifies ``self``
+        Samples a next state (from ``self``) and observation given input
+        ``action``. The result is put into a new ``AugmentedGodState``, with _unmodified model
+        distribution_. The new state and observation is returned
 
         :param action:
         :return: the observation generated during the domain state update
@@ -119,46 +127,48 @@ class GBAPOMDPThroughAugmentedState(GBAPOMDP[AugmentedGodState]):
     def sample_start_state(self) -> AugmentedGodState:
         return self.prior()
 
-    def simulation_step_inplace(
-        self, state: AugmentedGodState, action: int
-    ) -> SimulationResult:
-        """Performs simulation step
-
-        NOTE: modifies incoming ``state``
-
-        Simulates performing an ``action`` in ``state`` of the GBA-POMDP, as
-        implemented by :class:`AugmentedGodState`:
-
-            - :meth:`AugmentedGodState.update_domain_state`
-            - :meth:`AugmentedGodState.update_theta`
-
-        and returns the next state with generated observation
-
-        :param state:
-        :param action:
-        :return: (next_state, observation)
-        """
-        obs = state.update_domain_state(action)
-        state.update_theta(state, action, state, obs)
-
-        return SimulationResult(state, obs)
-
     def simulation_step(
-        self, state: AugmentedGodState, action: int
+        self, state: AugmentedGodState, action: int, optimize: bool = False
     ) -> SimulationResult:
-        """Performs a simulation in the GBA-POMDP
+        """Performs an actual step according to the GBA-POMDP dynamics
 
-        NOTE: calls :meth:`simulation_step_inplace` with a copy of ``state``
-
-        :param state:
-        :param action:
-        :return: (next_state, observation)
+        Part of GBAPOMDP protocol
         """
 
-        # ensure ``state`` unmodified
-        next_state = deepcopy(state)
+        state, obs = state.domain_step(action)
+        next_state = state.update_model_distribution(
+            state, action, state, obs, optimize
+        )
 
-        return self.simulation_step_inplace(next_state, action)
+        return SimulationResult(next_state, obs)
+
+    def domain_simulation_step(
+        self, state: AugmentedGodState, action: int
+    ) -> SimulationResult:
+        """Performs the domain state part of the step in the GBA-POMDP
+
+        Part of GBAPOMDP protocol
+
+        """
+        return SimulationResult(*state.domain_step(action))
+
+    def model_simulation_step(
+        self,
+        to_update: AugmentedGodState,
+        prev_state: AugmentedGodState,
+        action: int,
+        next_state: AugmentedGodState,
+        obs: np.ndarray,
+        optimize: bool = False,
+    ) -> AugmentedGodState:
+        """Performs the model part of the step in the GBA-POMDP
+
+        Part of GBAPOMDP protocol
+
+        """
+        return to_update.update_model_distribution(
+            prev_state, action, next_state, obs, optimize
+        )
 
     def reward(
         self, state: AugmentedGodState, action: int, next_state: AugmentedGodState

@@ -1,7 +1,5 @@
 """ tests the functionality of priors """
 
-from copy import deepcopy
-
 import pytest
 import torch
 from gym_gridverse.envs.factory import env_from_descr
@@ -59,17 +57,20 @@ def test_create_gridverse_prior():
     p = create_gridverse_prior(d, opt, alpha, s, drop, n, batch)
 
     s = p()
+    a = 0
+
     assert isinstance(s, GridversePositionAugmentedState)
-    next_s = deepcopy(s)
+
+    next_s, o = s.domain_step(a)
     assert isinstance(next_s, GridversePositionAugmentedState)
-
-    a = 1
-
-    assert s.domain_state == next_s.domain_state
-    o = next_s.update_domain_state(a)
     assert not s.domain_state == next_s.domain_state
 
     assert model_equals(s.learned_model.net, next_s.learned_model.net)
 
-    next_s.update_theta(s, a, next_s, o)
+    next_s = s.update_model_distribution(s, a, next_s, o, optimize=True)
+    assert isinstance(next_s, GridversePositionAugmentedState)
+    assert model_equals(s.learned_model.net, next_s.learned_model.net)
+
+    next_s = s.update_model_distribution(s, a, next_s, o)
+    assert isinstance(next_s, GridversePositionAugmentedState)
     assert not model_equals(s.learned_model.net, next_s.learned_model.net)

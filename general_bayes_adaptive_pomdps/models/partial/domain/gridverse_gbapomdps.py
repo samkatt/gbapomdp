@@ -34,7 +34,7 @@ import logging
 import random
 from copy import deepcopy
 from functools import partial
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 import numpy as np
 import torch
@@ -56,6 +56,7 @@ from general_bayes_adaptive_pomdps.environments import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 from general_bayes_adaptive_pomdps.models.partial.partial_gbapomdp import (
     AugmentedGodState,
+    GBAPOMDPThroughAugmentedState,
     Prior,
 )
 from general_bayes_adaptive_pomdps.pytorch_api import (
@@ -230,12 +231,13 @@ class GridversePositionAugmentedState(AugmentedGodState):
         self.pomdp = pomdp
         self._obs_rep = obs_rep
 
-    def update_theta(
+    def update_model_distribution(
         self,
         state: AugmentedGodState,
         action: int,
         next_state: AugmentedGodState,
         obs: np.ndarray,
+        optimize: bool = False,
     ):
         """Updates the model distribution parameters with (s,a,s',o) data
 
@@ -254,18 +256,26 @@ class GridversePositionAugmentedState(AugmentedGodState):
         :param action: action at t
         :param next_state: state at t+1
         :param obs: state at t+1
+        :param optimize: whether to update model from ``self``
         """
         assert isinstance(state, GridversePositionAugmentedState)
         assert isinstance(next_state, GridversePositionAugmentedState)
+
+        net_to_update = self.learned_model if optimize else deepcopy(self.learned_model)
+
         train_TNet_on_position(
-            self.learned_model,
+            net_to_update,
             [state.domain_state],
             [action],
             [next_state.domain_state],
             self.pomdp.action_space.num_actions,
         )
 
-    def update_domain_state(self, action: int) -> np.ndarray:
+        return GridversePositionAugmentedState(
+            self.domain_state, net_to_update, self.pomdp, self._obs_rep
+        )
+
+    def domain_step(self, action: int) -> Tuple["AugmentedGodState", np.ndarray]:
         """Applies ``action`` on POMDP state in ``self``
 
         Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state according to the model in ``self``:
@@ -276,8 +286,7 @@ class GridversePositionAugmentedState(AugmentedGodState):
             #. returns observation by known model
 
         :param action: action taken by agent
-        :return: generated observation
-
+        :return: updated augmented state and generated observation
         """
 
         # (learned) prediction part)
@@ -291,9 +300,15 @@ class GridversePositionAugmentedState(AugmentedGodState):
         )[0]
 
         # merge
-        self.domain_state.agent.position = Position(*next_pos)
+        next_domain_state = deepcopy(self.domain_state)
+        next_domain_state.agent.position = Position(*next_pos)
 
-        return self._obs_rep(self.domain_state)
+        next_state = GridversePositionAugmentedState(
+            next_domain_state, self.learned_model, self.pomdp, self._obs_rep
+        )
+        obs = self._obs_rep(self.domain_state)
+
+        return next_state, obs
 
     def reward(self, action: int, next_state: AugmentedGodState) -> float:
         assert isinstance(next_state, GridversePositionAugmentedState)
@@ -306,3 +321,28 @@ class GridversePositionAugmentedState(AugmentedGodState):
         return self.pomdp.termination_function(
             self.domain_state, GVerseAction(action), next_state.domain_state
         )
+
+
+def create_gbapomdp(
+    domain: GVerseGridworld,
+    optimizer_name: str,
+    learning_rate: float,
+    network_size: int,
+    dropout_rate: float,
+    num_pretrain_epochs: int,
+    batch_size: int,
+) -> GBAPOMDPThroughAugmentedState:
+
+    prior = create_gridverse_prior(
+        domain,
+        optimizer_name,
+        learning_rate,
+        network_size,
+        dropout_rate,
+        num_pretrain_epochs,
+        batch_size,
+    )
+    action_space = ActionSpace(domain.action_space.num_actions)
+    # TODO: create this.
+    obs_space = None
+    return GBAPOMDPThroughAugmentedState(prior, action_space, obs_space)

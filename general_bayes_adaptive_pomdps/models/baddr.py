@@ -459,7 +459,6 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
         Args:
 
         RETURNS (`AugmentedState`):
-
         """
         return self.AugmentedState(
             self.sample_domain_start_state(),
@@ -518,7 +517,7 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
         # use theta to generate a step
         return theta.simulation_step(domain_state, action)
 
-    def simulation_step(self, state: AugmentedState, action: int) -> SimulationResult:
+    def simulation_step(self, state: "AugmentedState", action: int) -> SimulationResult:
         """Performs simulation step
 
         Simulates performing an ``action`` in ``state`` of the GBA-POMDP:
@@ -548,7 +547,7 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
         return ret
 
     def simulation_step_inplace(
-        self, state: AugmentedState, action: int
+        self, state: "AugmentedState", action: int
     ) -> SimulationResult:
         """Performs simulation step
 
@@ -579,7 +578,7 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
         return SimulationResult(self.AugmentedState(new_domain_state, state.model), obs)
 
     def simulation_step_without_updating_theta(
-        self, state: AugmentedState, action: int
+        self, state: "AugmentedState", action: int
     ) -> SimulationResult:
         """Performs simulation step
 
@@ -604,7 +603,7 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
         return SimulationResult(self.AugmentedState(new_domain_state, state.model), obs)
 
     def reward(
-        self, state: AugmentedState, action: int, new_state: AugmentedState
+        self, state: "AugmentedState", action: int, new_state: "AugmentedState"
     ) -> float:
         """the reward function of the underlying environment
 
@@ -619,7 +618,7 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
         return self.domain_reward(state.domain_state, action, new_state.domain_state)
 
     def terminal(
-        self, state: AugmentedState, action: int, new_state: AugmentedState
+        self, state: "AugmentedState", action: int, new_state: "AugmentedState"
     ) -> bool:
         """the termination function of the underlying environment
 
@@ -668,7 +667,7 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
             # for online updates
             model.set_learning_rate(online_learning_rate)
 
-    def state_to_string(self, state: AugmentedState) -> str:
+    def state_to_string(self, state: "AugmentedState") -> str:
         """Returns a string representation of the `state`
 
         Prints underlying state
@@ -706,3 +705,41 @@ class BADDr(Simulator, POBNRLogger, GBAPOMDP):
             `str`:
         """
         return self.domain_observation_to_string(observation)
+
+    def domain_simulation_step(
+        self, state: "AugmentedState", action: int
+    ) -> SimulationResult:
+        """Performs the domain state part of the step in the GBA-POMDP
+
+        Leaves the model alone
+
+        Note: part of `GBAPOMDP` protocol
+        """
+        domain_state, obs = self.simulate_domain_step(
+            state.model, state.domain_state, action
+        )
+
+        next_state = self.AugmentedState(domain_state, state.model)
+
+        return SimulationResult(next_state, obs)
+
+    def model_simulation_step(
+        self,
+        to_update: "AugmentedState",
+        prev_state: "AugmentedState",
+        action: int,
+        next_state: "AugmentedState",
+        obs: np.ndarray,
+        optimize: bool = False,
+    ) -> "AugmentedState":
+        """Performs the model part of the step in the GBA-POMDP
+        Leaves the state alone
+        If ``optimize`` is true, will modify model in ``to_update``
+        Note: part of `GBAPOMDP` protocol
+        """
+        model = to_update.model if optimize else copy.deepcopy(to_update.model)
+
+        self.update_theta(
+            model, prev_state.domain_state, action, next_state.domain_state, obs
+        )
+        return self.AugmentedState(to_update.domain_state, model)
