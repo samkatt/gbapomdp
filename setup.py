@@ -22,6 +22,7 @@ requirements = [
     "pomdp_belief_tracking @ git+ssh://git@github.com/samkatt/pomdp-belief-tracking.git@main",
     "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
     "numpy",
+    "cached_property",
 ]
 
 setup_requirements = [

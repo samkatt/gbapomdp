@@ -38,6 +38,7 @@ from typing import Callable, List, Tuple
 
 import numpy as np
 import torch
+from cached_property import cached_property
 from gym_gridverse.action import Action as GVerseAction
 from gym_gridverse.envs.gridworld import GridWorld as GVerseGridworld
 from gym_gridverse.envs.inner_env import InnerEnv as GVerseEnv
@@ -306,7 +307,8 @@ class GridversePositionAugmentedState(AugmentedGodState):
         next_state = GridversePositionAugmentedState(
             next_domain_state, self.learned_model, self.pomdp, self._obs_rep
         )
-        obs = self._obs_rep(self.domain_state)
+
+        obs = next_state.observation
 
         return next_state, obs
 
@@ -321,6 +323,10 @@ class GridversePositionAugmentedState(AugmentedGodState):
         return self.pomdp.termination_function(
             self.domain_state, GVerseAction(action), next_state.domain_state
         )
+
+    @cached_property
+    def observation(self) -> np.ndarray:
+        return self._obs_rep(self.domain_state)
 
 
 def create_gbapomdp(
