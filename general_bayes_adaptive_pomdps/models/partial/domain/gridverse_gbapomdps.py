@@ -95,7 +95,7 @@ def create_gridverse_prior(
     assert network_size > 0
     assert 0 <= dropout_rate <= 1
     assert num_pretrain_epochs >= 0
-    assert batch_size > 1
+    assert batch_size > 0
 
     logger = logging.getLogger("create gridverse prior")
 
