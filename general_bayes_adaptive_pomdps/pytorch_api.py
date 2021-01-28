@@ -1,6 +1,7 @@
 """ some pytorch integration things """
 
-from typing import Union, Optional
+from typing import Optional, Union
+
 import numpy as np
 import torch.utils.tensorboard
 
@@ -76,7 +77,7 @@ def log_tensorboard(tag: str, val: Union[float, np.ndarray], step: int) -> None:
     if np.isscalar(val):
         _TENSORBOARD_WRITER.add_scalar(tag, val, step)  # type: ignore
     else:
-        _TENSORBOARD_WRITER.add_histogram(tag, val, step)  # type: ignore
+        _TENSORBOARD_WRITER.add_histogram(tag, np.array(val), step)  # type: ignore
 
 
 def tensorboard_logging() -> bool:

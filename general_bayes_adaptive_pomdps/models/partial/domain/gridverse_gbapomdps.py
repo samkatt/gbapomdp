@@ -31,10 +31,11 @@ values in ``next_domain_state`` to those predicted by our ``model``, we emulate
 learning with prior knowledge.
 """
 import logging
+import math
 import random
 from copy import deepcopy
 from functools import partial
-from typing import Callable, List, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 import numpy as np
 import torch
@@ -144,12 +145,19 @@ def create_gridverse_prior(
                 for s, a in zip(states, actions)
             ]
 
-            loss = train_TNet_on_position(
+            loss = train_pos_TNet(
                 net, states, actions, next_states, domain.action_space.num_actions
             )
 
             if tboard_logging:
                 log_tensorboard(f"transition_loss/model-{i}", loss, batch)
+
+                if batch % 10 == 0:
+                    log_tensorboard(
+                        f"transition_accuracy/model-{i}",
+                        list(pos_TNet_accuracy(net, domain, batch_size)),
+                        batch,
+                    )
 
     obs_rep = partial(
         gverse_obs2array,
@@ -185,7 +193,88 @@ def gverse_obs2array(
     return np.concatenate([obs.flatten() for obs in dict_of_obs.values()])
 
 
-def train_TNet_on_position(
+def sample_state_with_random_agent(d: GVerseGridworld) -> GVerseState:
+    """Samples a state in ``d`` with a random position and orientation
+
+    :param d: the domain to sample states from
+    :return: (initial) state but with random position and orientation
+    """
+    s = d.functional_reset()
+    random_open_position = random.choice(
+        [p for p in s.grid.positions() if not s.grid[p].blocks]
+    )
+    random_orientation = random.choice(list(Orientation))
+
+    s.agent.position = random_open_position
+    s.agent.orientation = random_orientation
+
+    return s
+
+
+def sample_random_interaction(
+    d: GVerseGridworld,
+) -> Tuple[GVerseState, GVerseAction, GVerseState]:
+    """samples a random interaction in ``d``
+
+    #. samples a state from :func:`sample_state_with_random_agent`
+    #. samples an action from ``d``
+    #. samples a next state d(s,a)
+
+    :param d: domain in which the interaction takes place
+    :return: a (state, action, state) tuple
+    """
+    s = sample_state_with_random_agent(d)
+    a = random.choice(d.action_space.actions)
+    next_s = d.functional_step(s, a)[0]
+
+    return (s, a, next_s)
+
+
+def tnet_accuracy(net: DynamicsModel.TNet, test_data) -> Iterable[float]:
+    """Returns a generator of accuracy
+
+    Approximates the probability of correctly predicting  on ``test_data``
+
+    :param net:
+    :param test_data: generator of ((state, action), next_state) data
+    :rtype: Iterable[float]
+    """
+
+    # sequence of [p(y), y], where y is a feature vector
+    predictions = ((net.model(s, a), ss) for (s, a), ss in test_data)
+
+    # probability of label: multiplication of probs of each feature
+    return (
+        math.prod([dist[x] for dist, x in zip(model, ss)]) for model, ss in predictions
+    )
+
+
+def pos_TNet_accuracy(
+    net: DynamicsModel.TNet, domain: GVerseGridworld, num_samples: int
+) -> Iterable[float]:
+    """Returns a set of ``num_samples`` accuracy scores
+
+    Approximates the probability of correctly predicting the position
+    transition with ``n`` samples.
+
+    :param net: net to be tested on accuracy
+    :param domain: current real domain (used to generate data measure with)
+    :param num_samples: number of (MC) samples
+    :return: probabilities of sampling correct output
+    """
+    # create (s,a,s) data
+    interactions = (sample_random_interaction(domain) for _ in range(num_samples))
+
+    # reshape to correct input/output format for pos_TNet (position only)
+    test_data = (
+        ((s.agent.position.astuple(), a.value), next_s.agent.position.astuple())
+        for (s, a, next_s) in interactions
+    )
+
+    return tnet_accuracy(net, test_data)
+
+
+def train_pos_TNet(
     net: DynamicsModel.TNet,
     states: List[GVerseState],
     actions: List[int],
@@ -266,7 +355,7 @@ class GridversePositionAugmentedState(AugmentedGodState):
 
         net_to_update = self.learned_model if optimize else deepcopy(self.learned_model)
 
-        train_TNet_on_position(
+        train_pos_TNet(
             net_to_update,
             [state.domain_state],
             [action],
@@ -329,6 +418,19 @@ class GridversePositionAugmentedState(AugmentedGodState):
     @cached_property
     def observation(self) -> np.ndarray:
         return self._obs_rep(self.domain_state)
+
+    def model_accuracy(self, n: int = 8) -> List[float]:
+        """Returns the model accuracy
+
+        Returns ``n`` accuracy values that represent how well the model
+        predicts the position. The initial position and action is sampled
+        randomly (``n`` times), and the probability of predicting the correct
+        transition is returned.
+
+        :param n: number of accuracy samples
+        :return: list of accuracy [0,1]
+        """
+        return list(pos_TNet_accuracy(self.learned_model, self.pomdp, n))
 
 
 def create_gbapomdp(

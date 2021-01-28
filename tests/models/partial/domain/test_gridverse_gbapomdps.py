@@ -1,5 +1,10 @@
+from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps import (
+    pos_TNet_accuracy,
+)
+
 """ tests the functionality of priors """
 
+import numpy as np
 import pytest
 import torch
 from gym_gridverse.envs.factory import env_from_descr
@@ -13,6 +18,7 @@ from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps imp
     agent_position,
     create_gridverse_prior,
     gverse_obs2array,
+    sample_state_with_random_agent,
 )
 
 
@@ -74,3 +80,24 @@ def test_create_gridverse_prior():
     next_s = s.update_model_distribution(s, a, next_s, o)
     assert isinstance(next_s, GridversePositionAugmentedState)
     assert not model_equals(s.learned_model.net, next_s.learned_model.net)
+
+    # some unrelated tests but cheap because I do not want to re-create the
+    # prior everytime
+
+    # test :func:`tnet_accuracy` and/through :func:`pos_TNet_accuracy`
+    acc = np.array(list(pos_TNet_accuracy(s.learned_model, d, 8)))
+
+    assert acc.shape == (8,)
+    assert (0 <= acc).all()
+    assert (acc <= 1).all()
+
+
+def test_sample_state_with_random_agent():
+    d = env_from_descr("Empty-5x5-v0")
+
+    states = [sample_state_with_random_agent(d) for n in range(200)]
+    positions = {s.agent.position.astuple() for s in states}
+    orientations = {s.agent.orientation for s in states}
+
+    assert len(positions) == 25
+    assert len(orientations) == 4
