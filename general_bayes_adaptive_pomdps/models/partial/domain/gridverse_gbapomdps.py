@@ -125,25 +125,10 @@ def create_gridverse_prior(
     for i, net in enumerate(models):
         logger.debug("Training net %s / %s...", i, len(models))
         for batch in range(num_pretrain_epochs):
-            # sample transitions
-            states = [domain.functional_reset() for _ in range(batch_size)]
 
-            # set position and orientation randomly
-            for s in states:
-                s.agent.position = Position(
-                    random.randint(0, h - 1), random.randint(0, w - 1)
-                )
-                s.agent.orientation = random.choice(list(Orientation))
-
-            actions = [
-                random.randint(0, domain.action_space.num_actions - 1)
-                for _ in range(batch_size)
-            ]
-
-            next_states = [
-                domain.functional_step(s, GVerseAction(a))[0]
-                for s, a in zip(states, actions)
-            ]
+            transitions = (sample_random_interaction(domain) for _ in range(batch_size))
+            states, gridverse_actions, next_states = zip(*transitions)
+            actions = [a.value for a in gridverse_actions]
 
             loss = train_pos_TNet(
                 net, states, actions, next_states, domain.action_space.num_actions
@@ -152,10 +137,10 @@ def create_gridverse_prior(
             if tboard_logging:
                 log_tensorboard(f"transition_loss/model-{i}", loss, batch)
 
-                if batch % 10 == 0:
+                if batch % int(num_pretrain_epochs / 100) == 0:
                     log_tensorboard(
                         f"transition_accuracy/model-{i}",
-                        list(pos_TNet_accuracy(net, domain, batch_size)),
+                        list(pos_TNet_accuracy(net, domain, 100)),
                         batch,
                     )
 
