@@ -3,7 +3,7 @@
 import abc
 from collections import deque, namedtuple
 from enum import Enum, auto
-from typing import Any, Deque, List, Tuple
+from typing import Any, Deque, List, Tuple, Optional
 
 import numpy as np
 import torch
@@ -272,9 +272,39 @@ class DynamicsModel:
             learning_rate: float,
             network_size: int,
             dropout_rate: float,
+            input_state_size: Optional[int] = None,
         ):
+            """Initiates a neural network transition model
+
+            This model implements :class:`T` with the help of :class:`NN`.
+
+            ``state_space`` and ``action_space`` are used as ways to figure out
+            the size of the model. Note that with ``input_state_size`` the
+            input of the state can be overwritten. The idea here is that it
+            should be possible to provide one-hot encoding or in general an
+            input that is different from the state space. If that parameter is
+            not given, we assume the number of dimensions in ``state_space``
+            determine the input of the model.
+
+            Most of the configuration of the network is done through the
+            parameters ``learning_rate``, ``network_size``, ``dropout_rate``
+            and ``optimizer_builder``. Here ``optimizer_builder`` is a
+            constructor that, given the network weights, creates the optimizer.
+
+            :param state_space: the expected shape of the state as in- and output of the model
+            :param action_space: determines action input (assumed one-hot)
+            :param optimizer_builder: constructs the optimizer given weights
+            :param learning_rate: learning rate used by optimizer
+            :param network_size: # of nodes in the 2-layer network
+            :param dropout_rate: rate of dropping nodes
+            :param input_state_size: overwrites the number of input nodes
+                (otherwise set to # dimensions in ``state_space``)
+            """
+            if not input_state_size:
+                input_state_size = state_space.ndim
+
             net = Net(
-                input_size=state_space.ndim + action_space.n,
+                input_size=input_state_size + action_space.n,
                 output_size=np.sum(state_space.size),
                 layer_size=network_size,
                 dropout_rate=dropout_rate,

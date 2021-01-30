@@ -76,12 +76,14 @@ def create_gridverse_prior(
     dropout_rate: float,
     num_pretrain_epochs: int,
     batch_size: int,
+    option: str,
 ) -> Prior:
     """Given a gridworld, this functions sets up a prior for the GBA-POMDP
 
     Creates a prior for the :class:`general_bayes_adaptive_pomdps.models.partial.partial_gbapomdp`
 
-    TODO: generalize to different representations
+    ``option`` decides what prior is used. Here we can choose between (learning
+    to) predict just the "position", or the "position_and_orientation".
 
     :param domain: the gridverse gridworld we are building a GBA-POMDP out of
     :param optimizer_name:
@@ -90,6 +92,7 @@ def create_gridverse_prior(
     :param dropout_rate:
     :param num_pretrain_epochs:
     :param batch_size:
+    :param option: in ["position", "position_and_orientation"]
     :return: a prior to sample initial states from
     """
     assert 0 <= learning_rate <= 1
@@ -107,20 +110,30 @@ def create_gridverse_prior(
 
     action_space = ActionSpace(domain.action_space.num_actions)
 
-    # specific to this partial model: learn model over position
-    pos_space = DiscreteSpace([h, w])
+    # generalize over prior option
+    if option == "position":
+        state_space = DiscreteSpace([h, w])
+        input_state_space = state_space.ndim
+        augmented_state_class = GridversePositionAugmentedState
+    elif option == "position_and_orientation":
+        state_space = DiscreteSpace([h, w, len(Orientation)])
+        input_state_space = DiscreteSpace([h, w] + [2] * len(Orientation)).ndim
+        augmented_state_class = GridversePositionOrientationAugmentedState
+    else:
+        raise ValueError(f"{option} not in ['position', 'position_and_orientation']")
     models = [
         DynamicsModel.TNet(
-            pos_space,
+            state_space,
             action_space,
             optimizer_builder,
             learning_rate,
             network_size,
             dropout_rate,
+            input_state_size=input_state_space,
         )
     ]
 
-    # TODO: extract
+    # TODO: extract or polish
     tboard_logging = tensorboard_logging()
     for i, net in enumerate(models):
         logger.debug("Training net %s / %s...", i, len(models))
@@ -130,7 +143,7 @@ def create_gridverse_prior(
             states, gridverse_actions, next_states = zip(*transitions)
             actions = [a.value for a in gridverse_actions]
 
-            loss = train_pos_TNet(
+            loss = augmented_state_class.train_tnet(
                 net, states, actions, next_states, domain.action_space.num_actions
             )
 
@@ -140,7 +153,7 @@ def create_gridverse_prior(
                 if batch % int(num_pretrain_epochs / 100) == 0:
                     log_tensorboard(
                         f"transition_accuracy/model-{i}",
-                        list(pos_TNet_accuracy(net, domain, 100)),
+                        list(augmented_state_class.tnet_accuracy(net, domain, 100)),
                         batch,
                     )
 
@@ -150,8 +163,8 @@ def create_gridverse_prior(
         DefaultObservationRepresentation(domain.observation_space),
     )
 
-    def prior() -> GridversePositionAugmentedState:
-        return GridversePositionAugmentedState(
+    def prior() -> augmented_state_class:
+        return augmented_state_class(
             domain.functional_reset(),
             random.choice(deepcopy(models)),
             domain,
@@ -168,6 +181,23 @@ def agent_position(state: GVerseState) -> np.ndarray:
     :returns: [x, y]
     """
     return np.array(state.agent.position.astuple())
+
+
+def agent_position_and_orientation(
+    state: GVerseState, one_hot_orientation: bool = False
+) -> np.ndarray:
+    """Get the agent position as numpy array from state
+
+    :param state: the grid-verse state that contains the agent position
+    :returns: [x, y]
+    """
+    if one_hot_orientation:
+        orientation = np.zeros(len(Orientation), dtype=int)
+        orientation[state.agent.orientation.value] = 1
+    else:
+        orientation = [state.agent.orientation.value]
+
+    return np.concatenate([agent_position(state), orientation])
 
 
 def gverse_obs2array(
@@ -234,65 +264,12 @@ def tnet_accuracy(net: DynamicsModel.TNet, test_data) -> Iterable[float]:
     )
 
 
-def pos_TNet_accuracy(
-    net: DynamicsModel.TNet, domain: GVerseGridworld, num_samples: int
-) -> Iterable[float]:
-    """Returns a set of ``num_samples`` accuracy scores
-
-    Approximates the probability of correctly predicting the position
-    transition with ``n`` samples.
-
-    :param net: net to be tested on accuracy
-    :param domain: current real domain (used to generate data measure with)
-    :param num_samples: number of (MC) samples
-    :return: probabilities of sampling correct output
-    """
-    # create (s,a,s) data
-    interactions = (sample_random_interaction(domain) for _ in range(num_samples))
-
-    # reshape to correct input/output format for pos_TNet (position only)
-    test_data = (
-        ((s.agent.position.astuple(), a.value), next_s.agent.position.astuple())
-        for (s, a, next_s) in interactions
-    )
-
-    return tnet_accuracy(net, test_data)
-
-
-def train_pos_TNet(
-    net: DynamicsModel.TNet,
-    states: List[GVerseState],
-    actions: List[int],
-    next_states: List[GVerseState],
-    num_actions: int,
-) -> float:
-    """Train ``net`` on batch of data
-
-    :param net: model to be trained
-    :param states: states at t
-    :param actions: taken actions at t
-    :param next_states: states at t+1
-    :param num_actions: total number of possible actions (required for one-hot encoding)
-    :return: loss on training
-    """
-
-    a = torch.eye(num_actions)[actions]
-    pos = torch.FloatTensor([agent_position(s) for s in states]).to(device())
-    next_pos = torch.LongTensor([agent_position(next_s) for next_s in next_states]).to(
-        device()
-    )
-
-    return net.batch_train(pos, a, next_pos)
-
-
 class GridversePositionAugmentedState(AugmentedGodState):
     """An augmented class that creates a partial GBA-POMDP for prediction position
 
     This class, when used in the :class:`GBAPOMDPThroughAugmentedState`,
     creates a partial GBA-POMDP that predicts only the position of the agent in
     the state dynamics. The other parts of the model are given.
-
-    TODO: generalize how to update the model
 
     """
 
@@ -315,7 +292,7 @@ class GridversePositionAugmentedState(AugmentedGodState):
         next_state: AugmentedGodState,
         obs: np.ndarray,
         optimize: bool = False,
-    ):
+    ) -> "GridversePositionAugmentedState":
         """Updates the model distribution parameters with (s,a,s',o) data
 
         Given the prior over the model in ``self``, computes a new posterior
@@ -325,22 +302,23 @@ class GridversePositionAugmentedState(AugmentedGodState):
         Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state
         according to the model in ``self``.
 
-        NOTE: modifies ``self``
+        NOTE: modifies ``self`` if ``optimize`` is True
 
         The updates applied are set during initialization.
 
         :param state: state at t
         :param action: action at t
         :param next_state: state at t+1
-        :param obs: state at t+1
+        :param obs: ignored
         :param optimize: whether to update model from ``self``
+        :return: new state with updated model
         """
         assert isinstance(state, GridversePositionAugmentedState)
         assert isinstance(next_state, GridversePositionAugmentedState)
 
         net_to_update = self.learned_model if optimize else deepcopy(self.learned_model)
 
-        train_pos_TNet(
+        GridversePositionAugmentedState.train_tnet(
             net_to_update,
             [state.domain_state],
             [action],
@@ -366,19 +344,18 @@ class GridversePositionAugmentedState(AugmentedGodState):
         :return: updated augmented state and generated observation
         """
 
-        # (learned) prediction part)
+        # (learned) prediction part
         next_pos = self.learned_model.sample(
             agent_position(self.domain_state), action, num=1
         )
 
         # known-part
-        self.domain_state = self.pomdp.functional_step(
+        next_domain_state = self.pomdp.functional_step(
             self.domain_state, GVerseAction(action)
         )[0]
 
         # merge
-        next_domain_state = deepcopy(self.domain_state)
-        next_domain_state.agent.position = Position(*next_pos)
+        next_domain_state.agent.position = Position.from_position_or_tuple(next_pos)
 
         next_state = GridversePositionAugmentedState(
             next_domain_state, self.learned_model, self.pomdp, self._obs_rep
@@ -415,7 +392,250 @@ class GridversePositionAugmentedState(AugmentedGodState):
         :param n: number of accuracy samples
         :return: list of accuracy [0,1]
         """
-        return list(pos_TNet_accuracy(self.learned_model, self.pomdp, n))
+        return list(self.tnet_accuracy(self.learned_model, self.pomdp, n))
+
+    @staticmethod
+    def tnet_accuracy(
+        net: DynamicsModel.TNet, domain: GVerseGridworld, num_samples: int
+    ) -> Iterable[float]:
+        """Returns a set of ``num_samples`` accuracy scores
+
+        Approximates the probability of correctly predicting the position
+        transition with ``n`` samples.
+
+        :param net: net to be tested on accuracy
+        :param domain: current real domain (used to generate data measure with)
+        :param num_samples: number of (MC) samples
+        :return: probabilities of sampling correct output
+        """
+        # create (s,a,s) data
+        interactions = (sample_random_interaction(domain) for _ in range(num_samples))
+
+        # reshape to correct input/output format for pos_TNet (position only)
+        test_data = (
+            ((s.agent.position.astuple(), a.value), next_s.agent.position.astuple())
+            for (s, a, next_s) in interactions
+        )
+
+        return tnet_accuracy(net, test_data)
+
+    @staticmethod
+    def train_tnet(
+        net: DynamicsModel.TNet,
+        states: List[GVerseState],
+        actions: List[int],
+        next_states: List[GVerseState],
+        num_actions: int,
+    ) -> float:
+        """Train ``net`` on batch of data
+
+        :param net: model to be trained
+        :param states: states at t
+        :param actions: taken actions at t
+        :param next_states: states at t+1
+        :param num_actions: total number of possible actions (required for one-hot encoding)
+        :return: loss on training
+        """
+
+        a = torch.eye(num_actions)[actions]
+        pos = torch.FloatTensor([agent_position(s) for s in states]).to(device())
+        next_pos = torch.LongTensor(
+            [agent_position(next_s) for next_s in next_states]
+        ).to(device())
+
+        return net.batch_train(pos, a, next_pos)
+
+
+class GridversePositionOrientationAugmentedState(AugmentedGodState):
+    """An augmented class that creates a partial GBA-POMDP for prediction position
+
+    This class, when used in the :class:`GBAPOMDPThroughAugmentedState`,
+    creates a partial GBA-POMDP that predicts the position and orientation of
+    the agent in the state dynamics. The other parts of the model are given.
+
+    """
+
+    def __init__(
+        self,
+        initial_state: GVerseState,
+        learned_model: DynamicsModel.TNet,
+        pomdp: GVerseGridworld,
+        obs_rep: Callable[[GVerseState], np.ndarray],
+    ):
+        self.domain_state = initial_state
+        self.learned_model = learned_model
+        self.pomdp = pomdp
+        self._obs_rep = obs_rep
+
+    def update_model_distribution(
+        self,
+        state: AugmentedGodState,
+        action: int,
+        next_state: AugmentedGodState,
+        obs: np.ndarray,
+        optimize: bool = False,
+    ) -> "GridversePositionOrientationAugmentedState":
+        """Updates the model distribution parameters with (s,a,s',o) data
+
+        Given the prior over the model in ``self``, computes a new posterior
+        given the (``state``, ``action``, ``next_state``, ``obs``)
+        transition.
+
+        Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state
+        according to the model in ``self``.
+
+        NOTE: modifies ``self`` if ``optimize`` is true
+
+        The updates applied are set during initialization.
+
+        :param state: state at t
+        :param action: action at t
+        :param next_state: state at t+1
+        :param obs: ignored
+        :param optimize: whether to update model from ``self``
+        """
+        assert isinstance(state, GridversePositionOrientationAugmentedState)
+        assert isinstance(next_state, GridversePositionOrientationAugmentedState)
+
+        net_to_update = self.learned_model if optimize else deepcopy(self.learned_model)
+
+        GridversePositionOrientationAugmentedState.train_tnet(
+            net_to_update,
+            [state.domain_state],
+            [action],
+            [next_state.domain_state],
+            self.pomdp.action_space.num_actions,
+        )
+
+        return GridversePositionOrientationAugmentedState(
+            self.domain_state, net_to_update, self.pomdp, self._obs_rep
+        )
+
+    def domain_step(self, action: int) -> Tuple["AugmentedGodState", np.ndarray]:
+        """Applies ``action`` on POMDP state in ``self``
+
+        Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state according to the model in ``self``:
+
+            #. samples the next position according to learned model
+            #. samples next state according to POMDP dynamics
+            #. sets next position to the sampled one
+            #. returns observation by known model
+
+        :param action: action taken by agent
+        :return: updated augmented state and generated observation
+        """
+
+        # (learned) prediction part
+        next_y, next_x, next_orientation = self.learned_model.sample(
+            agent_position_and_orientation(self.domain_state, one_hot_orientation=True),
+            action,
+            num=1,
+        )
+
+        # known-part
+        next_domain_state = self.pomdp.functional_step(
+            self.domain_state, GVerseAction(action)
+        )[0]
+
+        # merge
+        next_domain_state.agent.position = Position(next_y, next_x)
+        next_domain_state.agent.orientation = Orientation(next_orientation)
+
+        next_state = GridversePositionOrientationAugmentedState(
+            next_domain_state, self.learned_model, self.pomdp, self._obs_rep
+        )
+
+        obs = next_state.observation
+
+        return next_state, obs
+
+    def reward(self, action: int, next_state: AugmentedGodState) -> float:
+        assert isinstance(next_state, GridversePositionOrientationAugmentedState)
+        return self.pomdp.reward_function(
+            self.domain_state, GVerseAction(action), next_state.domain_state
+        )
+
+    def terminal(self, action: int, next_state: AugmentedGodState) -> bool:
+        assert isinstance(next_state, GridversePositionOrientationAugmentedState)
+        return self.pomdp.termination_function(
+            self.domain_state, GVerseAction(action), next_state.domain_state
+        )
+
+    @cached_property
+    def observation(self) -> np.ndarray:
+        return self._obs_rep(self.domain_state)
+
+    def model_accuracy(self, n: int = 8) -> List[float]:
+        """Returns the model accuracy
+
+        Returns ``n`` accuracy values that represent how well the model
+        predicts the position. The initial position and action is sampled
+        randomly (``n`` times), and the probability of predicting the correct
+        transition is returned.
+
+        :param n: number of accuracy samples
+        :return: list of accuracy [0,1]
+        """
+        return list(self.tnet_accuracy(self.learned_model, self.pomdp, n))
+
+    @staticmethod
+    def tnet_accuracy(
+        net: DynamicsModel.TNet, domain: GVerseGridworld, num_samples: int
+    ) -> Iterable[float]:
+        """Returns a set of ``num_samples`` accuracy scores
+
+        Approximates the probability of correctly predicting the position
+        transition with ``n`` samples.
+
+        :param net: net to be tested on accuracy
+        :param domain: current real domain (used to generate data measure with)
+        :param num_samples: number of (MC) samples
+        :return: probabilities of sampling correct output
+        """
+        # create (s,a,s) data
+        interactions = (sample_random_interaction(domain) for _ in range(num_samples))
+
+        # reshape to correct input/output format for pos_TNet (position only)
+        test_data = (
+            (
+                (agent_position_and_orientation(s, one_hot_orientation=True), a.value),
+                agent_position_and_orientation(next_s),
+            )
+            for (s, a, next_s) in interactions
+        )
+
+        return tnet_accuracy(net, test_data)
+
+    @staticmethod
+    def train_tnet(
+        net: DynamicsModel.TNet,
+        states: List[GVerseState],
+        actions: List[int],
+        next_states: List[GVerseState],
+        num_actions: int,
+    ) -> float:
+        """Train ``net`` on batch of data
+
+        :param net: model to be trained
+        :param states: states at t
+        :param actions: taken actions at t
+        :param next_states: states at t+1
+        :param num_actions: total number of possible actions (required for one-hot encoding)
+        :return: loss on training
+        """
+
+        a = torch.eye(num_actions)[actions]
+        state_input_rep = torch.FloatTensor(
+            [
+                agent_position_and_orientation(s, one_hot_orientation=True)
+                for s in states
+            ]
+        ).to(device())
+        state_output_rep = torch.LongTensor(
+            [agent_position_and_orientation(next_s) for next_s in next_states]
+        ).to(device())
+
+        return net.batch_train(state_input_rep, a, state_output_rep)
 
 
 def create_gbapomdp(
@@ -426,7 +646,9 @@ def create_gbapomdp(
     dropout_rate: float,
     num_pretrain_epochs: int,
     batch_size: int,
+    option: str,
 ) -> GBAPOMDPThroughAugmentedState:
+    # TODO: doc
 
     prior = create_gridverse_prior(
         domain,
@@ -436,6 +658,7 @@ def create_gbapomdp(
         dropout_rate,
         num_pretrain_epochs,
         batch_size,
+        option,
     )
     action_space = ActionSpace(domain.action_space.num_actions)
     # TODO: create this.

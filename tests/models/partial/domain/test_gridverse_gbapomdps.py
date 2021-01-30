@@ -1,7 +1,3 @@
-from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps import (
-    pos_TNet_accuracy,
-)
-
 """ tests the functionality of priors """
 
 import numpy as np
@@ -9,16 +5,21 @@ import pytest
 import torch
 from gym_gridverse.envs.factory import env_from_descr
 from gym_gridverse.envs.gridworld import GridWorld as GVerseGridworld
+from gym_gridverse.geometry import Orientation, Position
 from gym_gridverse.representations.observation_representations import (
     DefaultObservationRepresentation,
 )
 
 from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps import (
     GridversePositionAugmentedState,
+    GridversePositionOrientationAugmentedState,
     agent_position,
+    agent_position_and_orientation,
+    create_gbapomdp,
     create_gridverse_prior,
     gverse_obs2array,
     sample_state_with_random_agent,
+    tnet_accuracy,
 )
 
 
@@ -26,9 +27,30 @@ from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps imp
 def test_agent_position(pos):
     d = env_from_descr("KeyDoor-16x16-v0")
     s = d.functional_reset()
-    s.agent.position = pos
+    s.agent.position = Position.from_position_or_tuple(pos)
 
     assert (agent_position(s) == pos).all()
+
+
+@pytest.mark.parametrize("pos,orientation", [((5, 2), 0), ((0, 0), 2), ((100, 50), 3)])
+def test_agent_position_and_orientation(pos, orientation):
+    d = env_from_descr("KeyDoor-16x16-v0")
+    s = d.functional_reset()
+    s.agent.position = Position.from_position_or_tuple(pos)
+    s.agent.orientation = Orientation(orientation)
+    y, x, o = agent_position_and_orientation(s)
+
+    assert y == pos[0]
+    assert x == pos[1]
+    assert o == orientation
+
+    out = agent_position_and_orientation(s, one_hot_orientation=True)
+    y = out[0]
+    x = out[1]
+    o = out[2:]
+    assert out[0] == pos[0]
+    assert x == pos[1]
+    assert o.shape == (4,) and o.sum() == 1 and o[orientation] == 1
 
 
 def test_gverse_obs2array():
@@ -48,48 +70,72 @@ def model_equals(model_a, model_b) -> bool:
     return True
 
 
-def test_create_gridverse_prior():
+@pytest.mark.parametrize(
+    "prior_option, expected_class",
+    [
+        ("position", GridversePositionAugmentedState),
+        ("position_and_orientation", GridversePositionOrientationAugmentedState),
+    ],
+)
+def test_create_gridverse_prior(prior_option, expected_class):
 
     d = env_from_descr("Empty-5x5-v0")
     assert isinstance(d, GVerseGridworld)
 
-    opt = "SGD"
-    alpha = 0.1
-    s = 32
-    drop = 0.5
-    n = 128
-    batch = 8
-
-    p = create_gridverse_prior(d, opt, alpha, s, drop, n, batch)
-
+    p = create_gridverse_prior(d, "SGD", 0.01, 32, 0.5, 128, 8, prior_option)
     s = p()
-    a = 0
 
-    assert isinstance(s, GridversePositionAugmentedState)
+    assert isinstance(s, expected_class)
 
-    next_s, o = s.domain_step(a)
-    assert isinstance(next_s, GridversePositionAugmentedState)
-    assert not s.domain_state == next_s.domain_state
 
+# TODO: generalize to test "any" GBA-POMDP
+@pytest.mark.parametrize(
+    "prior_option, expected_class",
+    [
+        ("position", GridversePositionAugmentedState),
+        ("position_and_orientation", GridversePositionOrientationAugmentedState),
+    ],
+)
+def test_gbapomdp(prior_option, expected_class):
+    d = env_from_descr("Dynamic-Obstacles-6x6-v0")
+    assert isinstance(d, GVerseGridworld)
+
+    gbapomdp = create_gbapomdp(d, "SGD", 0.01, 32, 0.0, 128, 8, prior_option)
+
+    # test `action_space`
+    assert gbapomdp.action_space.n == d.action_space.num_actions
+
+    s = gbapomdp.sample_start_state()
+    assert isinstance(s, expected_class)
+
+    # testing `simulation_step`
+    next_step = gbapomdp.simulation_step(s, 0, optimize=False)
+    next_s1, obs = next_step.state, next_step.observation
+    assert isinstance(s, expected_class)
+    assert isinstance(next_s1, expected_class)
+    assert not model_equals(s.learned_model.net, next_s1.learned_model.net)
+    assert not s.domain_state == next_s1.domain_state
+
+    next_s2 = gbapomdp.simulation_step(s, 0, optimize=True).state
+    assert model_equals(s.learned_model.net, next_s2.learned_model.net)
+    assert not s.domain_state == next_s1.domain_state
+
+    # testing `domain_simulation_step`
+    next_s = gbapomdp.domain_simulation_step(s, 1).state
+    assert isinstance(next_s, expected_class)
     assert model_equals(s.learned_model.net, next_s.learned_model.net)
+    assert not s.domain_state == next_s1.domain_state
 
-    next_s = s.update_model_distribution(s, a, next_s, o, optimize=True)
-    assert isinstance(next_s, GridversePositionAugmentedState)
-    assert model_equals(s.learned_model.net, next_s.learned_model.net)
+    # testing `model_simulation_step`
+    next_state = gbapomdp.model_simulation_step(s, s, 2, next_s1, obs)
+    assert isinstance(next_state, expected_class)
+    assert not model_equals(s.learned_model.net, next_state.learned_model.net)
+    assert s.domain_state == next_state.domain_state
 
-    next_s = s.update_model_distribution(s, a, next_s, o)
-    assert isinstance(next_s, GridversePositionAugmentedState)
-    assert not model_equals(s.learned_model.net, next_s.learned_model.net)
-
-    # some unrelated tests but cheap because I do not want to re-create the
-    # prior everytime
-
-    # test :func:`tnet_accuracy` and/through :func:`pos_TNet_accuracy`
-    acc = np.array(list(pos_TNet_accuracy(s.learned_model, d, 8)))
-
-    assert acc.shape == (8,)
-    assert (0 <= acc).all()
-    assert (acc <= 1).all()
+    next_state = gbapomdp.model_simulation_step(s, s, 2, next_s1, obs, optimize=True)
+    assert isinstance(next_state, expected_class)
+    assert model_equals(s.learned_model.net, next_state.learned_model.net)
+    assert s.domain_state == next_state.domain_state
 
 
 def test_sample_state_with_random_agent():
@@ -101,3 +147,109 @@ def test_sample_state_with_random_agent():
 
     assert len(positions) == 25
     assert len(orientations) == 4
+
+
+def test_position_augmented_state():
+    """Some random and basic tests on :class:`GridversePositionAugmentedState`"""
+
+    # hacky way of getting a state
+    d = env_from_descr("KeyDoor-16x16-v0")
+    assert isinstance(d, GVerseGridworld)
+    p = create_gridverse_prior(d, "SGD", 0.01, 32, 0.0, 128, 8, option="position")
+
+    s = p()
+    assert isinstance(s, GridversePositionAugmentedState)
+
+    # test updating model
+    a = 3
+
+    # test `domain_step`
+    next_s, o = s.domain_step(a)
+    assert isinstance(next_s, GridversePositionAugmentedState)
+    assert not s.domain_state == next_s.domain_state
+    assert model_equals(s.learned_model.net, next_s.learned_model.net)
+
+    # test `update_model_distribution` and `model_accuracy`
+    transition_data = [
+        ((agent_position(s.domain_state), a), agent_position(next_s.domain_state))
+    ]
+    init_acc = list(tnet_accuracy(s.learned_model, transition_data))[0]
+
+    s_with_updated_model = s.update_model_distribution(s, a, next_s, o, optimize=True)
+    acc = list(tnet_accuracy(s.learned_model, transition_data))[0]
+    assert isinstance(s_with_updated_model, GridversePositionAugmentedState)
+    assert model_equals(s.learned_model.net, s_with_updated_model.learned_model.net)
+    assert init_acc < acc
+
+    s_with_updated_model = s.update_model_distribution(s, a, next_s, o)
+    assert not model_equals(s.learned_model.net, s_with_updated_model.learned_model.net)
+    assert acc == list(tnet_accuracy(s.learned_model, transition_data))[0]
+    assert (
+        acc
+        < list(tnet_accuracy(s_with_updated_model.learned_model, transition_data))[0]
+    )
+
+    # test `model_accuracy`
+    acc = np.array(list(s.model_accuracy(8)))
+
+    assert acc.shape == (8,)
+    assert (0 <= acc).all()
+    assert (acc <= 1).all()
+
+
+def test_position_and_orientation_augmented_state():
+    """Some random and basic tests on :class:`GridversePositionOrientationAugmentedState`"""
+
+    # hacky way of getting a state
+    d = env_from_descr("KeyDoor-16x16-v0")
+    assert isinstance(d, GVerseGridworld)
+    p = create_gridverse_prior(
+        d, "SGD", 0.1, 32, 0.0, 128, 8, option="position_and_orientation"
+    )
+
+    s = p()
+    assert isinstance(s, GridversePositionOrientationAugmentedState)
+
+    # test updating model
+    a = 3
+
+    # test `domain_step`
+    next_s, o = s.domain_step(a)
+    assert isinstance(next_s, GridversePositionOrientationAugmentedState)
+    assert not s.domain_state == next_s.domain_state
+    assert model_equals(s.learned_model.net, next_s.learned_model.net)
+
+    # test `update_model_distribution` and `model_accuracy`
+    transition_data = [
+        (
+            (
+                agent_position_and_orientation(
+                    s.domain_state, one_hot_orientation=True
+                ),
+                a,
+            ),
+            agent_position_and_orientation(next_s.domain_state),
+        )
+    ]
+    init_acc = list(tnet_accuracy(s.learned_model, transition_data))[0]
+
+    s_with_updated_model = s.update_model_distribution(s, a, next_s, o, optimize=True)
+    acc = list(tnet_accuracy(s.learned_model, transition_data))[0]
+    assert isinstance(s_with_updated_model, GridversePositionOrientationAugmentedState)
+    assert model_equals(s.learned_model.net, s_with_updated_model.learned_model.net)
+    assert init_acc < acc
+
+    s_with_updated_model = s.update_model_distribution(s, a, next_s, o)
+    assert not model_equals(s.learned_model.net, s_with_updated_model.learned_model.net)
+    assert acc == list(tnet_accuracy(s.learned_model, transition_data))[0]
+    assert (
+        acc
+        < list(tnet_accuracy(s_with_updated_model.learned_model, transition_data))[0]
+    )
+
+    # test `model_accuracy`
+    acc = np.array(list(s.model_accuracy(8)))
+
+    assert acc.shape == (8,)
+    assert (0 <= acc).all()
+    assert (acc <= 1).all()

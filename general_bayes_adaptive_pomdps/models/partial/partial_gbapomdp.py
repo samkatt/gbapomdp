@@ -33,7 +33,7 @@ class AugmentedGodState(Protocol):
 
         Given the transition (s,a,s',o), this function updates the model parameters
 
-        NOTE: modifies ``self``
+        NOTE: modifies ``self`` if ``optimize`` is set to true
 
         :param state:
         :param action:
@@ -135,9 +135,9 @@ class GBAPOMDPThroughAugmentedState(GBAPOMDP[AugmentedGodState]):
         Part of GBAPOMDP protocol
         """
 
-        state, obs = state.domain_step(action)
-        next_state = state.update_model_distribution(
-            state, action, state, obs, optimize
+        next_state, obs = state.domain_step(action)
+        next_state = next_state.update_model_distribution(
+            state, action, next_state, obs, optimize
         )
 
         return SimulationResult(next_state, obs)
