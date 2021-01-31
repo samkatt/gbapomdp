@@ -155,7 +155,7 @@ def test_position_augmented_state():
     # hacky way of getting a state
     d = env_from_descr("KeyDoor-16x16-v0")
     assert isinstance(d, GVerseGridworld)
-    p = create_gridverse_prior(d, "SGD", 0.01, 32, 0.0, 128, 8, option="position")
+    p = create_gridverse_prior(d, "SGD", 0.01, 32, 0.0, 128, 8, model_type="position")
 
     s = p()
     assert isinstance(s, GridversePositionAugmentedState)
@@ -204,7 +204,7 @@ def test_position_and_orientation_augmented_state():
     d = env_from_descr("KeyDoor-16x16-v0")
     assert isinstance(d, GVerseGridworld)
     p = create_gridverse_prior(
-        d, "SGD", 0.1, 32, 0.0, 128, 8, option="position_and_orientation"
+        d, "SGD", 0.1, 32, 0.0, 128, 8, model_type="position_and_orientation"
     )
 
     s = p()

@@ -76,13 +76,13 @@ def create_gridverse_prior(
     dropout_rate: float,
     num_pretrain_epochs: int,
     batch_size: int,
-    option: str,
+    model_type: str,
 ) -> Prior:
     """Given a gridworld, this functions sets up a prior for the GBA-POMDP
 
     Creates a prior for the :class:`general_bayes_adaptive_pomdps.models.partial.partial_gbapomdp`
 
-    ``option`` decides what prior is used. Here we can choose between (learning
+    ``model_type`` decides what prior is used. Here we can choose between (learning
     to) predict just the "position", or the "position_and_orientation".
 
     :param domain: the gridverse gridworld we are building a GBA-POMDP out of
@@ -92,7 +92,7 @@ def create_gridverse_prior(
     :param dropout_rate:
     :param num_pretrain_epochs:
     :param batch_size:
-    :param option: in ["position", "position_and_orientation"]
+    :param model_type: in ["position", "position_and_orientation"]
     :return: a prior to sample initial states from
     """
     assert 0 <= learning_rate <= 1
@@ -111,16 +111,18 @@ def create_gridverse_prior(
     action_space = ActionSpace(domain.action_space.num_actions)
 
     # generalize over prior option
-    if option == "position":
+    if model_type == "position":
         state_space = DiscreteSpace([h, w])
         input_state_space = state_space.ndim
         augmented_state_class = GridversePositionAugmentedState
-    elif option == "position_and_orientation":
+    elif model_type == "position_and_orientation":
         state_space = DiscreteSpace([h, w, len(Orientation)])
         input_state_space = DiscreteSpace([h, w] + [2] * len(Orientation)).ndim
         augmented_state_class = GridversePositionOrientationAugmentedState
     else:
-        raise ValueError(f"{option} not in ['position', 'position_and_orientation']")
+        raise ValueError(
+            f"{model_type} not in ['position', 'position_and_orientation']"
+        )
     models = [
         DynamicsModel.TNet(
             state_space,
@@ -660,7 +662,7 @@ def create_gbapomdp(
     dropout_rate: float,
     num_pretrain_epochs: int,
     batch_size: int,
-    option: str,
+    model_type: str,
 ) -> GBAPOMDPThroughAugmentedState:
     """Creates the gridverse GBA-POMDP
 
@@ -673,8 +675,8 @@ def create_gbapomdp(
     :class:`GBAPOMDPThroughAugmentedState`. The prior pre-trains models, given
     the ``optimizer_name``, ``learning_rate``, ``network_size``.
     ``dropout_rate``, ``num_pretrain_epochs`` and ``batch_size``. The type of
-    model trained depends on ``option``, which can take either ``position`` or
-    ``position_and_orientation``, which return augmented states that either
+    model trained depends on ``model_type``, which can take either ``position``
+    or ``position_and_orientation``, which return augmented states that either
     have trained to predict just the position, or the position and orientation
     of the next state.
 
@@ -685,7 +687,7 @@ def create_gbapomdp(
     :param dropout_rate: how much nodes to drop during a forward-pass
     :param num_pretrain_epochs: number of batches to train on for the prior
     :param batch_size: size of a batch during pre-training
-    :param option: type of GBA-POMDP ["position", "position_and_orientation"]
+    :param model_type: type of GBA-POMDP ["position", "position_and_orientation"]
     :return: GBAPOMDPThroughAugmentedState GBA-POMDP for grid-verse
     """
 
@@ -697,7 +699,7 @@ def create_gbapomdp(
         dropout_rate,
         num_pretrain_epochs,
         batch_size,
-        option,
+        model_type,
     )
     action_space = ActionSpace(domain.action_space.num_actions)
     # TODO: create this.
