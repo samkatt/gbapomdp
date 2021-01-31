@@ -662,7 +662,32 @@ def create_gbapomdp(
     batch_size: int,
     option: str,
 ) -> GBAPOMDPThroughAugmentedState:
-    # TODO: doc
+    """Creates the gridverse GBA-POMDP
+
+    The GBA-POMDP for the grid-verse problem depends mostly on the prior. Once
+    a prior is given, which determines the type of augmented state, the rest
+    follows. Hence most of the configurations depends on how to train and
+    determine the prior states.
+
+    This function returns a GBA-PODMP, based on the
+    :class:`GBAPOMDPThroughAugmentedState`. The prior pre-trains models, given
+    the ``optimizer_name``, ``learning_rate``, ``network_size``.
+    ``dropout_rate``, ``num_pretrain_epochs`` and ``batch_size``. The type of
+    model trained depends on ``option``, which can take either ``position`` or
+    ``position_and_orientation``, which return augmented states that either
+    have trained to predict just the position, or the position and orientation
+    of the next state.
+
+    :param domain: the underlying grid-verse domain
+    :param optimizer_name: which optimizer to train with ["SGD", "Adam"]
+    :param learning_rate: learning rate to use for training
+    :param network_size: size of networks (2-layer, this determines # nodes)
+    :param dropout_rate: how much nodes to drop during a forward-pass
+    :param num_pretrain_epochs: number of batches to train on for the prior
+    :param batch_size: size of a batch during pre-training
+    :param option: type of GBA-POMDP ["position", "position_and_orientation"]
+    :return: GBAPOMDPThroughAugmentedState GBA-POMDP for grid-verse
+    """
 
     prior = create_gridverse_prior(
         domain,
