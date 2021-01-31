@@ -141,10 +141,10 @@ def create_gridverse_prior(
 
             transitions = (sample_random_interaction(domain) for _ in range(batch_size))
             states, gridverse_actions, next_states = zip(*transitions)
-            actions = [a.value for a in gridverse_actions]
+            actions = [domain.action_space.action_to_int(a) for a in gridverse_actions]
 
             loss = augmented_state_class.train_tnet(
-                net, states, actions, next_states, domain.action_space.num_actions
+                net, states, actions, next_states, action_space.n
             )
 
             if tboard_logging:
@@ -242,7 +242,7 @@ def sample_random_interaction(
     a = random.choice(d.action_space.actions)
     next_s = d.functional_step(s, a)[0]
 
-    return (s, a, next_s)
+    return s, a, next_s
 
 
 def tnet_accuracy(net: DynamicsModel.TNet, test_data) -> Iterable[float]:
@@ -351,7 +351,7 @@ class GridversePositionAugmentedState(AugmentedGodState):
 
         # known-part
         next_domain_state = self.pomdp.functional_step(
-            self.domain_state, GVerseAction(action)
+            self.domain_state, self.pomdp.action_space.int_to_action(action)
         )[0]
 
         # merge
@@ -368,13 +368,17 @@ class GridversePositionAugmentedState(AugmentedGodState):
     def reward(self, action: int, next_state: AugmentedGodState) -> float:
         assert isinstance(next_state, GridversePositionAugmentedState)
         return self.pomdp.reward_function(
-            self.domain_state, GVerseAction(action), next_state.domain_state
+            self.domain_state,
+            self.pomdp.action_space.int_to_action(action),
+            next_state.domain_state,
         )
 
     def terminal(self, action: int, next_state: AugmentedGodState) -> bool:
         assert isinstance(next_state, GridversePositionAugmentedState)
         return self.pomdp.termination_function(
-            self.domain_state, GVerseAction(action), next_state.domain_state
+            self.domain_state,
+            self.pomdp.action_space.int_to_action(action),
+            next_state.domain_state,
         )
 
     @cached_property
@@ -413,7 +417,10 @@ class GridversePositionAugmentedState(AugmentedGodState):
 
         # reshape to correct input/output format for pos_TNet (position only)
         test_data = (
-            ((s.agent.position.astuple(), a.value), next_s.agent.position.astuple())
+            (
+                (s.agent.position.astuple(), domain.action_space.action_to_int(a)),
+                next_s.agent.position.astuple(),
+            )
             for (s, a, next_s) in interactions
         )
 
@@ -534,7 +541,7 @@ class GridversePositionOrientationAugmentedState(AugmentedGodState):
 
         # known-part
         next_domain_state = self.pomdp.functional_step(
-            self.domain_state, GVerseAction(action)
+            self.domain_state, self.pomdp.action_space.int_to_action(action)
         )[0]
 
         # merge
@@ -552,13 +559,17 @@ class GridversePositionOrientationAugmentedState(AugmentedGodState):
     def reward(self, action: int, next_state: AugmentedGodState) -> float:
         assert isinstance(next_state, GridversePositionOrientationAugmentedState)
         return self.pomdp.reward_function(
-            self.domain_state, GVerseAction(action), next_state.domain_state
+            self.domain_state,
+            self.pomdp.action_space.int_to_action(action),
+            next_state.domain_state,
         )
 
     def terminal(self, action: int, next_state: AugmentedGodState) -> bool:
         assert isinstance(next_state, GridversePositionOrientationAugmentedState)
         return self.pomdp.termination_function(
-            self.domain_state, GVerseAction(action), next_state.domain_state
+            self.domain_state,
+            self.pomdp.action_space.int_to_action(action),
+            next_state.domain_state,
         )
 
     @cached_property
@@ -598,7 +609,10 @@ class GridversePositionOrientationAugmentedState(AugmentedGodState):
         # reshape to correct input/output format for pos_TNet (position only)
         test_data = (
             (
-                (agent_position_and_orientation(s, one_hot_orientation=True), a.value),
+                (
+                    agent_position_and_orientation(s, one_hot_orientation=True),
+                    domain.action_space.action_to_int(a),
+                ),
                 agent_position_and_orientation(next_s),
             )
             for (s, a, next_s) in interactions
