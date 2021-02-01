@@ -1,8 +1,8 @@
 """ tests the functionality of priors """
-
 import numpy as np
 import pytest
 import torch
+from gym_gridverse.action import Action as GVerseAction
 from gym_gridverse.envs.factory import env_from_descr
 from gym_gridverse.envs.gridworld import GridWorld as GVerseGridworld
 from gym_gridverse.geometry import Orientation, Position
@@ -16,11 +16,23 @@ from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps imp
     agent_position,
     agent_position_and_orientation,
     create_gbapomdp,
-    create_gridverse_prior,
+    get_augmented_state_class,
     gverse_obs2array,
+    noise_turn_orientation_transactions,
     sample_state_with_random_agent,
     tnet_accuracy,
 )
+
+
+def test_get_augmented_state_class():
+    assert get_augmented_state_class("position") == GridversePositionAugmentedState
+    assert (
+        get_augmented_state_class("position_and_orientation")
+        == GridversePositionOrientationAugmentedState
+    )
+
+    with pytest.raises(ValueError):
+        get_augmented_state_class("something else")
 
 
 @pytest.mark.parametrize("pos", [((5, 2)), ((0, 0)), ((100, 50))])
@@ -61,6 +73,35 @@ def test_gverse_obs2array():
     assert obs.shape == (297,)
 
 
+@pytest.mark.parametrize(
+    "height,width",
+    [
+        (3, 3),
+        (10, 10),
+        (7, 9),
+    ],
+)
+def test_state_space(height, width):
+    """Tests ``.state_space`` staticmethods of augmented states"""
+    assert (
+        GridversePositionAugmentedState.state_space(height, width).size
+        == [
+            height,
+            width,
+        ]
+    ).all()
+    assert (
+        GridversePositionOrientationAugmentedState.state_space(height, width).size
+        == [height, width, 4]
+    ).all()
+
+
+def test_state_input_size():
+    """Tests ``.state_input_size`` staticmethods of augmented states"""
+    assert GridversePositionAugmentedState.state_input_size() == 2
+    assert GridversePositionOrientationAugmentedState.state_input_size() == 6
+
+
 def model_equals(model_a, model_b) -> bool:
     """returns whether provided pytorch models are equal"""
     for tensor_a, tensor_b in zip(model_a.parameters(), model_b.parameters()):
@@ -70,37 +111,22 @@ def model_equals(model_a, model_b) -> bool:
     return True
 
 
-@pytest.mark.parametrize(
-    "prior_option, expected_class",
-    [
-        ("position", GridversePositionAugmentedState),
-        ("position_and_orientation", GridversePositionOrientationAugmentedState),
-    ],
-)
-def test_create_gridverse_prior(prior_option, expected_class):
-
-    d = env_from_descr("Empty-5x5-v0")
-    assert isinstance(d, GVerseGridworld)
-
-    p = create_gridverse_prior(d, "SGD", 0.01, 32, 0.5, 128, 8, prior_option)
-    s = p()
-
-    assert isinstance(s, expected_class)
-
-
 # TODO: generalize to test "any" GBA-POMDP
 @pytest.mark.parametrize(
-    "prior_option, expected_class",
+    "model_type, expected_class",
     [
         ("position", GridversePositionAugmentedState),
         ("position_and_orientation", GridversePositionOrientationAugmentedState),
     ],
 )
-def test_gbapomdp(prior_option, expected_class):
+def test_gbapomdp(
+    model_type,
+    expected_class,
+):
     d = env_from_descr("Dynamic-Obstacles-6x6-v0")
     assert isinstance(d, GVerseGridworld)
 
-    gbapomdp = create_gbapomdp(d, "SGD", 0.01, 32, 0.0, 128, 8, prior_option)
+    gbapomdp = create_gbapomdp(d, "SGD", 0.01, 32, 0.0, 128, 8, model_type, "")
 
     # test `action_space`
     assert gbapomdp.action_space.n == d.action_space.num_actions
@@ -141,7 +167,7 @@ def test_gbapomdp(prior_option, expected_class):
 def test_sample_state_with_random_agent():
     d = env_from_descr("Empty-5x5-v0")
 
-    states = [sample_state_with_random_agent(d) for n in range(200)]
+    states = [sample_state_with_random_agent(d) for _ in range(200)]
     positions = {s.agent.position.astuple() for s in states}
     orientations = {s.agent.orientation for s in states}
 
@@ -155,7 +181,9 @@ def test_position_augmented_state():
     # hacky way of getting a state
     d = env_from_descr("KeyDoor-16x16-v0")
     assert isinstance(d, GVerseGridworld)
-    p = create_gridverse_prior(d, "SGD", 0.01, 32, 0.0, 128, 8, model_type="position")
+    p = create_gbapomdp(
+        d, "SGD", 0.01, 32, 0.0, 128, 8, "position", ""
+    ).sample_start_state
 
     s = p()
     assert isinstance(s, GridversePositionAugmentedState)
@@ -203,9 +231,17 @@ def test_position_and_orientation_augmented_state():
     # hacky way of getting a state
     d = env_from_descr("KeyDoor-16x16-v0")
     assert isinstance(d, GVerseGridworld)
-    p = create_gridverse_prior(
-        d, "SGD", 0.1, 32, 0.0, 128, 8, model_type="position_and_orientation"
-    )
+    p = create_gbapomdp(
+        d,
+        "SGD",
+        0.1,
+        32,
+        0.0,
+        128,
+        8,
+        model_type="position_and_orientation",
+        prior_option="",
+    ).sample_start_state
 
     s = p()
     assert isinstance(s, GridversePositionOrientationAugmentedState)
@@ -253,3 +289,26 @@ def test_position_and_orientation_augmented_state():
     assert acc.shape == (8,)
     assert (0 <= acc).all()
     assert (acc <= 1).all()
+
+
+def test_noise_turn_orientation_transactions():
+    """tests :func:`noise_turn_orientation_transactions`"""
+    d = env_from_descr("Empty-5x5-v0")
+    assert isinstance(d, GVerseGridworld)
+
+    states, actions, next_states = noise_turn_orientation_transactions(d, 32)
+
+    atleast_one_transition_has_wrong_orientation = False
+    for s, a, ss in zip(states, actions, next_states):
+        real_ss = d.functional_step(s, d.action_space.int_to_action(a))[0]
+
+        if (
+            d.action_space.int_to_action(a) == GVerseAction.TURN_LEFT
+            or d.action_space.int_to_action(a) == GVerseAction.TURN_RIGHT
+        ):
+            if real_ss.agent.orientation != ss.agent.orientation:
+                atleast_one_transition_has_wrong_orientation = True
+        else:  # make sure that for normal moves we have the correct orientation
+            assert real_ss.agent.orientation == ss.agent.orientation
+
+    assert atleast_one_transition_has_wrong_orientation
