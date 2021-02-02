@@ -36,7 +36,7 @@ import math
 import random
 from copy import deepcopy
 from functools import partial
-from typing import Callable, Iterable, List, Protocol, Tuple, Type
+from typing import Callable, Iterable, List, Optional, Protocol, Tuple, Type
 
 import numpy as np
 import torch
@@ -147,7 +147,7 @@ def train_models(
     logger = logging.getLogger("create gridverse prior")
 
     for i, net in enumerate(models):
-        logger.debug("Training net %s / %s...", i+1, len(models))
+        logger.debug("Training net %s / %s...", i + 1, len(models))
 
         for batch in range(num_pretrain_epochs):
 
@@ -161,7 +161,7 @@ def train_models(
             )
 
             if tensorboard_logging():
-                log_tensorboard(f"transition_loss/model-{i}", loss, batch)
+                log_tensorboard(f"transition_loss/model-{i+1}", loss, batch)
 
                 if batch % int(num_pretrain_epochs / 100) == 0:
                     log_tensorboard(
@@ -777,6 +777,7 @@ def create_gbapomdp(
     num_nets: int,
     model_type: str,
     prior_option: str,
+    online_learning_rate: Optional[float],
 ) -> GBAPOMDPThroughAugmentedState:
     """Creates the gridverse GBA-POMDP
 
@@ -810,6 +811,7 @@ def create_gbapomdp(
     :param num_nets: number of networks to train in the prior phase
     :param model_type: type of GBA-POMDP ["position", "position_and_orientation"]
     :param prior_option: type of prior ["", "noise_turn_orientation"]
+    :param online_learning_rate: (optional) learning rate during online steps
     :returns: GBAPOMDPThroughAugmentedState GBA-POMDP for grid-verse
     """
 
@@ -856,6 +858,11 @@ def create_gbapomdp(
         augmented_state_class,
         data_sampler,
     )
+
+    if online_learning_rate:
+        assert 0 <= online_learning_rate < 1.0
+        for m in models:
+            m.set_learning_rate(online_learning_rate)
 
     def prior() -> augmented_state_class:
         return augmented_state_class(  # type: ignore

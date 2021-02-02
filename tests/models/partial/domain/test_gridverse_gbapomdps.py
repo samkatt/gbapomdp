@@ -126,7 +126,9 @@ def test_gbapomdp(
     d = env_from_descr("Dynamic-Obstacles-6x6-v0")
     assert isinstance(d, GVerseGridworld)
 
-    gbapomdp = create_gbapomdp(d, "SGD", 0.01, 32, 0.0, 128, 8, 1, model_type, "")
+    gbapomdp = create_gbapomdp(
+        d, "SGD", 0.1, 32, 0.0, 128, 8, 1, model_type, "", online_learning_rate=0.01
+    )
 
     # test `action_space`
     assert gbapomdp.action_space.n == d.action_space.num_actions
