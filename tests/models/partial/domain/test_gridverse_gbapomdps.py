@@ -126,7 +126,7 @@ def test_gbapomdp(
     d = env_from_descr("Dynamic-Obstacles-6x6-v0")
     assert isinstance(d, GVerseGridworld)
 
-    gbapomdp = create_gbapomdp(d, "SGD", 0.01, 32, 0.0, 128, 8, model_type, "")
+    gbapomdp = create_gbapomdp(d, "SGD", 0.01, 32, 0.0, 128, 8, 1, model_type, "")
 
     # test `action_space`
     assert gbapomdp.action_space.n == d.action_space.num_actions
@@ -182,7 +182,7 @@ def test_position_augmented_state():
     d = env_from_descr("KeyDoor-16x16-v0")
     assert isinstance(d, GVerseGridworld)
     p = create_gbapomdp(
-        d, "SGD", 0.01, 32, 0.0, 128, 8, "position", ""
+        d, "SGD", 0.01, 32, 0.0, 128, 8, 1, "position", ""
     ).sample_start_state
 
     s = p()
@@ -239,6 +239,7 @@ def test_position_and_orientation_augmented_state():
         0.0,
         128,
         8,
+        1,
         model_type="position_and_orientation",
         prior_option="",
     ).sample_start_state

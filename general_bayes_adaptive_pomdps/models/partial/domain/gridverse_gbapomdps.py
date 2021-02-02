@@ -147,7 +147,7 @@ def train_models(
     logger = logging.getLogger("create gridverse prior")
 
     for i, net in enumerate(models):
-        logger.debug("Training net %s / %s...", i, len(models))
+        logger.debug("Training net %s / %s...", i+1, len(models))
 
         for batch in range(num_pretrain_epochs):
 
@@ -774,6 +774,7 @@ def create_gbapomdp(
     dropout_rate: float,
     num_pretrain_epochs: int,
     batch_size: int,
+    num_nets: int,
     model_type: str,
     prior_option: str,
 ) -> GBAPOMDPThroughAugmentedState:
@@ -806,11 +807,11 @@ def create_gbapomdp(
     :param dropout_rate: how much nodes to drop during a forward-pass
     :param num_pretrain_epochs: number of batches to train on for the prior
     :param batch_size: size of a batch during pre-training
+    :param num_nets: number of networks to train in the prior phase
     :param model_type: type of GBA-POMDP ["position", "position_and_orientation"]
     :param prior_option: type of prior ["", "noise_turn_orientation"]
     :returns: GBAPOMDPThroughAugmentedState GBA-POMDP for grid-verse
     """
-    num_nets = 1  # TODO: FIX
 
     assert 0 <= learning_rate <= 1
     assert network_size > 0
