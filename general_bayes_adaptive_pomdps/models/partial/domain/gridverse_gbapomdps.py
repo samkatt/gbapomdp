@@ -31,6 +31,7 @@ values in ``next_domain_state`` to those predicted by our ``model``, we emulate
 learning with prior knowledge.
 """
 
+import itertools as itt
 import logging
 import math
 import random
@@ -675,7 +676,7 @@ def get_augmented_state_class(option: str) -> Type[GridverseAugmentedGodState]:
     Basic factory function to translate string to class. Raises `ValueError` if
     invalid ``option`` is given.
 
-    :param option: in ["position", "position_and_orientation"]
+    :param option: in ["position", "position_and_orientation", "noise_foward_step"]
     :returns: a class that implements :class:`GridverseAugmentedGodState`
     """
     if option == "position":
@@ -683,7 +684,9 @@ def get_augmented_state_class(option: str) -> Type[GridverseAugmentedGodState]:
     if option == "position_and_orientation":
         return GridversePositionOrientationAugmentedState
 
-    raise ValueError(f"{option} not in ['position', 'position_and_orientation']")
+    raise ValueError(
+        f"{option} not in ['position', 'position_and_orientation', 'noise_foward_step']"
+    )
 
 
 def uniform_true_transactions(
@@ -741,6 +744,61 @@ def noise_turn_orientation_transactions(
     return states, actions, next_states
 
 
+def open_foward_positions(
+    s: GVerseState, pos: Position, o: Orientation
+) -> Iterable[Position]:
+    """Returns all open positions in (straight line) front of agent
+
+    Returns an iterator of positions, one step at a time forward relative to
+    ``pos`` given ``o``, until (excluding) one blocks.
+
+    :param s: current state
+    :param pos: position of the agent
+    :param o: orientation of the agent
+    :returns: a generator of positions that are not blocked
+    """
+    delta_pos = o.as_position()
+
+    candidate_forward_positions = (
+        pos + Position(delta_pos.y * i, delta_pos.x * i) for i in itt.count()
+    )
+    possible_positions = itt.takewhile(
+        lambda pos: not s.grid[pos].blocks, candidate_forward_positions
+    )
+    return possible_positions
+
+
+def noise_foward_transitions(
+    domain: GVerseGridworld,
+    batch_size: int,
+) -> Tuple[List[GVerseState], List[int], List[GVerseState]]:
+    """Generates transitions where the forward actions moves arbitrary far
+
+    Otherwise the data follows the true dynamics
+
+    #. samples _initial_ state
+    #. set position and orientation randomly
+    #. sample random action
+    #. step in domain
+    #. if action is forward, move any forward position that is not blocked
+
+    :param domain:
+    :param batch_size: length of returned lists
+    :returns: lists of states, action, next states
+    """
+    states, actions, next_states = uniform_true_transactions(domain, batch_size)
+
+    for s, a, next_s in zip(states, actions, next_states):
+        if a == domain.action_space.action_to_int(GVerseAction.MOVE_FORWARD):
+            next_s.agent.position = random.choice(
+                list(
+                    open_foward_positions(next_s, s.agent.position, s.agent.orientation)
+                )
+            )
+
+    return states, actions, next_states
+
+
 def create_data_sampler(
     domain: GVerseGridworld, batch_size: int, option: str
 ) -> Callable[[], Tuple[List[GVerseState], List[int], List[GVerseState]]]:
@@ -750,10 +808,8 @@ def create_data_sampler(
     :func:`uniform_true_transactions`, data from the true environment, or some
     more noisy data generator.
 
-    TODO: test
-
-    :param domain: TODO
-    :param batch_size: TODO
+    :param domain:
+    :param batch_size:
     :param option: type of prior ["", "noise_turn_orientation"]
     :returns: A callable to generate transition data
     :raises ValueError: if ``option`` not valid
@@ -762,6 +818,8 @@ def create_data_sampler(
         return partial(uniform_true_transactions, domain, batch_size)
     if option == "noise_turn_orientation":
         return partial(noise_turn_orientation_transactions, domain, batch_size)
+    if option == "noise_forward_step":
+        return partial(noise_foward_transitions, domain, batch_size)
 
     raise ValueError(f"{option} not in ['', 'noise_turn_orientation']")
 
@@ -790,10 +848,12 @@ def create_gbapomdp(
     :class:`GBAPOMDPThroughAugmentedState`. The prior pre-trains models, given
     the ``optimizer_name``, ``learning_rate``, ``network_size``.
     ``dropout_rate``, ``num_pretrain_epochs`` and ``batch_size``. The type of
-    model trained depends on ``model_type``, which can take either ``position``
-    or ``position_and_orientation``, which return augmented states that either
-    have trained to predict just the position, or the position and orientation
-    of the next state.
+    model trained depends on ``model_type``, which can take either
+    ``position``, ``position_and_orientation``, or "noise_foward_step".
+    ``position_and_orientation`` returns augmented states that either have
+    trained to predict just the position, or the position and orientation of
+    the next state. ``noise_forward_step`` modifies next states positions to
+    arbitrary positions in front of the agent (that are not blocked)
 
 
     The ``prior_option`` determines on what data the models are pre-trained.:
@@ -809,7 +869,7 @@ def create_gbapomdp(
     :param num_pretrain_epochs: number of batches to train on for the prior
     :param batch_size: size of a batch during pre-training
     :param num_nets: number of networks to train in the prior phase
-    :param model_type: type of GBA-POMDP ["position", "position_and_orientation"]
+    :param model_type: type of GBA-POMDP ["position", "position_and_orientation", "noise_foward_step"]
     :param prior_option: type of prior ["", "noise_turn_orientation"]
     :param online_learning_rate: (optional) learning rate during online steps
     :returns: GBAPOMDPThroughAugmentedState GBA-POMDP for grid-verse
@@ -859,7 +919,7 @@ def create_gbapomdp(
         data_sampler,
     )
 
-    if online_learning_rate:
+    if online_learning_rate is not None:
         assert 0 <= online_learning_rate < 1.0
         for m in models:
             m.set_learning_rate(online_learning_rate)

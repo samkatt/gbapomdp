@@ -19,6 +19,7 @@ from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps imp
     get_augmented_state_class,
     gverse_obs2array,
     noise_turn_orientation_transactions,
+    open_foward_positions,
     sample_state_with_random_agent,
     tnet_accuracy,
 )
@@ -184,7 +185,7 @@ def test_position_augmented_state():
     d = env_from_descr("KeyDoor-16x16-v0")
     assert isinstance(d, GVerseGridworld)
     p = create_gbapomdp(
-        d, "SGD", 0.01, 32, 0.0, 128, 8, 1, "position", ""
+        d, "SGD", 0.01, 32, 0.0, 128, 8, 1, "position", "", 0.05
     ).sample_start_state
 
     s = p()
@@ -244,6 +245,7 @@ def test_position_and_orientation_augmented_state():
         1,
         model_type="position_and_orientation",
         prior_option="",
+        online_learning_rate=0.05,
     ).sample_start_state
 
     s = p()
@@ -315,3 +317,19 @@ def test_noise_turn_orientation_transactions():
             assert real_ss.agent.orientation == ss.agent.orientation
 
     assert atleast_one_transition_has_wrong_orientation
+
+
+@pytest.mark.parametrize(
+    "pos,o,forward_positions",
+    [
+        ((0, 0), Orientation.N, []),
+        ((1, 1), Orientation.N, [(1, 1)]),
+        ((1, 1), Orientation.W, [(1, 1)]),
+        ((2, 2), Orientation.W, [(2, 2), (2, 1)]),
+        ((2, 2), Orientation.N, [(2, 2), (1, 2)]),
+        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)]),
+    ],
+)
+def test_open_forward_positions(pos, o, forward_positions):
+    s = env_from_descr("Empty-5x5-v0").functional_reset()
+    assert list(open_foward_positions(s, pos, o)) == forward_positions
