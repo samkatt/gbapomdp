@@ -19,6 +19,7 @@ from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps imp
     get_augmented_state_class,
     gverse_obs2array,
     noise_turn_orientation_transactions,
+    open_backwards_positions,
     open_foward_positions,
     sample_state_with_random_agent,
     tnet_accuracy,
@@ -320,16 +321,42 @@ def test_noise_turn_orientation_transactions():
 
 
 @pytest.mark.parametrize(
-    "pos,o,forward_positions",
+    "pos,o,forward_positions,max_dist",
     [
-        ((0, 0), Orientation.N, []),
-        ((1, 1), Orientation.N, [(1, 1)]),
-        ((1, 1), Orientation.W, [(1, 1)]),
-        ((2, 2), Orientation.W, [(2, 2), (2, 1)]),
-        ((2, 2), Orientation.N, [(2, 2), (1, 2)]),
-        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)]),
+        ((0, 0), Orientation.N, [], None),
+        ((1, 1), Orientation.N, [(1, 1)], None),
+        ((1, 1), Orientation.W, [(1, 1)], None),
+        ((2, 2), Orientation.W, [(2, 2), (2, 1)], None),
+        ((2, 2), Orientation.N, [(2, 2), (1, 2)], None),
+        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)], None),
+        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)], 4),
+        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)], 3),
+        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4)], 2),
+        ((2, 2), Orientation.E, [(2, 2), (2, 3)], 1),
+        ((2, 2), Orientation.E, [(2, 2)], 0),
     ],
 )
-def test_open_forward_positions(pos, o, forward_positions):
+def test_open_forward_positions(pos, o, forward_positions, max_dist):
     s = env_from_descr("Empty-5x5-v0").functional_reset()
-    assert list(open_foward_positions(s, pos, o)) == forward_positions
+    assert list(open_foward_positions(s, pos, o, max_dist)) == forward_positions
+
+
+@pytest.mark.parametrize(
+    "pos,o,backwards_positions,max_dist",
+    [
+        ((0, 0), Orientation.S, [], None),
+        ((1, 1), Orientation.S, [(1, 1)], None),
+        ((1, 1), Orientation.E, [(1, 1)], None),
+        ((2, 2), Orientation.E, [(2, 2), (2, 1)], None),
+        ((2, 2), Orientation.S, [(2, 2), (1, 2)], None),
+        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4), (2, 5)], None),
+        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4), (2, 5)], 4),
+        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4), (2, 5)], 3),
+        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4)], 2),
+        ((2, 2), Orientation.W, [(2, 2), (2, 3)], 1),
+        ((2, 2), Orientation.W, [(2, 2)], 0),
+    ],
+)
+def test_open_backwards_positions(pos, o, backwards_positions, max_dist):
+    s = env_from_descr("Empty-5x5-v0").functional_reset()
+    assert list(open_backwards_positions(s, pos, o, max_dist)) == backwards_positions

@@ -744,8 +744,36 @@ def noise_turn_orientation_transactions(
     return states, actions, next_states
 
 
+def open_backwards_positions(
+    s: GVerseState, pos: Position, o: Orientation, max_dist: Optional[int] = None
+) -> Iterable[Position]:
+    """Returns all open positions in (straight line) behind the agent
+
+    Returns an iterator of positions, one step at a time forward relative to
+    ``pos`` given ``o``, until (excluding) one blocks.
+
+    :param s: current state
+    :param pos: position of the agent
+    :param o: orientation of the agent
+    :param max: maximum distance in front of agent (infinite if not given)
+    :returns: a generator of positions that are not blocked
+    """
+    delta_pos = o.as_position()
+
+    it = itt.count() if max_dist is None else range(max_dist + 1)
+
+    candidate_forward_positions = (
+        pos + Position(delta_pos.y * -i, delta_pos.x * -i) for i in it
+    )
+    possible_positions = itt.takewhile(
+        lambda pos: not s.grid[pos].blocks, candidate_forward_positions
+    )
+
+    return possible_positions
+
+
 def open_foward_positions(
-    s: GVerseState, pos: Position, o: Orientation
+    s: GVerseState, pos: Position, o: Orientation, max_dist: Optional[int] = None
 ) -> Iterable[Position]:
     """Returns all open positions in (straight line) front of agent
 
@@ -755,16 +783,20 @@ def open_foward_positions(
     :param s: current state
     :param pos: position of the agent
     :param o: orientation of the agent
+    :param max: maximum distance in front of agent (infinite if not given)
     :returns: a generator of positions that are not blocked
     """
     delta_pos = o.as_position()
 
+    it = itt.count() if max_dist is None else range(max_dist + 1)
+
     candidate_forward_positions = (
-        pos + Position(delta_pos.y * i, delta_pos.x * i) for i in itt.count()
+        pos + Position(delta_pos.y * i, delta_pos.x * i) for i in it
     )
     possible_positions = itt.takewhile(
         lambda pos: not s.grid[pos].blocks, candidate_forward_positions
     )
+
     return possible_positions
 
 
@@ -772,7 +804,7 @@ def noise_foward_transitions(
     domain: GVerseGridworld,
     batch_size: int,
 ) -> Tuple[List[GVerseState], List[int], List[GVerseState]]:
-    """Generates transitions where the forward actions moves arbitrary far
+    """Generates transitions where the forward actions moves arbitrary far (and 1 step back)
 
     Otherwise the data follows the true dynamics
 
@@ -790,10 +822,16 @@ def noise_foward_transitions(
 
     for s, a, next_s in zip(states, actions, next_states):
         if a == domain.action_space.action_to_int(GVerseAction.MOVE_FORWARD):
-            next_s.agent.position = random.choice(
-                list(
-                    open_foward_positions(next_s, s.agent.position, s.agent.orientation)
+            backwards_positions = list(
+                open_backwards_positions(
+                    next_s, s.agent.position, s.agent.orientation, max_dist=1
                 )
+            )
+            forward_positions = list(
+                open_foward_positions(next_s, s.agent.position, s.agent.orientation)
+            )
+            next_s.agent.position = random.choice(
+                list(set(backwards_positions + forward_positions))
             )
 
     return states, actions, next_states
@@ -821,7 +859,9 @@ def create_data_sampler(
     if option == "noise_forward_step":
         return partial(noise_foward_transitions, domain, batch_size)
 
-    raise ValueError(f"{option} not in ['', 'noise_turn_orientation']")
+    raise ValueError(
+        f"{option} not in ['', 'noise_turn_orientation', 'noise_foward_step']"
+    )
 
 
 def create_gbapomdp(
@@ -869,8 +909,8 @@ def create_gbapomdp(
     :param num_pretrain_epochs: number of batches to train on for the prior
     :param batch_size: size of a batch during pre-training
     :param num_nets: number of networks to train in the prior phase
-    :param model_type: type of GBA-POMDP ["position", "position_and_orientation", "noise_foward_step"]
-    :param prior_option: type of prior ["", "noise_turn_orientation"]
+    :param model_type: type of GBA-POMDP ["position", "position_and_orientation"]
+    :param prior_option: type of prior ["", "noise_turn_orientation", "noise_foward_step"]
     :param online_learning_rate: (optional) learning rate during online steps
     :returns: GBAPOMDPThroughAugmentedState GBA-POMDP for grid-verse
     """
