@@ -676,7 +676,7 @@ def get_augmented_state_class(option: str) -> Type[GridverseAugmentedGodState]:
     Basic factory function to translate string to class. Raises `ValueError` if
     invalid ``option`` is given.
 
-    :param option: in ["position", "position_and_orientation", "noise_foward_step"]
+    :param option: in ["position", "position_and_orientation"]
     :returns: a class that implements :class:`GridverseAugmentedGodState`
     """
     if option == "position":
@@ -685,7 +685,7 @@ def get_augmented_state_class(option: str) -> Type[GridverseAugmentedGodState]:
         return GridversePositionOrientationAugmentedState
 
     raise ValueError(
-        f"{option} not in ['position', 'position_and_orientation', 'noise_foward_step']"
+        f"{option} not in ['position', 'position_and_orientation']"
     )
 
 
@@ -828,7 +828,7 @@ def noise_foward_transitions(
                 )
             )
             forward_positions = list(
-                open_foward_positions(next_s, s.agent.position, s.agent.orientation)
+                open_foward_positions(next_s, s.agent.position, s.agent.orientation, max_dist=5)
             )
             next_s.agent.position = random.choice(
                 list(set(backwards_positions + forward_positions))
@@ -900,6 +900,7 @@ def create_gbapomdp(
 
         - "": uniform random transitions in the true enviornment
         - "noise_turn_orientation": "", but the orientation after turning is uniform
+        - "noise_foward_step": "", but the forward step is :func:`noise_foward_transitions`
 
     :param domain: the underlying grid-verse domain
     :param optimizer_name: which optimizer to train with ["SGD", "Adam"]
