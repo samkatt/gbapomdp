@@ -684,9 +684,7 @@ def get_augmented_state_class(option: str) -> Type[GridverseAugmentedGodState]:
     if option == "position_and_orientation":
         return GridversePositionOrientationAugmentedState
 
-    raise ValueError(
-        f"{option} not in ['position', 'position_and_orientation']"
-    )
+    raise ValueError(f"{option} not in ['position', 'position_and_orientation']")
 
 
 def uniform_true_transactions(
@@ -828,7 +826,9 @@ def noise_foward_transitions(
                 )
             )
             forward_positions = list(
-                open_foward_positions(next_s, s.agent.position, s.agent.orientation, max_dist=5)
+                open_foward_positions(
+                    next_s, s.agent.position, s.agent.orientation, max_dist=5
+                )
             )
             next_s.agent.position = random.choice(
                 list(set(backwards_positions + forward_positions))
