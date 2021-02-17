@@ -113,7 +113,6 @@ def model_equals(model_a, model_b) -> bool:
     return True
 
 
-# TODO: generalize to test "any" GBA-POMDP
 @pytest.mark.parametrize(
     "model_type, expected_class",
     [
@@ -265,12 +264,14 @@ def test_position_and_orientation_augmented_state():
     transition_data = [
         (
             (
-                agent_position_and_orientation(
-                    s.domain_state, one_hot_orientation=True
+                GridversePositionOrientationAugmentedState.domain_state_rep(
+                    s.domain_state, whiten=True
                 ),
                 a,
             ),
-            agent_position_and_orientation(next_s.domain_state),
+            GridversePositionOrientationAugmentedState.domain_state_rep(
+                next_s.domain_state, whiten=False
+            ),
         )
     ]
     init_acc = list(tnet_accuracy(s.learned_model, transition_data))[0]

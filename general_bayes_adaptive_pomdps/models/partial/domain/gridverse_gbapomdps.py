@@ -53,6 +53,7 @@ from gym_gridverse.representations.observation_representations import (
 from gym_gridverse.representations.representation import ObservationRepresentation
 from gym_gridverse.state import State as GVerseState
 
+from general_bayes_adaptive_pomdps.agents.neural_networks.misc import whiten_input
 from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
@@ -178,7 +179,7 @@ def agent_position(state: GVerseState) -> np.ndarray:
     """Get the agent position as numpy array from state
 
     :param state: the grid-verse state that contains the agent position
-    :returns: [x, y]
+    :returns: [y, x]
     """
     return np.array(state.agent.position.astuple())
 
@@ -189,7 +190,7 @@ def agent_position_and_orientation(
     """Get the agent position as numpy array from state
 
     :param state: the grid-verse state that contains the agent position
-    :returns: [x, y]
+    :returns: [y, x]
     """
     if one_hot_orientation:
         orientation = np.zeros(len(Orientation), dtype=int)
@@ -267,6 +268,7 @@ def tnet_accuracy(net: DynamicsModel.TNet, test_data) -> Iterable[float]:
 class GridversePositionAugmentedState(GridverseAugmentedGodState):
     """An augmented class that creates a partial GBA-POMDP for prediction position
 
+
     This class, when used in the :class:`GBAPOMDPThroughAugmentedState`,
     creates a partial GBA-POMDP that predicts only the position of the agent in
     the state dynamics. The other parts of the model are given.
@@ -280,6 +282,7 @@ class GridversePositionAugmentedState(GridverseAugmentedGodState):
         pomdp: GVerseGridworld,
         obs_rep: Callable[[GVerseState], np.ndarray],
     ):
+        # TODO: whiten state input to model
         self.domain_state = initial_state
         self.learned_model = learned_model
         self.pomdp = pomdp
@@ -551,7 +554,7 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
 
         # (learned) prediction part
         next_y, next_x, next_orientation = self.learned_model.sample(
-            agent_position_and_orientation(self.domain_state, one_hot_orientation=True),
+            self.domain_state_rep(self.domain_state, whiten=True),
             action,
             num=1,
         )
@@ -629,10 +632,14 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         test_data = (
             (
                 (
-                    agent_position_and_orientation(s, one_hot_orientation=True),
+                    GridversePositionOrientationAugmentedState.domain_state_rep(
+                        s, whiten=True
+                    ),
                     domain.action_space.action_to_int(a),
                 ),
-                agent_position_and_orientation(next_s),
+                GridversePositionOrientationAugmentedState.domain_state_rep(
+                    next_s, whiten=False
+                ),
             )
             for (s, a, next_s) in interactions
         )
@@ -659,15 +666,46 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         a = torch.eye(net.action_space.n)[actions]
         state_input_rep = torch.FloatTensor(
             [
-                agent_position_and_orientation(s, one_hot_orientation=True)
+                GridversePositionOrientationAugmentedState.domain_state_rep(
+                    s, whiten=True
+                )
                 for s in states
             ]
         ).to(device())
         state_output_rep = torch.LongTensor(
-            [agent_position_and_orientation(next_s) for next_s in next_states]
+            [
+                GridversePositionOrientationAugmentedState.domain_state_rep(
+                    next_s, whiten=False
+                )
+                for next_s in next_states
+            ]
         ).to(device())
 
         return net.batch_train(state_input_rep, a, state_output_rep)
+
+    @staticmethod
+    def domain_state_rep(s: GVerseState, whiten: bool) -> np.ndarray:
+        """Converts the domain into a nump array
+
+        Returns a (6,) array, where the first two elements are the y and x
+        value, whitened if `whiten=True`, and the others is a one-hot encoding
+        of the orientation
+
+        :param s:
+        :param whiten:
+        :returns: [y, x, one-hot(orientation)] with y/x whitened if asked to
+        """
+        pos_and_orientation = agent_position_and_orientation(
+            s, one_hot_orientation=True
+        )
+
+        if whiten:
+            pos_and_orientation[:2] = whiten_input(
+                pos_and_orientation[:2],
+                np.array([s.grid.shape.height, s.grid.shape.width]),
+            )
+
+        return pos_and_orientation
 
 
 def get_augmented_state_class(option: str) -> Type[GridverseAugmentedGodState]:
