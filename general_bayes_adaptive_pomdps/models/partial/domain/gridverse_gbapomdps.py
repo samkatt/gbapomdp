@@ -700,6 +700,8 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         )
 
         if whiten:
+            # XXX: ugly cast to ensure the next stp assigns floats
+            pos_and_orientation = pos_and_orientation.astype(float)
             pos_and_orientation[:2] = whiten_input(
                 pos_and_orientation[:2],
                 np.array([s.grid.shape.height, s.grid.shape.width]),

@@ -181,7 +181,7 @@ class TestMisc(unittest.TestCase):
         )
 
         np.testing.assert_array_equal(
-            whiten_input(np.array([1, 2, 3, 4]), np.array([1, 2, 3, 4])),
+            whiten_input(np.array([1, 2, 3, 4], dtype=int), np.array([1, 2, 3, 4])),
             np.array([1, 1, 1, 1]),
         )
         np.testing.assert_array_equal(
@@ -199,6 +199,12 @@ class TestMisc(unittest.TestCase):
         assert torch.greater_equal(whitened_data, -1.0).all()
         assert torch.less_equal(whitened_data[:2], 0).all()
         assert torch.greater_equal(whitened_data[2:], 0).all()
+
+        self.assertEqual(whiten_input(2, 8), -0.5)
+        np.testing.assert_array_equal(
+            whiten_input(np.array([2, 6], dtype=int), 8),
+            np.array([-0.5, 0.5]),
+        )
 
     def test_perturbations(self) -> None:  # pylint: disable=no-self-use
         """tests `general_bayes_adaptive_pomdps.agents.neural_networks.misc.perturb`
