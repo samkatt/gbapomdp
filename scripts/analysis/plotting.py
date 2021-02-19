@@ -3,11 +3,16 @@
 import sys
 from typing import List
 
-from general_bayes_adaptive_pomdps.analysis.visualization import default_plot_style, plot_experiment
+import matplotlib.pyplot as plt
+
+from general_bayes_adaptive_pomdps.analysis.visualization import (
+    default_plot_style,
+    plot_experiment,
+)
 
 
 def main(smoothing_argument: str, files: List[str]) -> None:
-    """ main: validates user input and plots files
+    """main: validates user input and plots files
 
     Args:
          smoothing_argument: (`str`): amount of smoothing in the plots
@@ -20,9 +25,7 @@ def main(smoothing_argument: str, files: List[str]) -> None:
     try:
         smoothing = int(smoothing_argument)
     except ValueError:
-        print(
-            f"{smoothing_argument} cannot be interpret as amount of smoothing (int)"
-        )
+        print(f"{smoothing_argument} cannot be interpret as amount of smoothing (int)")
 
     plot_experiment(files, smooth_amount=smoothing)
     default_plot_style()

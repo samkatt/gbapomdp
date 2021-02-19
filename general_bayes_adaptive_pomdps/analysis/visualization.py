@@ -14,13 +14,14 @@ def default_plot_style() -> None:
     """
     plt.xlabel("episodes")
     plt.ylabel("average reward")
-    plt.tight_layout(0)
+    plt.tight_layout(pad=0)
 
 
 def plot_experiment(
     file_names: List[str],
     smooth_amount: int = 25,
     colors: Optional[List[str]] = None,
+    labels: Optional[List[str]] = None,
 ) -> None:
     """adds lines from data in `file_names`
 
@@ -34,12 +35,31 @@ def plot_experiment(
 
     """
 
-    for i, file_name in enumerate(file_names):
-        returns = np.loadtxt(file_name, delimiter=",")[:, 0].tolist()
+    if labels is None:
+        labels = file_names
+
+    for i in range(len(file_names)):
+        returns = np.loadtxt(file_names[i], delimiter=",")[:, 0].tolist()
+        stder = np.loadtxt(file_names[i], delimiter=",")[:, 3].tolist()
 
         returns = np.mean(list(mitt.windowed(returns, smooth_amount)), axis=1)
+        stder = stder[: len(returns)]
 
         if colors:
-            plt.plot(returns, label=file_name, color=colors[i])
+            plt.plot(returns, label=labels[i], color=colors[i])
+            plt.fill_between(
+                range(returns.shape[0]),
+                returns - stder,
+                returns + stder,
+                alpha=0.3,
+                color=colors[i],
+            )
         else:
-            plt.plot(returns, label=file_name)
+            plt.plot(returns, label=labels[i])
+            plt.fill_between(
+                range(returns.shape[0]),
+                returns - stder,
+                returns + stder,
+                alpha=0.3,
+                color=colors[i],
+            )
