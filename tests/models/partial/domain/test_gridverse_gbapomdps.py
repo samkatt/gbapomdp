@@ -264,14 +264,12 @@ def test_position_and_orientation_augmented_state():
     transition_data = [
         (
             (
-                GridversePositionOrientationAugmentedState.domain_state_rep(
-                    s.domain_state, whiten=True
+                GridversePositionOrientationAugmentedState.domain_state_to_network_input(
+                    s.domain_state
                 ),
                 a,
             ),
-            GridversePositionOrientationAugmentedState.domain_state_rep(
-                next_s.domain_state, whiten=False
-            ),
+            agent_position_and_orientation(next_s.domain_state),
         )
     ]
     init_acc = list(tnet_accuracy(s.learned_model, transition_data))[0]

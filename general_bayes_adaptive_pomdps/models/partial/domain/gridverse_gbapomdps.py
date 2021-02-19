@@ -554,7 +554,7 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
 
         # (learned) prediction part
         next_y, next_x, next_orientation = self.learned_model.sample(
-            self.domain_state_rep(self.domain_state, whiten=True),
+            self.domain_state_to_network_input(self.domain_state),
             action,
             num=1,
         )
@@ -632,14 +632,12 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         test_data = (
             (
                 (
-                    GridversePositionOrientationAugmentedState.domain_state_rep(
-                        s, whiten=True
+                    GridversePositionOrientationAugmentedState.domain_state_to_network_input(
+                        s
                     ),
                     domain.action_space.action_to_int(a),
                 ),
-                GridversePositionOrientationAugmentedState.domain_state_rep(
-                    next_s, whiten=False
-                ),
+                agent_position_and_orientation(next_s),
             )
             for (s, a, next_s) in interactions
         )
@@ -666,46 +664,37 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         a = torch.eye(net.action_space.n)[actions]
         state_input_rep = torch.FloatTensor(
             [
-                GridversePositionOrientationAugmentedState.domain_state_rep(
-                    s, whiten=True
+                GridversePositionOrientationAugmentedState.domain_state_to_network_input(
+                    s
                 )
                 for s in states
             ]
         ).to(device())
         state_output_rep = torch.LongTensor(
-            [
-                GridversePositionOrientationAugmentedState.domain_state_rep(
-                    next_s, whiten=False
-                )
-                for next_s in next_states
-            ]
+            [agent_position_and_orientation(next_s) for next_s in next_states]
         ).to(device())
 
         return net.batch_train(state_input_rep, a, state_output_rep)
 
     @staticmethod
-    def domain_state_rep(s: GVerseState, whiten: bool) -> np.ndarray:
+    def domain_state_to_network_input(s: GVerseState) -> np.ndarray:
         """Converts the domain into a nump array
 
         Returns a (6,) array, where the first two elements are the y and x
-        value, whitened if `whiten=True`, and the others is a one-hot encoding
-        of the orientation
+        value, whitened, and the others is a one-hot encoding of the
+        orientation
 
         :param s:
-        :param whiten:
         :returns: [y, x, one-hot(orientation)] with y/x whitened if asked to
         """
         pos_and_orientation = agent_position_and_orientation(
             s, one_hot_orientation=True
-        )
+        ).astype(float)
 
-        if whiten:
-            # XXX: ugly cast to ensure the next stp assigns floats
-            pos_and_orientation = pos_and_orientation.astype(float)
-            pos_and_orientation[:2] = whiten_input(
-                pos_and_orientation[:2],
-                np.array([s.grid.shape.height, s.grid.shape.width]),
-            )
+        pos_and_orientation[:2] = whiten_input(
+            pos_and_orientation[:2],
+            np.array([s.grid.shape.height, s.grid.shape.width]),
+        )
 
         return pos_and_orientation
 
