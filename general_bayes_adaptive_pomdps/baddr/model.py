@@ -109,11 +109,8 @@ def create_dynamics_model(
     network_size: int,
     batch_size: int,
     dropout_rate: float = 0.0,
-    known_model: str = "",
 ) -> DynamicsModel:
     """factory function for creating `DynamicsModel`
-
-    TODO: remove all `known_model` crap
 
     The `DynamicsModel` consists of a transition and observation model. Either
     of those can be a neural network, or a (known) function. The model itself
@@ -127,64 +124,46 @@ def create_dynamics_model(
         network_size (`int`): number of nodes in each fully connected layer
         batch_size (`int`):
         dropout_rate (`float`): ratio of dropping nodes (default is 0)
-        known_model (`str`): defaults to ""
 
     Returns:
         `DynamicsModel`:
     """
 
-    def create_o_model() -> DynamicsModel.ObsModel:
-        if known_model != "O":
+    optimizer_builder = get_optimizer_builder(optimizer)
 
-            assert isinstance(
-                domain.observation_space, DiscreteSpace
-            ), "This method assumes discrete spaces"
-
-            assert isinstance(
-                domain.state_space, DiscreteSpace
-            ), "This method assumes discrete spaces"
-
-            return DynamicsModel.ONet(
-                domain.state_space,
-                domain.action_space,
-                domain.observation_space,
-                optimizer_builder,
-                learning_rate,
-                network_size,
-                dropout_rate,
-            )
-
-        raise ValueError("Currently no support for known models")
-
-    def create_t_model() -> DynamicsModel.T:
-        if known_model != "T":
-
-            assert isinstance(
-                domain.state_space, DiscreteSpace
-            ), "This method assumes discrete spaces"
-
-            return DynamicsModel.TNet(
-                domain.state_space,
-                domain.action_space,
-                optimizer_builder,
-                learning_rate,
-                network_size,
-                dropout_rate,
-            )
-
-        raise ValueError("Currently no support for known models")
+    assert isinstance(
+        domain.observation_space, DiscreteSpace
+    ), "This method assumes discrete spaces"
 
     assert isinstance(
         domain.state_space, DiscreteSpace
     ), "This method assumes discrete spaces"
 
-    optimizer_builder = get_optimizer_builder(optimizer)
+    obs_model = DynamicsModel.ONet(
+        domain.state_space,
+        domain.action_space,
+        domain.observation_space,
+        optimizer_builder,
+        learning_rate,
+        network_size,
+        dropout_rate,
+    )
+
+    trans_model = DynamicsModel.TNet(
+        domain.state_space,
+        domain.action_space,
+        optimizer_builder,
+        learning_rate,
+        network_size,
+        dropout_rate,
+    )
+
     return DynamicsModel(
         domain.state_space,
         domain.action_space,
         batch_size,
-        create_t_model(),
-        create_o_model(),
+        trans_model,
+        obs_model,
     )
 
 
@@ -385,7 +364,6 @@ class BADDr(Domain, GeneralBAPOMDP):
         network_size: int,
         batch_size: int,
         dropout_rate: float = 0.0,
-        known_model: str = "",
         freeze_model: str = "",
         backprop: bool = True,
         replay_update: bool = False,
@@ -406,7 +384,6 @@ class BADDr(Domain, GeneralBAPOMDP):
              network_size: (`int`):
              batch_size: (`int`):
              dropout_rate: (`float`): defaults to 0.0
-             known_model: (`str`): defaults to ""
              freeze_model: (`str`): defaults to ""
              backprop: (`bool`): defaults to True
              replay_update: (`bool`): defaults to False
@@ -444,7 +421,6 @@ class BADDr(Domain, GeneralBAPOMDP):
                 network_size,
                 batch_size,
                 dropout_rate,
-                known_model,
             )
             for _ in range(num_nets)
         ]
