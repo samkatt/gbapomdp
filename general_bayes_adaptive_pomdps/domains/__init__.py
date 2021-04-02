@@ -5,7 +5,6 @@ import numpy as np
 from general_bayes_adaptive_pomdps.core import Domain, DomainPrior
 
 from .collision_avoidance import CollisionAvoidance, CollisionAvoidancePrior
-from .gridverse_domain import GridverseDomain
 from .gridworld import GridWorld, GridWorldPrior
 from .road_racer import RoadRacer, RoadRacerPrior
 from .tiger import Tiger, TigerPrior
@@ -18,6 +17,8 @@ def create_domain(
     description: str = "",
 ) -> Domain:
     """The factory function to construct domains
+
+    TODO: remove `description`
 
     `use_one_hot_encoding` depends on the chosen `domain_name`, but generally
     refers to using a one-hot encoding to represent part of either the state or
@@ -43,12 +44,6 @@ def create_domain(
         return CollisionAvoidance(domain_size)
     if domain_name == "road_racer":
         return RoadRacer(np.arange(1, domain_size + 1) / (domain_size + 1))
-    if domain_name == "gridverse":
-
-        if not description:
-            return GridverseDomain()
-
-        return GridverseDomain(*description.split(" "))
 
     raise ValueError("unknown domain " + domain_name)
 

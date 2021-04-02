@@ -4,12 +4,8 @@ import unittest
 from functools import partial
 
 import numpy as np
-import pytest
 
 from general_bayes_adaptive_pomdps.baddr.model import (
-    create_dynamics_model,
-    create_transition_sampler,
-    sample_from_gridverse,
     sample_transitions_uniform_from_simulator,
     train_from_samples,
 )
@@ -17,10 +13,7 @@ from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     sgd_builder,
 )
-from general_bayes_adaptive_pomdps.domains import GridverseDomain, Tiger
-from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
-    ObservationModel as GverseObsModel,
-)
+from general_bayes_adaptive_pomdps.domains import Tiger
 
 
 class TestSampleFromSimulator(unittest.TestCase):
@@ -97,100 +90,6 @@ class TestTrainFromSamples(unittest.TestCase):
         self.assertLessEqual(
             initial_transition_model[s[0]], final_transition_model[s[0]]
         )
-
-
-class TestSampleFromGridverse(unittest.TestCase):
-    """Tests generating transitions from gridverse"""
-
-    def test_that_it_runs(self):
-        """basic call to ensure it does not crash"""
-        d = GridverseDomain()
-
-        try:
-            (
-                _,
-                _,
-                _,
-                _,
-            ) = sample_from_gridverse(d)
-        except Exception as e:
-            self.fail(f"This code should run, causes {e}")
-
-
-class TestCreateTransitionSampler(unittest.TestCase):
-    """Tests factory for transition samplers
-
-    This test assumes (knows) that the factory function returns a partial.  The
-    name of that partial is being checked. Although silly, it catches the
-    otherwise hard-to-notice evil bug
-
-    """
-
-    def test_default(self):
-        """Test none-Gridverse """
-        self.assertEqual(
-            create_transition_sampler(None).func.__name__,  # type: ignore
-            "sample_transitions_uniform_from_simulator",
-        )
-
-    def test_gridverse(self):
-        """Test Gridverse """
-        self.assertEqual(
-            create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
-            "sample_from_gridverse",
-        )
-
-
-def test_known_model_settings():
-    """tests setting the `known_model` configuration"""
-
-    d = GridverseDomain()
-
-    optimizer = "Adam"
-    learning_rate = 0.01
-    network_size = 8
-    batch_size = 4
-    dropout_rate = 0.5
-    known_model = "T"
-
-    with pytest.raises(ValueError):
-        create_dynamics_model(
-            domain=d,
-            optimizer=optimizer,
-            learning_rate=learning_rate,
-            network_size=network_size,
-            batch_size=batch_size,
-            dropout_rate=dropout_rate,
-            known_model=known_model,
-        )
-
-    known_model = "O"
-    dynamics_model = create_dynamics_model(
-        d,
-        optimizer=optimizer,
-        learning_rate=learning_rate,
-        network_size=network_size,
-        batch_size=batch_size,
-        dropout_rate=dropout_rate,
-        known_model=known_model,
-    )
-
-    assert isinstance(dynamics_model.o, GverseObsModel)
-
-    # should raise error when asking for known model
-    d = Tiger(one_hot_encode_observation=False)
-    for setting in ["O", "T"]:
-        known_model = setting
-        with pytest.raises(ValueError):
-            create_dynamics_model(
-                domain=d,
-                optimizer=optimizer,
-                learning_rate=learning_rate,
-                network_size=network_size,
-                batch_size=batch_size,
-                dropout_rate=dropout_rate,
-                known_model=known_model,
-            )
 
 
 if __name__ == "__main__":

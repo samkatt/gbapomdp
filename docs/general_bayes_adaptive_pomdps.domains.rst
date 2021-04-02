@@ -12,14 +12,6 @@ general\_bayes\_adaptive\_pomdps.domains.collision\_avoidance module
    :undoc-members:
    :show-inheritance:
 
-general\_bayes\_adaptive\_pomdps.domains.gridverse\_domain module
------------------------------------------------------------------
-
-.. automodule:: general_bayes_adaptive_pomdps.domains.gridverse_domain
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 general\_bayes\_adaptive\_pomdps.domains.gridworld module
 ---------------------------------------------------------
 

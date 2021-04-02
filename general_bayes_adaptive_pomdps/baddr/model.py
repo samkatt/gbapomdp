@@ -16,7 +16,6 @@ from general_bayes_adaptive_pomdps.core import (
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel, Space
 from functools import partial
 from typing_extensions import Protocol
-from general_bayes_adaptive_pomdps.domains.gridverse_domain import GridverseDomain
 
 
 class TransitionSampler(Protocol):
@@ -86,45 +85,6 @@ def sample_transitions_uniform_from_simulator(
             continue
 
 
-def sample_from_gridverse(
-    d: GridverseDomain,
-) -> Tuple[np.ndarray, int, np.ndarray, np.ndarray]:
-    """Generates the sampler for the Gridverse problem
-
-    Uses the 'reset' function of Gridverse domain, but then randomly positions
-    the agent, to ensure the whole state space is visited
-
-    The implementation involves defining a state-sampler from `d` and then
-    using the Gridverse library build sampling function
-
-    Args:
-        d (`GridverseDomain`):
-
-    Returns:
-        Tuple[np.ndarray, int, np.ndarray, np.ndarray]: (s,a,s',o)
-    """
-    return d.sample_transition()
-
-
-def create_transition_sampler(sim: Domain) -> TransitionSampler:
-    """factory method for generating transition samplers
-
-    Basically returns the correct sampler, at this point there are really 2
-    possibilities: either a Gridverse-specific sampler, or the uniform
-    state-action sampler is returned
-
-    Args:
-        sim (`Simulator`):
-
-    Returns:
-        `TransitionSampler`:
-    """
-    if isinstance(sim, GridverseDomain):
-        return partial(sample_from_gridverse, d=sim)
-
-    return partial(sample_transitions_uniform_from_simulator, sim=sim)
-
-
 def create_dynamics_model(
     domain: Domain,
     optimizer: str,
@@ -135,6 +95,8 @@ def create_dynamics_model(
     known_model: str = "",
 ) -> DynamicsModel:
     """factory function for creating `DynamicsModel`
+
+    TODO: remove all `known_model` crap
 
     The `DynamicsModel` consists of a transition and observation model. Either
     of those can be a neural network, or a (known) function. The model itself
@@ -175,13 +137,7 @@ def create_dynamics_model(
                 dropout_rate,
             )
 
-        if not isinstance(domain, GridverseDomain):
-            raise ValueError(
-                "Currently no support for known models for domains other than gridverse"
-            )
-
-        assert isinstance(domain, GridverseDomain)
-        return domain.create_dynamics_observation_model()
+        raise ValueError("Currently no support for known models")
 
     def create_t_model() -> DynamicsModel.T:
         if known_model != "T":

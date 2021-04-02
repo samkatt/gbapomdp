@@ -100,7 +100,7 @@ class TestDynamicModel(unittest.TestCase):
 
         copied_model = copy.deepcopy(self.test_model)
         self.test_model.batch_update(
-            np.array([[0]]),
+            np.array([[0.5]]),
             np.array([0]),
             np.array([[0]]),
             np.array([[0]]),
