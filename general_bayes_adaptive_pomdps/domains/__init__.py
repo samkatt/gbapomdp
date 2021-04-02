@@ -4,7 +4,6 @@ import numpy as np
 
 from general_bayes_adaptive_pomdps.core import Domain, DomainPrior
 
-from .chain_domain import ChainDomain
 from .collision_avoidance import CollisionAvoidance, CollisionAvoidancePrior
 from .gridverse_domain import GridverseDomain
 from .gridworld import GridWorld, GridWorldPrior
@@ -26,7 +25,6 @@ def create_domain(
 
         - :class:`Tiger`: observation (0/1/2 => 2 elements)
         - :class:`GridWorld`: goal representation
-        - :class:`ChainDomain`: observation (y, x -> 2D grid)
 
     Args:
          domain_name: (`str`): determines which domain is created
@@ -43,8 +41,6 @@ def create_domain(
         return GridWorld(domain_size, use_one_hot_encoding)
     if domain_name == "collision_avoidance":
         return CollisionAvoidance(domain_size)
-    if domain_name == "chain":
-        return ChainDomain(domain_size, use_one_hot_encoding)
     if domain_name == "road_racer":
         return RoadRacer(np.arange(1, domain_size + 1) / (domain_size + 1))
     if domain_name == "gridverse":

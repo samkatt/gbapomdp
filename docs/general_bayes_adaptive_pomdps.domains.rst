@@ -4,14 +4,6 @@ general\_bayes\_adaptive\_pomdps.domains package
 Submodules
 ----------
 
-general\_bayes\_adaptive\_pomdps.domains.chain\_domain module
--------------------------------------------------------------
-
-.. automodule:: general_bayes_adaptive_pomdps.domains.chain_domain
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 general\_bayes\_adaptive\_pomdps.domains.collision\_avoidance module
 --------------------------------------------------------------------
 
