@@ -1,4 +1,5 @@
-"""runs tests on the functionality in `learned_environmets.py`"""
+"""Tests :mod:`general_bayes_adaptive_pomdps.baddr.model"""
+
 import random
 import unittest
 from functools import partial
@@ -6,6 +7,7 @@ from functools import partial
 import numpy as np
 
 from general_bayes_adaptive_pomdps.baddr.model import (
+    create_transition_sampler,
     sample_transitions_uniform_from_simulator,
     train_from_samples,
 )
@@ -14,26 +16,6 @@ from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     sgd_builder,
 )
 from general_bayes_adaptive_pomdps.domains import Tiger
-
-
-class TestSampleFromSimulator(unittest.TestCase):
-    """Tests `sample_transitions_uniform_from_simulator`"""
-
-    def test_simple_run_and_space(self):
-        """run once on tiger and check if result is viable"""
-        sim = Tiger(one_hot_encode_observation=False)
-
-        (
-            s,
-            a,
-            news,
-            o,
-        ) = sample_transitions_uniform_from_simulator(sim)
-
-        self.assertTrue(sim.state_space.contains(s))
-        self.assertTrue(sim.action_space.contains(a))
-        self.assertTrue(sim.state_space.contains(news))
-        self.assertTrue(sim.observation_space.contains(o))
 
 
 class TestTrainFromSamples(unittest.TestCase):
@@ -89,6 +71,43 @@ class TestTrainFromSamples(unittest.TestCase):
         # the model should have learned that the transition probability of staying in the same state is high
         self.assertLessEqual(
             initial_transition_model[s[0]], final_transition_model[s[0]]
+        )
+
+
+class TestSampleFromSimulator(unittest.TestCase):
+    """Tests `sample_transitions_uniform_from_simulator`"""
+
+    def test_simple_run_and_space(self):
+        """run once on tiger and check if result is viable"""
+        sim = Tiger(one_hot_encode_observation=False)
+
+        (
+            s,
+            a,
+            news,
+            o,
+        ) = sample_transitions_uniform_from_simulator(sim)
+
+        self.assertTrue(sim.state_space.contains(s))
+        self.assertTrue(sim.action_space.contains(a))
+        self.assertTrue(sim.state_space.contains(news))
+        self.assertTrue(sim.observation_space.contains(o))
+
+
+class TestCreateTransitionSampler(unittest.TestCase):
+    """Tests factory for transition samplers
+
+    This test assumes (knows) that the factory function returns a partial.  The
+    name of that partial is being checked. Although silly, it catches the
+    otherwise hard-to-notice evil bug
+
+    """
+
+    def test_default(self):
+        """Test none-Gridverse """
+        self.assertEqual(
+            create_transition_sampler(None).func.__name__,  # type: ignore
+            "sample_transitions_uniform_from_simulator",
         )
 
 

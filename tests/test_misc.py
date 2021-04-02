@@ -1,17 +1,10 @@
-""" runs tests on misc functionality
-
-* `DiscreteSpace`
-* replay buffer
-* random seed
-
-"""
+"""tests :mod:`general_bayes_adaptive_pomdps.misc`"""
 
 import random
 import unittest
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import ReplayBuffer
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, set_random_seed
 
 
@@ -69,55 +62,7 @@ class TestSpaces(unittest.TestCase):
         self.assertEqual(edge_case_space.index_of(np.array([0, 0, 2])), 4)
 
 
-class TestReplayBuffer(unittest.TestCase):
-    """ Tests some functionality of the replay buffer """
-
-    def test_capacity(self):
-        """ tests the capacity property of the replay buffer """
-
-        replay_buffer = ReplayBuffer()
-
-        self.assertEqual(replay_buffer.capacity, 5000)
-
-        replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.capacity, 5000)
-
-        replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.capacity, 5000)
-
-        replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.capacity, 5000)
-
-    def test_size(self):
-        """ tests the size property of replay buffer """
-
-        replay_buffer = ReplayBuffer()
-
-        self.assertEqual(replay_buffer.size, 1)
-
-        replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.size, 1)
-
-        replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.size, 1)
-
-        replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.size, 2)
-
-        replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.size, 2)
-
-        replay_buffer.store((), True)
-        replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.size, 4)
-
-        replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.size, 5)
-
-
 class TestRandomSeed(unittest.TestCase):
-    """ tests setting the random seed """
-
     def test_default_behaviour(self) -> None:
         """ regular sampling """
 

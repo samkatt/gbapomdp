@@ -11,7 +11,7 @@ from typing_extensions import Protocol
 
 from general_bayes_adaptive_pomdps.baddr.neural_networks import Net
 from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import perturb
-from general_bayes_adaptive_pomdps.baddr.pytorch_api import device
+from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import device
 from general_bayes_adaptive_pomdps.core import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 

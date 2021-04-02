@@ -1,7 +1,7 @@
 """Gridworld problem implemented as domain"""
 import random
 from logging import Logger
-from typing import List, Optional, Set, Tuple, NamedTuple
+from typing import List, NamedTuple, Optional, Set, Tuple
 
 import numpy as np
 

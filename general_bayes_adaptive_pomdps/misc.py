@@ -7,7 +7,9 @@ from typing import List, Union
 import numpy as np
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.baddr.pytorch_api import set_pytorch_seed
+from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import (
+    set_pytorch_seed,
+)
 
 
 def set_random_seed(seed: int) -> None:

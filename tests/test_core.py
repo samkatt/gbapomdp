@@ -1,5 +1,7 @@
-"""Tests for :mod:`core`"""
+"""Tests for :mod:`general_bayes_adaptive_pomdps.core`"""
+
 import numpy as np
+import pytest
 
 from general_bayes_adaptive_pomdps.core import ActionSpace
 
@@ -17,3 +19,7 @@ def test_action_sample_as_int():
     action_space = ActionSpace(size)
     actions = {action_space.sample_as_int() for _ in range(1000)}
     assert actions == {i for i in range(size)}
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])

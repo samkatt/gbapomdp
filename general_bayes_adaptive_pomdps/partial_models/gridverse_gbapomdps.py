@@ -57,14 +57,12 @@ from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
 )
+from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import device
 from general_bayes_adaptive_pomdps.core import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 from general_bayes_adaptive_pomdps.partial_models.partial_gbapomdp import (
     AugmentedGodState,
     GBAPOMDPThroughAugmentedState,
-)
-from general_bayes_adaptive_pomdps.baddr.pytorch_api import (
-    device,
 )
 
 

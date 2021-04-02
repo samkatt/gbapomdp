@@ -50,7 +50,8 @@ clean-test: ## remove test and coverage artifacts
 lint: ## check style with flake8
 	flake8 general_bayes_adaptive_pomdps tests
 
-format: ## check style with flake8
+format: ## format files with isort and black
+	isort general_bayes_adaptive_pomdps tests
 	black general_bayes_adaptive_pomdps tests
 
 test: ## run tests quickly with the default Python

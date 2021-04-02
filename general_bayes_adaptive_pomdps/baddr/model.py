@@ -1,21 +1,23 @@
 import copy
+from functools import partial
 from logging import Logger
-from typing import Callable, Tuple, List
+from typing import Callable, List, Tuple
+
 import numpy as np
+from typing_extensions import Protocol
+
 from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
 )
 from general_bayes_adaptive_pomdps.core import (
-    GeneralBAPOMDP,
     ActionSpace,
     Domain,
+    GeneralBAPOMDP,
     SimulationResult,
     TerminalState,
 )
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel, Space
-from functools import partial
-from typing_extensions import Protocol
 
 
 class TransitionSampler(Protocol):
@@ -83,6 +85,21 @@ def sample_transitions_uniform_from_simulator(
 
         except TerminalState:
             continue
+
+
+def create_transition_sampler(sim: Domain) -> TransitionSampler:
+    """factory method for generating transition samplers
+
+    Basically returns the correct sampler, at this point there is really 1
+    possibility: the uniform state-action sampler is returned
+
+    Args:
+        sim (`Simulator`):
+
+    Returns:
+        `TransitionSampler`:
+    """
+    return partial(sample_transitions_uniform_from_simulator, sim=sim)
 
 
 def create_dynamics_model(

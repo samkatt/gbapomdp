@@ -11,9 +11,9 @@ import numpy as np
 from typing_extensions import Protocol
 
 from general_bayes_adaptive_pomdps.core import (
-    GeneralBAPOMDP,
     ActionSpace,
     DiscreteSpace,
+    GeneralBAPOMDP,
     SimulationResult,
 )
 

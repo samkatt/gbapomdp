@@ -1,4 +1,5 @@
-""" tests the functionality of priors """
+"""tests :mod:`general_bayes_adaptive_pomdps.partial_models.gridverse_gbapomdps"""
+
 import numpy as np
 import pytest
 import torch
@@ -378,3 +379,7 @@ def test_open_forward_positions(pos, o, forward_positions, max_dist):
 def test_open_backwards_positions(pos, o, backwards_positions, max_dist):
     s = env_from_descr("Empty-5x5-v0").functional_reset()
     assert list(open_backwards_positions(s, pos, o, max_dist)) == backwards_positions
+
+
+if __name__ == "__main__":
+    pytest.main([__file__])
