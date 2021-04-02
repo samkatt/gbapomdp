@@ -1,23 +1,22 @@
-""" tiger environment """
+"""The tiger problem implemented as domain"""
 
+from logging import Logger
 from typing import List, Optional
+
 import numpy as np
 
-from general_bayes_adaptive_pomdps.environments import (
-    Environment,
-    EnvironmentInteraction,
+from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-)
-from general_bayes_adaptive_pomdps.environments import (
-    Simulator,
+    Domain,
+    DomainPrior,
+    DomainStepResult,
     SimulationResult,
-    EncodeType,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, POBNRLogger
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class Tiger(Environment, Simulator, POBNRLogger):
-    """ the tiger environment """
+class Tiger(Domain):
+    """The actual domain"""
 
     # consts
     LEFT = 0
@@ -31,12 +30,14 @@ class Tiger(Environment, Simulator, POBNRLogger):
     ELEM_TO_STRING = ["L", "R"]
 
     def __init__(
-        self, encoding: EncodeType, correct_obs_probs: Optional[List[float]] = None
+        self,
+        one_hot_encode_observation: bool,
+        correct_obs_probs: Optional[List[float]] = None,
     ):
-        """construct the tiger environment
+        """Construct the tiger domain
 
         Args:
-             encoding_type: (`EncodeType`):
+             one_hot_encode_observation: (`bool`):
              correct_obs_probs: (`Optional[List[float]]`):
 
         """
@@ -51,11 +52,11 @@ class Tiger(Environment, Simulator, POBNRLogger):
             0 <= correct_obs_probs[1] <= 1
         ), f"observation prob {correct_obs_probs[1]} not a probability"
 
-        POBNRLogger.__init__(self)
+        self._logger = Logger(self.__class__.__name__)
 
         self._correct_obs_probs = correct_obs_probs
 
-        self._use_one_hot_obs = encoding == EncodeType.ONE_HOT
+        self._use_one_hot_obs = one_hot_encode_observation
 
         self._state_space = DiscreteSpace([2])
         self._action_space = ActionSpace(3)
@@ -91,7 +92,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.environments.ActionSpace` ([3]) space """
+        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space """
         return self._action_space
 
     @property
@@ -114,10 +115,10 @@ class Tiger(Environment, Simulator, POBNRLogger):
         """
 
         if not self._use_one_hot_obs:
-            return np.array([observation])
+            return np.array([observation], dtype=int)
 
         # use one hot encoding
-        obs = np.ones(2)
+        obs = np.ones(2, dtype=int)
 
         # not left or right means [1,1] observation (basically a 'null')
         if observation > 1:
@@ -134,7 +135,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         RETURNS (`np.narray`): an initial state (in [[0],[1]])
 
         """
-        return np.array([np.random.randint(0, 2)])
+        return np.array([np.random.randint(0, 2)], dtype=int)
 
     def sample_observation(self, loc: int, listening: bool) -> int:
         """samples an observation, listening stores whether agent is listening
@@ -152,7 +153,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         return (
             loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)
-        )  # pylint: disable=no-member
+        )
 
     def reset(self) -> np.ndarray:
         """Resets internal state and return first observation
@@ -174,7 +175,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): [0] is tiger left, [1] is tiger right
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.SimulationResult`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.SimulationResult`): the transition
 
         """
 
@@ -227,8 +228,8 @@ class Tiger(Environment, Simulator, POBNRLogger):
 
         return bool(action != self.LISTEN)
 
-    def step(self, action: int) -> EnvironmentInteraction:
-        """performs a step in the tiger environment given action
+    def step(self, action: int) -> DomainStepResult:
+        """Performs a step in the tiger problem given action
 
         Will terminate episode when action is to open door,
         otherwise return an observation.
@@ -236,7 +237,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): 0 is open left, 1 is open right or 2 is listen
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.EnvironmentInteraction`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.EnvironmentInteraction`): the transition
 
         """
 
@@ -244,7 +245,7 @@ class Tiger(Environment, Simulator, POBNRLogger):
         reward = self.reward(self.state, action, sim_result.state)
         terminal = self.terminal(self.state, action, sim_result.state)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
+        if self._logger.isEnabledFor(LogLevel.V2.value):
             if action == self.LISTEN:
                 descr = (
                     "the agent hears "
@@ -253,14 +254,14 @@ class Tiger(Environment, Simulator, POBNRLogger):
             else:  # agent is opening door
                 descr = f"the agent opens {self.ELEM_TO_STRING[action]} ({reward})"
 
-            self.log(
-                POBNRLogger.LogLevel.V2,
+            self._logger.log(
+                LogLevel.V2.value,
                 f"With tiger {self.ELEM_TO_STRING[self.state[0]]}, {descr}",
             )
 
         self.state = sim_result.state
 
-        return EnvironmentInteraction(sim_result.observation, reward, terminal)
+        return DomainStepResult(sim_result.observation, reward, terminal)
 
     def obs2index(self, observation: np.ndarray) -> int:
         """projects the observation as an int
@@ -284,3 +285,75 @@ class Tiger(Environment, Simulator, POBNRLogger):
     def __repr__(self) -> str:
         encoding_descr = "one_hot" if self._use_one_hot_obs else "default"
         return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_probs}"
+
+
+class TigerPrior(DomainPrior):
+    """standard prior over the tiger domain
+
+    The transition model is known, however the probability of observing the
+    tiger correctly is not. Here we assume a `Dir(prior * total_counts
+    ,(1-prior) * total_counts)` belief over this distribution.
+
+    `prior` is computed by the `prior_correctness`: 1 -> .85, whereas 0 ->
+    .625, linear mapping in between
+
+    """
+
+    def __init__(
+        self,
+        num_total_counts: float,
+        prior_correctness,
+        one_hot_encode_observation: bool,
+    ):
+        """initiate the prior, will make observation one-hot encoded
+
+        Args:
+             num_total_counts: (`float`): Number of total counts of Dir prior
+             prior_correctness: (`float`): How correct the observation model is: [0, 1] -> [.625, .85]
+             one_hot_encode_observation: (`bool`):
+
+        """
+
+        if num_total_counts <= 0:
+            raise ValueError(
+                f"Assume positive number of total counts, not {num_total_counts}"
+            )
+
+        if not 0 <= prior_correctness < 1:
+            raise ValueError(
+                f"`prior_correctness` must be [0,1], not {prior_correctness}"
+            )
+
+        # Linear mapping: [0, 1] -> [.625, .85]
+        self._observation_prob = 0.625 + (prior_correctness * 0.225)
+        self._total_counts = num_total_counts
+        self._one_hot_encode_observation = one_hot_encode_observation
+
+    def sample(self) -> Domain:
+        """returns a Tiger instance with some correct observation prob
+
+        This prior over the observation probability is a Dirichlet with total
+        counts and observation probability as defined during the initialization
+
+        RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
+
+        """
+        sampled_observation_probs = [
+            np.random.dirichlet(
+                [
+                    self._observation_prob * self._total_counts,
+                    (1 - self._observation_prob) * self._total_counts,
+                ]
+            )[0],
+            np.random.dirichlet(
+                [
+                    self._observation_prob * self._total_counts,
+                    (1 - self._observation_prob) * self._total_counts,
+                ]
+            )[0],
+        ]
+
+        return Tiger(
+            one_hot_encode_observation=self._one_hot_encode_observation,
+            correct_obs_probs=sampled_observation_probs,
+        )

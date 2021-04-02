@@ -3,8 +3,8 @@
 import torch
 
 
-class Net(torch.nn.Module):  # type: ignore
-    """ a standard 3-layer neural network """
+class Net(torch.nn.Module):
+    """a standard 3-layer neural network"""
 
     def __init__(
         self,

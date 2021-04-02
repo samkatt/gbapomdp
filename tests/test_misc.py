@@ -11,8 +11,7 @@ import unittest
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.agents.neural_networks.misc import ReplayBuffer
-from general_bayes_adaptive_pomdps.environments import ActionSpace
+from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import ReplayBuffer
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, set_random_seed
 
 
@@ -49,15 +48,6 @@ class TestSpaces(unittest.TestCase):
         self.assertTrue(space.contains(np.array([0, 0])))
         self.assertFalse(space.contains(np.array([-1, 0])))
         self.assertFalse(space.contains(np.array([0, 3])))
-
-    def test_one_hot(self):  # pylint: disable=no-self-use
-        """ tests 1-hot encoding of actions """
-
-        action_space = ActionSpace(5)
-
-        np.testing.assert_array_equal(action_space.one_hot(0), [1, 0, 0, 0, 0])
-        np.testing.assert_array_equal(action_space.one_hot(4), [0, 0, 0, 0, 1])
-        np.testing.assert_array_equal(action_space.one_hot(3), [0, 0, 0, 1, 0])
 
     def test_index_of(self):
         """ tests getting index of things """

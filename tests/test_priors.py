@@ -6,17 +6,17 @@ import unittest
 import numpy as np
 
 from general_bayes_adaptive_pomdps.domains import (
-    Tiger,
-    GridWorld,
     CollisionAvoidance,
+    GridWorld,
     RoadRacer,
+    Tiger,
 )
-from general_bayes_adaptive_pomdps.domains.priors import TigerPrior, GridWorldPrior
-from general_bayes_adaptive_pomdps.domains.priors import (
+from general_bayes_adaptive_pomdps.domains.collision_avoidance import (
     CollisionAvoidancePrior,
-    RoadRacerPrior,
 )
-from general_bayes_adaptive_pomdps.environments import EncodeType
+from general_bayes_adaptive_pomdps.domains.gridworld import GridWorldPrior
+from general_bayes_adaptive_pomdps.domains.road_racer import RoadRacerPrior
+from general_bayes_adaptive_pomdps.domains.tiger import TigerPrior
 
 
 class TestTigerPrior(unittest.TestCase):
@@ -29,12 +29,12 @@ class TestTigerPrior(unittest.TestCase):
         incorrect_prior_setting = 0.0
 
         one_hot_prior = TigerPrior(
-            num_total_counts, incorrect_prior_setting, EncodeType.ONE_HOT
+            num_total_counts, incorrect_prior_setting, one_hot_encode_observation=True
         )
         self.assertEqual(one_hot_prior.sample().observation_space.ndim, 2)
 
         default_prior = TigerPrior(
-            num_total_counts, incorrect_prior_setting, EncodeType.DEFAULT
+            num_total_counts, incorrect_prior_setting, one_hot_encode_observation=False
         )
         self.assertEqual(default_prior.sample().observation_space.ndim, 1)
 
@@ -44,15 +44,16 @@ class TestTigerPrior(unittest.TestCase):
         num_total_counts = 10.0
         incorrect_prior_setting = 0.0
 
-        if random.choice([True, False]):
-            encoding = EncodeType.DEFAULT
-        else:
-            encoding = EncodeType.ONE_HOT
+        encoding = random.choice([True, False])
 
-        tiger = TigerPrior(num_total_counts, incorrect_prior_setting, encoding).sample()
+        tiger = TigerPrior(
+            num_total_counts,
+            incorrect_prior_setting,
+            one_hot_encode_observation=encoding,
+        ).sample()
         assert isinstance(tiger, Tiger)
 
-        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        obs_probs = tiger._correct_obs_probs
         self.assertTrue(0 <= obs_probs[0] <= 1)
         self.assertTrue(0 <= obs_probs[1] <= 1)
 
@@ -69,16 +70,12 @@ class TestTigerPrior(unittest.TestCase):
         num_total_counts = 1000000.0
         prior_level = 0.9999
 
-        # randomly pick encoding
-        if random.choice([True, False]):
-            encoding = EncodeType.DEFAULT
-        else:
-            encoding = EncodeType.ONE_HOT
+        encoding = random.choice([True, False])
 
         tiger = TigerPrior(num_total_counts, prior_level, encoding).sample()
         assert isinstance(tiger, Tiger)
 
-        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        obs_probs = tiger._correct_obs_probs
         self.assertTrue(0.84 <= obs_probs[0] <= 0.86)
         self.assertTrue(0.84 <= obs_probs[1] <= 0.86)
 
@@ -86,14 +83,14 @@ class TestTigerPrior(unittest.TestCase):
         tiger = TigerPrior(num_total_counts, prior_level, encoding).sample()
 
         assert isinstance(tiger, Tiger)
-        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        obs_probs = tiger._correct_obs_probs
         self.assertTrue(0.73 <= obs_probs[0] <= 0.74)
         self.assertTrue(0.73 <= obs_probs[1] <= 0.74)
 
         prior_level = 0.1
         tiger = TigerPrior(num_total_counts, prior_level, encoding).sample()
         assert isinstance(tiger, Tiger)
-        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        obs_probs = tiger._correct_obs_probs
         self.assertTrue(0.64 <= obs_probs[0] <= 0.65)
         self.assertTrue(0.64 <= obs_probs[1] <= 0.65)
 
@@ -120,25 +117,21 @@ class TestTigerPrior(unittest.TestCase):
         low_total_counts = 1.0
         incorrect_prior_setting = 0.0
 
-        # randomly pick encoding
-        if random.choice([True, False]):
-            encoding = EncodeType.DEFAULT
-        else:
-            encoding = EncodeType.ONE_HOT
+        encoding = random.choice([True, False])
 
         tiger = TigerPrior(
             high_total_counts, incorrect_prior_setting, encoding
         ).sample()
         assert isinstance(tiger, Tiger)
 
-        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        obs_probs = tiger._correct_obs_probs
         self.assertTrue(0.624 <= obs_probs[0] <= 0.626)
         self.assertTrue(0.624 <= obs_probs[1] <= 0.626)
 
         tiger = TigerPrior(low_total_counts, incorrect_prior_setting, encoding).sample()
         assert isinstance(tiger, Tiger)
 
-        obs_probs = tiger._correct_obs_probs  # pylint: disable=protected-access
+        obs_probs = tiger._correct_obs_probs
         self.assertFalse(
             0.624 <= obs_probs[0] <= 0.626, f"Rarely false; obs = {obs_probs[0]}"
         )
@@ -153,21 +146,17 @@ class TestGridWorldPrior(unittest.TestCase):
     def test_encoding(self) -> None:
         """ tests encoding is done correctly """
 
-        one_hot_sample = GridWorldPrior(size=3, encoding=EncodeType.ONE_HOT).sample()
+        one_hot_sample = GridWorldPrior(size=3, one_hot_encode_goal=True).sample()
         self.assertEqual(one_hot_sample.observation_space.ndim, 5)
 
-        default_sample = GridWorldPrior(size=5, encoding=EncodeType.DEFAULT).sample()
+        default_sample = GridWorldPrior(size=5, one_hot_encode_goal=False).sample()
         self.assertEqual(default_sample.observation_space.ndim, 3)
 
     def test_default_slow_cells(self) -> None:
         """ tests Gridworlds sampled from prior have no slow cells """
 
-        sample_gridworld_1 = GridWorldPrior(
-            size=4, encoding=EncodeType.DEFAULT
-        ).sample()
-        sample_gridworld_2 = GridWorldPrior(
-            size=4, encoding=EncodeType.DEFAULT
-        ).sample()
+        sample_gridworld_1 = GridWorldPrior(size=4, one_hot_encode_goal=False).sample()
+        sample_gridworld_2 = GridWorldPrior(size=4, one_hot_encode_goal=False).sample()
 
         assert isinstance(sample_gridworld_1, GridWorld)
         assert isinstance(sample_gridworld_2, GridWorld)
@@ -181,7 +170,7 @@ class TestGridWorldPrior(unittest.TestCase):
 
 
 class TestCollisionAvoidancePrior(unittest.TestCase):
-    """ tests the prior on the collection avoidance environment """
+    """Tests the prior on collection avoidance"""
 
     def test_default(self) -> None:
         """ tests the default prior """
@@ -190,7 +179,7 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
 
         assert isinstance(sampled_domain, CollisionAvoidance)
 
-        block_pol = sampled_domain._block_policy  # pylint: disable=protected-access
+        block_pol = sampled_domain._block_policy
 
         np.testing.assert_array_less(block_pol, 1)
         np.testing.assert_array_less(0, block_pol)
@@ -203,7 +192,7 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
 
         assert isinstance(sampled_domain, CollisionAvoidance)
 
-        block_pol = sampled_domain._block_policy  # pylint: disable=protected-access
+        block_pol = sampled_domain._block_policy
 
         self.assertAlmostEqual(block_pol[0], 0.05, 3)
         self.assertAlmostEqual(block_pol[1], 0.9, 3)
@@ -215,7 +204,7 @@ class TestCollisionAvoidancePrior(unittest.TestCase):
 
         assert isinstance(sampled_domain, CollisionAvoidance)
 
-        block_pol = sampled_domain._block_policy  # pylint: disable=protected-access
+        block_pol = sampled_domain._block_policy
 
         self.assertNotAlmostEqual(block_pol[0], 0.05, 6)
         self.assertNotAlmostEqual(block_pol[1], 0.9, 6)

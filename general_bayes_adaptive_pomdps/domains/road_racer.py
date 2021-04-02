@@ -1,21 +1,20 @@
 """ the road racer domain """
+from logging import Logger
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.environments import (
-    Environment,
-    Simulator,
+from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-)
-from general_bayes_adaptive_pomdps.environments import (
-    EnvironmentInteraction,
+    Domain,
+    DomainPrior,
+    DomainStepResult,
     SimulationResult,
     TerminalState,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, Space, POBNRLogger
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel, Space
 
 
-class RoadRacer(Environment, Simulator):
+class RoadRacer(Domain):
     """represents the domain `RoadRacer`
 
     In this domain the agent is a driver on a highway. Its task is to navigate
@@ -59,7 +58,7 @@ class RoadRacer(Environment, Simulator):
             [self.lane_length] * (self.num_lanes) + [self.num_lanes]
         )
 
-        self.logger = POBNRLogger("road racer")
+        self.logger = Logger(self.__class__.__name__)
 
     @property
     def lane_length(self) -> int:
@@ -141,13 +140,13 @@ class RoadRacer(Environment, Simulator):
         return np.array([state[RoadRacer.get_current_lane(state)]])
 
     def reset(self) -> np.ndarray:
-        """ implements `general_bayes_adaptive_pomdps.environments.Environment` """
+        """ implements `general_bayes_adaptive_pomdps.core.Environment` """
         self.state = self.sample_start_state()
 
         return RoadRacer.get_observation(self.state)
 
-    def step(self, action: int) -> EnvironmentInteraction:
-        """implements `general_bayes_adaptive_pomdps.environments.Environment.step`
+    def step(self, action: int) -> DomainStepResult:
+        """implements `general_bayes_adaptive_pomdps.core.Environment.step`
 
         action: 0 -> 'go up', 1 -> 'stay', 2 -> 'go down'
 
@@ -159,18 +158,17 @@ class RoadRacer(Environment, Simulator):
 
         self.state = step.state
 
-        if self.logger.log_is_on(POBNRLogger.LogLevel.V2):
-            self.logger.log(
-                POBNRLogger.LogLevel.V2,
-                f"lane={self.current_lane} and lanes {self.state[:-1]}, "
-                f"a={action}, o={step.observation[0]}, r={reward}",
-            )
+        self.logger.log(
+            LogLevel.V2.value,
+            f"lane={self.current_lane} and lanes {self.state[:-1]}, "
+            f"a={action}, o={step.observation[0]}, r={reward}",
+        )
 
-        return EnvironmentInteraction(step.observation, reward, terminal)
+        return DomainStepResult(step.observation, reward, terminal)
 
     @property
     def action_space(self) -> ActionSpace:
-        """ implements `general_bayes_adaptive_pomdps.environments.Environment.action_space` """
+        """Part of :class:`Domain` protocol"""
         return self.actions
 
     @property
@@ -180,11 +178,11 @@ class RoadRacer(Environment, Simulator):
 
     @property
     def state_space(self) -> Space:
-        """ implements `general_bayes_adaptive_pomdps.environments.Simulator.state_space` """
+        """Part of :class:`Domain` protocol"""
         return self.states
 
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
-        """implements `general_bayes_adaptive_pomdps.environments.Simulator.simulation_step`
+        """Part of :class:`Domain` protocol
 
         action: 0 -> 'go up', 1 -> 'stay', 2 -> 'go down'
 
@@ -220,20 +218,19 @@ class RoadRacer(Environment, Simulator):
         if next_state[next_lane] != 0:
             next_state[self.agent_state_feature_index] = next_lane
 
-        # TODO: do this before moving again?
         # cars re-appear at the start of the lane when finishing
         next_state[:-1] = next_state[:-1] % self.lane_length
 
         return SimulationResult(next_state, RoadRacer.get_observation(next_state))
 
     def sample_start_state(self) -> np.ndarray:
-        """ implements `general_bayes_adaptive_pomdps.environments.Simulator.sample_start_state` """
+        """Part of :class:`Domain` protocol"""
         return np.concatenate(
             (np.ones(self.num_lanes) * (self.lane_length - 1), [self.middle_lane])
         ).astype(int)
 
     def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
-        """implements `general_bayes_adaptive_pomdps.environments.Simulator.reward`
+        """Part of :class:`Domain` protocol
 
         Reward consists of 2 components:
 
@@ -262,7 +259,7 @@ class RoadRacer(Environment, Simulator):
         return new_state[current_lane] - bump
 
     def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
-        """ implements `general_bayes_adaptive_pomdps.environments.Simulator.terminal` """
+        """Part of :class:`Domain` protocol"""
 
         assert self.state_space.contains(state), str(state)
         assert self.action_space.contains(action), str(action)
@@ -272,3 +269,42 @@ class RoadRacer(Environment, Simulator):
 
     def __repr__(self) -> str:
         return f"Road racer of length {self.lane_length} with lane probabilities {self.lane_probs}"
+
+
+class RoadRacerPrior(DomainPrior):
+    """standard prior over the road racer domain
+
+    The agent's transition and observation model is known, however the other
+    cars' speed is not. We assign a expected model of p=.5 for advancing to
+    each lane.
+
+    """
+
+    def __init__(self, num_lanes: int, num_total_counts: float):
+        """initiate the prior, will make observation one-hot encoded
+
+        Args:
+             num_lanes: (`float`): number of lanes in the domain
+             num_total_counts: (`float`): number of total counts of Dir prior
+
+        """
+
+        if num_total_counts <= 0:
+            raise ValueError("Assume positive number of total counts")
+
+        self._total_counts = num_total_counts
+        self._num_lanes = num_lanes
+
+    def sample(self) -> Domain:
+        """returns a Road Racer instance with some sampled set of lane speeds
+
+        The prior over each lane advancement probability  is .5
+
+        RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
+
+        """
+        sampled_lane_speeds = np.random.beta(
+            0.5 * self._total_counts, 0.5 * self._total_counts, self._num_lanes
+        )
+
+        return RoadRacer(sampled_lane_speeds)

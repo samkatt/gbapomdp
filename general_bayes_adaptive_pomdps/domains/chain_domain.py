@@ -1,23 +1,21 @@
-""" chain domain environment """
+"""chain domain"""
+
+from logging import Logger
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.environments import (
-    Environment,
-    EnvironmentInteraction,
+from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-)
-from general_bayes_adaptive_pomdps.environments import (
-    Simulator,
+    Domain,
+    DomainStepResult,
     SimulationResult,
-    EncodeType,
     TerminalState,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, POBNRLogger
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class ChainDomain(Environment, Simulator, POBNRLogger):
-    """the chain environment
+class ChainDomain(Domain):
+    """The chain problem
 
     The domains are indexed by problem size N and action mask W =
     Ber(0.5)^NxN,with S={0,1}^NxN and A={0,1}. The agent begins each episode in
@@ -33,22 +31,26 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
     """
 
-    def __init__(self, size: int, encoding: EncodeType):
-        """construct the chain environment
+    def __init__(self, size: int, one_hot_encode_observation: bool = False):
+        """Construct the chain domain
+
+        The typical 'observation' returns the state (y, x). If
+        `one_hot_encode_observation`, then this encoded in a one-hot encoding
+        instead (an array of `size` elements).
 
         Args:
              size: (`int`): size of the grid
-             encoding: (`general_bayes_adaptive_pomdps.environments.EncodeType`)
+             one_hot_encode_observation: (`bool`):
 
         """
 
         assert size > 1, "Please enter domain size > 1"
 
-        POBNRLogger.__init__(self)
+        self._logger = Logger(self.__class__.__name__)
 
         self._size = size
         self._move_cost = 0.01 / self.size
-        self._one_hot_observations = encoding == EncodeType.ONE_HOT
+        self._one_hot_observations = one_hot_encode_observation
 
         self._state_space = DiscreteSpace([self.size, self.size])
         self._action_space = ActionSpace(2)
@@ -93,7 +95,7 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.environments.ActionSpace` space with 2 actions"""
+        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` space with 2 actions"""
         return self._action_space
 
     @property
@@ -151,16 +153,16 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         Depending on the state, action can either move the agent left or rigth
         deterministically. The observation is a noise-less 1-hot-encoding of
-        the state and the environment stops when the end is reached (on either
+        the state and the episode stops when the end is reached (on either
         x-axis)
 
-        Raises `general_bayes_adaptive_pomdps.environments.TerminalState` if x value of `state` is 0
+        Raises `general_bayes_adaptive_pomdps.core.TerminalState` if x value of `state` is 0
 
         Args:
              state: (`np.ndarray`): the state [x,y]
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.SimulationResult`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.SimulationResult`): the transition
 
         """
 
@@ -226,18 +228,18 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
 
         return bool(new_state[1] == 0)
 
-    def step(self, action: int) -> EnvironmentInteraction:
+    def step(self, action: int) -> DomainStepResult:
         """performs a step in the domain depending on action
 
         Depending on the state, action can either move the agent left or rigth
         deterministically. The observation is a noise-less 1-hot-encoding of
-        the state and the environment stops when the end is reached (on either
+        the state and the domain stops when the end is reached (on either
         x-axis)
 
         Args:
              action: (`int`): 0 is action A, 1 = action B
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.EnvironmentInteraction`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.EnvironmentInteraction`): the transition
 
         """
 
@@ -246,11 +248,10 @@ class ChainDomain(Environment, Simulator, POBNRLogger):
         reward = self.reward(self.state, action, sim_step.state)
         terminal = self.terminal(self.state, action, sim_step.state)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
-            self.log(
-                POBNRLogger.LogLevel.V2, f"Agent moved {self.state} -> {sim_step.state}"
-            )
+        self._logger.log(
+            LogLevel.V2.value, f"Agent moved {self.state} -> {sim_step.state}"
+        )
 
         self._state = sim_step.state
 
-        return EnvironmentInteraction(sim_step.observation, reward, terminal)
+        return DomainStepResult(sim_step.observation, reward, terminal)

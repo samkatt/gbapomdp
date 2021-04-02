@@ -18,8 +18,6 @@ requirements = [
     "more_itertools",
     "tensorboard",
     "mypy_extensions",
-    "online_pomdp_planning @ git+ssh://git@github.com/samkatt/online-pomdp-planning.git@master",
-    "pomdp_belief_tracking @ git+ssh://git@github.com/samkatt/pomdp-belief-tracking.git@main",
     "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
     "numpy",
     "cached_property",
@@ -64,11 +62,4 @@ setup(
     url="https://github.com/samkatt/general_bayes_adaptive_pomdps",
     version="0.1.0",
     zip_safe=False,
-    scripts=[
-        "scripts/experiments/model_based.py",
-        "scripts/experiments/pouct_planning.py",
-        "scripts/experiments/sequential_distr_learning.py",
-        "scripts/analysis/merge_result_files.py",
-        "scripts/analysis/plotting.py",
-    ],
 )

@@ -4,8 +4,16 @@ import unittest
 from functools import partial
 
 import numpy as np
+import pytest
 
-from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.baddr.model import (
+    create_dynamics_model,
+    create_transition_sampler,
+    sample_from_gridverse,
+    sample_transitions_uniform_from_simulator,
+    train_from_samples,
+)
+from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     sgd_builder,
 )
@@ -13,9 +21,6 @@ from general_bayes_adaptive_pomdps.domains import GridverseDomain, Tiger
 from general_bayes_adaptive_pomdps.domains.gridverse_domain import (
     ObservationModel as GverseObsModel,
 )
-from general_bayes_adaptive_pomdps.environments import EncodeType
-from general_bayes_adaptive_pomdps.model_based import parse_arguments
-from general_bayes_adaptive_pomdps.models import baddr
 
 
 class TestSampleFromSimulator(unittest.TestCase):
@@ -23,9 +28,14 @@ class TestSampleFromSimulator(unittest.TestCase):
 
     def test_simple_run_and_space(self):
         """run once on tiger and check if result is viable"""
-        sim = Tiger(EncodeType.DEFAULT)
+        sim = Tiger(one_hot_encode_observation=False)
 
-        s, a, news, o = baddr.sample_transitions_uniform_from_simulator(sim)
+        (
+            s,
+            a,
+            news,
+            o,
+        ) = sample_transitions_uniform_from_simulator(sim)
 
         self.assertTrue(sim.state_space.contains(s))
         self.assertTrue(sim.action_space.contains(a))
@@ -37,9 +47,9 @@ class TestTrainFromSamples(unittest.TestCase):
     """Basic test for learning ensembles from samples"""
 
     def test_improve_performance(self):
-        """Tests whether learning in tiger environment improves model"""
-        sim = Tiger(EncodeType.DEFAULT)
-        sampler = baddr.sample_transitions_uniform_from_simulator
+        """Tests whether learning improves model"""
+        sim = Tiger(one_hot_encode_observation=False)
+        sampler = sample_transitions_uniform_from_simulator
 
         batch_size = 16
 
@@ -74,7 +84,7 @@ class TestTrainFromSamples(unittest.TestCase):
 
         initial_transition_model = model.transition_model(s, Tiger.LISTEN)[0]
 
-        baddr.train_from_samples(
+        train_from_samples(
             model,
             partial(sampler, sim=sim),
             num_epochs=256,
@@ -97,8 +107,13 @@ class TestSampleFromGridverse(unittest.TestCase):
         d = GridverseDomain()
 
         try:
-            _, _, _, _ = baddr.sample_from_gridverse(d)
-        except Exception as e:  # pylint: disable=broad-except
+            (
+                _,
+                _,
+                _,
+                _,
+            ) = sample_from_gridverse(d)
+        except Exception as e:
             self.fail(f"This code should run, causes {e}")
 
 
@@ -111,63 +126,71 @@ class TestCreateTransitionSampler(unittest.TestCase):
 
     """
 
-    # pylint: disable=no-member
-
     def test_default(self):
         """Test none-Gridverse """
         self.assertEqual(
-            baddr.create_transition_sampler(None).func.__name__,  # type: ignore
+            create_transition_sampler(None).func.__name__,  # type: ignore
             "sample_transitions_uniform_from_simulator",
         )
 
     def test_gridverse(self):
         """Test Gridverse """
         self.assertEqual(
-            baddr.create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
+            create_transition_sampler(GridverseDomain()).func.__name__,  # type: ignore
             "sample_from_gridverse",
         )
 
 
-class TestCreateDynamicsModel(unittest.TestCase):
-    """tests the factory function for `DynamicsModel`"""
+def test_known_model_settings():
+    """tests setting the `known_model` configuration"""
 
-    def setUp(self):
-        """basic config file"""
-        self.c = parse_arguments(["-D=gridverse", "-B=rejection_sampling"])
+    d = GridverseDomain()
 
-        self.d = GridverseDomain()
+    optimizer = "Adam"
+    learning_rate = 0.01
+    network_size = 8
+    batch_size = 4
+    dropout_rate = 0.5
+    known_model = "T"
 
-    def test_known_model_settings(self):
-        """tests setting the `known_model` configuration"""
+    with pytest.raises(ValueError):
+        create_dynamics_model(
+            domain=d,
+            optimizer=optimizer,
+            learning_rate=learning_rate,
+            network_size=network_size,
+            batch_size=batch_size,
+            dropout_rate=dropout_rate,
+            known_model=known_model,
+        )
 
-        # should raise error when asking for known model
-        self.c.domain = "tiger"
-        for setting in ["O", "T"]:
-            self.c.known_model = setting
-            self.assertRaises(
-                ValueError,
-                baddr.create_dynamics_model,
-                domain=self.d,
-                conf=self.c,
+    known_model = "O"
+    dynamics_model = create_dynamics_model(
+        d,
+        optimizer=optimizer,
+        learning_rate=learning_rate,
+        network_size=network_size,
+        batch_size=batch_size,
+        dropout_rate=dropout_rate,
+        known_model=known_model,
+    )
+
+    assert isinstance(dynamics_model.o, GverseObsModel)
+
+    # should raise error when asking for known model
+    d = Tiger(one_hot_encode_observation=False)
+    for setting in ["O", "T"]:
+        known_model = setting
+        with pytest.raises(ValueError):
+            create_dynamics_model(
+                domain=d,
+                optimizer=optimizer,
+                learning_rate=learning_rate,
+                network_size=network_size,
+                batch_size=batch_size,
+                dropout_rate=dropout_rate,
+                known_model=known_model,
             )
-
-        # unless gridverse!
-        self.c.domain = "gridverse"
-        self.c.known_model = "T"
-        self.assertRaises(
-            ValueError,
-            baddr.create_dynamics_model,
-            domain=self.d,
-            conf=self.c,
-        )
-
-        self.c.known_model = "O"
-        dynamics_model = baddr.create_dynamics_model(
-            self.d,
-            self.c,
-        )
-
-        self.assertIsInstance(dynamics_model.o, GverseObsModel)
 
 
 if __name__ == "__main__":

@@ -1,22 +1,235 @@
-"""The definition of a general Bayes adaptive POMDP
+"""Core functionality and models
 
-Provides the protocol for the main component of the whole package: the general
-Bayes-adaptive POMDP.
+Contains the protocol for the GBA-POMDP and its domains. Additionally provides
+building block classes used in the rest of the code.
+
 """
 
-from typing import TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.environments import ActionSpace, SimulationResult
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, Space
+
+
+class ActionSpace(DiscreteSpace):
+    """action space for domains"""
+
+    def __init__(self, size: int):
+        """initiates an action space of size
+
+        Args:
+             dim: (`int`): number of actions
+
+        """
+        super().__init__([size])
+
+    def sample(self) -> np.ndarray:
+        """returns a sample from the space at random
+
+        NOTE: implements :class:`DiscreteSpace` protocol and thus returns an
+        array of 1 element. See :meth:`sample_as_int` to directly sample as
+        integer
+
+        RETURNS (`np.array`): a sample in the space of this
+
+        """
+        return super().sample()
+
+    def one_hot(self, action: int) -> np.ndarray:
+        """returns a 1-hot encoding of the action
+
+        Args:
+             action: (`int`):
+
+        RETURNS (`np.ndarray`):
+
+        """
+
+        assert self.contains(action)
+
+        one_hot_rep = np.zeros(self.size)
+        one_hot_rep[action] = 1
+
+        return one_hot_rep
+
+    def __repr__(self):
+        return f"ActionSpace of size {self.n}"
+
+    def contains(self, elem: int) -> bool:
+        """returns whether `this` contains action
+
+        Args:
+             elem: (`int`): an action
+
+        RETURNS (`bool`): true if in `this`
+
+        """
+        return super().contains(np.array([elem]))
+
+    def sample_as_int(self) -> int:
+        """Samples an action in its int representation"""
+        return int(self.sample()[0])
+
+
+class DomainStepResult(NamedTuple):
+    """the tuple returned by domains doing steps"""
+
+    observation: np.ndarray
+    reward: float
+    terminal: bool
+
+
+class TerminalState(Exception):
+    """ raised when trying to step with a terminal state """
+
+
+class SimulationResult(NamedTuple):
+    """The tuple returned by simulations doing steps """
+
+    state: Any
+    observation: np.ndarray
+
+
+class Domain(Protocol):
+    """The protocol for a domain in this package.
+
+    This is not necessary for any particular reason, other than that it makes
+    it simpler to implmeent :class:`GBAPOMDP` and similar classes when one can
+    assume some functionality. So if this protocol is implemented, it can be
+    used as a domain to do GBA-POMDP on.
+    """
+
+    @property
+    def state_space(self) -> Space:
+        """the (discrete) state space of the POMDP
+
+        Args:
+
+        RETURNS (`general_bayes_adaptive_pomdps.misc.DiscreteSpace`):
+
+        """
+
+    @property
+    def action_space(self) -> ActionSpace:
+        """returns size of domain action space
+
+        RETURNS(`general_bayes_adaptive_pomdps.core.ActionSpace`): the action space
+
+        """
+
+    @property
+    def observation_space(self) -> Space:
+        """returns size of domain observation space
+
+        RETURNS(`general_bayes_adaptive_pomdps.misc.DiscreteSpace`): the observation space
+
+        """
+
+    def reset(self) -> np.ndarray:
+        """ resets internal state and return first observation """
+
+    def step(self, action: int) -> DomainStepResult:
+        """update state as a result of action
+
+        May raise `TerminalState`
+
+        Args:
+             action: (`int`): agent's taken action
+
+        RETURNS (`EnvironmentInteraction`): the transition
+
+        """
+
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
+        """generates a transition
+
+        May raise `TerminalState`
+
+        Args:
+             state: (`np.ndarray`): some state
+             action: (`int`): agent's taken action
+
+        RETURNS (`SimulationResult`): the transition
+
+        """
+
+    def sample_start_state(self) -> np.ndarray:
+        """ returns a potential start state """
+
+    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
+        """the reward function
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`float`): the reward of the transition
+
+        """
+
+    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
+        """the termination function
+
+        Args:
+             state: (`np.ndarray`):
+             action: (`int`):
+             new_state: (`np.ndarray`):
+
+        RETURNS (`bool`): whether the transition is terminal
+
+        """
+
+    def state_to_string(self, state: np.ndarray) -> str:
+        """Returns a string representation of the `state`
+
+        Exists so that derived classes can override this, and hopefully provide
+        more useful info than the array representation
+
+        Args:
+            state (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return str(state)
+
+    def action_to_string(self, action: int) -> str:
+        """Returns a string representation of the `action`
+
+        Exists so that derived classes can override this, and hopefully provide
+        more useful info than the int representation
+
+        Args:
+            action (`int`):
+
+        Returns:
+            `str`:
+        """
+        return str(action)
+
+    def observation_to_string(self, observation: np.ndarray) -> str:
+        """Returns a string representation of the `observation`
+
+        Exists so that derived classes can override this, and hopefully provide
+        more useful info than the array representation
+
+        Args:
+            observation (`np.ndarray`):
+
+        Returns:
+            `str`:
+        """
+        return str(observation)
+
 
 AugmentedState = TypeVar("AugmentedState")
 """The state space of a General Bayes-adaptive POMDP"""
 
 
-class GBAPOMDP(Protocol[AugmentedState]):
+class GeneralBAPOMDP(Protocol[AugmentedState]):
     """Defines the protocol of a general Bayes-adaptive POMDP
 
     The GBA-POMDP _is a_ POMDP with a special state space. It augments an
@@ -163,4 +376,14 @@ class GBAPOMDP(Protocol[AugmentedState]):
         :param action: action at timestep t
         :param next_state: state at timestep t+1
         :return: true is the input transition was terminal
+        """
+
+
+class DomainPrior(Protocol):
+    """The interface to priors"""
+
+    def sample(self) -> Domain:
+        """sample a simulator
+
+        RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
         """

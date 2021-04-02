@@ -4,6 +4,8 @@ import random
 import unittest
 
 import numpy as np
+
+from general_bayes_adaptive_pomdps.core import TerminalState
 from general_bayes_adaptive_pomdps.domains import (
     chain_domain,
     collision_avoidance,
@@ -11,19 +13,18 @@ from general_bayes_adaptive_pomdps.domains import (
     road_racer,
     tiger,
 )
-from general_bayes_adaptive_pomdps.environments import EncodeType, TerminalState
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
 class TestTiger(unittest.TestCase):
-    """ tests functionality of the tiger environment """
+    """tests functionality of :class:`Tiger`"""
 
     def setUp(self):
         """ creates a tiger member """
-        self.one_hot_env = tiger.Tiger(EncodeType.ONE_HOT)
+        self.one_hot_env = tiger.Tiger(one_hot_encode_observation=True)
         self.one_hot_env.reset()
 
-        self.env = tiger.Tiger(EncodeType.DEFAULT)
+        self.env = tiger.Tiger(one_hot_encode_observation=False)
         self.env.reset()
 
     def test_reset(self):
@@ -144,7 +145,7 @@ class TestTiger(unittest.TestCase):
         """ tests changing the observation probability """
 
         deterministic_tiger = tiger.Tiger(
-            EncodeType.DEFAULT, correct_obs_probs=[1.0, 1.0]
+            one_hot_encode_observation=False, correct_obs_probs=[1.0, 1.0]
         )
 
         deterministic_tiger.reset()
@@ -155,11 +156,11 @@ class TestTiger(unittest.TestCase):
 
 
 class TestGridWorld(unittest.TestCase):
-    """ Tests for GridWorld environment """
+    """Tests for GridWorld"""
 
     def test_reset(self):
         """ Tests Gridworld.reset() """
-        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
+        env = gridworld.GridWorld(3, one_hot_encode_goal=True)
         observation = env.reset()
 
         np.testing.assert_array_equal(env.state[0], [0, 0])
@@ -168,14 +169,14 @@ class TestGridWorld(unittest.TestCase):
             [[0, 0, 1], [0, 1, 0], [1, 0, 0]],
         )
 
-        env = gridworld.GridWorld(3, EncodeType.DEFAULT)
+        env = gridworld.GridWorld(3, one_hot_encode_goal=False)
         observation = env.reset()
         self.assertIn(observation[2], [0, 1, 2])
 
-    def test_sample_start_state(self):  # pylint: disable=no-self-use
+    def test_sample_start_state(self):
         """ tests sampling start states """
 
-        env = gridworld.GridWorld(5, EncodeType.ONE_HOT)
+        env = gridworld.GridWorld(5, one_hot_encode_goal=True)
 
         start_states = [env.sample_start_state() for _ in range(10)]
 
@@ -185,7 +186,7 @@ class TestGridWorld(unittest.TestCase):
     def test_step(self):
         """ Tests Gridworld.step() """
 
-        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
+        env = gridworld.GridWorld(3, one_hot_encode_goal=True)
         env.reset()
 
         goal = env.state[2]
@@ -228,7 +229,7 @@ class TestGridWorld(unittest.TestCase):
 
     def test_space(self):
         """ Tests Gridworld.spaces """
-        env = gridworld.GridWorld(5, EncodeType.ONE_HOT)
+        env = gridworld.GridWorld(5, one_hot_encode_goal=True)
 
         action_space = env.action_space
         np.testing.assert_array_equal(action_space.size, [4])
@@ -239,7 +240,7 @@ class TestGridWorld(unittest.TestCase):
         self.assertEqual(observation_space.ndim, 2 + len(env.goals))
 
         # regular (not one-hot) goal encoding
-        env = gridworld.GridWorld(5, EncodeType.DEFAULT)
+        env = gridworld.GridWorld(5, one_hot_encode_goal=False)
         observation_space = env.observation_space
         self.assertEqual(observation_space.n, 25 * len(env.goals))
         self.assertEqual(observation_space.ndim, 3)
@@ -256,7 +257,7 @@ class TestGridWorld(unittest.TestCase):
 
         """
 
-        env = gridworld.GridWorld(3, EncodeType.ONE_HOT)
+        env = gridworld.GridWorld(3, one_hot_encode_goal=True)
 
         # test bound_in_grid
         np.testing.assert_array_equal(env.bound_in_grid(np.array([2, 2])), [2, 2])
@@ -277,7 +278,7 @@ class TestGridWorld(unittest.TestCase):
         # Gridworld.goals
         self.assertListEqual(env.goals, list_of_goals)
 
-        larger_env = gridworld.GridWorld(7, EncodeType.ONE_HOT)
+        larger_env = gridworld.GridWorld(7, one_hot_encode_goal=True)
         self.assertEqual(len(larger_env.goals), 10)
 
         # Gridworld.state
@@ -328,19 +329,19 @@ class TestGridWorld(unittest.TestCase):
         """ tests creation of gridworld without slow cells """
 
         gw_no_cells = gridworld.GridWorld(
-            domain_size=5, encoding=EncodeType.DEFAULT, slow_cells=set()
+            domain_size=5, one_hot_encode_goal=False, slow_cells=set()
         )
         self.assertFalse(gw_no_cells.slow_cells)
 
         gw_simple_cell = gridworld.GridWorld(
-            domain_size=5, encoding=EncodeType.DEFAULT, slow_cells={(0, 1)}
+            domain_size=5, one_hot_encode_goal=False, slow_cells={(0, 1)}
         )
         self.assertSetEqual(gw_simple_cell.slow_cells, {(0, 1)})
 
     def test_goals(self) -> None:
         """ tests the location of goals """
 
-        grid_world = gridworld.GridWorld(3, EncodeType.DEFAULT)
+        grid_world = gridworld.GridWorld(3, one_hot_encode_goal=True)
 
         for goal in grid_world.goals:
             self.assertGreaterEqual(goal.x, 0)
@@ -361,13 +362,13 @@ class TestCollisionAvoidance(unittest.TestCase):
         self.assertEqual(env.state[1], 1)
         self.assertEqual(env.state[2], 1)
 
-    def test_sample_start_state(self):  # pylint: disable=no-self-use
+    def test_sample_start_state(self):
         """ tests sampling start states """
 
         env = collision_avoidance.CollisionAvoidance(7)
         np.testing.assert_array_equal(env.sample_start_state(), [6, 3, 3])
 
-    def test_step(self):  # pylint: disable=no-self-use,too-many-statements
+    def test_step(self):
         """ tests CollisionAvoidance.step """
 
         env = collision_avoidance.CollisionAvoidance(7)
@@ -478,16 +479,16 @@ class TestCollisionAvoidance(unittest.TestCase):
 class TestChainDomain(unittest.TestCase):
     """ tests the chain domain """
 
-    def test_reset(self):  # pylint: disable=no-self-use
+    def test_reset(self):
         """ tests ChainDomain.reset """
-        domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
+        domain = chain_domain.ChainDomain(size=4, one_hot_encode_observation=True)
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 3])
         np.testing.assert_array_equal(
             obs, [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         )
-        domain = chain_domain.ChainDomain(size=10, encoding=EncodeType.ONE_HOT)
+        domain = chain_domain.ChainDomain(size=10, one_hot_encode_observation=True)
 
         obs = domain.reset()
         np.testing.assert_array_equal(domain.state, [0, 9])
@@ -502,20 +503,20 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(obs, expected_obs.reshape(100))
 
         # compact observation representation
-        domain = chain_domain.ChainDomain(5, encoding=EncodeType.DEFAULT)
+        domain = chain_domain.ChainDomain(5, one_hot_encode_observation=False)
         obs = domain.reset()
         np.testing.assert_array_equal(obs, [0, 4])
 
-    def test_sample_start_state(self):  # pylint: disable=no-self-use
+    def test_sample_start_state(self):
         """ tests sampling start states """
 
-        env = chain_domain.ChainDomain(4, encoding=EncodeType.DEFAULT)
+        env = chain_domain.ChainDomain(4, one_hot_encode_observation=False)
         np.testing.assert_array_equal(env.sample_start_state(), [0, 3])
 
     def test_space(self):
         """ tests ChainDomain.spaces """
 
-        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.DEFAULT)
+        domain = chain_domain.ChainDomain(size=3, one_hot_encode_observation=False)
 
         action_space = domain.action_space
 
@@ -527,7 +528,7 @@ class TestChainDomain(unittest.TestCase):
         np.testing.assert_array_equal(observation_space.size, [3, 3])
         self.assertEqual(observation_space.ndim, 2)
 
-        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.ONE_HOT)
+        domain = chain_domain.ChainDomain(size=3, one_hot_encode_observation=True)
         observation_space = domain.observation_space
 
         self.assertEqual(observation_space.n, 2 ** 9)
@@ -537,7 +538,7 @@ class TestChainDomain(unittest.TestCase):
     def test_state(self):
         """ tests ChainDomain.state """
 
-        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.DEFAULT)
+        domain = chain_domain.ChainDomain(size=3, one_hot_encode_observation=False)
         domain.reset()
 
         np.testing.assert_array_equal(domain.state, [0, 2])
@@ -549,20 +550,16 @@ class TestChainDomain(unittest.TestCase):
     def test_step(self):
         """ tests ChainDomain.step """
 
-        domain = chain_domain.ChainDomain(size=3, encoding=EncodeType.ONE_HOT)
+        domain = chain_domain.ChainDomain(size=3, one_hot_encode_observation=True)
 
         # test if all effects go right
-        step = domain.step(
-            domain._action_mapping[0]  # pylint: disable=protected-access
-        )
+        step = domain.step(domain._action_mapping[0])
 
         self.assertFalse(step.terminal)
         self.assertAlmostEqual(step.reward, -0.0033333333)
         np.testing.assert_array_equal(step.observation, [0, 0, 0, 0, 1, 0, 0, 0, 0])
 
-        step = domain.step(
-            (domain._action_mapping[1])  # pylint: disable=protected-access
-        )
+        step = domain.step((domain._action_mapping[1]))
         self.assertTrue(step.terminal)
         self.assertAlmostEqual(step.reward, 1 - 0.0033333333)
         np.testing.assert_array_equal(step.observation, [0, 0, 0, 0, 0, 0, 1, 0, 0])
@@ -572,16 +569,12 @@ class TestChainDomain(unittest.TestCase):
         domain.reset()
 
         # test going left
-        step = domain.step(
-            not domain._action_mapping[0]  # pylint: disable=protected-access
-        )
+        step = domain.step(not domain._action_mapping[0])
         self.assertFalse(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(step.observation, [0, 1, 0, 0, 0, 0, 0, 0, 0])
 
-        step = domain.step(
-            not domain._action_mapping[0]  # pylint: disable=protected-access
-        )
+        step = domain.step(not domain._action_mapping[0])
         self.assertTrue(step.terminal)
         self.assertAlmostEqual(step.reward, 0)
         np.testing.assert_array_equal(step.observation, [1, 0, 0, 0, 0, 0, 0, 0, 0])
@@ -595,11 +588,13 @@ class TestChainDomain(unittest.TestCase):
         """
 
         for size in 3, 9:
-            domain = chain_domain.ChainDomain(size=size, encoding=EncodeType.DEFAULT)
+            domain = chain_domain.ChainDomain(
+                size=size, one_hot_encode_observation=False
+            )
             self.assertEqual(domain.size, size)
 
         # compact observation state2observation
-        domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.DEFAULT)
+        domain = chain_domain.ChainDomain(size=4, one_hot_encode_observation=False)
 
         np.testing.assert_array_equal(
             domain.state2observation(np.array([0, 0])), [0, 0]
@@ -612,7 +607,7 @@ class TestChainDomain(unittest.TestCase):
         )
 
         # one hot state2observation
-        domain = chain_domain.ChainDomain(size=4, encoding=EncodeType.ONE_HOT)
+        domain = chain_domain.ChainDomain(size=4, one_hot_encode_observation=True)
 
         expected_obs = np.zeros((4, 4))
         expected_obs[0, 0] = 1
@@ -730,7 +725,7 @@ class TestRoadRacer(unittest.TestCase):
         )
 
     def test_reset(self) -> None:
-        """tests resetting the environment
+        """tests resetting the domain
 
         Args:
 
@@ -831,7 +826,7 @@ class TestRoadRacer(unittest.TestCase):
                         [random.randint(0, self.num_lanes - 1)],
                     )
                 ),
-                self.random_env.action_space.sample(),
+                self.random_env.action_space.sample_as_int(),
                 np.concatenate(
                     (
                         np.random.randint(low=1, high=self.length, size=self.num_lanes),

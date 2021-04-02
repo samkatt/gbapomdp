@@ -1,23 +1,24 @@
-""" collision avoidance environment """
+"""Collision avoidance problem implemented as domain"""
+from logging import Logger
+from typing import Optional, Tuple
 
-from typing import Tuple, Optional
 import numpy as np
 
-from general_bayes_adaptive_pomdps.environments import (
-    Environment,
-    EnvironmentInteraction,
+from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-)
-from general_bayes_adaptive_pomdps.environments import (
-    Simulator,
+    Domain,
+    DomainPrior,
+    DomainStepResult,
     SimulationResult,
     TerminalState,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, POBNRLogger
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
+
+# type: ignore
 
 
-class CollisionAvoidance(Environment, Simulator, POBNRLogger):
-    """the collision avoidance environment
+class CollisionAvoidance(Domain):
+    """The collision avoidance problem
 
 
     the agent pilots a plane that flies from right to left (one cell at a time)
@@ -52,7 +53,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         assert domain_size > 0, "Domain size must be > 0"
         assert domain_size % 2 == 1, "Domain size must be odd"
 
-        POBNRLogger.__init__(self)
+        self._logger = Logger(self.__class__.__name__)
 
         self._size = domain_size
         self._mid = int(self._size / 2)
@@ -99,7 +100,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.environments.ActionSpace` ([3]) space """
+        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space """
         return self._action_space
 
     @property
@@ -160,7 +161,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): [x, y, obs_y]
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.SimulationResult`):
+        RETURNS (`general_bayes_adaptive_pomdps.core.SimulationResult`):
 
         """
         assert self.action_space.contains(action), f"action {action} not in space"
@@ -230,7 +231,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
 
         return bool(new_state[0] == 0)
 
-    def step(self, action: int) -> EnvironmentInteraction:
+    def step(self, action: int) -> DomainStepResult:
         """updates the state and return observed transitions
 
         Will move the agent 1 cell to the left, and (depending on the action)
@@ -242,7 +243,7 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): 0 is go down, 1 is stay or 2 is go up
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.EnvironmentInteraction`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.EnvironmentInteraction`): the transition
 
         """
         assert 0 <= action < 3
@@ -251,22 +252,58 @@ class CollisionAvoidance(Environment, Simulator, POBNRLogger):
         reward = self.reward(self.state, action, sim_step.state)
         terminal = self.terminal(self.state, action, sim_step.state)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
-            self.log(
-                POBNRLogger.LogLevel.V2,
-                f"Step: (x: {self.state[0]}, y: {self.state[1]}) and a="
-                f"{self.action_to_string[action]} --> "
-                f"(x:{sim_step.state[0]}, y: {sim_step.state[1]}),"
-                " with obstacle "
-                f"{sim_step.state[2]} (obs: {sim_step.observation[-1]})",
-            )
+        self._logger.log(
+            LogLevel.V2.value,
+            f"Step: (x: {self.state[0]}, y: {self.state[1]}) and a="
+            f"{self.action_to_string[action]} --> "
+            f"(x:{sim_step.state[0]}, y: {sim_step.state[1]}),"
+            " with obstacle "
+            f"{sim_step.state[2]} (obs: {sim_step.observation[-1]})",
+        )
 
         self.state = sim_step.state
 
-        return EnvironmentInteraction(sim_step.observation, reward, terminal)
+        return DomainStepResult(sim_step.observation, reward, terminal)
 
     def __repr__(self):
         return (
             f" Collision avoidance of size {self.size} with "
             f" obstacle probabilities {self._block_policy}"
         )
+
+
+class CollisionAvoidancePrior(DomainPrior):
+    """a prior that returns collision avoidance with various obstacle behaviours
+
+    The obstacle behaviour (accross all states) is sampled uniformly
+
+    """
+
+    def __init__(self, size: int, num_total_counts: float):
+        """creates a `general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance` prior of `size`
+
+        Args:
+             size: (`int`):
+             num_total_counts: (`float`):
+        """
+
+        if num_total_counts <= 0:
+            raise ValueError("Assume positive number of total counts")
+
+        if size <= 0:
+            raise ValueError("Assume positive grid size")
+
+        self._size = size
+        self._num_total_counts = num_total_counts
+
+    def sample(self) -> Domain:
+        """returns `general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance`
+
+        Domain has with random obstacle behavior
+        """
+
+        sampled_behaviour = tuple(
+            np.random.dirichlet(np.array([0.05, 0.9, 0.05]) * self._num_total_counts)
+        )
+
+        return CollisionAvoidance(self._size, sampled_behaviour)

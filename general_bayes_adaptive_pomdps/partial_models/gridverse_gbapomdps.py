@@ -1,10 +1,9 @@
-"""Contains partial GBA-POMDP implementations for the gridverse environment
+"""Contains partial GBA-POMDP implementations for the gridverse domain
 
-The [gridverse environment](https://github.com/abaisero/gym-gridverse) is a
-very interesting environment. Unfortunately it is also quite complicated and
-large (depending on the instance). Hence, we simplify the task by
-assuming/setting some parts of the dynamics known. We do so by instantiating
-partial GBA-POMDPs.
+The [gridverse domain](https://github.com/abaisero/gym-gridverse) is a very
+interesting problem. Unfortunately it is also quite complicated and large
+(depending on the instance). Hence, we simplify the task by assuming/setting
+some parts of the dynamics known. We do so by instantiating partial GBA-POMDPs.
 
 The general approach is to have augmented states contain:
 
@@ -53,21 +52,19 @@ from gym_gridverse.representations.observation_representations import (
 from gym_gridverse.representations.representation import ObservationRepresentation
 from gym_gridverse.state import State as GVerseState
 
-from general_bayes_adaptive_pomdps.agents.neural_networks.misc import whiten_input
-from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import whiten_input
+from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
 )
-from general_bayes_adaptive_pomdps.environments import ActionSpace
+from general_bayes_adaptive_pomdps.core import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
-from general_bayes_adaptive_pomdps.models.partial.partial_gbapomdp import (
+from general_bayes_adaptive_pomdps.partial_models.partial_gbapomdp import (
     AugmentedGodState,
     GBAPOMDPThroughAugmentedState,
 )
-from general_bayes_adaptive_pomdps.pytorch_api import (
+from general_bayes_adaptive_pomdps.baddr.pytorch_api import (
     device,
-    log_tensorboard,
-    tensorboard_logging,
 )
 
 
@@ -151,26 +148,16 @@ def train_models(
     for i, net in enumerate(models):
         logger.debug("Training net %s / %s...", i + 1, len(models))
 
-        for batch in range(num_pretrain_epochs):
+        for _ in range(num_pretrain_epochs):
 
             states, actions, next_states = data_sampler()
 
-            loss = augmented_state_class.train_tnet(
+            augmented_state_class.train_tnet(
                 net,
                 states,
                 actions,
                 next_states,
             )
-
-            if tensorboard_logging():
-                log_tensorboard(f"transition_loss/model-{i+1}", loss, batch)
-
-                if batch % int(num_pretrain_epochs / 100) == 0:
-                    log_tensorboard(
-                        f"transition_accuracy/model-{i}",
-                        list(augmented_state_class.tnet_accuracy(net, domain, 100)),
-                        batch,
-                    )
 
     return models
 
@@ -282,7 +269,6 @@ class GridversePositionAugmentedState(GridverseAugmentedGodState):
         pomdp: GVerseGridworld,
         obs_rep: Callable[[GVerseState], np.ndarray],
     ):
-        # TODO: whiten state input to model
         self.domain_state = initial_state
         self.learned_model = learned_model
         self.pomdp = pomdp
@@ -358,7 +344,7 @@ class GridversePositionAugmentedState(GridverseAugmentedGodState):
 
         # (learned) prediction part
         next_pos = self.learned_model.sample(
-            agent_position(self.domain_state), action, num=1
+            self.domain_state_to_network_input(self.domain_state), action, num=1
         )
 
         # known-part
@@ -430,7 +416,10 @@ class GridversePositionAugmentedState(GridverseAugmentedGodState):
 
         test_data = (
             (
-                (s.agent.position.astuple(), domain.action_space.action_to_int(a)),
+                (
+                    GridversePositionAugmentedState.domain_state_to_network_input(s),
+                    domain.action_space.action_to_int(a),
+                ),
                 next_s.agent.position.astuple(),
             )
             for (s, a, next_s) in interactions
@@ -456,12 +445,36 @@ class GridversePositionAugmentedState(GridverseAugmentedGodState):
         :returns: loss on training
         """
         a = torch.eye(net.action_space.n)[actions]
-        pos = torch.FloatTensor([agent_position(s) for s in states]).to(device())
+        pos = torch.FloatTensor(
+            [
+                GridversePositionAugmentedState.domain_state_to_network_input(s)
+                for s in states
+            ]
+        ).to(device())
         next_pos = torch.LongTensor(
             [agent_position(next_s) for next_s in next_states]
         ).to(device())
 
         return net.batch_train(pos, a, next_pos)
+
+    @staticmethod
+    def domain_state_to_network_input(s: GVerseState) -> np.ndarray:
+        """Converts the domain into a nump array
+
+        Returns [x,y] array, where the elements are whitened
+        orientation
+
+        :param s:
+        :returns: [y, x] whitened [-1 ... 1]
+        """
+        pos_and_orientation = agent_position(s).astype(float)
+
+        pos_and_orientation = whiten_input(
+            pos_and_orientation,
+            np.array([s.grid.shape.height, s.grid.shape.width]),
+        )
+
+        return pos_and_orientation
 
 
 class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
@@ -682,7 +695,7 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
 
         Returns a (6,) array, where the first two elements are the y and x
         value, whitened, and the others is a one-hot encoding of the
-        orientation
+        orientation. Whitened here means normalized between -1 and 1
 
         :param s:
         :returns: [y, x, one-hot(orientation)] with y/x whitened if asked to
@@ -872,7 +885,7 @@ def create_data_sampler(
     """Creates or picks a grid-verse data generator
 
     Based on ``option`` this can either return
-    :func:`uniform_true_transactions`, data from the true environment, or some
+    :func:`uniform_true_transactions`, data from the true domain, or some
     more noisy data generator.
 
     :param domain:

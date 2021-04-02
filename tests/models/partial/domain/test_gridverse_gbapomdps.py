@@ -10,7 +10,7 @@ from gym_gridverse.representations.observation_representations import (
     DefaultObservationRepresentation,
 )
 
-from general_bayes_adaptive_pomdps.models.partial.domain.gridverse_gbapomdps import (
+from general_bayes_adaptive_pomdps.partial_models.gridverse_gbapomdps import (
     GridversePositionAugmentedState,
     GridversePositionOrientationAugmentedState,
     agent_position,
@@ -294,6 +294,25 @@ def test_position_and_orientation_augmented_state():
     assert acc.shape == (8,)
     assert (0 <= acc).all()
     assert (acc <= 1).all()
+
+
+def test_whitening_functions():
+
+    d = env_from_descr("KeyDoor-16x16-v0")
+    s = d.functional_reset()
+
+    network_input = GridversePositionAugmentedState.domain_state_to_network_input(s)
+    assert network_input.shape == (2,)
+    assert (network_input >= -1).all()
+    assert (network_input <= 1).all()
+
+    network_input = (
+        GridversePositionOrientationAugmentedState.domain_state_to_network_input(s)
+    )
+    assert network_input.shape == (6,)
+    assert (network_input >= -1).all()
+    assert (network_input <= 1).all()
+    assert set(network_input[2:]) == {0, 1}
 
 
 def test_noise_turn_orientation_transactions():

@@ -1,33 +1,28 @@
 """ POMDP dynamics as neural networks """
 
-import abc
-from collections import deque, namedtuple
+from collections import deque
 from enum import Enum, auto
-from typing import Any, Deque, List, Tuple, Optional
+from typing import Any, Deque, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.distributions.utils
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.agents.neural_networks import Net
-from general_bayes_adaptive_pomdps.agents.neural_networks.misc import perturb
-from general_bayes_adaptive_pomdps.environments import ActionSpace
+from general_bayes_adaptive_pomdps.baddr.neural_networks import Net
+from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import perturb
+from general_bayes_adaptive_pomdps.baddr.pytorch_api import device
+from general_bayes_adaptive_pomdps.core import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
-from general_bayes_adaptive_pomdps.pytorch_api import device, log_tensorboard
 
 
-class Interaction(namedtuple("interaction", "state action next_state observation")):
-    """transition in environment
+class Interaction(NamedTuple):
+    """a POMDP step transition (s, a, s', o)"""
 
-    Contains:
-         state: (`np.ndarray`):
-         action: (`int`):
-         next_state: (`np.ndarray`):
-         observation: (`np.ndarray`):
-    """
-
-    __slots__ = ()  # required to keep lightweight implementation of namedtuple
+    state: np.ndarray
+    action: int
+    next_state: np.ndarray
+    observation: np.ndarray
 
 
 class OptimizerBuilder(Protocol):
@@ -81,7 +76,7 @@ def get_optimizer_builder(option: str) -> OptimizerBuilder:
     Args:
          option: (`str`): in ['SGD', 'Adam']
 
-    RETURNS (`general_bayes_adaptive_pomdps.agents.neural_networks.OptimizerBuilder`):
+    RETURNS (`general_bayes_adaptive_pomdps.baddr.neural_networks.OptimizerBuilder`):
 
     """
     if option == "SGD":
@@ -121,10 +116,9 @@ class DynamicsModel:
             dtype=int,
         )
 
-    class T(abc.ABC):
+    class T(Protocol):
         """interface for a transition model in `DynamicsModel`"""
 
-        @abc.abstractmethod
         def model(self, state: np.ndarray, action: int) -> List[np.ndarray]:
             """next-state distribution model given state-action pair
 
@@ -137,7 +131,6 @@ class DynamicsModel:
                 taking value j
             """
 
-        @abc.abstractmethod
         def sample(
             self,
             state: np.ndarray,
@@ -158,10 +151,9 @@ class DynamicsModel:
                 `np.ndarray`: `num` states
             """
 
-    class ObsModel(abc.ABC):
+    class ObsModel(Protocol):
         """interface for an observation model in `DynamicsModel`"""
 
-        @abc.abstractmethod
         def model(
             self, state: np.ndarray, action: int, next_state: np.ndarray
         ) -> List[np.ndarray]:
@@ -177,7 +169,6 @@ class DynamicsModel:
                 taking value j
             """
 
-        @abc.abstractmethod
         def sample(
             self,
             state: np.ndarray,
@@ -521,7 +512,7 @@ class DynamicsModel:
 
         Args:
              state_space: (`general_bayes_adaptive_pomdps.misc.DiscreteSpace`):
-             action_space: (`general_bayes_adaptive_pomdps.environments.ActionSpace`):
+             action_space: (`general_bayes_adaptive_pomdps.core.ActionSpace`):
              obs_space: (`general_bayes_adaptive_pomdps.misc.DiscreteSpace`):
              network_size: (`int`): number of nodes in hidden layers
              learning_rate: (`float`): learning rate of the optimizers
@@ -586,24 +577,23 @@ class DynamicsModel:
         actions: np.ndarray,
         next_states: np.ndarray,
         obs: np.ndarray,
-        log_loss: bool = False,
         conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE,
     ) -> None:
         """performs a batch update (single gradient descent step)
+
+        TODO: return loss
 
         Args:
              states: (`np.ndarray`): (batch_size, state_shape) array of states
              actions: (`np.ndarray`): (batch_size,) array of actions
              next_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
              obs: (`np.ndarray`): (batch_size, obs_shape) array of observations
-             log_loss: (`bool`): whether to log the loss
              conf: (`FreezeModelSetting`): configurations for training
 
         """
 
         states = torch.from_numpy(states).float().to(device())
         actions = (
-            # pylint: disable=not-callable
             torch.tensor([self.action_space.one_hot(a) for a in actions])
             .float()
             .to(device())
@@ -615,21 +605,14 @@ class DynamicsModel:
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_T and isinstance(
             self.t, DynamicsModel.NN
         ):
-
-            loss = self.t.batch_train(states, actions, next_states)  # type: ignore
-
-            if log_loss:
-                log_tensorboard(f"transition_loss/{self}", loss, self.num_batches)
+            self.t.batch_train(states, actions, next_states)  # type: ignore
 
         # observation model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_O and isinstance(
             self.o, DynamicsModel.NN
         ):
 
-            loss = self.o.batch_train(states, actions, next_states, obs)  # type: ignore
-
-            if log_loss:
-                log_tensorboard(f"observation_loss/{self}", loss, self.num_batches)
+            self.o.batch_train(states, actions, next_states, obs)  # type: ignore
 
         self.num_batches += 1
 
@@ -646,8 +629,7 @@ class DynamicsModel:
         """
         assert self.experiences, "cannot self learn without data"
 
-        log_loss = False  # no logging of loss online
-        self.batch_update(*map(np.array, zip(*self.experiences)), log_loss, conf)  # type: ignore
+        self.batch_update(*map(np.array, zip(*self.experiences)), conf)  # type: ignore
 
     def add_transition(
         self,

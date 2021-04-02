@@ -1,14 +1,13 @@
-""" miscellaneous functions """
+"""miscellaneous functions"""
 
-import abc
-import logging
 import random
 from enum import Enum
 from typing import List, Union
 
 import numpy as np
+from typing_extensions import Protocol
 
-import general_bayes_adaptive_pomdps.pytorch_api
+from general_bayes_adaptive_pomdps.baddr.pytorch_api import set_pytorch_seed
 
 
 def set_random_seed(seed: int) -> None:
@@ -32,108 +31,29 @@ def set_random_seed(seed: int) -> None:
     """
     np.random.seed(seed)
     random.seed(seed)
-    general_bayes_adaptive_pomdps.pytorch_api.set_random_seed(seed)
+    set_pytorch_seed(seed)
 
 
-class POBNRLogger:
-    """ logger, inherit in order to use logging function with self.log() """
+class LogLevel(Enum):
+    """ log levels """
 
-    class LogLevel(Enum):
-        """ log levels """
-
-        V0 = 1000  # NO messages
-        V1 = 30  # print results and setup
-        V2 = 20  # print episodes
-        V3 = 15  # print episode level agent things
-        V4 = 10  # print time steps level agent things
-        V5 = 5  # hardcore debugging
-
-        @staticmethod
-        def create(level: int) -> "POBNRLogger.LogLevel":
-            """creates a loglevel from string
-
-            Args:
-                 level: (`int`): in [0 ... 5]
-
-            RETURNS (`general_bayes_adaptive_pomdps.misc.POBNRLogger.LogLevel`):
-
-            """
-
-            return POBNRLogger.LogLevel["V" + str(level)]
-
-    _level = LogLevel.V0
-    registered_loggers: List["POBNRLogger"] = []
-
-    @classmethod
-    def set_level(cls, level: LogLevel):
-        """sets level of the loggers
-
-        Anything that is logged with a **lower** level will be displayed
-
-        Args:
-             level: (`LogLevel`):
-
-        """
-
-        for logger in cls.registered_loggers:
-            logger.logger.setLevel(level.value)
-
-        cls._level = level
-
-    def __init__(self, name: str = ""):
-        """ creates a logger """
-
-        if not name:
-            name = self.__class__.__name__
-
-        self.logger = logging.Logger(name)
-
-        self.logger.setLevel(POBNRLogger._level.value)
-
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("[%(asctime)s] %(message)s", "%H:%M"))
-        self.logger.addHandler(handler)
-
-        self._enabled = True
-
-        POBNRLogger.registered_loggers.append(self)
-
-    def log(self, lvl: LogLevel, msg: str):
-        """ logs message """
-
-        if self._enabled:
-            self.logger.log(lvl.value, lvl.name + ": " + msg)
-
-    def disable_logging(self):
-        """ disable logger """
-        self._enabled = False
-
-    @classmethod
-    def log_is_on(cls, lvl: LogLevel) -> bool:
-        """returns whether logging is on for given level
-
-        Args:
-             lvl: (`LogLevel`): level to check
-
-        RETURNS (`bool`): True if messages with this log level would be printed
-
-        """
-
-        return lvl.value >= cls._level.value
+    V0 = 1000  # NO messages
+    V1 = 30  # print results and setup
+    V2 = 20  # print episodes
+    V3 = 15  # print episode level agent things
+    V4 = 10  # print time steps level agent things
+    V5 = 5  # hardcore debugging
 
 
-class Space(abc.ABC):
+class Space(Protocol):
     """ some mathematical space """
 
-    @abc.abstractproperty
     def ndim(self) -> int:
         """ returns number of dimensions of the space """
 
-    @abc.abstractmethod
     def sample(self) -> np.ndarray:
         """ samples from the space """
 
-    @abc.abstractmethod
     def contains(self, elem: np.ndarray) -> bool:
         """ returns whether `elem` is in this space """
 
@@ -157,7 +77,7 @@ class DiscreteSpace(Space):
         self.dim_cumsum = np.concatenate([[0], np.cumsum(self.size)])
 
     @property
-    def n(self) -> int:  # pylint: disable=invalid-name
+    def n(self) -> int:
         """Number of elements in space
 
         While the naming is pretty awful, it is consistent with the `Space`
@@ -199,9 +119,7 @@ class DiscreteSpace(Space):
         RETURNS (`np.array`): a sample in the space of this
 
         """
-        return (
-            np.random.random(self.ndim) * self.size  # pylint: disable=no-member
-        ).astype(int)
+        return (np.random.random(self.ndim) * self.size).astype(int)
 
     def index_of(self, elem: np.ndarray) -> int:
         """returns the index of an element (projects to single dimension)

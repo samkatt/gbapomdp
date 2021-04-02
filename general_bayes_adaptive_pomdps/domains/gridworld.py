@@ -1,26 +1,22 @@
-""" gridworld environment """
-
-from collections import namedtuple
-from typing import List, Tuple, Set, Optional
+"""Gridworld problem implemented as domain"""
 import random
+from logging import Logger
+from typing import List, Optional, Set, Tuple, NamedTuple
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.environments import (
-    Environment,
-    EnvironmentInteraction,
+from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-)
-from general_bayes_adaptive_pomdps.environments import (
-    Simulator,
+    Domain,
+    DomainPrior,
+    DomainStepResult,
     SimulationResult,
-    EncodeType,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, POBNRLogger
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class GridWorld(Environment, Simulator, POBNRLogger):
-    """the gridworld environment
+class GridWorld(Domain):
+    """The gridworld domain
 
     A 2-d grid world where the agent needs to go to a goal location (part of
     the state space). The agent has 4 actions, a step in each direction, that
@@ -44,40 +40,35 @@ class GridWorld(Environment, Simulator, POBNRLogger):
     action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
     action_to_string = ["UP", "RIGHT", "DOWN", "LEFT"]
 
-    class Goal(namedtuple("grid_goal", "x y index")):
-        """goal in gridworld
+    class Goal(NamedTuple):
+        """A goal in gridworld represented by its location and index"""
 
-        Contains:
-            x: (`int`)
-            y: (`int`)
-            index: (`int`)
-        """
-
-        # required to keep lightweight implementation of namedtuple
-        __slots__ = ()
+        x: int
+        y: int
+        index: int
 
     def __init__(
         self,
         domain_size: int,
-        encoding: EncodeType,
+        one_hot_encode_goal: bool,
         slow_cells: Optional[Set[Tuple[int, int]]] = None,
     ):
         """creates a gridworld of provided size and verbosity
 
         Args:
              domain_size: (`int`): the size (assumed odd) of the grid
-             encoding: (`EncodeType`): the observation encoding
+             one_hot_encode_goal: (`bool`): the observation encoding
              slow_cells: (`Set[Tuple[int, int]]`): the cells that are slow (default assignment if left None)
 
         """
 
         assert domain_size > 0
 
-        POBNRLogger.__init__(self)
+        self._logger = Logger(self.__class__.__name__)
 
         # confs
         self._size = domain_size
-        self._one_hot_goal_encoding = encoding == EncodeType.ONE_HOT
+        self._one_hot_goal_encoding = one_hot_encode_goal
 
         # generate multinomial probabilities for the observation function (1-D)
         obs_mult = [self.CORRECT_OBSERVATION_PROB]
@@ -190,7 +181,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.environments.ActionSpace` ([4]) space """
+        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` ([4]) space """
         return self._action_space
 
     @property
@@ -307,7 +298,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
              state: (`np.ndarray`): [x, y, goal_index]
              action: (`int`): agent's taken action
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.SimulationResult`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.SimulationResult`): the transition
 
         """
 
@@ -365,7 +356,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         goal = self.goals[state[2]]
         return state[0] == goal.x and state[1] == goal.y
 
-    def step(self, action: int) -> EnvironmentInteraction:
+    def step(self, action: int) -> DomainStepResult:
         """update state as a result of action
 
         moves agent accross the grid depending on the direction it took
@@ -373,7 +364,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         Args:
              action: (`int`): agent's taken action
 
-        RETURNS (`general_bayes_adaptive_pomdps.environments.EnvironmentInteraction`): the transition
+        RETURNS (`general_bayes_adaptive_pomdps.core.EnvironmentInteraction`): the transition
 
         """
 
@@ -382,7 +373,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
         reward = self.reward(self.state, action, sim_step.state)
         terminal = self.terminal(self.state, action, sim_step.state)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
+        if self._logger.isEnabledFor(LogLevel.V2.value):
             if self._one_hot_goal_encoding:
                 goal_index = np.argmax(self.state[2:])
             else:
@@ -390,8 +381,8 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
             goal = self.goals[goal_index]
 
-            self.log(
-                POBNRLogger.LogLevel.V2,
+            self._logger.log(
+                LogLevel.V2.value,
                 f"Agent moved from {self.state[:2]}  to {sim_step.state[:2]}"
                 f" after picking {self.action_to_string[action]} and"
                 f" observed {sim_step.observation[:2]}"
@@ -400,7 +391,7 @@ class GridWorld(Environment, Simulator, POBNRLogger):
 
         self._state = sim_step.state
 
-        return EnvironmentInteraction(sim_step.observation, reward, terminal)
+        return DomainStepResult(sim_step.observation, reward, terminal)
 
     @staticmethod
     def generate_slow_cells(size: int) -> Set[Tuple[int, int]]:
@@ -430,3 +421,39 @@ class GridWorld(Environment, Simulator, POBNRLogger):
             slow_cells.add((edge - 2, edge - 2))
 
         return slow_cells
+
+
+class GridWorldPrior(DomainPrior):
+    """a prior that returns gridworlds without slow cells
+
+    The slow cells are sampled with 1/3 chance, meaning that each location has
+    a .333 chance of being a slow cell
+
+    """
+
+    def __init__(self, size: int, one_hot_encode_goal: bool):
+        """creates a prior for the `gridworld` of size and with `encoding`
+
+        Args:
+             size: (`int`):
+             one_hot_encode_goal: (`bool`):
+
+        """
+
+        self._grid_size = size
+        self._one_hot_encode_goal = one_hot_encode_goal
+
+    def sample(self) -> Domain:
+        """samples a `general_bayes_adaptive_pomdps.domains.gridworld.GridWorld`
+
+        Gridworld is of given size and encoding with a random set of slow cells
+        """
+
+        slow_cells: Set[Tuple[int, int]] = set()
+
+        for i in range(self._grid_size):
+            for j in range(self._grid_size):
+                if random.random() < 1 / 3:
+                    slow_cells.add((i, j))
+
+        return GridWorld(self._grid_size, self._one_hot_encode_goal, slow_cells)

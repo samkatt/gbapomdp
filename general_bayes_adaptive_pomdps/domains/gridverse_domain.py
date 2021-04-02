@@ -1,6 +1,6 @@
 """A wrapper for domains found in gym-gridverse package"""
-import abc
 import random
+from logging import Logger
 from typing import List, Tuple
 
 import numpy as np
@@ -18,24 +18,24 @@ from gym_gridverse.representations.state_representations import (
     DefaultStateRepresentation,
 )
 from gym_gridverse.state import State as GverseState
-from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+from typing_extensions import Protocol
+
+from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
 )
-from general_bayes_adaptive_pomdps.environments import (
+from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-    Environment,
-    EnvironmentInteraction,
+    Domain,
+    DomainStepResult,
     SimulationResult,
-    Simulator,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, POBNRLogger, Space
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel, Space
 
 
-class StateEncoding(abc.ABC):
+class StateEncoding(Protocol):
     """contains 'encoding' and 'decoding' paired functionality"""
 
     @property
-    @abc.abstractmethod
     def grid_size(self) -> int:
         """returns the size of the (square) grid
 
@@ -43,7 +43,6 @@ class StateEncoding(abc.ABC):
             int: size
         """
 
-    @abc.abstractmethod
     def encode(self, s: GverseState) -> np.ndarray:
         """encodes a state in Gridverse into a single numpy array
 
@@ -54,7 +53,6 @@ class StateEncoding(abc.ABC):
             `np.ndarray:` representation of the state as single array
         """
 
-    @abc.abstractmethod
     def decode(self, s: np.ndarray) -> Tuple[np.ndarray, GversePosition, Orientation]:
         """decodes a state-array into semantic meaning
 
@@ -69,7 +67,6 @@ class StateEncoding(abc.ABC):
         """
 
     @property
-    @abc.abstractmethod
     def state_space(self) -> DiscreteSpace:
         """since encoding determines the state space, this functionality belongs here"""
 
@@ -107,7 +104,6 @@ class CompactStateEncoding(StateEncoding):
         w = self._rep.state_space.grid_shape.width
 
         self._state_space = DiscreteSpace(
-            # pylint: disable=no-member
             [self._rep.state_space.max_grid_object_type + 1] * h * w
             + [h, w, len(Orientation)]
         )
@@ -171,7 +167,6 @@ class OneHotOrientationEncoding(StateEncoding):
         w = self._rep.state_space.grid_shape.width
 
         self._state_space = DiscreteSpace(
-            # pylint: disable=no-member
             [self._rep.state_space.max_grid_object_type + 1] * h * w
             + [h, w, 2, 2, 2, 2]
         )
@@ -247,7 +242,6 @@ class OneHotStateEncoding(StateEncoding):
         w = self._rep.state_space.grid_shape.width
 
         self._state_space = DiscreteSpace(
-            # pylint: disable=no-member
             [self._rep.state_space.max_grid_object_type + 1] * h * w
             # one-hot encoding of position and orientation
             + [2] * (h + w + len(Orientation))
@@ -415,10 +409,7 @@ class ObservationModel(DynamicsModel.ObsModel):
 
         _, w = grid.shape
 
-        ret = (
-            np.ones((self._size, self._size), dtype=int)
-            * Hidden.type_index  # pylint: disable=no-member
-        )
+        ret = np.ones((self._size, self._size), dtype=int) * Hidden.type_index
 
         # rotate grid and position to pretend we are facing north to simplify
         # the rest of the computation
@@ -478,7 +469,7 @@ class ObservationModel(DynamicsModel.ObsModel):
         return grid, new_y, new_x
 
 
-class GridverseDomain(Environment, Simulator, POBNRLogger):
+class GridverseDomain(Domain):
     """Wrapper around gridverse domains
 
     The gridverse repository can be found at
@@ -511,10 +502,10 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
             encoding_descr(`str`): compact, one-hot-orientation or one-hot-state
             env_descr(`str`): gym_minigrid description
         """
-        POBNRLogger.__init__(self)
+        self._logger = Logger(self.__class__.__name__)
 
-        self.log(
-            POBNRLogger.LogLevel.V1,
+        self._logger.log(
+            LogLevel.V1.value,
             f"Initiating {env_descr} GridverseDomain with {encoding_descr} encoding",
         )
 
@@ -538,7 +529,6 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         self._action_space = ActionSpace(6)
 
         self._obs_space = DiscreteSpace(
-            # pylint: disable=no-member
             [self._gverse_env.state_space.max_grid_object_type + 1]
             * self.obs_h
             * self.obs_w
@@ -557,21 +547,20 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         self._gverse_env.reset()
         return self._convert_gverse_obs(self._gverse_env.observation)
 
-    def step(self, action: int) -> EnvironmentInteraction:
+    def step(self, action: int) -> DomainStepResult:
         """interface"""
         a = GverseAction(action)
         reward, terminal = self._gverse_env.step(a)
         obs = self._convert_gverse_obs(self._gverse_env.observation)
 
-        if self.log_is_on(POBNRLogger.LogLevel.V2):
-            self.log(
-                POBNRLogger.LogLevel.V2,
-                f"Env: after a={a} "
-                f"agent on {self._gverse_env.state.agent.position} "
-                f"facing {self._gverse_env.state.agent.orientation}",
-            )
+        self._logger.log(
+            LogLevel.V2.value,
+            f"Env: after a={a} "
+            f"agent on {self._gverse_env.state.agent.position} "
+            f"facing {self._gverse_env.state.agent.orientation}",
+        )
 
-        return EnvironmentInteraction(obs, reward, terminal)
+        return DomainStepResult(obs, reward, terminal)
 
     @property
     def action_space(self) -> ActionSpace:
@@ -609,8 +598,6 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         - else 0
         """
 
-        # pylint: disable=no-member
-
         grid, (y, x), _ = self._state_encoding.decode(new_state)
         item_under_agent = grid[y, x]
 
@@ -642,8 +629,6 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         item_under_agent = grid[y, x]
 
         grid, (prev_y, prev_x), _ = self._state_encoding.decode(state)
-
-        # pylint: disable=no-member
 
         if item_under_agent in [
             Goal.type_index,
@@ -677,7 +662,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         Returns: `Tuple[np.ndarray, int, np.ndarray, np.ndarray]`: state - action - state - observation
         """
 
-        a = GverseAction(self.action_space.sample())
+        a = GverseAction(self.action_space.sample_as_int())
         s = self._gverse_env.functional_reset()
 
         # set random agent, it is assumed here that (apart from the agent
@@ -732,9 +717,7 @@ class GridverseDomain(Environment, Simulator, POBNRLogger):
         return str(GverseAction(action))
 
 
-def default_rollout_policy(
-    state: np.ndarray, encoding: StateEncoding
-) -> int:  # pylint: disable=unused-argument
+def default_rollout_policy(state: np.ndarray, encoding: StateEncoding) -> int:
     """rollout policy for Gridverse domain
 
     Basically samples 'forward' 80%, and otherwise turns either direction. The
@@ -767,7 +750,7 @@ def default_rollout_policy(
             # we safely can do this operation:
             cell_in_front = grid[y, x]
 
-            if cell_in_front != Wall.type_index:  # pylint: disable=no-member
+            if cell_in_front != Wall.type_index:
                 return GverseAction.MOVE_FORWARD.value
 
     if random.choice([True, False]):
@@ -776,9 +759,7 @@ def default_rollout_policy(
     return GverseAction.TURN_RIGHT.value
 
 
-def straight_or_turn_policy(
-    state: np.ndarray, encoding: StateEncoding
-) -> int:  # pylint: disable=unused-argument
+def straight_or_turn_policy(state: np.ndarray, encoding: StateEncoding) -> int:
     """rollout policy for Gridverse domain
 
     Goes straight forward unless faced with a wall, after which it will turn
@@ -809,7 +790,7 @@ def straight_or_turn_policy(
         # we safely can do this operation:
         cell_in_front = grid[y, x]
 
-        if cell_in_front != Wall.type_index:  # pylint: disable=no-member
+        if cell_in_front != Wall.type_index:
             return GverseAction.MOVE_FORWARD.value
 
     if random.choice([True, False]):

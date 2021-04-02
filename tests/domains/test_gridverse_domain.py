@@ -6,11 +6,11 @@ from operator import mul
 from typing import Dict
 
 import numpy as np
-
 from gym_gridverse.action import Action as GverseAction
 from gym_gridverse.geometry import Orientation, Position
 from gym_gridverse.grid_object import MovingObstacle
-from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+
+from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
 )
 from general_bayes_adaptive_pomdps.domains import GridverseDomain
@@ -54,7 +54,6 @@ class TestGridverseDomain(unittest.TestCase):
             np.concatenate([[0, 1], np.zeros(5), [0, 1], np.zeros(5), [0, 0, 1, 0]]),
         )
 
-        # pylint: disable=protected-access
         grid, pos, orient = self.env._state_encoding.decode(s)
 
         # conversion produces similar values
@@ -67,7 +66,6 @@ class TestGridverseDomain(unittest.TestCase):
     def test_sample_start_state(self):
         """Basic property tests on initial state"""
 
-        # pylint: disable=protected-access
         grid, pos, orient = self.env._state_encoding.decode(
             self.env.sample_start_state()
         )
@@ -133,10 +131,9 @@ class TestGridverseDomain(unittest.TestCase):
 class TestStateEncodings(unittest.TestCase):
     """tests implementations of `StateEncoding`"""
 
-    # pylint: disable=protected-access
     def setUp(self):
         # NOTE: ugliest way of initiating possible
-        self.obst_index = MovingObstacle.type_index  # pylint: disable=no-member
+        self.obst_index = MovingObstacle.type_index
 
         self.env = GridverseDomain("compact", "Dynamic-Obstacles-Random-5x5-v0")
 
@@ -193,7 +190,7 @@ class TestStateEncodings(unittest.TestCase):
     def test_codings(self):
         """tests encoding and decoding"""
 
-        s = self.env._gverse_env.functional_reset()  # pylint: disable=protected-access
+        s = self.env._gverse_env.functional_reset()
 
         for coding in [
             self.compact_encoding,
@@ -215,20 +212,19 @@ class TestObservationModel(unittest.TestCase):
     def setUp(self):
         self.d = GridverseDomain()
 
-        # pylint: disable=protected-access
         self.model = GverseObsModel(
             obs_size=7,
             encoding=self.d._state_encoding,
             max_item_index=self.d._gverse_env.state_space.max_grid_object_type + 1,
         )
 
-    def test_sample(self):  # pylint: disable=no-self-use
+    def test_sample(self):
         """basic `.sample()` functionality tests"""
 
         # initial state
         o = self.d.reset()
         s = self.d.state
-        a = self.d.action_space.sample()
+        a = self.d.action_space.sample_as_int()
 
         np.testing.assert_equal(o, self.model.sample(s, a, s, num=1))
 
@@ -253,7 +249,7 @@ class TestDefaultRolloutPolicy(unittest.TestCase):
         self.d = GridverseDomain()
         self.pol = partial(
             default_rollout_policy,
-            encoding=self.d._state_encoding,  # pylint: disable=protected-access
+            encoding=self.d._state_encoding,
         )
 
     def test_walls(self):
@@ -300,7 +296,7 @@ class TestStraightOrTurnRolloutPolicy(unittest.TestCase):
         self.d = GridverseDomain()
         self.pol = partial(
             straight_or_turn_policy,
-            encoding=self.d._state_encoding,  # pylint: disable=protected-access
+            encoding=self.d._state_encoding,
         )
 
     def test_walls(self):

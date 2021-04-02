@@ -6,23 +6,23 @@ import unittest
 import numpy as np
 import torch
 
-from general_bayes_adaptive_pomdps.agents.neural_networks.misc import (
+from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import (
     perturb,
     whiten_input,
 )
-from general_bayes_adaptive_pomdps.agents.neural_networks.networks import Net
-from general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.baddr.neural_networks.networks import Net
+from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     adam_builder,
     get_optimizer_builder,
     sgd_builder,
 )
-from general_bayes_adaptive_pomdps.environments import ActionSpace
+from general_bayes_adaptive_pomdps.core import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
 class TestDynamicModel(unittest.TestCase):
-    """ Test unit for the `general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel` """
+    """ Test unit for the `general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel` """
 
     def setUp(self):
         s_space = DiscreteSpace([2])
@@ -125,7 +125,7 @@ class TestDynamicModel(unittest.TestCase):
         self.is_equal_models(self.test_model.t.net, copied_model.t.net, True)  # type: ignore
 
     def test_copy(self) -> None:
-        """tests the copy function of the `general_bayes_adaptive_pomdps.agents.neural_networks.neural_pomdps.DynamicsModel`
+        """tests the copy function of the `general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel`
 
         Basically double checking whether the standard implementation works as
         **I** expect
@@ -172,7 +172,7 @@ class TestDynamicModel(unittest.TestCase):
 
 
 class TestMisc(unittest.TestCase):
-    """ Tests `general_bayes_adaptive_pomdps.agents.neural_networks.misc` """
+    """ Tests `general_bayes_adaptive_pomdps.baddr.neural_networks.misc` """
 
     def test_whiten_input(self) -> None:
         self.assertEqual(whiten_input(np.array([0]), np.random.random()), -1)
@@ -206,8 +206,8 @@ class TestMisc(unittest.TestCase):
             np.array([-0.5, 0.5]),
         )
 
-    def test_perturbations(self) -> None:  # pylint: disable=no-self-use
-        """tests `general_bayes_adaptive_pomdps.agents.neural_networks.misc.perturb`
+    def test_perturbations(self) -> None:
+        """tests `general_bayes_adaptive_pomdps.baddr.neural_networks.misc.perturb`
 
         Args:
 
@@ -233,7 +233,7 @@ class TestNetwork(unittest.TestCase):
     def test_dropout(self) -> None:
         """ some basic sanity checks of dropout functionality """
 
-        net_input = torch.tensor([0.1, 4.0, -0.2])  # pylint: disable=not-callable
+        net_input = torch.tensor([0.1, 4.0, -0.2])
 
         no_dropout = Net(
             input_size=3,

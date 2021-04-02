@@ -10,8 +10,8 @@ from typing import Callable, Tuple
 import numpy as np
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.domains.gbapomdp import GBAPOMDP
-from general_bayes_adaptive_pomdps.environments import (
+from general_bayes_adaptive_pomdps.core import (
+    GeneralBAPOMDP,
     ActionSpace,
     DiscreteSpace,
     SimulationResult,
@@ -85,7 +85,7 @@ class Prior(Protocol):
         """
 
 
-class GBAPOMDPThroughAugmentedState(GBAPOMDP[AugmentedGodState]):
+class GBAPOMDPThroughAugmentedState(GeneralBAPOMDP[AugmentedGodState]):
     """A GBA-POMDP whose implementation is provided by the :class:`AugmentedGodState`
 
     The idea of this framework is to exploit the protocol of the

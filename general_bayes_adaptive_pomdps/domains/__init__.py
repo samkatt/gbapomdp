@@ -2,48 +2,49 @@
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.environments import EncodeType, Environment
+from general_bayes_adaptive_pomdps.core import Domain, DomainPrior
 
 from .chain_domain import ChainDomain
-from .collision_avoidance import CollisionAvoidance
+from .collision_avoidance import CollisionAvoidance, CollisionAvoidancePrior
 from .gridverse_domain import GridverseDomain
-from .gridworld import GridWorld
-from .priors import (
-    CollisionAvoidancePrior,
-    GridWorldPrior,
-    Prior,
-    RoadRacerPrior,
-    TigerPrior,
-)
-from .road_racer import RoadRacer
-from .tiger import Tiger
+from .gridworld import GridWorld, GridWorldPrior
+from .road_racer import RoadRacer, RoadRacerPrior
+from .tiger import Tiger, TigerPrior
 
 
-def create_environment(
+def create_domain(
     domain_name: str,
     domain_size: int,
-    encoding: EncodeType,
+    use_one_hot_encoding: bool = False,
     description: str = "",
-) -> Environment:
-    """the factory function to construct environments
+) -> Domain:
+    """The factory function to construct domains
+
+    `use_one_hot_encoding` depends on the chosen `domain_name`, but generally
+    refers to using a one-hot encoding to represent part of either the state or
+    observation. Examples:
+
+        - :class:`Tiger`: observation (0/1/2 => 2 elements)
+        - :class:`GridWorld`: goal representation
+        - :class:`ChainDomain`: observation (y, x -> 2D grid)
 
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)
-         encoding: (`general_bayes_adaptive_pomdps.environments.EncodeType`): the encoding
+         use_one_hot_encoding: (`bool`): whether to apply one-hot encoding where appropriate (domain dependent)
 
-    RETURNS (`general_bayes_adaptive_pomdps.environments.Environment`)
+    RETURNS (`general_bayes_adaptive_pomdps.core.Domain`)
 
     """
 
     if domain_name == "tiger":
-        return Tiger(encoding)
+        return Tiger(use_one_hot_encoding)
     if domain_name == "gridworld":
-        return GridWorld(domain_size, encoding)
+        return GridWorld(domain_size, use_one_hot_encoding)
     if domain_name == "collision_avoidance":
         return CollisionAvoidance(domain_size)
     if domain_name == "chain":
-        return ChainDomain(domain_size, encoding)
+        return ChainDomain(domain_size, use_one_hot_encoding)
     if domain_name == "road_racer":
         return RoadRacer(np.arange(1, domain_size + 1) / (domain_size + 1))
     if domain_name == "gridverse":
@@ -61,8 +62,8 @@ def create_prior(
     domain_size: int,
     prior_certainty: float,
     prior_correctness: float,
-    encoding: EncodeType,
-) -> Prior:
+    use_one_hot_encoding: bool,
+) -> DomainPrior:
     """Builds the prior associated with input parameters
 
     Args:
@@ -70,16 +71,16 @@ def create_prior(
          domain_size: (`int`): size of domain
          prior_certainty: (`float`): Certainty of the prior: total number of counts
          prior_correctness: (`float`): Correctness of the prior: Tiger -> [0,1] -> [62.5, 85] observation probability
-         encoding: (`EncodeType`): what observation encoding to use
+         use_one_hot_encoding: (`bool`): whether to apply one-hot encoding where appropriate (domain dependent)
 
     RETURNS (`general_bayes_adaptive_pomdps.domains.priors.Prior`):
 
     """
 
     if domain_name == "tiger":
-        return TigerPrior(prior_certainty, prior_correctness, encoding)
+        return TigerPrior(prior_certainty, prior_correctness, use_one_hot_encoding)
     if domain_name == "gridworld":
-        return GridWorldPrior(domain_size, encoding)
+        return GridWorldPrior(domain_size, use_one_hot_encoding)
     if domain_name == "collision_avoidance":
         return CollisionAvoidancePrior(domain_size, prior_certainty)
     if domain_name == "road_racer":
