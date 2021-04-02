@@ -23,7 +23,11 @@ A library to create Bayes-adaptive POMDPs for Bayesian RL
 Features
 --------
 
-* TODO
+Models to make POMDPs_ with unknown dynamics into general Bayes-adaptive POMDPs
+(GBA-POMDPs). GBA-POMDPs themselves are POMDPs with known dynamics that, when
+solved, provide an optimal solution to the exploration-exploitation trade-off
+in reinforcement learning. These models cast the reinforcement learning problem
+into a planning problem.
 
 Credits
 -------
@@ -32,3 +36,4 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+.. POMDPs: https://en.wikipedia.org/wiki/Partially_observable_Markov_decision_process

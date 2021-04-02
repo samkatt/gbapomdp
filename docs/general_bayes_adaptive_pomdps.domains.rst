@@ -36,22 +36,6 @@ general\_bayes\_adaptive\_pomdps.domains.gridworld module
    :undoc-members:
    :show-inheritance:
 
-general\_bayes\_adaptive\_pomdps.domains.learned\_environments module
----------------------------------------------------------------------
-
-.. automodule:: general_bayes_adaptive_pomdps.domains.learned_environments
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-general\_bayes\_adaptive\_pomdps.domains.priors module
-------------------------------------------------------
-
-.. automodule:: general_bayes_adaptive_pomdps.domains.priors
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 general\_bayes\_adaptive\_pomdps.domains.road\_racer module
 -----------------------------------------------------------
 

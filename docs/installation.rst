@@ -5,22 +5,22 @@ Installation
 ============
 
 
-Stable release
---------------
+.. Stable release
+.. --------------
 
-To install General Bayes-adaptive POMDPs, run this command in your terminal:
+.. To install General Bayes-adaptive POMDPs, run this command in your terminal:
 
-.. code-block:: console
+.. .. code-block:: console
 
-    $ pip install general_bayes_adaptive_pomdps
+..     $ pip install general_bayes_adaptive_pomdps
 
-This is the preferred method to install General Bayes-adaptive POMDPs, as it will always install the most recent stable release.
+.. This is the preferred method to install General Bayes-adaptive POMDPs, as it will always install the most recent stable release.
 
-If you don't have `pip`_ installed, this `Python installation guide`_ can guide
-you through the process.
+.. If you don't have `pip`_ installed, this `Python installation guide`_ can guide
+.. you through the process.
 
-.. _pip: https://pip.pypa.io
-.. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
+.. .. _pip: https://pip.pypa.io
+.. .. _Python installation guide: http://docs.python-guide.org/en/latest/starting/installation/
 
 
 From sources
@@ -28,7 +28,7 @@ From sources
 
 The sources for General Bayes-adaptive POMDPs can be downloaded from the `Github repo`_.
 
-You can either clone the public repository:
+You can either clone the repository:
 
 .. code-block:: console
 

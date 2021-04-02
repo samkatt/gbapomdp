@@ -232,7 +232,7 @@ AugmentedState = TypeVar("AugmentedState")
 class GeneralBAPOMDP(Protocol[AugmentedState]):
     """Defines the protocol of a general Bayes-adaptive POMDP
 
-    The GBA-POMDP _is a_ POMDP with a special state space. It augments an
+    The GBA-POMDP **is a** POMDP with a special state space. It augments an
     existing POMDP, of which the dynamics are unknown, and constructs a larger
     POMDP with known dynamics. Here we describe the generally assumed API.
 
@@ -290,10 +290,10 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         :param state: state at timestep t
         :param action: action at timestep t
         :param optimize: optimization flag.
-            If set to true, the model in ``state`` is _not_ copied, and
-            thus the incoming ``state`` _is modified_. If there is no need
-            to keep the old model, then setting this flag skips a then needless
-            copy operation, which can be significant
+            If set to true, the model in ``state`` is _not_ copied, and thus
+            the incoming ``state`` **is modified**. If there is no need to keep
+            the old model, then setting this flag skips a then needless copy
+            operation, which can be significant
         :return: (state, obs) at timestep t+1
         """
 
@@ -330,11 +330,11 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         operations it is useful to break up these two steps. This function
         contains the second step. It will update the model in ``to_update``
         according to the transition (``prev_state``, ``action``,
-                ``next_state``, ``obs``) and return a new augmented state with
+        ``next_state``, ``obs``) and return a new augmented state with
         that model.
 
-        NOTE: the domain state in the returned state is a reference to the one in
-        ``to_update`` so be careful.
+        NOTE: the domain state in the returned state is a reference to the one
+        in ``to_update`` so be careful.
 
         :param to_update: the augmented state that contains the model at timestep t
         :param prev_state: the state at timestep t of the transition
@@ -343,9 +343,9 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         :param obs: the observation at timestep t of the transition
         :param optimize: optimization flag.
             If set to true, the model in ``to_update`` is _not_ copied, and
-            thus the incoming ``to_update`` _is modified_. If there is no need
-            to keep the old model, then setting this flag skips a then needless
-            copy operation, which can be significant
+            thus the incoming ``to_update`` **is modified**. If there is no
+            need to keep the old model, then setting this flag skips a then
+            needless copy operation, which can be significant
         :return: new state with updated model (same domain state as ``to_update``)
         """
 

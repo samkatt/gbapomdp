@@ -41,9 +41,9 @@ class AugmentedGodState(Protocol):
         :param obs:
         :param optimize: optimization flag.
             If set to true, the model in ``self`` is _not_ copied, and thus
-            ``self`` _is modified_. If there is no need to keep the old model,
-            then setting this flag skips a then needless copy operation, which
-            can be significant
+            ``self`` **is modified**. If there is no need to keep the old
+            model, then setting this flag skips a then needless copy operation,
+            which can be significant
         :return: A new state with updated model parameters
         """
 
@@ -51,8 +51,9 @@ class AugmentedGodState(Protocol):
         """Simulates a step in the domain
 
         Samples a next state (from ``self``) and observation given input
-        ``action``. The result is put into a new ``AugmentedGodState``, with _unmodified model
-        distribution_. The new state and observation is returned
+        ``action``. The result is put into a new ``AugmentedGodState``, with
+        **unmodified model distribution**. The new state and observation is
+        returned
 
         :param action:
         :return: the observation generated during the domain state update

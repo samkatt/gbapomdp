@@ -19,15 +19,15 @@ def whiten_input(positive_input, max_value):
     """Whitens input
 
     Networks tend to do better on input that ranges between -1 and 1, hence the
-    input is often normalized. This is a simple function that, __assuming
-    `positiveinput` is **positive**_, will normalize it to range between those
+    input is often normalized. This is a simple function that, assuming
+    `positiveinput` is **positive**, will normalize it to range between those
     values
 
     Here `max_value` is either a float, such that all elements in
     `positive_input` are normalized to that, or an array of the same type and
     shape* such that each element seperately is normalized.
 
-    *broadcasting happens all over in python, so good luck.
+    NOTE: broadcasting happens all over in python, so good luck.
 
     :param positive_input: assumed > 0, to be normalized
     :param max_value: float or array of type and shape of `positive_input`
