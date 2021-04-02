@@ -3,9 +3,6 @@ General Bayes-adaptive POMDPs
 =============================
 
 
-.. image:: https://img.shields.io/pypi/v/general_bayes_adaptive_pomdps.svg
-        :target: https://pypi.python.org/pypi/general_bayes_adaptive_pomdps
-
 .. image:: https://img.shields.io/travis/samkatt/general_bayes_adaptive_pomdps.svg
         :target: https://travis-ci.com/samkatt/general_bayes_adaptive_pomdps
 
