@@ -1,9 +1,9 @@
 """tests :mod:`general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps`"""
 
 import copy
-import unittest
 
 import numpy as np
+import pytest
 import torch
 
 from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
@@ -16,10 +16,10 @@ from general_bayes_adaptive_pomdps.core import ActionSpace
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
-class TestDynamicModel(unittest.TestCase):
+class TestDynamicModel:
     """ Test unit for the `general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel` """
 
-    def setUp(self):
+    def setup_method(self):
         s_space = DiscreteSpace([2])
         a_space = ActionSpace(2)
         o_space = DiscreteSpace([2])
@@ -50,25 +50,24 @@ class TestDynamicModel(unittest.TestCase):
             o_model=o_net,
         )
 
-    def is_equal_models(self, model_a, model_b, is_equal: bool) -> None:
-        """checks whether provided models are equal
+    @staticmethod
+    def is_equal_models(model_a, model_b) -> bool:
+        """returns whether provided models are equal
 
         Args:
              model_a:
              model_b:
              is_equal: (`bool`)
 
-        RETURNS (`None`):
+        RETURNS (`bool`):
 
         """
 
-        test = self.assertTrue if is_equal else self.assertFalse
-
         for tensor_a, tensor_b in zip(model_a.parameters(), model_b.parameters()):
-            test(
-                torch.equal(tensor_a.data, tensor_b.data),
-                f"{tensor_a} vs {tensor_b}",
-            )
+            if not torch.equal(tensor_a.data, tensor_b.data):
+                return False
+
+        return True
 
     def test_freeze(self) -> None:
         """tests whether freezing models works properly
@@ -82,16 +81,16 @@ class TestDynamicModel(unittest.TestCase):
             freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_O
         )
 
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, False)  # type: ignore
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, True)  # type: ignore
+        assert not self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
+        assert self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
 
         copied_model = copy.deepcopy(self.test_model)
         self.test_model.perturb_parameters(
             freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_T
         )
 
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, True)  # type: ignore
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, False)  # type: ignore
+        assert self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
+        assert not self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
 
         copied_model = copy.deepcopy(self.test_model)
         self.test_model.batch_update(
@@ -102,12 +101,12 @@ class TestDynamicModel(unittest.TestCase):
             conf=DynamicsModel.FreezeModelSetting.FREEZE_O,
         )
 
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, False)  # type: ignore
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, True)  # type: ignore
+        assert not self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
+        assert self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
 
         copied_model = copy.deepcopy(self.test_model)
 
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, True)  # type: ignore
+        assert self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
         self.test_model.batch_update(
             np.array([[0]]),
             np.array([0]),
@@ -116,8 +115,8 @@ class TestDynamicModel(unittest.TestCase):
             conf=DynamicsModel.FreezeModelSetting.FREEZE_T,
         )
 
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, False)  # type: ignore
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, True)  # type: ignore
+        assert not self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
+        assert self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
 
     def test_copy(self) -> None:
         """tests the copy function of the `general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel`
@@ -133,38 +132,38 @@ class TestDynamicModel(unittest.TestCase):
 
         copied_model = copy.deepcopy(self.test_model)
 
-        self.is_equal_models(
-            self.test_model.t.net, copied_model.t.net, True  # type:ignore
+        assert self.is_equal_models(
+            self.test_model.t.net, copied_model.t.net  # type:ignore
         )
-        self.is_equal_models(
-            self.test_model.o.net, copied_model.o.net, True  # type:ignore
+        assert self.is_equal_models(
+            self.test_model.o.net, copied_model.o.net  # type:ignore
         )
 
         self.test_model.perturb_parameters()
 
-        self.is_equal_models(
-            self.test_model.t.net, copied_model.t.net, False  # type: ignore
-        )
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, False)  # type: ignore
+        assert not self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
+        assert not self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
 
         copied_model = copy.deepcopy(self.test_model)
 
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, True)  # type: ignore
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, True)  # type: ignore
+        assert self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
+        assert self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
 
         copied_model.batch_update(
             np.array([[1]]), np.array([0]), np.array([[0]]), np.array([[1]])
         )
 
-        self.is_equal_models(self.test_model.t.net, copied_model.t.net, False)  # type: ignore
-        self.is_equal_models(self.test_model.o.net, copied_model.o.net, False)  # type: ignore
+        assert not self.is_equal_models(self.test_model.t.net, copied_model.t.net)  # type: ignore
+        assert not self.is_equal_models(self.test_model.o.net, copied_model.o.net)  # type: ignore
 
-    def test_optimizer_builder(self) -> None:
+    @staticmethod
+    def test_optimizer_builder() -> None:
         """ Simple tests to ensure the correct builder is returned """
-        self.assertEqual(get_optimizer_builder("SGD"), sgd_builder)
-        self.assertEqual(get_optimizer_builder("Adam"), adam_builder)
-        self.assertRaises(ValueError, get_optimizer_builder, "a wrong value")
+        assert get_optimizer_builder("SGD") == sgd_builder
+        assert get_optimizer_builder("Adam") == adam_builder
+        with pytest.raises(ValueError):
+            get_optimizer_builder("a wrong value")
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pytest.main([__file__])

@@ -1,10 +1,10 @@
 """Tests :mod:`general_bayes_adaptive_pomdps.baddr.model"""
 
 import random
-import unittest
 from functools import partial
 
 import numpy as np
+import pytest
 
 from general_bayes_adaptive_pomdps.baddr.model import (
     create_transition_sampler,
@@ -18,7 +18,7 @@ from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
 from general_bayes_adaptive_pomdps.domains import Tiger
 
 
-class TestTrainFromSamples(unittest.TestCase):
+class TestTrainFromSamples:
     """Basic test for learning ensembles from samples"""
 
     def test_improve_performance(self):
@@ -69,12 +69,10 @@ class TestTrainFromSamples(unittest.TestCase):
         final_transition_model = model.transition_model(s, Tiger.LISTEN)[0]
 
         # the model should have learned that the transition probability of staying in the same state is high
-        self.assertLessEqual(
-            initial_transition_model[s[0]], final_transition_model[s[0]]
-        )
+        assert initial_transition_model[s[0]] <= final_transition_model[s[0]]
 
 
-class TestSampleFromSimulator(unittest.TestCase):
+class TestSampleFromSimulator:
     """Tests `sample_transitions_uniform_from_simulator`"""
 
     def test_simple_run_and_space(self):
@@ -88,13 +86,13 @@ class TestSampleFromSimulator(unittest.TestCase):
             o,
         ) = sample_transitions_uniform_from_simulator(sim)
 
-        self.assertTrue(sim.state_space.contains(s))
-        self.assertTrue(sim.action_space.contains(a))
-        self.assertTrue(sim.state_space.contains(news))
-        self.assertTrue(sim.observation_space.contains(o))
+        assert sim.state_space.contains(s)
+        assert sim.action_space.contains(a)
+        assert sim.state_space.contains(news)
+        assert sim.observation_space.contains(o)
 
 
-class TestCreateTransitionSampler(unittest.TestCase):
+class TestCreateTransitionSampler:
     """Tests factory for transition samplers
 
     This test assumes (knows) that the factory function returns a partial.  The
@@ -105,11 +103,11 @@ class TestCreateTransitionSampler(unittest.TestCase):
 
     def test_default(self):
         """Test none-Gridverse """
-        self.assertEqual(
-            create_transition_sampler(None).func.__name__,  # type: ignore
-            "sample_transitions_uniform_from_simulator",
+        assert (
+            create_transition_sampler(None).func.__name__  # type: ignore
+            == "sample_transitions_uniform_from_simulator"
         )
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pytest.main([__file__])

@@ -1,8 +1,7 @@
 """tests :mod:`general_bayes_adaptive_pomdps.baddr.neural_networks.misc`"""
 
-import unittest
-
 import numpy as np
+import pytest
 import torch
 
 from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import (
@@ -12,7 +11,7 @@ from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import (
 )
 
 
-class TestReplayBuffer(unittest.TestCase):
+class TestReplayBuffer:
     """ Tests some functionality of the replay buffer """
 
     def test_capacity(self):
@@ -20,49 +19,49 @@ class TestReplayBuffer(unittest.TestCase):
 
         replay_buffer = ReplayBuffer()
 
-        self.assertEqual(replay_buffer.capacity, 5000)
+        assert replay_buffer.capacity == 5000
 
         replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.capacity, 5000)
+        assert replay_buffer.capacity == 5000
 
         replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.capacity, 5000)
+        assert replay_buffer.capacity == 5000
 
         replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.capacity, 5000)
+        assert replay_buffer.capacity == 5000
 
     def test_size(self):
         """ tests the size property of replay buffer """
 
         replay_buffer = ReplayBuffer()
 
-        self.assertEqual(replay_buffer.size, 1)
+        assert replay_buffer.size == 1
 
         replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.size, 1)
+        assert replay_buffer.size == 1
 
         replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.size, 1)
+        assert replay_buffer.size == 1
 
         replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.size, 2)
+        assert replay_buffer.size == 2
 
         replay_buffer.store((), False)
-        self.assertEqual(replay_buffer.size, 2)
+        assert replay_buffer.size == 2
 
         replay_buffer.store((), True)
         replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.size, 4)
+        assert replay_buffer.size == 4
 
         replay_buffer.store((), True)
-        self.assertEqual(replay_buffer.size, 5)
+        assert replay_buffer.size == 5
 
 
-class TestMisc(unittest.TestCase):
+class TestMisc:
     """ Tests `general_bayes_adaptive_pomdps.baddr.neural_networks.misc` """
 
     def test_whiten_input(self) -> None:
-        self.assertEqual(whiten_input(np.array([0]), np.random.random()), -1)
+        assert whiten_input(np.array([0]), np.random.random()) == -1
         np.testing.assert_array_equal(
             whiten_input(np.array([0, 5.5, 11]), 11), np.array([-1, 0, 1])
         )
@@ -87,7 +86,7 @@ class TestMisc(unittest.TestCase):
         assert torch.less_equal(whitened_data[:2], 0).all()
         assert torch.greater_equal(whitened_data[2:], 0).all()
 
-        self.assertEqual(whiten_input(2, 8), -0.5)
+        assert whiten_input(2, 8) == -0.5
         np.testing.assert_array_equal(
             whiten_input(np.array([2, 6], dtype=int), 8),
             np.array([-0.5, 0.5]),
@@ -115,4 +114,4 @@ class TestMisc(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pytest.main([__file__])
