@@ -7,15 +7,14 @@ import numpy as np
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-    Domain,
-    DomainPrior,
     DomainStepResult,
     SimulationResult,
 )
+from general_bayes_adaptive_pomdps.domains import domain
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class Tiger(Domain):
+class Tiger(domain.Domain):
     """The actual domain"""
 
     # consts
@@ -287,7 +286,7 @@ class Tiger(Domain):
         return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_probs}"
 
 
-class TigerPrior(DomainPrior):
+class TigerPrior(domain.DomainPrior):
     """standard prior over the tiger domain
 
     The transition model is known, however the probability of observing the
@@ -329,7 +328,7 @@ class TigerPrior(DomainPrior):
         self._total_counts = num_total_counts
         self._one_hot_encode_observation = one_hot_encode_observation
 
-    def sample(self) -> Domain:
+    def sample(self) -> domain.Domain:
         """returns a Tiger instance with some correct observation prob
 
         This prior over the observation probability is a Dirichlet with total

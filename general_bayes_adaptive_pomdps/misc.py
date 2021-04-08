@@ -5,7 +5,6 @@ from enum import Enum
 from typing import List, Union
 
 import numpy as np
-from typing_extensions import Protocol
 
 from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import (
     set_pytorch_seed,
@@ -47,20 +46,7 @@ class LogLevel(Enum):
     V5 = 5  # hardcore debugging
 
 
-class Space(Protocol):
-    """ some mathematical space """
-
-    def ndim(self) -> int:
-        """ returns number of dimensions of the space """
-
-    def sample(self) -> np.ndarray:
-        """ samples from the space """
-
-    def contains(self, elem: np.ndarray) -> bool:
-        """ returns whether `elem` is in this space """
-
-
-class DiscreteSpace(Space):
+class DiscreteSpace:
     """ DiscreteSpace discrete uninterupted space of some shape """
 
     def __init__(self, size: Union[List[int], np.ndarray]):

@@ -5,12 +5,21 @@ building block classes used in the rest of the code.
 
 """
 
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, NamedTuple, Tuple, TypeVar
 
 import numpy as np
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, Space
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+
+
+class Transition(NamedTuple):
+    """a POMDP step transition (s, a, s', o)"""
+
+    state: np.ndarray
+    action: int
+    next_state: np.ndarray
+    observation: np.ndarray
 
 
 class ActionSpace(DiscreteSpace):
@@ -82,7 +91,7 @@ class DomainStepResult(NamedTuple):
 
 
 class TerminalState(Exception):
-    """ raised when trying to step with a terminal state """
+    """raised when trying to step with a terminal state"""
 
 
 class SimulationResult(NamedTuple):
@@ -92,137 +101,24 @@ class SimulationResult(NamedTuple):
     observation: np.ndarray
 
 
-class Domain(Protocol):
-    """The protocol for a domain in this package.
+class DomainStatePrior(Protocol):
+    def __call__(self) -> np.ndarray:
+        """Sample initial states"""
 
-    This is not necessary for any particular reason, other than that it makes
-    it simpler to implmeent :class:`GBAPOMDP` and similar classes when one can
-    assume some functionality. So if this protocol is implemented, it can be
-    used as a domain to do GBA-POMDP on.
-    """
 
-    @property
-    def state_space(self) -> Space:
-        """the (discrete) state space of the POMDP
+class DomainSimulationStep(Protocol):
+    def __call__(self, s: np.ndarray, a: int) -> SimulationResult:
+        """Simulates a step in the environment: (s, a) -> s', o"""
 
-        Args:
 
-        RETURNS (`general_bayes_adaptive_pomdps.misc.DiscreteSpace`):
+class RewardFunction(Protocol):
+    def __call__(self, s: np.ndarray, a: int, ss: np.ndarray) -> float:
+        """The reward associated with a (s, a, s') transition"""
 
-        """
 
-    @property
-    def action_space(self) -> ActionSpace:
-        """returns size of domain action space
-
-        RETURNS(`general_bayes_adaptive_pomdps.core.ActionSpace`): the action space
-
-        """
-
-    @property
-    def observation_space(self) -> Space:
-        """returns size of domain observation space
-
-        RETURNS(`general_bayes_adaptive_pomdps.misc.DiscreteSpace`): the observation space
-
-        """
-
-    def reset(self) -> np.ndarray:
-        """ resets internal state and return first observation """
-
-    def step(self, action: int) -> DomainStepResult:
-        """update state as a result of action
-
-        May raise `TerminalState`
-
-        Args:
-             action: (`int`): agent's taken action
-
-        RETURNS (`EnvironmentInteraction`): the transition
-
-        """
-
-    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
-        """generates a transition
-
-        May raise `TerminalState`
-
-        Args:
-             state: (`np.ndarray`): some state
-             action: (`int`): agent's taken action
-
-        RETURNS (`SimulationResult`): the transition
-
-        """
-
-    def sample_start_state(self) -> np.ndarray:
-        """ returns a potential start state """
-
-    def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
-        """the reward function
-
-        Args:
-             state: (`np.ndarray`):
-             action: (`int`):
-             new_state: (`np.ndarray`):
-
-        RETURNS (`float`): the reward of the transition
-
-        """
-
-    def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
-        """the termination function
-
-        Args:
-             state: (`np.ndarray`):
-             action: (`int`):
-             new_state: (`np.ndarray`):
-
-        RETURNS (`bool`): whether the transition is terminal
-
-        """
-
-    def state_to_string(self, state: np.ndarray) -> str:
-        """Returns a string representation of the `state`
-
-        Exists so that derived classes can override this, and hopefully provide
-        more useful info than the array representation
-
-        Args:
-            state (`np.ndarray`):
-
-        Returns:
-            `str`:
-        """
-        return str(state)
-
-    def action_to_string(self, action: int) -> str:
-        """Returns a string representation of the `action`
-
-        Exists so that derived classes can override this, and hopefully provide
-        more useful info than the int representation
-
-        Args:
-            action (`int`):
-
-        Returns:
-            `str`:
-        """
-        return str(action)
-
-    def observation_to_string(self, observation: np.ndarray) -> str:
-        """Returns a string representation of the `observation`
-
-        Exists so that derived classes can override this, and hopefully provide
-        more useful info than the array representation
-
-        Args:
-            observation (`np.ndarray`):
-
-        Returns:
-            `str`:
-        """
-        return str(observation)
+class TerminalFunction(Protocol):
+    def __call__(self, s: np.ndarray, a: int, ss: np.ndarray) -> bool:
+        """Whether the (s, a, s') transition is terminal"""
 
 
 AugmentedState = TypeVar("AugmentedState")
@@ -272,10 +168,11 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
 
     def simulation_step(
         self, state: AugmentedState, action: int, optimize: bool = False
-    ) -> SimulationResult:
+    ) -> Tuple[AugmentedState, np.ndarray]:
         """Performs an actual step according to the GBA-POMDP dynamics
 
-        The resulting `SimulationResult` contains the generated state and observation, where the state is generated by:
+        The resulting :class:`SimulationResult` contains the generated state
+        and observation, where the state is generated by:
 
             1. sample a new domain state and observation according to the belief over the model in ``state``
             2. update model in ``state`` according to sampled transition
@@ -283,9 +180,7 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         Note that this operation is expensive, as it often involves generating
         a new set of parameters to represent the model distribution in the new
         state (which involves a copy before updating). If there is no need for
-        the input ``state`` to stay unmodified, consider calling
-        `domain_simulation_step` and `model_simulation_step` to achieve the
-        same without the copy.
+        the input ``state`` to stay unmodified, set ``optimize`` to ``True``
 
         :param state: state at timestep t
         :param action: action at timestep t
@@ -308,7 +203,7 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         according to the model distribution in ``state`` and return those.
 
         NOTE: that the model in the returned state is a reference to the one in
-        ``state`` so be careful
+        ``state`` so be careful: if you modify either, you modify both
 
         :param state: state at timestep t
         :param action: aciton at timestep t
@@ -334,7 +229,7 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         that model.
 
         NOTE: the domain state in the returned state is a reference to the one
-        in ``to_update`` so be careful.
+        in ``to_update`` so be careful: if you modify either, you modify both
 
         :param to_update: the augmented state that contains the model at timestep t
         :param prev_state: the state at timestep t of the transition
@@ -376,14 +271,4 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
         :param action: action at timestep t
         :param next_state: state at timestep t+1
         :return: true is the input transition was terminal
-        """
-
-
-class DomainPrior(Protocol):
-    """The interface to priors"""
-
-    def sample(self) -> Domain:
-        """sample a simulator
-
-        RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
         """

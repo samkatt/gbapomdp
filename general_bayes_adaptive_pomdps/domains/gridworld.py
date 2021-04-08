@@ -7,15 +7,14 @@ import numpy as np
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-    Domain,
-    DomainPrior,
     DomainStepResult,
     SimulationResult,
 )
+from general_bayes_adaptive_pomdps.domains import domain
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class GridWorld(Domain):
+class GridWorld(domain.Domain):
     """The gridworld domain
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -247,7 +246,7 @@ class GridWorld(Domain):
     def sample_goal(self) -> "GridWorld.Goal":
         """samples a goal position
 
-        RETURNS (`Tuple[` `GridWorld.Goal` `]`): the goal state
+        RETURNS (`Tuple[GridWorld.Goal]`): the goal state
 
         """
         return random.choice(self._goal_cells)
@@ -423,7 +422,7 @@ class GridWorld(Domain):
         return slow_cells
 
 
-class GridWorldPrior(DomainPrior):
+class GridWorldPrior(domain.DomainPrior):
     """a prior that returns gridworlds without slow cells
 
     The slow cells are sampled with 1/3 chance, meaning that each location has
@@ -443,7 +442,7 @@ class GridWorldPrior(DomainPrior):
         self._grid_size = size
         self._one_hot_encode_goal = one_hot_encode_goal
 
-    def sample(self) -> Domain:
+    def sample(self) -> domain.Domain:
         """samples a `general_bayes_adaptive_pomdps.domains.gridworld.GridWorld`
 
         Gridworld is of given size and encoding with a random set of slow cells

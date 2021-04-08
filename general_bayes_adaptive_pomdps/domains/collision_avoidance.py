@@ -6,18 +6,15 @@ import numpy as np
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-    Domain,
-    DomainPrior,
     DomainStepResult,
     SimulationResult,
     TerminalState,
 )
+from general_bayes_adaptive_pomdps.domains import domain
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
-# type: ignore
 
-
-class CollisionAvoidance(Domain):
+class CollisionAvoidance(domain.Domain):
     """The collision avoidance problem
 
 
@@ -272,7 +269,7 @@ class CollisionAvoidance(Domain):
         )
 
 
-class CollisionAvoidancePrior(DomainPrior):
+class CollisionAvoidancePrior(domain.DomainPrior):
     """a prior that returns collision avoidance with various obstacle behaviours
 
     The obstacle behaviour (accross all states) is sampled uniformly
@@ -296,7 +293,7 @@ class CollisionAvoidancePrior(DomainPrior):
         self._size = size
         self._num_total_counts = num_total_counts
 
-    def sample(self) -> Domain:
+    def sample(self) -> domain.Domain:
         """returns `general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance`
 
         Domain has with random obstacle behavior

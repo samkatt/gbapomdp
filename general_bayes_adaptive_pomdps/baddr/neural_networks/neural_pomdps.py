@@ -2,35 +2,23 @@
 
 from collections import deque
 from enum import Enum, auto
-from typing import Any, Deque, List, NamedTuple, Optional, Tuple
+from typing import Any, Deque, List, Optional
 
 import numpy as np
-import torch
 import torch.distributions.utils
 from typing_extensions import Protocol
 
 from general_bayes_adaptive_pomdps.baddr.neural_networks import Net
 from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import perturb
 from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import device
-from general_bayes_adaptive_pomdps.core import ActionSpace
+from general_bayes_adaptive_pomdps.core import ActionSpace, SimulationResult, Transition
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
-
-
-class Interaction(NamedTuple):
-    """a POMDP step transition (s, a, s', o)"""
-
-    state: np.ndarray
-    action: int
-    next_state: np.ndarray
-    observation: np.ndarray
 
 
 class OptimizerBuilder(Protocol):
     """ Defines the signature of optimizer builder"""
 
-    def __call__(
-        self, parameters: Any, learning_rate: float
-    ) -> torch.optim.Optimizer:  # type: ignore
+    def __call__(self, parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
         """function call signature for building an optimizer
 
         Args:
@@ -42,7 +30,7 @@ class OptimizerBuilder(Protocol):
         """
 
 
-def sgd_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:  # type: ignore
+def sgd_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
     """builds the torch SGD optimizer to update `parameters` with `learning_rate` stepsize
 
     Args:
@@ -55,9 +43,7 @@ def sgd_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
     return torch.optim.SGD(parameters, lr=learning_rate)
 
 
-def adam_builder(
-    parameters: Any, learning_rate: float
-) -> torch.optim.Optimizer:  # type: ignore
+def adam_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
     """builds the torch Adam optimizer to update `parameters` with `learning_rate` stepsize
 
     Args:
@@ -116,83 +102,8 @@ class DynamicsModel:
             dtype=int,
         )
 
-    class T(Protocol):
-        """interface for a transition model in `DynamicsModel`"""
-
-        def model(self, state: np.ndarray, action: int) -> List[np.ndarray]:
-            """next-state distribution model given state-action pair
-
-            Args:
-                state (`np.ndarray`):
-                action (`int`):
-
-            Returns:
-                `List[np.ndarray]`: model, [i][j] is probability of feature i
-                taking value j
-            """
-
-        def sample(
-            self,
-            state: np.ndarray,
-            action: int,
-            num: int,
-        ) -> np.ndarray:
-            """sample `num` state given `state`-`action` pair
-
-            can be implemented by calling
-            `sample_from_model(self.model(state, action, num))`
-
-            Args:
-                state (`np.ndarray`):
-                action (`int`):
-                num (`int`): number of samples to provide
-
-            Returns:
-                `np.ndarray`: `num` states
-            """
-
-    class ObsModel(Protocol):
-        """interface for an observation model in `DynamicsModel`"""
-
-        def model(
-            self, state: np.ndarray, action: int, next_state: np.ndarray
-        ) -> List[np.ndarray]:
-            """observation distribution model given `state`-`action`-`next_state` triplet
-
-            Args:
-                state (`np.ndarray`):
-                action (`int`):
-                next_state (`np.ndarray`):
-
-            Returns:
-                `List[np.ndarray]`: model, [i][j] is probability of feature i
-                taking value j
-            """
-
-        def sample(
-            self,
-            state: np.ndarray,
-            action: int,
-            next_state: np.ndarray,
-            num: int,
-        ) -> np.ndarray:
-            """sample `num` observation given `state`-`action`-`next_state` triplet
-
-            can be implemented by calling
-            `sample_from_model(self.model(state, action, next_state, num))`
-
-            Args:
-                state (`np.ndarray`):
-                action (`int`):
-                next_state (`np.ndarray`):
-                num (`int`): number of samples to provide
-
-            Returns:
-                `np.ndarray`: `num` observations
-            """
-
     class NN:
-        """A neural network in the `DynamicsModel`, either `O` or `T`"""
+        """A neural network in the `DynamicsModel` """
 
         def __init__(
             self,
@@ -252,8 +163,8 @@ class DynamicsModel:
                 for param in self.net.parameters():
                     param.set_(perturb(param, stdev))
 
-    class TNet(NN, T):
-        """Neural Network implementation of `T` in `DynamicsModel`"""
+    class TNet(NN):
+        """Neural Network implementation of the transition model in `DynamicsModel`"""
 
         def __init__(
             self,
@@ -266,8 +177,6 @@ class DynamicsModel:
             input_state_size: Optional[int] = None,
         ):
             """Initiates a neural network transition model
-
-            This model implements :class:`T` with the help of :class:`NN`.
 
             ``state_space`` and ``action_space`` are used as ways to figure out
             the size of the model. Note that with ``input_state_size`` the
@@ -346,7 +255,16 @@ class DynamicsModel:
             return loss.item()
 
         def model(self, state: np.ndarray, action: int) -> List[np.ndarray]:
-            """`T` interface"""
+            """next-state distribution model given state-action pair
+
+            Args:
+                state (`np.ndarray`):
+                action (`int`):
+
+            Returns:
+                `List[np.ndarray]`: model, [i][j] is probability of feature i
+                taking value j
+            """
 
             state_action_pair = (
                 torch.from_numpy(
@@ -360,7 +278,7 @@ class DynamicsModel:
                 logits = self.net(state_action_pair)
 
                 return [
-                    torch.distributions.utils.logits_to_probs(  # type: ignore
+                    torch.distributions.utils.logits_to_probs(
                         logits[
                             self.state_space.dim_cumsum[
                                 i
@@ -378,12 +296,24 @@ class DynamicsModel:
             action: int,
             num: int,
         ) -> np.ndarray:
-            """`T` interface"""
+            """sample `num` state given `state`-`action` pair
+
+            can be implemented by calling
+            `sample_from_model(self.model(state, action, num))`
+
+            Args:
+                state (`np.ndarray`):
+                action (`int`):
+                num (`int`): number of samples to provide
+
+            Returns:
+                `np.ndarray`: `num` states
+            """
             transition_model = self.model(state, action)
             return DynamicsModel.sample_from_model(transition_model, num)
 
-    class ONet(NN, ObsModel):
-        """Neural Network implementation of `O` in `DynamicsModel`"""
+    class ONet(NN):
+        """Neural Network implementation of observation model in `DynamicsModel`"""
 
         def __init__(
             self,
@@ -454,7 +384,17 @@ class DynamicsModel:
         def model(
             self, state: np.ndarray, action: int, next_state: np.ndarray
         ) -> List[float]:
-            """`O` interface"""
+            """observation distribution model given `state`-`action`-`next_state` triplet
+
+            Args:
+                state (`np.ndarray`):
+                action (`int`):
+                next_state (`np.ndarray`):
+
+            Returns:
+                `List[np.ndarray]`: model, [i][j] is probability of feature i
+                taking value j
+            """
 
             state_action_state = (
                 torch.from_numpy(
@@ -470,7 +410,7 @@ class DynamicsModel:
                 logits = self.net(state_action_state)
 
                 return [
-                    torch.distributions.utils.logits_to_probs(  # type: ignore
+                    torch.distributions.utils.logits_to_probs(
                         logits[
                             self.obs_space.dim_cumsum[i] : self.obs_space.dim_cumsum[
                                 i + 1
@@ -489,7 +429,20 @@ class DynamicsModel:
             next_state: np.ndarray,
             num: int,
         ):
-            """`O` interface"""
+            """sample `num` observation given `state`-`action`-`next_state` triplet
+
+            can be implemented by calling
+            `sample_from_model(self.model(state, action, next_state, num))`
+
+            Args:
+                state (`np.ndarray`):
+                action (`int`):
+                next_state (`np.ndarray`):
+                num (`int`): number of samples to provide
+
+            Returns:
+                `np.ndarray`: `num` observations
+            """
             obs_model = self.model(state, action, next_state)
             return DynamicsModel.sample_from_model(obs_model, num)
 
@@ -505,8 +458,8 @@ class DynamicsModel:
         state_space: DiscreteSpace,
         action_space: ActionSpace,
         batch_size: int,
-        t_model: T,
-        o_model: ObsModel,
+        t_model: TNet,
+        o_model: ONet,
     ):
         """Creates a dynamic model
 
@@ -525,7 +478,7 @@ class DynamicsModel:
         self.state_space = state_space
         self.action_space = action_space
 
-        self.experiences: Deque[Interaction] = deque([], batch_size)
+        self.experiences: Deque[Transition] = deque([], batch_size)
 
         self.num_batches = 0
 
@@ -548,16 +501,14 @@ class DynamicsModel:
             if isinstance(model, DynamicsModel.NN):
                 model.set_learning_rate(learning_rate)
 
-    def simulation_step(
-        self, state: np.array, action: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def simulation_step(self, state: np.array, action: int) -> SimulationResult:
         """The simulation step of this dynamics model: S x A -> S, O
 
         Args:
              state: (`np.array`): input state
              action: (`int`): chosen action
 
-        RETURNS (`Tuple[np.ndarray, np.ndarray]`): [state, observation]
+        RETURNS (`SimulationResult`): [state, observation]
 
         """
 
@@ -569,7 +520,7 @@ class DynamicsModel:
         next_state = self.sample_state(state, action)
         observation = self.sample_observation(state, action, next_state)
 
-        return next_state, observation
+        return SimulationResult(next_state, observation)
 
     def batch_update(
         self,
@@ -605,14 +556,14 @@ class DynamicsModel:
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_T and isinstance(
             self.t, DynamicsModel.NN
         ):
-            self.t.batch_train(states, actions, next_states)  # type: ignore
+            self.t.batch_train(states, actions, next_states)
 
         # observation model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_O and isinstance(
             self.o, DynamicsModel.NN
         ):
 
-            self.o.batch_train(states, actions, next_states, obs)  # type: ignore
+            self.o.batch_train(states, actions, next_states, obs)
 
         self.num_batches += 1
 
@@ -629,7 +580,7 @@ class DynamicsModel:
         """
         assert self.experiences, "cannot self learn without data"
 
-        self.batch_update(*map(np.array, zip(*self.experiences)), conf)  # type: ignore
+        self.batch_update(*map(np.array, zip(*self.experiences)), conf)
 
     def add_transition(
         self,
@@ -652,7 +603,7 @@ class DynamicsModel:
 
         """
 
-        self.experiences.append(Interaction(state, action, next_state, observation))
+        self.experiences.append(Transition(state, action, next_state, observation))
 
     def sample_state(self, state: np.ndarray, action: int, num: int = 1) -> np.ndarray:
         """samples next state given current and action

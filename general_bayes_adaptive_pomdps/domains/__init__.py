@@ -1,10 +1,17 @@
-""" all the domains in which an agent can act """
+"""Domains provided
+
+Generally there is no need for domains in this package, as GBA-POMDPs are build
+from given functions (e.g. a definitions of the domain spaces and some
+functionality such as sampling initial states). However, since most
+environments are easiest implemented as single classes, they are provided here
+by implementing  a quite general :class:`Domain`.
+
+"""
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.core import Domain, DomainPrior
-
 from .collision_avoidance import CollisionAvoidance, CollisionAvoidancePrior
+from .domain import Domain, DomainPrior
 from .gridworld import GridWorld, GridWorldPrior
 from .road_racer import RoadRacer, RoadRacerPrior
 from .tiger import Tiger, TigerPrior
@@ -14,11 +21,8 @@ def create_domain(
     domain_name: str,
     domain_size: int,
     use_one_hot_encoding: bool = False,
-    description: str = "",
 ) -> Domain:
     """The factory function to construct domains
-
-    TODO: remove `description`
 
     `use_one_hot_encoding` depends on the chosen `domain_name`, but generally
     refers to using a one-hot encoding to represent part of either the state or

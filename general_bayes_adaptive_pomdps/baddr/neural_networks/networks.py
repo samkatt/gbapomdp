@@ -64,9 +64,8 @@ class Net(torch.nn.Module):
 
         """
 
-        self.layer_1.reset_parameters()
-        self.layer_2.reset_parameters()
-        self.out.reset_parameters()
+        for layer in [self.layer_1, self.layer_2, self.out]:
+            layer.reset_parameters()
 
         if self.prior:
             self.prior.reset_parameters()

@@ -5,16 +5,15 @@ import numpy as np
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
-    Domain,
-    DomainPrior,
     DomainStepResult,
     SimulationResult,
     TerminalState,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel, Space
+from general_bayes_adaptive_pomdps.domains import domain
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class RoadRacer(Domain):
+class RoadRacer(domain.Domain):
     """represents the domain `RoadRacer`
 
     In this domain the agent is a driver on a highway. Its task is to navigate
@@ -172,12 +171,12 @@ class RoadRacer(Domain):
         return self.actions
 
     @property
-    def observation_space(self) -> Space:
+    def observation_space(self) -> DiscreteSpace:
         """ implements `general_bayes_adaptive_pomdps.environments.Environment.observation_space` """
         return self.observations
 
     @property
-    def state_space(self) -> Space:
+    def state_space(self) -> DiscreteSpace:
         """Part of :class:`Domain` protocol"""
         return self.states
 
@@ -271,7 +270,7 @@ class RoadRacer(Domain):
         return f"Road racer of length {self.lane_length} with lane probabilities {self.lane_probs}"
 
 
-class RoadRacerPrior(DomainPrior):
+class RoadRacerPrior(domain.DomainPrior):
     """standard prior over the road racer domain
 
     The agent's transition and observation model is known, however the other
@@ -295,12 +294,12 @@ class RoadRacerPrior(DomainPrior):
         self._total_counts = num_total_counts
         self._num_lanes = num_lanes
 
-    def sample(self) -> Domain:
+    def sample(self) -> domain.Domain:
         """returns a Road Racer instance with some sampled set of lane speeds
 
         The prior over each lane advancement probability  is .5
 
-        RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
+        RETURNS (`general_bayes_adaptive_pomdps.domain.Domain`):
 
         """
         sampled_lane_speeds = np.random.beta(

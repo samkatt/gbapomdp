@@ -967,7 +967,7 @@ def create_gbapomdp(
     augmented_state_class = get_augmented_state_class(model_type)
     action_space = ActionSpace(domain.action_space.num_actions)
     data_sampler = create_data_sampler(domain, batch_size, prior_option)
-    obs_space = None  # TODO: create this, could be useful at some point
+    obs_space = None  # XXX: could be useful at some point
 
     obs_rep = partial(
         gverse_obs2array,

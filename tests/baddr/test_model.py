@@ -7,8 +7,7 @@ import numpy as np
 import pytest
 
 from general_bayes_adaptive_pomdps.baddr.model import (
-    create_transition_sampler,
-    sample_transitions_uniform_from_simulator,
+    sample_transitions_uniform,
     train_from_samples,
 )
 from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
@@ -24,7 +23,12 @@ class TestTrainFromSamples:
     def test_improve_performance(self):
         """Tests whether learning improves model"""
         sim = Tiger(one_hot_encode_observation=False)
-        sampler = sample_transitions_uniform_from_simulator
+        sampler = partial(
+            sample_transitions_uniform,
+            state_space=sim.state_space,
+            action_space=sim.action_space,
+            domain_simulation_step=sim.simulation_step,
+        )
 
         batch_size = 16
 
@@ -61,7 +65,7 @@ class TestTrainFromSamples:
 
         train_from_samples(
             model,
-            partial(sampler, sim=sim),
+            sampler,
             num_epochs=256,
             batch_size=batch_size,
         )
@@ -79,34 +83,14 @@ class TestSampleFromSimulator:
         """run once on tiger and check if result is viable"""
         sim = Tiger(one_hot_encode_observation=False)
 
-        (
-            s,
-            a,
-            news,
-            o,
-        ) = sample_transitions_uniform_from_simulator(sim)
+        (s, a, news, o,) = sample_transitions_uniform(
+            sim.state_space, sim.action_space, sim.simulation_step
+        )
 
         assert sim.state_space.contains(s)
         assert sim.action_space.contains(a)
         assert sim.state_space.contains(news)
         assert sim.observation_space.contains(o)
-
-
-class TestCreateTransitionSampler:
-    """Tests factory for transition samplers
-
-    This test assumes (knows) that the factory function returns a partial.  The
-    name of that partial is being checked. Although silly, it catches the
-    otherwise hard-to-notice evil bug
-
-    """
-
-    def test_default(self):
-        """Test none-Gridverse """
-        assert (
-            create_transition_sampler(None).func.__name__  # type: ignore
-            == "sample_transitions_uniform_from_simulator"
-        )
 
 
 if __name__ == "__main__":
