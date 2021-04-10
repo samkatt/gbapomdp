@@ -209,7 +209,7 @@ def backprop_update(
     Args:
          model: (`DynamicsModel`):
          state: (`np.ndarray`):
-         action: (`np.ndarray`):
+         action: (`int`):
          next_state: (`np.ndarray`):
          observation: (`np.ndarray`):
          freeze_model_setting: (`FreezeModelSetting`)
@@ -329,12 +329,8 @@ class BADDrState(NamedTuple):
     model: DynamicsModel
 
 
-class BADDr(GeneralBAPOMDP):
-    """A simulator over augmented states
-
-    The augmented states are
-    (`general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel`, state) tuples
-    """
+class BADDr(GeneralBAPOMDP[BADDrState]):
+    """The GBA-POMDP where the belief over the model is parameterized by dropout networks"""
 
     def __init__(
         self,
@@ -497,7 +493,7 @@ class BADDr(GeneralBAPOMDP):
             self._theta_updates,
         )
 
-        return BADDrState(next_domain_state, next_model)
+        return BADDrState(next_domain_state, next_model), obs
 
     def reward(self, state: BADDrState, action: int, new_state: BADDrState) -> float:
         """the reward function of the underlying domain

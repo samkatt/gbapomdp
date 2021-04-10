@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 
 from general_bayes_adaptive_pomdps.baddr.model import (
+    create_model_updates,
+    get_model_freeze_setting,
     sample_transitions_uniform,
     train_from_samples,
 )
@@ -91,6 +93,45 @@ class TestSampleFromSimulator:
         assert sim.action_space.contains(a)
         assert sim.state_space.contains(news)
         assert sim.observation_space.contains(o)
+
+
+@pytest.mark.parametrize(
+    "string_input,expected_setting",
+    [
+        ("", DynamicsModel.FreezeModelSetting.FREEZE_NONE),
+        ("T", DynamicsModel.FreezeModelSetting.FREEZE_T),
+        ("O", DynamicsModel.FreezeModelSetting.FREEZE_O),
+    ],
+)
+def test_get_model_freeze_setting(string_input, expected_setting):
+    assert get_model_freeze_setting(string_input) == expected_setting
+
+
+def test_get_model_freeze_setting_raises():
+    with pytest.raises(ValueError):
+        get_model_freeze_setting("nonsense")
+
+
+@pytest.mark.parametrize(
+    "backprop,replay,perturb,len_output",
+    [
+        (False, False, 0, 0),
+        (True, False, 0, 1),
+        (True, True, 0, 2),
+        (False, True, 0, 1),
+        (False, True, 0.3, 2),
+        (True, True, 0.3, 3),
+    ],
+)
+def test_create_model_updates(backprop, replay, perturb, len_output):
+    assert (
+        len(
+            create_model_updates(
+                DynamicsModel.FreezeModelSetting.FREEZE_NONE, backprop, replay, perturb
+            )
+        )
+        == len_output
+    )
 
 
 if __name__ == "__main__":

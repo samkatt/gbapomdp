@@ -5,7 +5,7 @@ building block classes used in the rest of the code.
 
 """
 
-from typing import Any, NamedTuple, Tuple, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 import numpy as np
 from typing_extensions import Protocol
@@ -164,11 +164,10 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
 
         :return: initial state in the GBA-POMDP
         """
-        ...
 
     def simulation_step(
         self, state: AugmentedState, action: int, optimize: bool = False
-    ) -> Tuple[AugmentedState, np.ndarray]:
+    ) -> SimulationResult:
         """Performs an actual step according to the GBA-POMDP dynamics
 
         The resulting :class:`SimulationResult` contains the generated state

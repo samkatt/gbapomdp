@@ -498,8 +498,7 @@ class DynamicsModel:
         """
 
         for model in [self.t, self.o]:
-            if isinstance(model, DynamicsModel.NN):
-                model.set_learning_rate(learning_rate)
+            model.set_learning_rate(learning_rate)
 
     def simulation_step(self, state: np.array, action: int) -> SimulationResult:
         """The simulation step of this dynamics model: S x A -> S, O
@@ -553,16 +552,11 @@ class DynamicsModel:
         obs = torch.from_numpy(obs).to(device())
 
         # transition model
-        if conf != DynamicsModel.FreezeModelSetting.FREEZE_T and isinstance(
-            self.t, DynamicsModel.NN
-        ):
+        if conf != DynamicsModel.FreezeModelSetting.FREEZE_T:
             self.t.batch_train(states, actions, next_states)
 
         # observation model
-        if conf != DynamicsModel.FreezeModelSetting.FREEZE_O and isinstance(
-            self.o, DynamicsModel.NN
-        ):
-
+        if conf != DynamicsModel.FreezeModelSetting.FREEZE_O:
             self.o.batch_train(states, actions, next_states, obs)
 
         self.num_batches += 1
@@ -678,8 +672,7 @@ class DynamicsModel:
         self.experiences.clear()
 
         for model in [self.t, self.o]:
-            if isinstance(model, DynamicsModel.NN):
-                model.reset()
+            model.reset()
 
         self.num_batches = 0
 
@@ -698,14 +691,8 @@ class DynamicsModel:
 
         """
 
-        if (
-            freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_T
-            and isinstance(self.t, DynamicsModel.NN)
-        ):
+        if freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_T:
             self.t.perturb(stdev)
 
-        if (
-            freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_O
-            and isinstance(self.o, DynamicsModel.NN)
-        ):
+        if freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_O:
             self.o.perturb(stdev)

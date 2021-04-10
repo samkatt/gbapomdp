@@ -31,6 +31,8 @@ def create_domain(
         - :class:`Tiger`: observation (0/1/2 => 2 elements)
         - :class:`GridWorld`: goal representation
 
+    Accepts `domain_name` in "tiger", "gridworld", "collision_avoidance", "road_racer"
+
     Args:
          domain_name: (`str`): determines which domain is created
          domain_size: (`int`): the size of the domain (domain dependent)

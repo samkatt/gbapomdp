@@ -301,7 +301,7 @@ class TigerPrior(domain.DomainPrior):
     def __init__(
         self,
         num_total_counts: float,
-        prior_correctness,
+        prior_correctness: float,
         one_hot_encode_observation: bool,
     ):
         """initiate the prior, will make observation one-hot encoded
