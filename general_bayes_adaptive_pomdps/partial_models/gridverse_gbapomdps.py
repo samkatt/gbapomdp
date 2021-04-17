@@ -123,17 +123,12 @@ class GridverseAugmentedGodState(AugmentedGodState, Protocol):
 
 def train_models(
     models: List[DynamicsModel.TNet],
-    domain: GVerseGridworld,
     num_pretrain_epochs: int,
     data_sampler: Callable[[], Tuple[List[GVerseState], List[int], List[GVerseState]]],
 ) -> List[DynamicsModel.TNet]:
     """Trains ``models`` on data from ``data_sampler``
 
-    Generalizes over the type of augmented state, using only static methods
-    provided by all (accessed through ``augmented_state_class``.
-
     :param models: the transition networks to be trained
-    :param domain: domain knowledge, used for generating data for testing accuracy
     :param num_pretrain_epochs: number of batches to train each model on
     :param data_sampler: a function to draw data from
     :returns: the models trained, in case you want to use that (modifies input ``models``)
@@ -740,7 +735,6 @@ def create_gbapomdp(
 
     train_models(
         models,
-        domain,
         num_pretrain_epochs,
         data_sampler,
     )

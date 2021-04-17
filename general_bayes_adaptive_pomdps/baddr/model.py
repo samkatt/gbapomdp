@@ -6,6 +6,7 @@ from typing import List, NamedTuple, Tuple
 import numpy as np
 from typing_extensions import Protocol
 
+from general_bayes_adaptive_pomdps.baddr.neural_networks import pytorch_api
 from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
@@ -341,6 +342,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         terminal_function: TerminalFunction,
         prior_models: List[DynamicsModel],
         model_update: List[ModelUpdate],
+        use_gpu: bool = False,
     ):
         """Creates `BADDr`
 
@@ -358,8 +360,11 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
             terminal_function (`TerminalFunction`):
             prior_models (`List[DynamicsModel]`): list of models to start with a-priori
             model_update (`List[ModelUpdate]`): list of operations to perform to update a model posterior
+            use_gpu (`bool`): whether to use the GPU
 
         """
+
+        pytorch_api.set_device(use_gpu)
 
         # domain knowledge
         self.domain_action_space = action_space

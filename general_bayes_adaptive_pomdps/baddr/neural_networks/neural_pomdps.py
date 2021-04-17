@@ -528,10 +528,8 @@ class DynamicsModel:
         next_states: np.ndarray,
         obs: np.ndarray,
         conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE,
-    ) -> None:
+    ) -> float:
         """performs a batch update (single gradient descent step)
-
-        TODO: return loss
 
         Args:
              states: (`np.ndarray`): (batch_size, state_shape) array of states
@@ -539,6 +537,8 @@ class DynamicsModel:
              next_states: (`np.ndarray`): (batch_size, state_shape) array of (next) states
              obs: (`np.ndarray`): (batch_size, obs_shape) array of observations
              conf: (`FreezeModelSetting`): configurations for training
+
+        RETURNS (`float`): total loss
 
         """
 
@@ -551,30 +551,34 @@ class DynamicsModel:
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
 
+        loss = 0.0
+
         # transition model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_T:
-            self.t.batch_train(states, actions, next_states)
+            loss += self.t.batch_train(states, actions, next_states)
 
         # observation model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_O:
-            self.o.batch_train(states, actions, next_states, obs)
+            loss += self.o.batch_train(states, actions, next_states, obs)
 
         self.num_batches += 1
 
+        return loss
+
     def self_learn(
         self, conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE
-    ) -> None:
+    ) -> float:
         """performs a batch update on stored data
 
         Args:
              conf: (`FreezeModelSetting`): configurations for training
 
-        RETURNS (`None`):
+        RETURNS (`float`): the loss as a result from learning
 
         """
         assert self.experiences, "cannot self learn without data"
 
-        self.batch_update(*map(np.array, zip(*self.experiences)), conf)
+        return self.batch_update(*map(np.array, zip(*self.experiences)), conf)
 
     def add_transition(
         self,
