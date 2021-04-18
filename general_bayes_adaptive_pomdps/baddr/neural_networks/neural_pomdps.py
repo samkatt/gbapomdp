@@ -5,6 +5,7 @@ from enum import Enum, auto
 from typing import Any, Deque, List, Optional
 
 import numpy as np
+import torch
 import torch.distributions.utils
 from typing_extensions import Protocol
 
@@ -485,6 +486,55 @@ class DynamicsModel:
         self.t = t_model
         self.o = o_model
 
+    def load(self, file_name: str) -> None:
+        """Loads internal state from `file_name`
+
+        For the sake of computational efficiency models can be saved and loaded
+        from disk. This basically loads all the relevant private members of
+        :class:`DynamicsModel` from disk. It utilizes pytorch's ability to save
+        and load 'state_dicts'.
+
+        See :meth:`save` how to save internal state to disk
+
+        NOTE: this does not save the state of the optimizer or learning rate
+
+        Args:
+            path: (`str`): path to file name containing stored state
+
+        """
+        checkpoint = torch.load(file_name)
+
+        self.experiences = checkpoint["experiences"]
+        self.num_batches = checkpoint["num_batches"]
+        self.t.net.load_state_dict(checkpoint["t_state_dict"])
+        self.o.net.load_state_dict(checkpoint["o_state_dict"])
+
+    def save(self, file_name: str) -> None:
+        """Saves the internal state to `file_name`
+
+        For the sake of computational efficiency models can be saved and loaded
+        from disk. This basically loads all the relevant private members of
+        :class:`DynamicsModel` from disk. It utilizes pytorch's ability to save
+        and load 'state_dicts'.
+
+        NOTE: this does not save the state of the optimizer or learning rate
+
+        See :meth:`load` how to load internal state from disk
+
+        Args:
+            path: (`str`): path to file to save state to
+
+        """
+        torch.save(
+            {
+                "experiences": self.experiences,
+                "num_batches": self.num_batches,
+                "t_state_dict": self.t.net.state_dict(),
+                "o_state_dict": self.o.net.state_dict(),
+            },
+            file_name,
+        )
+
     def set_learning_rate(self, learning_rate: float) -> None:
         """(re)sets the optimizers' learning rate
 
@@ -697,6 +747,5 @@ class DynamicsModel:
 
         if freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_T:
             self.t.perturb(stdev)
-
         if freeze_model_setting != DynamicsModel.FreezeModelSetting.FREEZE_O:
             self.o.perturb(stdev)
