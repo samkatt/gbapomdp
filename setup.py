@@ -10,14 +10,9 @@ with open("README.rst") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-# TODO: update requirements after overhaul is done
 requirements = [
     "torch",
     "typing_extensions",
-    "matplotlib",
-    "more_itertools",
-    "tensorboard",
-    "mypy_extensions",
     "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
     "numpy",
     "cached_property",
