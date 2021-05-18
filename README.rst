@@ -36,4 +36,4 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
-.. POMDPs: https://en.wikipedia.org/wiki/Partially_observable_Markov_decision_process
+.. _POMDPs: https://en.wikipedia.org/wiki/Partially_observable_Markov_decision_process

@@ -37,7 +37,7 @@ def train_from_samples(
     sampler: TransitionSampler,
     num_epochs: int,
     batch_size: int,
-) -> None:
+) -> float:
     """trains a theta with data uniformly sampled from (S,A) space
 
     Performs `num_epochs` updates of size `batch_size` by sampling from sampler
@@ -48,19 +48,22 @@ def train_from_samples(
          num_epochs: (`int`): number of batch updates
          batch_size: (`int`): size of a batch update
 
-    RETURNS (`None`):
+    RETURNS (`float`): loss
     """
+    loss = 0.0
 
     for _ in range(num_epochs):
         states, actions, new_states, observations = zip(
             *[sampler() for _ in range(batch_size)]
         )
-        theta.batch_update(
+        loss += theta.batch_update(
             np.array(states),
             np.array(actions),
             np.array(new_states),
             np.array(observations),
         )
+
+    return loss
 
 
 def sample_transitions_uniform(
