@@ -18,7 +18,6 @@ class Tiger(domain.Domain):
     """The actual domain"""
 
     # consts
-    # why no right?
     LEFT = 0
     LISTEN = 2
 
@@ -26,9 +25,7 @@ class Tiger(domain.Domain):
     BAD_DOOR_REWARD = -100
 
     LISTEN_REWARD = -1
-    
-    # Here we can add the third element "Mid" into it to illustrate the third door 
-    
+
     ELEM_TO_STRING = ["L", "R"]
 
     def __init__(
@@ -43,13 +40,10 @@ class Tiger(domain.Domain):
              correct_obs_probs: (`Optional[List[float]]`):
 
         """
-        # the inital list has two elments illustrating the chance of left door and right door being correctly observed
-        # we can add another 0.85 into it to illustrate the probability of correctly observing the third door
+
         if not correct_obs_probs:
             correct_obs_probs = [0.85, 0.85]
-        
-        # here adding another assert associated with correct_obs_probs[2]
-        
+
         assert (
             0 <= correct_obs_probs[0] <= 1
         ), f"observation prob {correct_obs_probs[0]} not a probability"
@@ -62,17 +56,9 @@ class Tiger(domain.Domain):
         self._correct_obs_probs = correct_obs_probs
 
         self._use_one_hot_obs = one_hot_encode_observation
-        
-        # here the number of the discrete space should be 3
 
         self._state_space = DiscreteSpace([2])
-        
-        # the actions' amount is to be 4: listen, open left door, open mid door and open right door
-        
         self._action_space = ActionSpace(3)
-        
-        # I am not very aware of this part.
-        
         self._obs_space = (
             DiscreteSpace([2, 2]) if self._use_one_hot_obs else DiscreteSpace([3])
         )
@@ -92,7 +78,7 @@ class Tiger(domain.Domain):
              state: (`np.ndarray`): [0] or [1]
 
         """
-        # Here state[0] should be 0,1,2 so it should be 3 > state[0] >= 0
+
         assert state.shape == (1,), f"{state} not correct shape"
         assert 2 > state[0] >= 0, f"{state} not valid"
 
@@ -131,7 +117,6 @@ class Tiger(domain.Domain):
             return np.array([observation], dtype=int)
 
         # use one hot encoding
-        # observation is towards 3 door, here it should be 3
         obs = np.ones(2, dtype=int)
 
         # not left or right means [1,1] observation (basically a 'null')
@@ -339,7 +324,6 @@ class TigerPrior(domain.DomainPrior):
             )
 
         # Linear mapping: [0, 1] -> [.625, .85]
-        # I am not very certain about why linear mapping used?
         self._observation_prob = 0.625 + (prior_correctness * 0.225)
         self._total_counts = num_total_counts
         self._one_hot_encode_observation = one_hot_encode_observation
@@ -353,8 +337,6 @@ class TigerPrior(domain.DomainPrior):
         RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
 
         """
-        # here we add the third same part.
-        
         sampled_observation_probs = [
             np.random.dirichlet(
                 [
