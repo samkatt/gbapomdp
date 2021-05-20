@@ -318,7 +318,7 @@ class TigerPrior(domain.DomainPrior):
                 f"Assume positive number of total counts, not {num_total_counts}"
             )
 
-        if not 0 <= prior_correctness < 1:
+        if not 0 <= prior_correctness <= 1:
             raise ValueError(
                 f"`prior_correctness` must be [0,1], not {prior_correctness}"
             )
