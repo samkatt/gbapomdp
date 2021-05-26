@@ -301,7 +301,9 @@ class Tiger3(domain.Domain):
         
         return observation[0]
         
-    
+    # no use one hot encode, then just default is okay
     def __repr__(self) -> str:
         encoding_descr = "default"
         return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_probs}"
+    
+    # You can see TigerPrior deleted since it is not used in this part.
