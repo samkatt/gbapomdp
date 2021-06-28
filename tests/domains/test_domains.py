@@ -950,7 +950,7 @@ class TestTigerPrior:
         assert 0.64 <= obs_probs[0] <= 0.65
         assert 0.64 <= obs_probs[1] <= 0.65
 
-        prior_level = 1.0
+        prior_level = 1.01
         with pytest.raises(ValueError):
             TigerPrior(num_total_counts, prior_level, encoding)
 
