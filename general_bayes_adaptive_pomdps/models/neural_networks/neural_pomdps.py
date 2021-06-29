@@ -9,15 +9,15 @@ import torch
 import torch.distributions.utils
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks import Net
-from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import perturb
-from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import device
 from general_bayes_adaptive_pomdps.core import ActionSpace, SimulationResult, Transition
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.models.neural_networks import Net
+from general_bayes_adaptive_pomdps.models.neural_networks.misc import perturb
+from general_bayes_adaptive_pomdps.models.neural_networks.pytorch_api import device
 
 
 class OptimizerBuilder(Protocol):
-    """ Defines the signature of optimizer builder"""
+    """Defines the signature of optimizer builder"""
 
     def __call__(self, parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
         """function call signature for building an optimizer
@@ -63,7 +63,7 @@ def get_optimizer_builder(option: str) -> OptimizerBuilder:
     Args:
          option: (`str`): in ['SGD', 'Adam']
 
-    RETURNS (`general_bayes_adaptive_pomdps.baddr.neural_networks.OptimizerBuilder`):
+    RETURNS (`general_bayes_adaptive_pomdps.models.neural_networks.OptimizerBuilder`):
 
     """
     if option == "SGD":
@@ -75,7 +75,7 @@ def get_optimizer_builder(option: str) -> OptimizerBuilder:
 
 
 class DynamicsModel:
-    """ POMDP dynamics (s,a) -> p(s',o) """
+    """POMDP dynamics (s,a) -> p(s',o)"""
 
     @staticmethod
     def sample_from_model(model: List[np.ndarray], num: int) -> np.ndarray:
@@ -104,7 +104,7 @@ class DynamicsModel:
         )
 
     class NN:
-        """A neural network in the `DynamicsModel` """
+        """A neural network in the `DynamicsModel`"""
 
         def __init__(
             self,
@@ -122,7 +122,7 @@ class DynamicsModel:
             )
 
         def reset(self) -> None:
-            """reset the network (randomly) and optimizer """
+            """reset the network (randomly) and optimizer"""
             self.net.random_init_parameters()
             self._optimizer = self._optimizer_builder(
                 self.net.parameters(), self._learning_rate
@@ -448,7 +448,7 @@ class DynamicsModel:
             return DynamicsModel.sample_from_model(obs_model, num)
 
     class FreezeModelSetting(Enum):
-        """ setting for training """
+        """setting for training"""
 
         FREEZE_NONE = auto()
         FREEZE_T = auto()
@@ -722,7 +722,7 @@ class DynamicsModel:
         return self.o.model(state, action, next_state)
 
     def reset(self) -> None:
-        """ resets the networks """
+        """resets the networks"""
         self.experiences.clear()
 
         for model in [self.t, self.o]:

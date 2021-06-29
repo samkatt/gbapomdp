@@ -1,16 +1,16 @@
-"""tests :mod:`general_bayes_adaptive_pomdps.baddr.neural_networks.networks`"""
+"""tests :mod:`general_bayes_adaptive_pomdps.models.neural_networks.networks`"""
 
 import pytest
 import torch
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks.networks import Net
+from general_bayes_adaptive_pomdps.models.neural_networks.networks import Net
 
 
 class TestNetwork:
-    """ tests some properties of the network """
+    """tests some properties of the network"""
 
     def test_dropout(self) -> None:
-        """ some basic sanity checks of dropout functionality """
+        """some basic sanity checks of dropout functionality"""
 
         net_input = torch.tensor([0.1, 4.0, -0.2])
 

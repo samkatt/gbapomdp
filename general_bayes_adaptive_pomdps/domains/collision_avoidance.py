@@ -10,11 +10,11 @@ from general_bayes_adaptive_pomdps.core import (
     SimulationResult,
     TerminalState,
 )
-from general_bayes_adaptive_pomdps.domains import domain
+from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class CollisionAvoidance(domain.Domain):
+class CollisionAvoidance(Domain):
     """The collision avoidance problem
 
 
@@ -68,12 +68,12 @@ class CollisionAvoidance(domain.Domain):
 
     @property
     def size(self):
-        """ returns the size (of grid) of collision avoidance """
+        """returns the size (of grid) of collision avoidance"""
         return self._size
 
     @property
     def state(self) -> np.ndarray:
-        """ [x, y, obs_y] """
+        """[x, y, obs_y]"""
         return self._state
 
     @state.setter
@@ -92,17 +92,17 @@ class CollisionAvoidance(domain.Domain):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([x, y, obs_y]) """
+        """`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([x, y, obs_y])"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space """
+        """a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,size]) space """
+        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,size]) space"""
         return self._obs_space
 
     def sample_start_state(self) -> np.ndarray:
@@ -146,7 +146,7 @@ class CollisionAvoidance(domain.Domain):
         return np.array([*state[:2], obs], dtype=int)
 
     def reset(self) -> np.ndarray:
-        """ resets state and potentially records the episode"""
+        """resets state and potentially records the episode"""
 
         self._state = self.sample_start_state()
         return self.generate_observation()
@@ -269,7 +269,7 @@ class CollisionAvoidance(domain.Domain):
         )
 
 
-class CollisionAvoidancePrior(domain.DomainPrior):
+class CollisionAvoidancePrior(DomainPrior):
     """a prior that returns collision avoidance with various obstacle behaviours
 
     The obstacle behaviour (accross all states) is sampled uniformly
@@ -293,7 +293,7 @@ class CollisionAvoidancePrior(domain.DomainPrior):
         self._size = size
         self._num_total_counts = num_total_counts
 
-    def sample(self) -> domain.Domain:
+    def sample(self) -> Domain:
         """returns `general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance`
 
         Domain has with random obstacle behavior

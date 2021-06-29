@@ -6,11 +6,6 @@ from typing import List, NamedTuple, Tuple
 import numpy as np
 from typing_extensions import Protocol
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks import pytorch_api
-from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
-    DynamicsModel,
-    get_optimizer_builder,
-)
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
     DomainSimulationStep,
@@ -23,6 +18,11 @@ from general_bayes_adaptive_pomdps.core import (
     Transition,
 )
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.models.neural_networks import pytorch_api
+from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps import (
+    DynamicsModel,
+    get_optimizer_builder,
+)
 
 
 class TransitionSampler(Protocol):
@@ -43,7 +43,7 @@ def train_from_samples(
     Performs `num_epochs` updates of size `batch_size` by sampling from sampler
 
     Args:
-         theta: (`general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel`):
+         theta: (`general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel`):
          sampler: (`TransitionSampler`): method to sample transitions from
          num_epochs: (`int`): number of batch updates
          batch_size: (`int`): size of a batch update
@@ -185,7 +185,7 @@ def get_model_freeze_setting(
          freeze_model: (`str`):
 
      Returns:
-         `general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`:
+         `general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel.FreezeModelSetting`:
 
     """
     if not freeze_model:
@@ -327,7 +327,7 @@ def create_model_updates(
 
 
 class BADDrState(NamedTuple):
-    """ A state containing (POMDP state, POMDP dynamics posterior) """
+    """A state containing (POMDP state, POMDP dynamics posterior)"""
 
     domain_state: np.ndarray
     model: DynamicsModel
@@ -351,8 +351,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
 
         To create `model_update` consider :func:`create_model_updates`.
         To create `prior_models` consider :func:`create_dynamics_model`.
-
-        TODO: set device
 
         Args:
             state_space (`DiscreteSpace'):

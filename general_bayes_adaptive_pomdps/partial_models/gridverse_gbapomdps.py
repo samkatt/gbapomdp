@@ -52,14 +52,14 @@ from gym_gridverse.representations.observation_representations import (
 from gym_gridverse.representations.representation import ObservationRepresentation
 from gym_gridverse.state import State as GVerseState
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import whiten_input
-from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.core import ActionSpace
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.models.neural_networks.misc import whiten_input
+from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps import (
     DynamicsModel,
     get_optimizer_builder,
 )
-from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import device
-from general_bayes_adaptive_pomdps.core import ActionSpace
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.models.neural_networks.pytorch_api import device
 from general_bayes_adaptive_pomdps.partial_models.partial_gbapomdp import (
     AugmentedGodState,
     GBAPOMDPThroughAugmentedState,
@@ -78,7 +78,7 @@ class GridverseAugmentedGodState(AugmentedGodState, Protocol):
 
     @staticmethod
     def state_input_size() -> int:
-        """The dimensionality of the state as input """
+        """The dimensionality of the state as input"""
 
     @staticmethod
     def state_space(height: int, width: int) -> DiscreteSpace:

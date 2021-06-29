@@ -10,16 +10,18 @@ from general_bayes_adaptive_pomdps.core import (
     DomainStepResult,
     SimulationResult,
 )
-from general_bayes_adaptive_pomdps.domains import domain
+from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
+from general_bayes_adaptive_pomdps.models.tabular_bapomdp import DirCounts
 
 
-class Tiger(domain.Domain):
+class Tiger(Domain):
     """The actual domain"""
 
     # consts
     LEFT = 0
-    LISTEN = 2
+    RIGHT = 1
+    LISTEN = NO_OBS = 2
 
     GOOD_DOOR_REWARD = 10
     BAD_DOOR_REWARD = -100
@@ -67,7 +69,7 @@ class Tiger(domain.Domain):
 
     @property
     def state(self):
-        """ returns current state """
+        """returns current state"""
         return self._state
 
     @state.setter
@@ -86,17 +88,17 @@ class Tiger(domain.Domain):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([2]) space """
+        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([2]) space"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space """
+        """a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([1,1]) space if one-hot, otherwise [3]"""
+        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([1,1]) space if one-hot, otherwise [3]"""
         return self._obs_space
 
     def encode_observation(self, observation: int) -> np.ndarray:
@@ -148,7 +150,7 @@ class Tiger(domain.Domain):
         """
 
         if not listening:
-            return self.LISTEN
+            return self.NO_OBS
 
         return (
             loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)
@@ -286,7 +288,7 @@ class Tiger(domain.Domain):
         return f"Tiger problem ({encoding_descr} encoding) with obs prob {self._correct_obs_probs}"
 
 
-class TigerPrior(domain.DomainPrior):
+class TigerPrior(DomainPrior):
     """standard prior over the tiger domain
 
     The transition model is known, however the probability of observing the
@@ -328,7 +330,7 @@ class TigerPrior(domain.DomainPrior):
         self._total_counts = num_total_counts
         self._one_hot_encode_observation = one_hot_encode_observation
 
-    def sample(self) -> domain.Domain:
+    def sample(self) -> Domain:
         """returns a Tiger instance with some correct observation prob
 
         This prior over the observation probability is a Dirichlet with total
@@ -356,3 +358,52 @@ class TigerPrior(domain.DomainPrior):
             one_hot_encode_observation=self._one_hot_encode_observation,
             correct_obs_probs=sampled_observation_probs,
         )
+
+
+def create_tabular_prior_counts(
+    correctness: float = 1, certainty: float = 10
+) -> DirCounts:
+    tot_counts_for_known = 10000.0
+    correct_prob = 0.625 + (correctness * 0.225)
+
+    t = np.array(
+        [
+            # s = tiger left
+            [
+                [p * tot_counts_for_known for p in [0.5, 0.5]],  # a = open left
+                [p * tot_counts_for_known for p in [0.5, 0.5]],  # a = open right
+                [p * tot_counts_for_known for p in [1.0, 0.0]],  # a = listen
+            ],
+            # s = tiger right
+            [
+                [p * tot_counts_for_known for p in [0.5, 0.5]],  # a = open left
+                [p * tot_counts_for_known for p in [0.5, 0.5]],  # a = open right
+                [p * tot_counts_for_known for p in [0.0, 1.0]],  # a = listen
+            ],
+        ]
+    )
+    o = np.array(
+        [
+            # a = open left
+            [
+                [p * tot_counts_for_known for p in [0.0, 0.0, 1.0]],  # s = left
+                [p * tot_counts_for_known for p in [0.0, 0.0, 1.0]],  # s = right
+            ],
+            # a = open right
+            [
+                [p * tot_counts_for_known for p in [0.0, 0.0, 1.0]],  # s = left
+                [p * tot_counts_for_known for p in [0.0, 0.0, 1.0]],  # s = right
+            ],
+            # a = listen
+            [
+                [
+                    p * certainty for p in [correct_prob, 1 - correct_prob, 0.0]
+                ],  # s = left
+                [
+                    p * certainty for p in [1 - correct_prob, correct_prob, 0.0]
+                ],  # s = right
+            ],
+        ]
+    )
+
+    return DirCounts(t, o)

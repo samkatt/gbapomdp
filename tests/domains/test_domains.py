@@ -6,22 +6,17 @@ import numpy as np
 import pytest
 
 from general_bayes_adaptive_pomdps.core import TerminalState
-from general_bayes_adaptive_pomdps.domains import (
-    CollisionAvoidance,
-    GridWorld,
-    RoadRacer,
-    Tiger,
-    collision_avoidance,
-    gridworld,
-    road_racer,
-    tiger,
-)
 from general_bayes_adaptive_pomdps.domains.collision_avoidance import (
+    CollisionAvoidance,
     CollisionAvoidancePrior,
 )
-from general_bayes_adaptive_pomdps.domains.gridworld import GridWorldPrior
-from general_bayes_adaptive_pomdps.domains.road_racer import RoadRacerPrior
-from general_bayes_adaptive_pomdps.domains.tiger import TigerPrior
+from general_bayes_adaptive_pomdps.domains.gridworld import GridWorld, GridWorldPrior
+from general_bayes_adaptive_pomdps.domains.road_racer import RoadRacer, RoadRacerPrior
+from general_bayes_adaptive_pomdps.domains.tiger import (
+    Tiger,
+    TigerPrior,
+    create_tabular_prior_counts,
+)
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
@@ -29,15 +24,15 @@ class TestTiger:
     """tests functionality of :class:`Tiger`"""
 
     def setup_method(self):
-        """ creates a tiger member """
-        self.one_hot_env = tiger.Tiger(one_hot_encode_observation=True)
+        """creates a tiger member"""
+        self.one_hot_env = Tiger(one_hot_encode_observation=True)
         self.one_hot_env.reset()
 
-        self.env = tiger.Tiger(one_hot_encode_observation=False)
+        self.env = Tiger(one_hot_encode_observation=False)
         self.env.reset()
 
     def test_reset(self):
-        """ tests that start state is 0 or 1 """
+        """tests that start state is 0 or 1"""
 
         assert self.one_hot_env.state in [0, 1]
 
@@ -60,7 +55,7 @@ class TestTiger:
             np.testing.assert_array_equal(observation, [2])
 
     def test_step(self):
-        """ tests some basic dynamics """
+        """tests some basic dynamics"""
 
         state = self.one_hot_env.state
 
@@ -102,7 +97,7 @@ class TestTiger:
             assert step.terminal
 
     def test_sample_start_state(self):
-        """ tests sampling start states """
+        """tests sampling start states"""
 
         start_states = [self.one_hot_env.sample_start_state() for _ in range(10)]
 
@@ -113,7 +108,7 @@ class TestTiger:
             assert state in [[0], [1]]
 
     def test_space(self):
-        """ tests the size of the spaces """
+        """tests the size of the spaces"""
 
         action_space = self.one_hot_env.action_space
         np.testing.assert_array_equal(action_space.size, [3])
@@ -128,7 +123,7 @@ class TestTiger:
         assert observation_space.n == 3
 
     def test_observation_projection(self):
-        """ tests tiger.obs2index """
+        """tests tiger.obs2index"""
 
         assert self.one_hot_env.obs2index(self.one_hot_env.reset()) == 2
         assert self.one_hot_env.obs2index(self.one_hot_env.reset()) == 2
@@ -140,7 +135,7 @@ class TestTiger:
         assert self.one_hot_env.obs2index(np.array([1, 1])) == 2
 
     def test_observation_encoding(self):
-        """ tests encoding of observation in Tiger """
+        """tests encoding of observation in Tiger"""
 
         np.testing.assert_array_equal(self.one_hot_env.encode_observation(0), [1, 0])
         np.testing.assert_array_equal(self.one_hot_env.encode_observation(1), [0, 1])
@@ -151,9 +146,9 @@ class TestTiger:
         np.testing.assert_array_equal(self.env.encode_observation(2), [2])
 
     def test_tiger_obs_prob(self):
-        """ tests changing the observation probability """
+        """tests changing the observation probability"""
 
-        deterministic_tiger = tiger.Tiger(
+        deterministic_tiger = Tiger(
             one_hot_encode_observation=False, correct_obs_probs=[1.0, 1.0]
         )
 
@@ -163,26 +158,105 @@ class TestTiger:
 
         assert step_result.observation[0] == deterministic_tiger.state[0]
 
+    @pytest.mark.parametrize(
+        "prior_correctness,prior_certainty",
+        [
+            (1, 10),
+            (1, 25),
+            (0, 100),
+            (0.25, 100),
+        ],
+    )
+    def test_tabular_prior(self, prior_correctness, prior_certainty):
+        """Tests the creation of prior counts"""
+        p = create_tabular_prior_counts(
+            correctness=prior_correctness, certainty=prior_certainty
+        )
+
+        print(p.T[Tiger.LEFT, Tiger.LISTEN, Tiger.LEFT])
+
+        # listening keeps tiger in place
+        assert p.T[Tiger.LEFT, Tiger.LISTEN, Tiger.LEFT] > 0
+        assert p.T[Tiger.RIGHT, Tiger.LISTEN, Tiger.RIGHT] > 0
+
+        assert p.T[Tiger.LEFT, Tiger.LISTEN, Tiger.RIGHT] == 0
+        assert p.T[Tiger.RIGHT, Tiger.LISTEN, Tiger.LEFT] == 0
+
+        # opening leads to uniform distribution with high counts
+        assert (
+            p.T[Tiger.LEFT, Tiger.LEFT, Tiger.RIGHT]
+            == p.T[Tiger.LEFT, Tiger.LEFT, Tiger.LEFT]
+            == p.T[Tiger.LEFT, Tiger.RIGHT, Tiger.LEFT]
+            == p.T[Tiger.LEFT, Tiger.RIGHT, Tiger.RIGHT]
+            == p.T[Tiger.RIGHT, Tiger.LEFT, Tiger.RIGHT]
+            == p.T[Tiger.RIGHT, Tiger.LEFT, Tiger.LEFT]
+            == p.T[Tiger.RIGHT, Tiger.RIGHT, Tiger.LEFT]
+            == p.T[Tiger.RIGHT, Tiger.RIGHT, Tiger.RIGHT]
+        )
+
+        assert p.T[Tiger.LEFT, Tiger.LEFT, Tiger.RIGHT] > 1000
+
+        # opening leads to no-obs
+        assert (
+            p.O[Tiger.LEFT, Tiger.LEFT, Tiger.LEFT]
+            == p.O[Tiger.LEFT, Tiger.RIGHT, Tiger.LEFT]
+            == p.O[Tiger.RIGHT, Tiger.LEFT, Tiger.LEFT]
+            == p.O[Tiger.RIGHT, Tiger.RIGHT, Tiger.LEFT]
+            == p.O[Tiger.LEFT, Tiger.LEFT, Tiger.RIGHT]
+            == p.O[Tiger.LEFT, Tiger.RIGHT, Tiger.RIGHT]
+            == p.O[Tiger.RIGHT, Tiger.LEFT, Tiger.RIGHT]
+            == p.O[Tiger.RIGHT, Tiger.RIGHT, Tiger.RIGHT]
+            == 0
+        )
+
+        assert (
+            p.O[Tiger.LEFT, Tiger.LEFT, Tiger.NO_OBS]
+            == p.O[Tiger.LEFT, Tiger.RIGHT, Tiger.NO_OBS]
+            == p.O[Tiger.RIGHT, Tiger.LEFT, Tiger.NO_OBS]
+            == p.O[Tiger.RIGHT, Tiger.RIGHT, Tiger.NO_OBS]
+            == p.O[Tiger.LEFT, Tiger.LEFT, Tiger.NO_OBS]
+            == p.O[Tiger.LEFT, Tiger.RIGHT, Tiger.NO_OBS]
+            == p.O[Tiger.RIGHT, Tiger.LEFT, Tiger.NO_OBS]
+            == p.O[Tiger.RIGHT, Tiger.RIGHT, Tiger.NO_OBS]
+            > 1
+        )
+
+        # listening has expected certainty
+        expected_prob = 0.625 + (prior_correctness * 0.225)
+        expected_correct_door_count = expected_prob * prior_certainty
+        expected_wrong_door_count = (1 - expected_prob) * prior_certainty
+
+        assert (
+            p.O[Tiger.LISTEN, Tiger.LEFT, Tiger.LEFT]
+            == p.O[Tiger.LISTEN, Tiger.RIGHT, Tiger.RIGHT]
+            == expected_correct_door_count
+        )
+        assert (
+            p.O[Tiger.LISTEN, Tiger.RIGHT, Tiger.LEFT]
+            == p.O[Tiger.LISTEN, Tiger.RIGHT, Tiger.LEFT]
+            == expected_wrong_door_count
+        )
+
 
 class TestGridWorld:
     """Tests for GridWorld"""
 
     def test_reset(self):
-        """ Tests Gridworld.reset() """
-        env = gridworld.GridWorld(3, one_hot_encode_goal=True)
+        """Tests Gridworld.reset()"""
+        env = GridWorld(3, one_hot_encode_goal=True)
         observation = env.reset()
 
         np.testing.assert_array_equal(env.state[0], [0, 0])
         assert observation[2:].astype(int).tolist() in [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
 
-        env = gridworld.GridWorld(3, one_hot_encode_goal=False)
+        env = GridWorld(3, one_hot_encode_goal=False)
         observation = env.reset()
         assert observation[2] in [0, 1, 2]
 
     def test_sample_start_state(self):
-        """ tests sampling start states """
+        """tests sampling start states"""
 
-        env = gridworld.GridWorld(5, one_hot_encode_goal=True)
+        env = GridWorld(5, one_hot_encode_goal=True)
 
         start_states = [env.sample_start_state() for _ in range(10)]
 
@@ -190,9 +264,9 @@ class TestGridWorld:
             np.testing.assert_array_equal(state[0], [0, 0])
 
     def test_step(self):
-        """ Tests Gridworld.step() """
+        """Tests Gridworld.step()"""
 
-        env = gridworld.GridWorld(3, one_hot_encode_goal=True)
+        env = GridWorld(3, one_hot_encode_goal=True)
         env.reset()
 
         goal = env.state[2]
@@ -234,8 +308,8 @@ class TestGridWorld:
         assert step.terminal
 
     def test_space(self):
-        """ Tests Gridworld.spaces """
-        env = gridworld.GridWorld(5, one_hot_encode_goal=True)
+        """Tests Gridworld.spaces"""
+        env = GridWorld(5, one_hot_encode_goal=True)
 
         action_space = env.action_space
         np.testing.assert_array_equal(action_space.size, [4])
@@ -246,7 +320,7 @@ class TestGridWorld:
         assert observation_space.ndim == 2 + len(env.goals)
 
         # regular (not one-hot) goal encoding
-        env = gridworld.GridWorld(5, one_hot_encode_goal=False)
+        env = GridWorld(5, one_hot_encode_goal=False)
         observation_space = env.observation_space
         assert observation_space.n == 25 * len(env.goals)
         assert observation_space.ndim == 3
@@ -263,7 +337,7 @@ class TestGridWorld:
 
         """
 
-        env = gridworld.GridWorld(3, one_hot_encode_goal=True)
+        env = GridWorld(3, one_hot_encode_goal=True)
 
         # test bound_in_grid
         np.testing.assert_array_equal(env.bound_in_grid(np.array([2, 2])), [2, 2])
@@ -273,9 +347,9 @@ class TestGridWorld:
         np.testing.assert_array_equal(env.bound_in_grid(np.array([-1, 3])), [0, 2])
 
         list_of_goals = [
-            gridworld.GridWorld.Goal(1, 2, 0),
-            gridworld.GridWorld.Goal(2, 1, 1),
-            gridworld.GridWorld.Goal(2, 2, 2),
+            GridWorld.Goal(1, 2, 0),
+            GridWorld.Goal(2, 1, 1),
+            GridWorld.Goal(2, 2, 2),
         ]
 
         # test sample_goal
@@ -284,7 +358,7 @@ class TestGridWorld:
         # Gridworld.goals
         assert env.goals == list_of_goals
 
-        larger_env = gridworld.GridWorld(7, one_hot_encode_goal=True)
+        larger_env = GridWorld(7, one_hot_encode_goal=True)
         assert len(larger_env.goals) == 10
 
         # Gridworld.state
@@ -332,22 +406,22 @@ class TestGridWorld:
         assert observation[1] == 0
 
     def test_given_slow_cells(self) -> None:
-        """ tests creation of gridworld without slow cells """
+        """tests creation of gridworld without slow cells"""
 
-        gw_no_cells = gridworld.GridWorld(
+        gw_no_cells = GridWorld(
             domain_size=5, one_hot_encode_goal=False, slow_cells=set()
         )
         assert not gw_no_cells.slow_cells
 
-        gw_simple_cell = gridworld.GridWorld(
+        gw_simple_cell = GridWorld(
             domain_size=5, one_hot_encode_goal=False, slow_cells={(0, 1)}
         )
         assert gw_simple_cell.slow_cells == {(0, 1)}
 
     def test_goals(self) -> None:
-        """ tests the location of goals """
+        """tests the location of goals"""
 
-        grid_world = gridworld.GridWorld(3, one_hot_encode_goal=True)
+        grid_world = GridWorld(3, one_hot_encode_goal=True)
 
         for goal in grid_world.goals:
             assert goal.x >= 0
@@ -356,12 +430,12 @@ class TestGridWorld:
 
 
 class TestCollisionAvoidance:
-    """ Tests Collision Avoidance class """
+    """Tests Collision Avoidance class"""
 
     def test_reset(self):
-        """ tests CollisionAvoidance.reset """
+        """tests CollisionAvoidance.reset"""
 
-        env = collision_avoidance.CollisionAvoidance(3)
+        env = CollisionAvoidance(3)
         env.reset()
 
         assert env.state[0] == 2
@@ -369,15 +443,15 @@ class TestCollisionAvoidance:
         assert env.state[2] == 1
 
     def test_sample_start_state(self):
-        """ tests sampling start states """
+        """tests sampling start states"""
 
-        env = collision_avoidance.CollisionAvoidance(7)
+        env = CollisionAvoidance(7)
         np.testing.assert_array_equal(env.sample_start_state(), [6, 3, 3])
 
     def test_step(self):
-        """ tests CollisionAvoidance.step """
+        """tests CollisionAvoidance.step"""
 
-        env = collision_avoidance.CollisionAvoidance(7)
+        env = CollisionAvoidance(7)
 
         env.reset()
         step = env.step(1)
@@ -423,7 +497,7 @@ class TestCollisionAvoidance:
         should_be_rew = -1000 if env.state[2] == 5 else 0
         assert step.reward == should_be_rew
 
-        up_env = collision_avoidance.CollisionAvoidance(7, (0, 0, 1))
+        up_env = CollisionAvoidance(7, (0, 0, 1))
         up_env.step(1)
         assert up_env.state[2] == 4
         up_env.step(1)
@@ -432,7 +506,7 @@ class TestCollisionAvoidance:
         up_env.step(1)
         assert up_env.state[2] == 6
 
-        down_env = collision_avoidance.CollisionAvoidance(7, (1, 0, 0))
+        down_env = CollisionAvoidance(7, (1, 0, 0))
         down_env.step(1)
         assert down_env.state[2] == 2
         down_env.step(1)
@@ -452,7 +526,7 @@ class TestCollisionAvoidance:
 
         """
 
-        env = collision_avoidance.CollisionAvoidance(7)
+        env = CollisionAvoidance(7)
 
         # action_space
         assert env.action_space.n == 3
@@ -484,20 +558,20 @@ class TestCollisionAvoidance:
 
 
 class TestRoadRacer:
-    """ tests the road race domain """
+    """tests the road race domain"""
 
     def setup_method(self):
-        """ creates a random domain """
+        """creates a random domain"""
 
         self.length = 6
         self.num_lanes = int(np.random.choice(range(3, 15, 2)))
         self.probs = np.random.rand(self.num_lanes)
 
-        self.random_env = road_racer.RoadRacer(self.probs)
+        self.random_env = RoadRacer(self.probs)
         self.random_env.reset()
 
     def test_init(self) -> None:
-        """some tests on the `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer` init
+        """some tests on the `general_bayes_adaptive_pomdps.domains.RoadRacer` init
 
         raises on   * even lanes
                     * probs outside of 0 and 1
@@ -506,22 +580,22 @@ class TestRoadRacer:
         """
 
         with pytest.raises(AssertionError):
-            road_racer.RoadRacer(np.array([0.5, 0.7]))
+            RoadRacer(np.array([0.5, 0.7]))
         with pytest.raises(AssertionError):
-            road_racer.RoadRacer(np.array([0.5, 0.7, 1.1]))
+            RoadRacer(np.array([0.5, 0.7, 1.1]))
         with pytest.raises(AssertionError):
-            road_racer.RoadRacer(np.array([0.5, 0.7, -0.1]))
+            RoadRacer(np.array([0.5, 0.7, -0.1]))
 
     def test_properties(self) -> None:
         """tests basic properties
 
 
-        `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer.num_lanes`
-        `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer.current_lane`
-        `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer.middle_lane`
-        `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer.action_space`
-        `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer.observation_space`
-        `general_bayes_adaptive_pomdps.domains.road_racer.RoadRacer.state_space`
+        `general_bayes_adaptive_pomdps.domains.RoadRacer.num_lanes`
+        `general_bayes_adaptive_pomdps.domains.RoadRacer.current_lane`
+        `general_bayes_adaptive_pomdps.domains.RoadRacer.middle_lane`
+        `general_bayes_adaptive_pomdps.domains.RoadRacer.action_space`
+        `general_bayes_adaptive_pomdps.domains.RoadRacer.observation_space`
+        `general_bayes_adaptive_pomdps.domains.RoadRacer.state_space`
 
         """
 
@@ -560,14 +634,14 @@ class TestRoadRacer:
         )
 
         state[-1] = 0
-        assert road_racer.RoadRacer.get_current_lane(state) == 0
+        assert RoadRacer.get_current_lane(state) == 0
 
         state[-1] = 3
-        assert road_racer.RoadRacer.get_current_lane(state) == 3
+        assert RoadRacer.get_current_lane(state) == 3
 
         state[-1] = -1
         with pytest.raises(AssertionError):
-            road_racer.RoadRacer.get_current_lane(state)
+            RoadRacer.get_current_lane(state)
 
         dist = state[0]
         state[-1] = 0
@@ -617,24 +691,17 @@ class TestRoadRacer:
         # put agent in first lane
         state[-1] = 0
 
-        next_state = self.random_env.simulation_step(
-            state, road_racer.RoadRacer.NO_OP
-        ).state
+        next_state = self.random_env.simulation_step(state, RoadRacer.NO_OP).state
 
         dist = next_state[0]
 
         assert (
-            self.random_env.reward(
-                state, road_racer.RoadRacer.NO_OP, new_state=next_state
-            )
-            == dist
+            self.random_env.reward(state, RoadRacer.NO_OP, new_state=next_state) == dist
         ), f"{state} -> {next_state}"
 
         # imagine agent tried to go up -> penalty of 1
         assert (
-            self.random_env.reward(
-                state, road_racer.RoadRacer.GO_UP, new_state=next_state
-            )
+            self.random_env.reward(state, RoadRacer.GO_UP, new_state=next_state)
             == dist - 1
         ), f"{state} -> {next_state}"
 
@@ -642,9 +709,7 @@ class TestRoadRacer:
         next_state[-1] = 1
         dist = next_state[1]
         assert (
-            self.random_env.reward(
-                state, road_racer.RoadRacer.GO_DOWN, new_state=next_state
-            )
+            self.random_env.reward(state, RoadRacer.GO_DOWN, new_state=next_state)
             == dist
         ), f"{state} -> {next_state}"
 
@@ -653,9 +718,7 @@ class TestRoadRacer:
         next_state[-1] = 0
         dist = next_state[0]
         assert (
-            self.random_env.reward(
-                state, road_racer.RoadRacer.GO_DOWN, new_state=next_state
-            )
+            self.random_env.reward(state, RoadRacer.GO_DOWN, new_state=next_state)
             == dist - 1
         ), f"{state} -> {next_state}"
 
@@ -694,9 +757,9 @@ class TestRoadRacer:
 
         """
 
-        go_up = road_racer.RoadRacer.GO_UP
-        stay = road_racer.RoadRacer.NO_OP
-        go_down = road_racer.RoadRacer.GO_DOWN
+        go_up = RoadRacer.GO_UP
+        stay = RoadRacer.NO_OP
+        go_down = RoadRacer.GO_DOWN
 
         # test regular step: all lanes should either stay or advance one
         state = np.random.randint(low=2, high=self.length - 1, size=self.num_lanes + 1)
@@ -778,16 +841,16 @@ class TestRoadRacer:
         )
 
         # test throwing terminal state if given state where agent is on car
-        state[road_racer.RoadRacer.get_current_lane(state)] = 0
+        state[RoadRacer.get_current_lane(state)] = 0
         with pytest.raises(TerminalState):
             self.random_env.simulation_step(state, stay)
 
 
 class TestRoadRacerPrior:
-    """ tests the road race prior """
+    """tests the road race prior"""
 
     def test_lane_probs(self) -> None:
-        """ some basic tests """
+        """some basic tests"""
 
         # test .5 probabilities with certainty
         domain = RoadRacerPrior(3, 1000000000).sample()
@@ -809,7 +872,7 @@ class TestCollisionAvoidancePrior:
     """Tests the prior on collection avoidance"""
 
     def test_default(self) -> None:
-        """ tests the default prior """
+        """tests the default prior"""
 
         sampled_domain = CollisionAvoidancePrior(3, 1).sample()
 
@@ -823,7 +886,7 @@ class TestCollisionAvoidancePrior:
         assert round(abs(np.sum(block_pol) - 1), 7) == 0
 
     def test_certain_prior(self) -> None:
-        """ very certain prior """
+        """very certain prior"""
         sampled_domain = CollisionAvoidancePrior(3, 10000000).sample()
 
         assert isinstance(sampled_domain, CollisionAvoidance)
@@ -835,7 +898,7 @@ class TestCollisionAvoidancePrior:
         assert round(abs(block_pol[2] - 0.05), 3) == 0
 
     def test_uncertain_prior(self) -> None:
-        """ uncertain prior """
+        """uncertain prior"""
         sampled_domain = CollisionAvoidancePrior(3, 10).sample()
 
         assert isinstance(sampled_domain, CollisionAvoidance)
@@ -848,10 +911,10 @@ class TestCollisionAvoidancePrior:
 
 
 class TestGridWorldPrior:
-    """ tests the prior over the gridworld problem """
+    """tests the prior over the gridworld problem"""
 
     def test_encoding(self) -> None:
-        """ tests encoding is done correctly """
+        """tests encoding is done correctly"""
 
         one_hot_sample = GridWorldPrior(size=3, one_hot_encode_goal=True).sample()
         assert one_hot_sample.observation_space.ndim == 5
@@ -860,7 +923,7 @@ class TestGridWorldPrior:
         assert default_sample.observation_space.ndim == 3
 
     def test_default_slow_cells(self) -> None:
-        """ tests Gridworlds sampled from prior have no slow cells """
+        """tests Gridworlds sampled from prior have no slow cells"""
 
         sample_gridworld_1 = GridWorldPrior(size=4, one_hot_encode_goal=False).sample()
         sample_gridworld_2 = GridWorldPrior(size=4, one_hot_encode_goal=False).sample()
@@ -876,10 +939,10 @@ class TestGridWorldPrior:
 
 
 class TestTigerPrior:
-    """ tests that the observation probability is reasonable """
+    """tests that the observation probability is reasonable"""
 
     def test_encoding(self) -> None:
-        """ tests the sample method encoding is correct """
+        """tests the sample method encoding is correct"""
 
         num_total_counts = 10.0
         incorrect_prior_setting = 0.0
@@ -895,7 +958,7 @@ class TestTigerPrior:
         assert default_prior.sample().observation_space.ndim == 1
 
     def test_observation_prob(self) -> None:
-        """ tests the observation probability of samples """
+        """tests the observation probability of samples"""
 
         num_total_counts = 10.0
         incorrect_prior_setting = 0.0

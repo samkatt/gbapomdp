@@ -1,4 +1,4 @@
-"""Tests :mod:`general_bayes_adaptive_pomdps.baddr.model"""
+"""Tests :mod:`general_bayes_adaptive_pomdps.models.baddr"""
 
 import random
 from functools import partial
@@ -6,17 +6,17 @@ from functools import partial
 import numpy as np
 import pytest
 
-from general_bayes_adaptive_pomdps.baddr.model import (
+from general_bayes_adaptive_pomdps.domains.tiger import Tiger
+from general_bayes_adaptive_pomdps.models.baddr import (
     create_model_updates,
     get_model_freeze_setting,
     sample_transitions_uniform,
     train_from_samples,
 )
-from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps import (
     DynamicsModel,
     sgd_builder,
 )
-from general_bayes_adaptive_pomdps.domains import Tiger
 
 
 class TestTrainFromSamples:

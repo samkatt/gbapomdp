@@ -45,7 +45,7 @@ class Domain(Protocol):
         """
 
     def reset(self) -> np.ndarray:
-        """ resets internal state and return first observation """
+        """resets internal state and return first observation"""
 
     def step(self, action: int) -> DomainStepResult:
         """update state as a result of action
@@ -73,7 +73,7 @@ class Domain(Protocol):
         """
 
     def sample_start_state(self) -> np.ndarray:
-        """ returns a potential start state """
+        """returns a potential start state"""
 
     def reward(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
         """the reward function
@@ -106,5 +106,5 @@ class DomainPrior(Protocol):
     def sample(self) -> Domain:
         """sample a simulator
 
-        RETURNS (`general_bayes_adaptive_pomdps.domains.Domain`):
+        RETURNS (`Domain`):
         """

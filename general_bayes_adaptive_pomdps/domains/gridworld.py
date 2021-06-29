@@ -10,11 +10,11 @@ from general_bayes_adaptive_pomdps.core import (
     DomainStepResult,
     SimulationResult,
 )
-from general_bayes_adaptive_pomdps.domains import domain
+from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class GridWorld(domain.Domain):
+class GridWorld(Domain):
     """The gridworld domain
 
     A 2-d grid world where the agent needs to go to a goal location (part of
@@ -175,17 +175,17 @@ class GridWorld(domain.Domain):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """ `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,num_goals]) """
+        """`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,num_goals])"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """ a `general_bayes_adaptive_pomdps.core.ActionSpace` ([4]) space """
+        """a `general_bayes_adaptive_pomdps.core.ActionSpace` ([4]) space"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size] + ones * num_goals) """
+        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size] + ones * num_goals)"""
         return self._obs_space
 
     @property
@@ -283,7 +283,7 @@ class GridWorld(domain.Domain):
         return np.hstack([obs, goal_observation])
 
     def reset(self) -> np.ndarray:
-        """ resets state """
+        """resets state"""
 
         self._state = self.sample_start_state()
         return self.generate_observation(self.state)
@@ -422,7 +422,7 @@ class GridWorld(domain.Domain):
         return slow_cells
 
 
-class GridWorldPrior(domain.DomainPrior):
+class GridWorldPrior(DomainPrior):
     """a prior that returns gridworlds without slow cells
 
     The slow cells are sampled with 1/3 chance, meaning that each location has
@@ -442,7 +442,7 @@ class GridWorldPrior(domain.DomainPrior):
         self._grid_size = size
         self._one_hot_encode_goal = one_hot_encode_goal
 
-    def sample(self) -> domain.Domain:
+    def sample(self) -> Domain:
         """samples a `general_bayes_adaptive_pomdps.domains.gridworld.GridWorld`
 
         Gridworld is of given size and encoding with a random set of slow cells

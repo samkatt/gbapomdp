@@ -95,7 +95,7 @@ class TerminalState(Exception):
 
 
 class SimulationResult(NamedTuple):
-    """The tuple returned by simulations doing steps """
+    """The tuple returned by simulations doing steps"""
 
     state: Any
     observation: np.ndarray

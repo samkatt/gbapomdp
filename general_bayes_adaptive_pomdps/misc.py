@@ -6,7 +6,7 @@ from typing import List, Union
 
 import numpy as np
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks.pytorch_api import (
+from general_bayes_adaptive_pomdps.models.neural_networks.pytorch_api import (
     set_pytorch_seed,
 )
 
@@ -36,7 +36,7 @@ def set_random_seed(seed: int) -> None:
 
 
 class LogLevel(Enum):
-    """ log levels """
+    """log levels"""
 
     V0 = 1000  # NO messages
     V1 = 30  # print results and setup
@@ -47,7 +47,7 @@ class LogLevel(Enum):
 
 
 class DiscreteSpace:
-    """ DiscreteSpace discrete uninterupted space of some shape """
+    """DiscreteSpace discrete uninterupted space of some shape"""
 
     def __init__(self, size: Union[List[int], np.ndarray]):
         """initiates a discrete space of size size
@@ -112,6 +112,8 @@ class DiscreteSpace:
     def index_of(self, elem: np.ndarray) -> int:
         """returns the index of an element (projects to single dimension)
 
+        See `from_index` for the reverse operation.
+
         Args:
              elem: (`np.ndarray`): the element to project
 
@@ -119,7 +121,23 @@ class DiscreteSpace:
 
         """
         assert self.contains(elem)
+
+        # faster than manual sum/list comprehension or `np.ravel_multi_index`
         return np.dot(elem, self._indexing_steps)
+
+    def from_index(self, idx: int) -> np.ndarray:
+        """returns the element associated with index `i`
+
+        See `index_of` for the reverse operation.
+
+        :param i: the index of the element to be returned
+        :returns: an element in this space associated with `i`
+        """
+        assert 0 <= idx < self.num_elements, f"{idx} not in {self}"
+
+        # this one-liner in numpy seems faster than a manual loop with
+        # `self._indexing_steps`, despite it being more computations
+        return np.array(np.unravel_index(idx, self.size, order="F"))
 
     def __repr__(self):
         return f"DiscreteSpace of size {self.size}"

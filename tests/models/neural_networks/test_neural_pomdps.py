@@ -1,4 +1,4 @@
-"""tests :mod:`general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps`"""
+"""tests :mod:`general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps`"""
 
 import copy
 
@@ -6,14 +6,14 @@ import numpy as np
 import pytest
 import torch
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.core import ActionSpace
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace
+from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps import (
     DynamicsModel,
     adam_builder,
     get_optimizer_builder,
     sgd_builder,
 )
-from general_bayes_adaptive_pomdps.core import ActionSpace
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
 def setup_dynamics_model():
@@ -120,7 +120,7 @@ def test_freeze() -> None:
 
 
 def test_copy() -> None:
-    """tests the copy function of the `general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps.DynamicsModel`
+    """tests the copy function of the `general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel`
 
     Basically double checking whether the standard implementation works as
     **I** expect
@@ -160,7 +160,7 @@ def test_copy() -> None:
 
 
 def test_optimizer_builder() -> None:
-    """ Simple tests to ensure the correct builder is returned """
+    """Simple tests to ensure the correct builder is returned"""
     assert get_optimizer_builder("SGD") == sgd_builder
     assert get_optimizer_builder("Adam") == adam_builder
     with pytest.raises(ValueError):

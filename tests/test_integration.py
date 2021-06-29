@@ -7,7 +7,13 @@ from typing import List
 import numpy as np
 import pytest
 
-from general_bayes_adaptive_pomdps.baddr.model import (
+from general_bayes_adaptive_pomdps.core import GeneralBAPOMDP
+from general_bayes_adaptive_pomdps.domains.tiger import (
+    Tiger,
+    TigerPrior,
+    create_tabular_prior_counts,
+)
+from general_bayes_adaptive_pomdps.models.baddr import (
     BADDr,
     BADDrState,
     backprop_update,
@@ -15,22 +21,35 @@ from general_bayes_adaptive_pomdps.baddr.model import (
     sample_transitions_uniform,
     train_from_samples,
 )
-from general_bayes_adaptive_pomdps.baddr.neural_networks.neural_pomdps import (
+from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps import (
     DynamicsModel,
 )
-from general_bayes_adaptive_pomdps.domains.tiger import Tiger, TigerPrior
+from general_bayes_adaptive_pomdps.models.tabular_bapomdp import TabularBAPOMDP
 
 
-def test_run():
+def test_tabular_bapomdp():
+    """Runs a few episodes of the tabular BA-POMDP using random actions with rejection sampling"""
+
+    domain = Tiger(one_hot_encode_observation=False)
+
+    tbapomdp = TabularBAPOMDP(
+        domain.state_space,
+        domain.action_space,
+        domain.observation_space,
+        domain.sample_start_state,
+        domain.reward,
+        domain.terminal,
+        create_tabular_prior_counts(),
+    )
+
+    run_gba_pomdp(tbapomdp, domain)
+
+
+def test_baddr():
     """Runs a few episodes in BADDr, maintaining a belief through rejection sampling"""
 
     one_hot_encoding = True
     domain = Tiger(one_hot_encoding)
-
-    num_runs = 4
-
-    # number of particles to approximate belief with
-    num_particles = 4
 
     # (pre-) training parameters
     num_nets = 3
@@ -73,7 +92,7 @@ def test_run():
             freeze_model_setting=DynamicsModel.FreezeModelSetting.FREEZE_NONE,
         )
     ]
-    gba_pomdp = BADDr(
+    baddr = BADDr(
         domain.action_space,
         domain.observation_space,
         domain.sample_start_state,
@@ -83,16 +102,27 @@ def test_run():
         model_updates,
     )
 
+    run_gba_pomdp(baddr, domain)
+
+
+def run_gba_pomdp(gba_pomdp: GeneralBAPOMDP, domain: Tiger):
+
+    num_particles = 8  # number of particles to approximate belief with
+    num_runs = 3
+
     belief = [gba_pomdp.sample_start_state() for _ in range(num_particles)]
+
     # typical RL loop
-    rewards = []
-
     for _ in range(num_runs):
-        while True:
+        rewards = []
+        for i in range(4):
 
-            a = domain.action_space.sample_as_int()
+            a = Tiger.LISTEN if i < 3 else random.choice([0, 1])
             obs, reward, t = domain.step(a)
-            belief = rejection_sampking(gba_pomdp, belief, a, obs)
+
+            print(f"a({a} => o({obs}), r({reward}), terminal({t})")
+
+            belief = rejection_sampling(gba_pomdp, belief, a, obs)
 
             # track rewards
             rewards.append(reward)
@@ -100,10 +130,11 @@ def test_run():
                 break
 
         assert sum(rewards) != 0
+        assert len(rewards) == 4
 
 
-def rejection_sampking(
-    gba_pomdp: BADDr, b: List[BADDrState], a: int, o: np.ndarray
+def rejection_sampling(
+    gba_pomdp: GeneralBAPOMDP, b: List[BADDrState], a: int, o: np.ndarray
 ) -> List[BADDrState]:
     """Implements plain particle filtering rejection sampling"""
     next_b = []
@@ -116,11 +147,6 @@ def rejection_sampking(
             next_b.append(next_s)
 
     return next_b
-
-
-def some_planner(gba_pomdp: BADDr, b: List[BADDrState]):
-    """Implements random planner, but could be any online planner"""
-    return gba_pomdp.action_space.sample_as_int()
 
 
 if __name__ == "__main__":

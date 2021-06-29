@@ -59,7 +59,7 @@ class ReplayBuffer:
     SIZE = 5000
 
     def __init__(self) -> None:
-        """ constructs the replay buffer """
+        """constructs the replay buffer"""
 
         self.episodes: Deque[List[Any]] = deque([], self.SIZE)
         self.episodes.append([])
@@ -145,6 +145,6 @@ class ReplayBuffer:
         ]
 
     def clear(self) -> None:
-        """ clears out all experiences and sets total to 0 """
+        """clears out all experiences and sets total to 0"""
         self.episodes.clear()
         self.episodes.append([])

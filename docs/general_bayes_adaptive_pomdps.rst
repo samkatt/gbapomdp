@@ -6,8 +6,8 @@ Subpackages
 
 .. toctree::
 
-    general_bayes_adaptive_pomdps.baddr
     general_bayes_adaptive_pomdps.domains
+    general_bayes_adaptive_pomdps.models
     general_bayes_adaptive_pomdps.partial_models
 
 Submodules

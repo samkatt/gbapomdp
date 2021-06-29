@@ -9,11 +9,11 @@ from general_bayes_adaptive_pomdps.core import (
     SimulationResult,
     TerminalState,
 )
-from general_bayes_adaptive_pomdps.domains import domain
+from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 
 
-class RoadRacer(domain.Domain):
+class RoadRacer(Domain):
     """represents the domain `RoadRacer`
 
     In this domain the agent is a driver on a highway. Its task is to navigate
@@ -61,12 +61,12 @@ class RoadRacer(domain.Domain):
 
     @property
     def lane_length(self) -> int:
-        """ returns the length of the lanes """
+        """returns the length of the lanes"""
         return self.LANE_LENGTH
 
     @property
     def lane_probs(self):
-        """ returns the probabilities of each lane advancing """
+        """returns the probabilities of each lane advancing"""
         return self._lane_probs
 
     @lane_probs.setter
@@ -110,7 +110,7 @@ class RoadRacer(domain.Domain):
 
     @property
     def agent_state_feature_index(self) -> int:
-        """ returns the index of the state feature associated with the agent """
+        """returns the index of the state feature associated with the agent"""
         return self.num_lanes
 
     @staticmethod
@@ -139,7 +139,7 @@ class RoadRacer(domain.Domain):
         return np.array([state[RoadRacer.get_current_lane(state)]])
 
     def reset(self) -> np.ndarray:
-        """ implements `general_bayes_adaptive_pomdps.core.Environment` """
+        """implements `general_bayes_adaptive_pomdps.core.Environment`"""
         self.state = self.sample_start_state()
 
         return RoadRacer.get_observation(self.state)
@@ -172,7 +172,7 @@ class RoadRacer(domain.Domain):
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """ implements `general_bayes_adaptive_pomdps.environments.Environment.observation_space` """
+        """implements `general_bayes_adaptive_pomdps.environments.Environment.observation_space`"""
         return self.observations
 
     @property
@@ -270,7 +270,7 @@ class RoadRacer(domain.Domain):
         return f"Road racer of length {self.lane_length} with lane probabilities {self.lane_probs}"
 
 
-class RoadRacerPrior(domain.DomainPrior):
+class RoadRacerPrior(DomainPrior):
     """standard prior over the road racer domain
 
     The agent's transition and observation model is known, however the other
@@ -294,7 +294,7 @@ class RoadRacerPrior(domain.DomainPrior):
         self._total_counts = num_total_counts
         self._num_lanes = num_lanes
 
-    def sample(self) -> domain.Domain:
+    def sample(self) -> Domain:
         """returns a Road Racer instance with some sampled set of lane speeds
 
         The prior over each lane advancement probability  is .5

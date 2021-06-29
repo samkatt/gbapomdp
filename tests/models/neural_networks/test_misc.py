@@ -1,10 +1,10 @@
-"""tests :mod:`general_bayes_adaptive_pomdps.baddr.neural_networks.misc`"""
+"""tests :mod:`general_bayes_adaptive_pomdps.models.neural_networks.misc`"""
 
 import numpy as np
 import pytest
 import torch
 
-from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import (
+from general_bayes_adaptive_pomdps.models.neural_networks.misc import (
     ReplayBuffer,
     perturb,
     whiten_input,
@@ -12,10 +12,10 @@ from general_bayes_adaptive_pomdps.baddr.neural_networks.misc import (
 
 
 class TestReplayBuffer:
-    """ Tests some functionality of the replay buffer """
+    """Tests some functionality of the replay buffer"""
 
     def test_capacity(self):
-        """ tests the capacity property of the replay buffer """
+        """tests the capacity property of the replay buffer"""
 
         replay_buffer = ReplayBuffer()
 
@@ -31,7 +31,7 @@ class TestReplayBuffer:
         assert replay_buffer.capacity == 5000
 
     def test_size(self):
-        """ tests the size property of replay buffer """
+        """tests the size property of replay buffer"""
 
         replay_buffer = ReplayBuffer()
 
@@ -58,7 +58,7 @@ class TestReplayBuffer:
 
 
 class TestMisc:
-    """ Tests `general_bayes_adaptive_pomdps.baddr.neural_networks.misc` """
+    """Tests `general_bayes_adaptive_pomdps.models.neural_networks.misc`"""
 
     def test_whiten_input(self) -> None:
         assert whiten_input(np.array([0]), np.random.random()) == -1
@@ -93,7 +93,7 @@ class TestMisc:
         )
 
     def test_perturbations(self) -> None:
-        """tests `general_bayes_adaptive_pomdps.baddr.neural_networks.misc.perturb`
+        """tests `general_bayes_adaptive_pomdps.models.neural_networks.misc.perturb`
 
         Args:
 
