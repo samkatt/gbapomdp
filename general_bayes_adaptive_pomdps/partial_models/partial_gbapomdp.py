@@ -5,7 +5,7 @@ that should simplify creating GBA-POMDPs:
 
     - :class:`GBAPOMDPThroughAugmentedState`
 """
-from typing import Callable, Tuple
+from typing import Tuple
 
 import numpy as np
 from typing_extensions import Protocol
@@ -98,7 +98,7 @@ class GBAPOMDPThroughAugmentedState(GeneralBAPOMDP[AugmentedGodState]):
 
     def __init__(
         self,
-        prior: Callable[[], AugmentedGodState],
+        prior: Prior,
         action_space: ActionSpace,
         obs_space: DiscreteSpace,
     ):
