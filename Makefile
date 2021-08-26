@@ -49,7 +49,9 @@ clean-test: ## remove test and coverage artifacts
 
 lint: ## check style with flake8
 	flake8 general_bayes_adaptive_pomdps tests
+	pylint general_bayes_adaptive_pomdps tests
 	pyright general_bayes_adaptive_pomdps tests
+	mypy general_bayes_adaptive_pomdps tests
 
 format: ## format files with isort and black
 	isort general_bayes_adaptive_pomdps tests
