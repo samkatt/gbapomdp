@@ -106,6 +106,7 @@ def test_baddr():
 
 
 def run_gba_pomdp(gba_pomdp: GeneralBAPOMDP, domain: Tiger):
+    """Tracks believe using a`gba_pomdp` simulator in :class:`Tiger` domain"""
 
     num_particles = 8  # number of particles to approximate belief with
     num_runs = 3

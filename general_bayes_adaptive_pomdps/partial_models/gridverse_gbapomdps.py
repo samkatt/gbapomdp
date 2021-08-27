@@ -259,6 +259,8 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         pomdp: GVerseGridworld,
         obs_rep: Callable[[GVerseState], np.ndarray],
     ):
+        super().__init__()
+
         self.domain_state = initial_state
         self.learned_model = learned_model
         self.pomdp = pomdp
@@ -373,6 +375,7 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
 
     @cached_property
     def observation(self) -> np.ndarray:
+        """Returns an observation given current state"""
         return self._obs_rep(self.domain_state)
 
     def model_accuracy(self, n: int = 8) -> List[float]:

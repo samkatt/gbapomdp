@@ -46,6 +46,7 @@ class CollisionAvoidance(Domain):
              domain_size: (`int`): the size of the grid
 
         """
+        super().__init__()
 
         assert domain_size > 0, "Domain size must be > 0"
         assert domain_size % 2 == 1, "Domain size must be odd"
@@ -251,11 +252,14 @@ class CollisionAvoidance(Domain):
 
         self._logger.log(
             LogLevel.V2.value,
-            f"Step: (x: {self.state[0]}, y: {self.state[1]}) and a="
-            f"{self.action_to_string[action]} --> "
-            f"(x:{sim_step.state[0]}, y: {sim_step.state[1]}),"
-            " with obstacle "
-            f"{sim_step.state[2]} (obs: {sim_step.observation[-1]})",
+            "Step: (x: %d, y: %d) and a=%s --> (x:%d, y: %d), with obstacle %d (obs: %d)",
+            self.state[0],
+            self.state[1],
+            self.action_to_string[action],
+            sim_step.state[0],
+            sim_step.state[1],
+            sim_step.state[2],
+            sim_step.observation[-1],
         )
 
         self.state = sim_step.state
@@ -283,12 +287,13 @@ class CollisionAvoidancePrior(DomainPrior):
              size: (`int`):
              num_total_counts: (`float`):
         """
-
         if num_total_counts <= 0:
             raise ValueError("Assume positive number of total counts")
 
         if size <= 0:
             raise ValueError("Assume positive grid size")
+
+        super().__init__()
 
         self._size = size
         self._num_total_counts = num_total_counts

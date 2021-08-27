@@ -39,6 +39,7 @@ class RoadRacer(Domain):
              lane_probs: (`np.ndarray`):
 
         """
+        super().__init__()
 
         assert len(lane_probs) % 2 == 1, f"assume odd number of lanes, not {lane_probs}"
         assert (lane_probs > 0).all() and (
@@ -159,8 +160,12 @@ class RoadRacer(Domain):
 
         self.logger.log(
             LogLevel.V2.value,
-            f"lane={self.current_lane} and lanes {self.state[:-1]}, "
-            f"a={action}, o={step.observation[0]}, r={reward}",
+            "lane=%d and lanes %s, a=%d, o=%d, r=%f",
+            self.current_lane,
+            self.state[:-1],
+            action,
+            step.observation[0],
+            reward,
         )
 
         return DomainStepResult(step.observation, reward, terminal)
@@ -287,6 +292,7 @@ class RoadRacerPrior(DomainPrior):
              num_total_counts: (`float`): number of total counts of Dir prior
 
         """
+        super().__init__()
 
         if num_total_counts <= 0:
             raise ValueError("Assume positive number of total counts")

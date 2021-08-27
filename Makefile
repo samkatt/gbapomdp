@@ -58,7 +58,7 @@ format: ## format files with isort and black
 	black general_bayes_adaptive_pomdps tests
 
 test: ## run tests quickly with the default Python
-	pytest --ignore=tests/test_integration.py
+	pytest
 
 test-all: ## run tests on every Python version with tox
 	tox

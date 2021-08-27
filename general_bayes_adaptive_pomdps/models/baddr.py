@@ -1,3 +1,4 @@
+"""Contains the `BADDr` instance of the general BA-POMDP"""
 import copy
 import random
 from functools import partial
@@ -501,31 +502,31 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
 
         return BADDrState(next_domain_state, next_model), obs
 
-    def reward(self, state: BADDrState, action: int, new_state: BADDrState) -> float:
+    def reward(self, state: BADDrState, action: int, next_state: BADDrState) -> float:
         """the reward function of the underlying domain
 
         Args:
              state: (`AugmentedState`):
              action: (`int`):
-             new_state: (`AugmentedState`):
+             next_state: (`AugmentedState`):
 
         RETURNS (`float`): the reward of the transition
 
         """
-        return self.domain_reward(state.domain_state, action, new_state.domain_state)
+        return self.domain_reward(state.domain_state, action, next_state.domain_state)
 
-    def terminal(self, state: BADDrState, action: int, new_state: BADDrState) -> bool:
+    def terminal(self, state: BADDrState, action: int, next_state: BADDrState) -> bool:
         """the termination function of the underlying domain
 
         Args:
              state: (`AugmentedState`):
              action: (`int`):
-             new_state: (`AugmentedState`):
+             next_state: (`AugmentedState`):
 
         RETURNS (`bool`): whether the transition is terminal
 
         """
-        return self.domain_terminal(state.domain_state, action, new_state.domain_state)
+        return self.domain_terminal(state.domain_state, action, next_state.domain_state)
 
     def domain_simulation_step(
         self, state: BADDrState, action: int

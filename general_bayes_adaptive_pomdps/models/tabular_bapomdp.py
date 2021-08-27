@@ -272,13 +272,13 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
         return SimulationResult(TBAPOMDPState(next_state, updated_counts), observation)
 
     def reward(
-        self, state: TBAPOMDPState, action: int, new_state: TBAPOMDPState
+        self, state: TBAPOMDPState, action: int, next_state: TBAPOMDPState
     ) -> float:
         """the reward function of the underlying domain"""
-        return self.domain_reward(state.domain_state, action, new_state.domain_state)
+        return self.domain_reward(state.domain_state, action, next_state.domain_state)
 
     def terminal(
-        self, state: TBAPOMDPState, action: int, new_state: TBAPOMDPState
+        self, state: TBAPOMDPState, action: int, next_state: TBAPOMDPState
     ) -> bool:
         """the termination function of the underlying domain"""
-        return self.domain_terminal(state.domain_state, action, new_state.domain_state)
+        return self.domain_terminal(state.domain_state, action, next_state.domain_state)

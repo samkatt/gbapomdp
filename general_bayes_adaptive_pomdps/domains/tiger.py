@@ -42,6 +42,7 @@ class Tiger(Domain):
              correct_obs_probs: (`Optional[List[float]]`):
 
         """
+        super().__init__()
 
         if not correct_obs_probs:
             correct_obs_probs = [0.85, 0.85]
@@ -257,7 +258,9 @@ class Tiger(Domain):
 
             self._logger.log(
                 LogLevel.V2.value,
-                f"With tiger {self.ELEM_TO_STRING[self.state[0]]}, {descr}",
+                "With tiger %s, %s",
+                self.ELEM_TO_STRING[self.state[0]],
+                descr,
             )
 
         self.state = sim_result.state
@@ -314,6 +317,7 @@ class TigerPrior(DomainPrior):
              one_hot_encode_observation: (`bool`):
 
         """
+        super().__init__()
 
         if num_total_counts <= 0:
             raise ValueError(
@@ -363,6 +367,26 @@ class TigerPrior(DomainPrior):
 def create_tabular_prior_counts(
     correctness: float = 1, certainty: float = 10
 ) -> DirCounts:
+    """Creates a prior of :class:`Tiger` for the :class:`TabularBAPOMDP`
+
+    The prior for this problem is "correct" and certain about the transition
+    function, but the correctness and certainty over the observation model
+    (when listening) is variable. `correctness` provides a way to linearly
+    interpolate between a prior that assigns (0 => 0.625 ... 1 => 0.85)
+    probability to generating the correct observation. The `certainty`
+    describes how many (total) counts this prior should have.
+
+    The prior used in most BRL experiments is where `correctness = 0` and
+    `certainty = 8`.
+
+    Args:
+        correctness: (`float`): 0 for "most incorrect", 1 for "correct", default 1
+        certainty: (`float`): total number of counts in observation prior
+
+    RETURNS (`DirCounts`): a (set of dirichlet counts) prior
+
+    """
+
     tot_counts_for_known = 10000.0
     correct_prob = 0.625 + (correctness * 0.225)
 

@@ -16,7 +16,11 @@ from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps import (
 )
 
 
-def setup_dynamics_model():
+def setup_dynamics_model() -> DynamicsModel:
+    """Sets up a simple :class:`DynamicsModel`
+
+    Helper function for tests
+    """
     s_space = DiscreteSpace([2])
     a_space = ActionSpace(2)
     o_space = DiscreteSpace([2])
@@ -168,6 +172,7 @@ def test_optimizer_builder() -> None:
 
 
 def test_save_and_load_dynamics_model(tmp_path):
+    """Tests :meth:`DynamicsModel.save` and :meth:`DynamicsModel.load`"""
     fname = tmp_path / ".tar"
 
     model_a = setup_dynamics_model()

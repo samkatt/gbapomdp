@@ -27,6 +27,7 @@ from general_bayes_adaptive_pomdps.partial_models.gridverse_gbapomdps import (
 
 @pytest.mark.parametrize("pos", [((5, 2)), ((0, 0)), ((100, 50))])
 def test_agent_position(pos):
+    """Tests :func:`agent_position`"""
     d = env_from_descr("KeyDoor-16x16-v0")
     s = d.functional_reset()
     s.agent.position = Position.from_position_or_tuple(pos)
@@ -36,6 +37,7 @@ def test_agent_position(pos):
 
 @pytest.mark.parametrize("pos,orientation", [((5, 2), 0), ((0, 0), 2), ((100, 50), 3)])
 def test_agent_position_and_orientation(pos, orientation):
+    """Tests :func:`agent_position_and_orientation`"""
     d = env_from_descr("KeyDoor-16x16-v0")
     s = d.functional_reset()
     s.agent.position = Position.from_position_or_tuple(pos)
@@ -56,6 +58,7 @@ def test_agent_position_and_orientation(pos, orientation):
 
 
 def test_gverse_obs2array():
+    """Tests :func:`DefaultObservationRepresentation"""
     d = env_from_descr("Dynamic-Obstacles-6x6-v0")
     s = d.functional_reset()
 
@@ -72,7 +75,7 @@ def test_gverse_obs2array():
     ],
 )
 def test_state_space(height, width):
-    """Tests ``.state_space`` staticmethods of augmented states"""
+    """Tests :meth:`GridversePositionOrientationAugmentedState.state_space`"""
     assert (
         GridversePositionOrientationAugmentedState.state_space(height, width).size
         == [height, width, 4]
@@ -80,7 +83,7 @@ def test_state_space(height, width):
 
 
 def test_state_input_size():
-    """Tests ``.state_input_size`` staticmethods of augmented states"""
+    """Tests :meth:`GridversePositionOrientationAugmentedState.state_input_size`"""
     assert GridversePositionOrientationAugmentedState.state_input_size() == 6
 
 
@@ -94,6 +97,12 @@ def model_equals(model_a, model_b) -> bool:
 
 
 def test_gbapomdp():
+    """Some basic tests for GBA-POMDP
+
+    Uses :func:`create_gbapomdp` to create a
+    :class:`GBAPOMDPThroughAugmentedState` and tests some basic methods.
+    """
+
     d = env_from_descr("Dynamic-Obstacles-6x6-v0")
     assert isinstance(d, GVerseGridworld)
 
@@ -138,6 +147,7 @@ def test_gbapomdp():
 
 
 def test_sample_state_with_random_agent():
+    """Tests :func:`sample_state_with_random_agent`"""
     d = env_from_descr("Empty-5x5-v0")
 
     states = [sample_state_with_random_agent(d) for _ in range(200)]
@@ -211,11 +221,12 @@ def test_position_and_orientation_augmented_state():
     acc = np.array(list(s.model_accuracy(8)))
 
     assert acc.shape == (8,)
-    assert (0 <= acc).all()
+    assert (acc >= 0).all()
     assert (acc <= 1).all()
 
 
 def test_whitening_functions():
+    """Tests :meth:`GridversePositionOrientationAugmentedState.domain_state_to_network_input`"""
 
     d = env_from_descr("KeyDoor-16x16-v0")
     s = d.functional_reset()
@@ -269,6 +280,7 @@ def test_noise_turn_orientation_transactions():
     ],
 )
 def test_open_forward_positions(pos, o, forward_positions, max_dist):
+    """Tests :func:`open_foward_positions`"""
     s = env_from_descr("Empty-5x5-v0").functional_reset()
     assert list(open_foward_positions(s, pos, o, max_dist)) == forward_positions
 
@@ -290,6 +302,7 @@ def test_open_forward_positions(pos, o, forward_positions, max_dist):
     ],
 )
 def test_open_backwards_positions(pos, o, backwards_positions, max_dist):
+    """Tests :func:`open_backwards_positions`"""
     s = env_from_descr("Empty-5x5-v0").functional_reset()
     assert list(open_backwards_positions(s, pos, o, max_dist)) == backwards_positions
 

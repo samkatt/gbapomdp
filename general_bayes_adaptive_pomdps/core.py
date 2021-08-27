@@ -34,18 +34,6 @@ class ActionSpace(DiscreteSpace):
         """
         super().__init__([size])
 
-    def sample(self) -> np.ndarray:
-        """returns a sample from the space at random
-
-        NOTE: implements :class:`DiscreteSpace` protocol and thus returns an
-        array of 1 element. See :meth:`sample_as_int` to directly sample as
-        integer
-
-        RETURNS (`np.array`): a sample in the space of this
-
-        """
-        return super().sample()
-
     def one_hot(self, action: int) -> np.ndarray:
         """returns a 1-hot encoding of the action
 
@@ -102,22 +90,30 @@ class SimulationResult(NamedTuple):
 
 
 class DomainStatePrior(Protocol):
+    """The protocol for a domain state prior: a function that samples states"""
+
     def __call__(self) -> np.ndarray:
         """Sample initial states"""
 
 
 class DomainSimulationStep(Protocol):
-    def __call__(self, s: np.ndarray, a: int) -> SimulationResult:
+    """The protocol for a simulation step: a function (s, a) -> transition"""
+
+    def __call__(self, state: np.ndarray, action: int) -> SimulationResult:
         """Simulates a step in the environment: (s, a) -> s', o"""
 
 
 class RewardFunction(Protocol):
-    def __call__(self, s: np.ndarray, a: int, ss: np.ndarray) -> float:
+    """The protocol of a reward function: func(s, a, s) -> reward"""
+
+    def __call__(self, state: np.ndarray, action: int, next_state: np.ndarray) -> float:
         """The reward associated with a (s, a, s') transition"""
 
 
 class TerminalFunction(Protocol):
-    def __call__(self, s: np.ndarray, a: int, ss: np.ndarray) -> bool:
+    """The protocol of a terminal function: func(s, a, s) -> bool"""
+
+    def __call__(self, state: np.ndarray, action: int, next_state: np.ndarray) -> bool:
         """Whether the (s, a, s') transition is terminal"""
 
 

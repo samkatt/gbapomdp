@@ -1,3 +1,4 @@
+"""Describes the protocol for a domain in this package"""
 import numpy as np
 from typing_extensions import Protocol
 

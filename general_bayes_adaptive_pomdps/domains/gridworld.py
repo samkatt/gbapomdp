@@ -63,6 +63,7 @@ class GridWorld(Domain):
 
         assert domain_size > 0
 
+        super().__init__()
         self._logger = Logger(self.__class__.__name__)
 
         # confs
@@ -382,10 +383,12 @@ class GridWorld(Domain):
 
             self._logger.log(
                 LogLevel.V2.value,
-                f"Agent moved from {self.state[:2]}  to {sim_step.state[:2]}"
-                f" after picking {self.action_to_string[action]} and"
-                f" observed {sim_step.observation[:2]}"
-                f" (goal {goal})",
+                "Agent moved from %s to %s after picking %s and observed %s (goal %s)",
+                self.state[:2],
+                sim_step.state[:2],
+                self.action_to_string[action],
+                sim_step.observation[:2],
+                goal,
             )
 
         self._state = sim_step.state
@@ -438,6 +441,7 @@ class GridWorldPrior(DomainPrior):
              one_hot_encode_goal: (`bool`):
 
         """
+        super().__init__()
 
         self._grid_size = size
         self._one_hot_encode_goal = one_hot_encode_goal
