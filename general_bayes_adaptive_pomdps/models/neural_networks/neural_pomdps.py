@@ -32,7 +32,7 @@ class OptimizerBuilder(Protocol):
 
 
 def sgd_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
-    """builds the torch SGD optimizer to update `parameters` with `learning_rate` stepsize
+    """builds the torch SGD optimizer to update ``parameters`` with ``learning_rate`` stepsize
 
     Args:
          parameters: (torch parameters): the parameters to optimize
@@ -45,7 +45,7 @@ def sgd_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
 
 
 def adam_builder(parameters: Any, learning_rate: float) -> torch.optim.Optimizer:
-    """builds the torch Adam optimizer to update `parameters` with `learning_rate` stepsize
+    """builds the torch Adam optimizer to update ``parameters`` with ``learning_rate`` stepsize
 
     Args:
          parameters: (torch parameters): the parameters to optimize
@@ -79,7 +79,7 @@ class DynamicsModel:
 
     @staticmethod
     def sample_from_model(model: List[np.ndarray], num: int) -> np.ndarray:
-        """samples `num` instances from model
+        """samples ``num`` instances from model
 
         The model is a list of categorical distributions, where each element
         represents a dimension or feature. The element itself is assumed to be
@@ -104,7 +104,7 @@ class DynamicsModel:
         )
 
     class NN:
-        """A neural network in the `DynamicsModel`"""
+        """A neural network in the :class:`DynamicsModel`"""
 
         def __init__(
             self,
@@ -165,7 +165,7 @@ class DynamicsModel:
                     param.set_(perturb(param, stdev))
 
     class TNet(NN):
-        """Neural Network implementation of the transition model in `DynamicsModel`"""
+        """Neural Network implementation of the transition model in :class:`DynamicsModel`"""
 
         def __init__(
             self,
@@ -297,10 +297,10 @@ class DynamicsModel:
             action: int,
             num: int,
         ) -> np.ndarray:
-            """sample `num` state given `state`-`action` pair
+            """sample ``num`` state given ``state``-``action`` pair
 
             can be implemented by calling
-            `sample_from_model(self.model(state, action, num))`
+            :meth:`sample_from_model` `(self.model(state, action, num))`
 
             Args:
                 state (`np.ndarray`):
@@ -308,13 +308,13 @@ class DynamicsModel:
                 num (`int`): number of samples to provide
 
             Returns:
-                `np.ndarray`: `num` states
+                `np.ndarray`: ``num`` states
             """
             transition_model = self.model(state, action)
             return DynamicsModel.sample_from_model(transition_model, num)
 
     class ONet(NN):
-        """Neural Network implementation of observation model in `DynamicsModel`"""
+        """Neural Network implementation of observation model in :class:`DynamicsModel`"""
 
         def __init__(
             self,
@@ -385,7 +385,7 @@ class DynamicsModel:
         def model(
             self, state: np.ndarray, action: int, next_state: np.ndarray
         ) -> List[float]:
-            """observation distribution model given `state`-`action`-`next_state` triplet
+            """observation distribution model given ``state``-``action``-``next_state`` triplet
 
             Args:
                 state (`np.ndarray`):
@@ -430,10 +430,10 @@ class DynamicsModel:
             next_state: np.ndarray,
             num: int,
         ):
-            """sample `num` observation given `state`-`action`-`next_state` triplet
+            """sample ``num`` observation given ``state``-``action``-``next_state`` triplet
 
             can be implemented by calling
-            `sample_from_model(self.model(state, action, next_state, num))`
+            :meth:`sample_from_model` `(self.model(state, action, next_state, num))`
 
             Args:
                 state (`np.ndarray`):
@@ -487,7 +487,7 @@ class DynamicsModel:
         self.o = o_model
 
     def load(self, file_name: str) -> None:
-        """Loads internal state from `file_name`
+        """Loads internal state from ``file_name``
 
         For the sake of computational efficiency models can be saved and loaded
         from disk. This basically loads all the relevant private members of
@@ -510,7 +510,7 @@ class DynamicsModel:
         self.o.net.load_state_dict(checkpoint["o_state_dict"])
 
     def save(self, file_name: str) -> None:
-        """Saves the internal state to `file_name`
+        """Saves the internal state to ``file_name``
 
         For the sake of computational efficiency models can be saved and loaded
         from disk. This basically loads all the relevant private members of
@@ -639,7 +639,7 @@ class DynamicsModel:
     ) -> None:
         """stores the given transition
 
-        `this` uses this data to learn
+        `self` uses this data to learn
 
         Args:
              state: (`np.ndarray`):

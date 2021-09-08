@@ -24,7 +24,7 @@ from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 
 def sample_large_dirichlet(counts: np.ndarray) -> int:
-    """Samples from the (large) distribution induced by the dirichlets `counts`
+    """Samples from the (large) distribution induced by the dirichlets ``counts``
 
     A Dirichlet distirbution is a distribution over a categorical distribution
     over values 0 ... `len(counts)` - 1. Conceptually, counts[i] represents how
@@ -33,7 +33,7 @@ def sample_large_dirichlet(counts: np.ndarray) -> int:
     NOTE: here we sample directly from the expected model, we do not sample
     categorical distributions.
 
-    Faster than `sample_small_dirichlet` when `len(counts) > 75`
+    Faster than :func:`sample_small_dirichlet` when `len(counts) > 75`
 
     :param counts: a 1-dimnesional numpy array
     :returns: a value between 0 and len(counts)
@@ -42,7 +42,7 @@ def sample_large_dirichlet(counts: np.ndarray) -> int:
 
 
 def sample_small_dirichlet(counts: np.ndarray) -> int:
-    """Samples from the distribution induced by the dirichlets `counts`
+    """Samples from the distribution induced by the dirichlets ``counts``
 
     A Dirichlet distirbution is a distribution over a categorical distribution
     over values 0 ... `len(counts)` - 1. Conceptually, counts[i] represents how
@@ -51,7 +51,7 @@ def sample_small_dirichlet(counts: np.ndarray) -> int:
     NOTE: here we sample directly from the expected model, we do not sample
     categorical distributions.
 
-    Faster than `sample_large_dirichlet` when `len(counts) < 75`
+    Faster than :func:`sample_large_dirichlet` when `len(counts) < 75`
 
     :param counts: a 1-dimnesional numpy array
     :returns: a value between 0 and len(counts)
@@ -111,7 +111,7 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
         terminal_function: TerminalFunction,
         model_prior: DirCounts,
     ):
-        """Creates a (GBA-) POMDP from the prior `model_prior`"""
+        """Creates a (GBA-) POMDP from the prior ``model_prior``"""
         # domain knowledge
         self.domain_state_space = state_space
         self.domain_action_space = action_space
@@ -143,12 +143,12 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
         return self.domain_obs_space
 
     def sample_start_state(self) -> TBAPOMDPState:
-        """samples an initial `TBAPOMDPState` in the tabular GBA-POMDP
+        """samples an initial :class:`TBAPOMDPState` in the tabular GBA-POMDP
 
         Returns a domain state sampled from the given
-        `sample_domain_start_state` and pairs it with the `model_prior`
+        :meth:`sample_domain_start_state` and pairs it with the ``model_prior``
 
-        :returns: an initial `AugmentedState` in this (GBA-)POMDP
+        :returns: an initial :class:`AugmentedState` in this (GBA-)POMDP
         """
         return TBAPOMDPState(
             self.sample_domain_start_state(),
@@ -160,15 +160,15 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
     ) -> SimulationResult:
         """Samples a next state and observation
 
-        Samples according to the counts in `state`, given that the current
-        state is the domain state in `state` and the agent took `action`.
+        Samples according to the counts in ``state``, given that the current
+        state is the domain state in ``state`` and the agent took ``action``.
 
         NOTE: that the model in the returned state is a reference to the one in
-        `state` so be careful: if you modify either, you modify both
+        ``state`` so be careful: if you modify either, you modify both
 
         :param state: (augmented) state (counts and domain state) at timestep t
         :param action: action taken at timestep t
-        :returns: (augmented state, obs) at t+1, where model in state == of the incoming `state`
+        :returns: (augmented state, obs) at t+1, where model in state == of the incoming ``state``
         """
 
         state_index = self.domain_state_space.index_of(state.domain_state)
@@ -190,16 +190,16 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
         obs: np.ndarray,
         optimize: bool = False,
     ) -> TBAPOMDPState:
-        """Increments the counts in `to_update` associated with the (s, a, s', o) transition
+        """Increments the counts in ``to_update`` associated with the (s, a, s', o) transition
 
         NOTE: the domain state in the returned state is a reference to the one
-        in `to_update` so be careful: if you modify either, you modify both
+        in ``to_update`` so be careful: if you modify either, you modify both
 
         Note that this operation is expensive, as it involves generating a new
         set of counts to represent the model distribution in the new state
         (which involves a copy before updating). If there is no need for the
-        input `to_update` to stay unmodified, set `optimize` to `True`, and the
-        copy is avoided (but the incoming `to_update` is modified!)
+        input ``to_update`` to stay unmodified, set ``optimize`` to ``True``,
+        and the copy is avoided (but the incoming ``to_update`` is modified!)
 
         :param to_update: the augmented state that contains the model at timestep t
         :param prev_state: the state at timestep t of the transition
@@ -207,11 +207,11 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
         :param next_state: the state at timestep t+1 of the transition
         :param obs: the observation at timestep t of the transition
         :param optimize: optimization flag.
-            If set to true, the model in `to_update` is _not_ copied, and
-            thus the incoming `to_update` **is modified**. If there is no
+            If set to true, the model in ``to_update`` is _not_ copied, and
+            thus the incoming ``to_update`` **is modified**. If there is no
             need to keep the old model, then setting this flag skips a then
             needless copy operation, which can be significant
-        :returns: new state with updated model (same domain state as `to_update`)
+        :returns: new state with updated model (same domain state as ``to_update``)
         """
 
         index_s = self.domain_state_space.index_of(prev_state.domain_state)
@@ -230,24 +230,24 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
     ) -> SimulationResult:
         """Performs an actual step according to the GBA-POMDP dynamics
 
-        The resulting `SimulationResult` contains the generated state and
+        The resulting :class:`SimulationResult` contains the generated state and
         observation, where the state is generated by sampling according to the
-        counts in `state`.
+        counts in ``state``.
 
             1. sample a new domain state and observation according to the counts
-               and current domain state in `state`
-            2. update counts in `state` that is associated with sampled transition
+               and current domain state in ``state``
+            2. update counts in ``state`` that is associated with sampled transition
 
         Note that this operation is expensive, as it often involves generating
         a new set of parameters to represent the model distribution in the new
         state (which involves a copy before updating). If there is no need for
-        the input `state` to stay unmodified, set `optimize` to `True`
+        the input ``state`` to stay unmodified, set ``optimize`` to ``True``
 
         :param state: state at timestep t
         :param action: action at timestep t
         :param optimize: optimization flag.
-            If set to true, the model in `state` is _not_ copied, and thus
-            the incoming `state` **is modified**. If there is no need to keep
+            If set to true, the model in ``state`` is _not_ copied, and thus
+            the incoming ``state`` **is modified**. If there is no need to keep
             the old model, then setting this flag skips a then needless copy
             operation, which can be significant
         :return: (state, obs) at timestep t+1

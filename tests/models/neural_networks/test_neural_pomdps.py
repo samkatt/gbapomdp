@@ -68,7 +68,7 @@ def is_equal_models(model_a, model_b) -> bool:
         if not torch.equal(tensor_a.data, tensor_b.data):
             return False
 
-        return True
+    return True
 
 
 def test_freeze() -> None:
@@ -124,7 +124,7 @@ def test_freeze() -> None:
 
 
 def test_copy() -> None:
-    """tests the copy function of the `general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel`
+    """tests :meth:`general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel.copy`
 
     Basically double checking whether the standard implementation works as
     **I** expect

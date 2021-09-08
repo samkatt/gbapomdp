@@ -51,7 +51,7 @@ class Domain(Protocol):
     def step(self, action: int) -> DomainStepResult:
         """update state as a result of action
 
-        May raise `TerminalState`
+        May raise :class:`TerminalState`
 
         Args:
              action: (`int`): agent's taken action
@@ -63,7 +63,7 @@ class Domain(Protocol):
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """generates a transition
 
-        May raise `TerminalState`
+        May raise :class:`TerminalState`
 
         Args:
              state: (`np.ndarray`): some state

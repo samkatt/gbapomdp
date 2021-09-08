@@ -29,19 +29,19 @@ class AugmentedGodState(Protocol):
         obs: np.ndarray,
         optimize: bool = False,
     ) -> "AugmentedGodState":
-        """Updates the model posterior of ``self`` given (``state``, ``action``, ``next_state``, ``obs``
+        """Updates the model posterior of `self` given (``state``, ``action``, ``next_state``, ``obs``
 
         Given the transition (s,a,s',o), this function updates the model parameters
 
-        NOTE: modifies ``self`` if ``optimize`` is set to true
+        NOTE: modifies `self` if ``optimize`` is set to ``True``
 
         :param state:
         :param action:
         :param next_state:
         :param obs:
         :param optimize: optimization flag.
-            If set to true, the model in ``self`` is _not_ copied, and thus
-            ``self`` **is modified**. If there is no need to keep the old
+            If set to true, the model in `self` is _not_ copied, and thus
+            `self` **is modified**. If there is no need to keep the old
             model, then setting this flag skips a then needless copy operation,
             which can be significant
         :return: A new state with updated model parameters
@@ -51,7 +51,7 @@ class AugmentedGodState(Protocol):
         """Simulates a step in the domain
 
         Samples a next state (from ``self``) and observation given input
-        ``action``. The result is put into a new ``AugmentedGodState``, with
+        ``action``. The result is put into a new :class:`AugmentedGodState`, with
         **unmodified model distribution**. The new state and observation is
         returned
 
@@ -60,7 +60,7 @@ class AugmentedGodState(Protocol):
         """
 
     def reward(self, action: int, next_state: "AugmentedGodState") -> float:
-        """the reward associated with ``self`` transitioning to ``next_state`` under ``action``
+        """the reward associated with `self` transitioning to ``next_state`` under ``action``
 
         :param action:
         :param next_state:
@@ -68,7 +68,7 @@ class AugmentedGodState(Protocol):
         """
 
     def terminal(self, action: int, next_state: "AugmentedGodState") -> bool:
-        """the terminality associated with ``self`` transitioning to ``next_state`` under ``action``
+        """the terminality associated with `self` transitioning to ``next_state`` under ``action``
 
         :param action:
         :param next_state:
