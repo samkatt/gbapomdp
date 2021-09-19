@@ -2,6 +2,7 @@
 
 from logging import Logger
 from typing import List, Optional
+from gym.utils import seeding
 
 import numpy as np
 
@@ -65,6 +66,8 @@ class Tiger(Domain):
         self._obs_space = (
             DiscreteSpace([2, 2]) if self._use_one_hot_obs else DiscreteSpace([3])
         )
+
+        self.seed()
 
         self._state = self.sample_start_state()
 
@@ -130,14 +133,19 @@ class Tiger(Domain):
 
         return obs
 
-    @staticmethod
-    def sample_start_state() -> np.ndarray:
+    # @staticmethod
+    def sample_start_state(self) -> np.ndarray:
         """samples a random state (tiger left or right)
 
         RETURNS (`np.narray`): an initial state (in [[0],[1]])
 
         """
-        return np.array([np.random.randint(0, 2)], dtype=int)
+        return np.array([self.np_random.randint(0, 2)], dtype=int)
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
 
     def sample_observation(self, loc: int, listening: bool) -> int:
         """samples an observation, listening stores whether agent is listening
@@ -154,7 +162,7 @@ class Tiger(Domain):
             return self.NO_OBS
 
         return (
-            loc if np.random.random() < self._correct_obs_probs[loc] else int(not loc)
+            loc if self.np_random.random() < self._correct_obs_probs[loc] else int(not loc)
         )
 
     def reset(self) -> np.ndarray:
@@ -344,13 +352,13 @@ class TigerPrior(DomainPrior):
 
         """
         sampled_observation_probs = [
-            np.random.dirichlet(
+            self.np_random.dirichlet(
                 [
                     self._observation_prob * self._total_counts,
                     (1 - self._observation_prob) * self._total_counts,
                 ]
             )[0],
-            np.random.dirichlet(
+            self.np_random.dirichlet(
                 [
                     self._observation_prob * self._total_counts,
                     (1 - self._observation_prob) * self._total_counts,
