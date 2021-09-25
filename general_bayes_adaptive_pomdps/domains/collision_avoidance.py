@@ -1,6 +1,7 @@
 """Collision avoidance problem implemented as domain"""
 from logging import Logger
 from typing import Optional, Tuple
+from gym.utils import seeding
 
 import numpy as np
 
@@ -66,6 +67,12 @@ class CollisionAvoidance(Domain):
         self._obs_space = self._state_space
 
         self._state = self.sample_start_state()
+
+        self.seed()
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     @property
     def size(self):
@@ -142,7 +149,7 @@ class CollisionAvoidance(Domain):
         if state is None:
             state = self.state
 
-        obs = self.bound_in_grid(round(state[2] + np.random.normal()))
+        obs = self.bound_in_grid(round(state[2] + self.np_random.normal()))
 
         return np.array([*state[:2], obs], dtype=int)
 
@@ -175,7 +182,7 @@ class CollisionAvoidance(Domain):
         new_state[1] = self.bound_in_grid(state[1] + self.action_to_move[int(action)])
 
         # move obstacle
-        prob = np.random.uniform()
+        prob = self.np_random.uniform()
         if prob < self._block_policy[0]:
             new_state[2] -= 1
         if prob - self._block_policy[0] > self._block_policy[1]:
@@ -305,7 +312,7 @@ class CollisionAvoidancePrior(DomainPrior):
         """
 
         sampled_behaviour = tuple(
-            np.random.dirichlet(np.array([0.05, 0.9, 0.05]) * self._num_total_counts)
+            self.np_random.dirichlet(np.array([0.05, 0.9, 0.05]) * self._num_total_counts)
         )
 
         return CollisionAvoidance(self._size, sampled_behaviour)

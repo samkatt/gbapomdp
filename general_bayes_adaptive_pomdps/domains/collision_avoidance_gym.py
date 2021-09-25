@@ -7,18 +7,18 @@ from gym.utils import seeding
 
 from typing import List, Optional
 
-from general_bayes_adaptive_pomdps.domains.tiger import (
-    Tiger,
+from general_bayes_adaptive_pomdps.domains.collision_avoidance import (
+    CollisionAvoidance,
 )
 
-class TigerGymEnv(gym.Env):  
-    def __init__(self, gamma: float, one_hot_encode_observation: bool, correct_obs_probs: Optional[List[float]] = None):
+class CollisionAvoidanceGymEnv(gym.Env):  
+    def __init__(self, gamma: float,  domain_size: int):
 
-        self.core_env = Tiger(one_hot_encode_observation, correct_obs_probs=correct_obs_probs)
+        self.core_env = CollisionAvoidance(domain_size)
 
         # TODO:
         self.action_space = spaces.Discrete(self.core_env.action_space.n)
-        self.observation_space = spaces.Box(0, 1, shape=(2, ))
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(3, ))
 
         self.discount = gamma
 
