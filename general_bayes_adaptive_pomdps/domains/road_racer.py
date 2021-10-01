@@ -2,6 +2,7 @@
 from logging import Logger
 
 import numpy as np
+from gym.utils import seeding
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
@@ -59,6 +60,10 @@ class RoadRacer(Domain):
         )
 
         self.logger = Logger(self.__class__.__name__)
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     @property
     def lane_length(self) -> int:
@@ -207,7 +212,7 @@ class RoadRacer(Domain):
         cur_lane = RoadRacer.get_current_lane(state)
 
         # advance lanes
-        lane_advances = [np.random.rand() < p for p in self.lane_probs]
+        lane_advances = [self.np_random.rand() < p for p in self.lane_probs]
 
         if state[cur_lane] == 1:  # car in front of us does not move
             lane_advances[cur_lane] = 0
@@ -308,7 +313,7 @@ class RoadRacerPrior(DomainPrior):
         RETURNS (`general_bayes_adaptive_pomdps.domain.Domain`):
 
         """
-        sampled_lane_speeds = np.random.beta(
+        sampled_lane_speeds = self.np_random.beta(
             0.5 * self._total_counts, 0.5 * self._total_counts, self._num_lanes
         )
 
