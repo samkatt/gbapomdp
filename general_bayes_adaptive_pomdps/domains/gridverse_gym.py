@@ -25,7 +25,8 @@ class GridVerseGymEnv(gym.Env):
         self.core_env = GymEnvironment.from_environment(outer_env)
 
         self.action_space = self.core_env.action_space
-        self.observation_space = self.core_env.observation_space
+
+        self.observation_space = self.core_env.observation_space['grid']
         self.discount = gamma
 
         self.seed()
@@ -34,10 +35,12 @@ class GridVerseGymEnv(gym.Env):
         self.core_env.seed(seed)
 
     def step(self, action: int):
-        return self.core_env.step(action)
+        next_obs, reward, done, info = self.core_env.step(action)
+
+        return next_obs['grid'], reward, done, info
 
     def reset(self):
-        return self.core_env.reset()
+        return self.core_env.reset()['grid']
 
     def close(self):
         self.core_env.close()
