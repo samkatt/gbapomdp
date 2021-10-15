@@ -68,7 +68,7 @@ def is_equal_models(model_a, model_b) -> bool:
         if not torch.equal(tensor_a.data, tensor_b.data):
             return False
 
-        return True
+    return True
 
 
 def test_freeze() -> None:

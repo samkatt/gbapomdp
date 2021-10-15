@@ -422,7 +422,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
     def update_theta(
         theta: DynamicsModel,
         state: np.ndarray,
-        action: np.ndarray,
+        action: int,
         next_state: np.ndarray,
         observation: np.ndarray,
         theta_updates: List[ModelUpdate],

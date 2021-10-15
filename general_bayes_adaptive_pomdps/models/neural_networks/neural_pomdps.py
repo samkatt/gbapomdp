@@ -384,7 +384,7 @@ class DynamicsModel:
 
         def model(
             self, state: np.ndarray, action: int, next_state: np.ndarray
-        ) -> List[float]:
+        ) -> List[np.ndarray]:
             """observation distribution model given `state`-`action`-`next_state` triplet
 
             Args:
@@ -550,7 +550,7 @@ class DynamicsModel:
         for model in [self.t, self.o]:
             model.set_learning_rate(learning_rate)
 
-    def simulation_step(self, state: np.array, action: int) -> SimulationResult:
+    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """The simulation step of this dynamics model: S x A -> S, O
 
         Args:

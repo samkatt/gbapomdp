@@ -5,6 +5,8 @@ import numpy as np
 import pytest
 
 from general_bayes_adaptive_pomdps.models.tabular_bapomdp import (
+    expected_model,
+    expected_probability,
     sample_large_dirichlet,
     sample_small_dirichlet,
 )
@@ -62,3 +64,26 @@ def test_sample_dirichlet_max_min(counts, max_elem, min_elem):
 
         assert ordered[0][0] == max_elem
         assert ordered[-1][0] == min_elem
+
+
+@pytest.mark.parametrize(
+    "counts,probs",
+    [([1, 1], [0.5, 0.5]), ([2, 2], [0.5, 0.5]), ([1.5, 13.5], [0.1, 0.9])],
+)
+def test_expected_model(counts, probs):
+    """Tests :func:`expected_model`"""
+    np.testing.assert_allclose(expected_model(counts), np.array(probs))
+
+
+@pytest.mark.parametrize(
+    "counts,i,prob",
+    [
+        ([1, 1], 0, 0.5),
+        ([1, 1], 1, 0.5),
+        ([1.5, 1.5, 12], 1, 0.1),
+        ([1.5, 1.5, 12], 2, 0.8),
+    ],
+)
+def test_expected_probability(counts, i, prob):
+    """Tests :func:`expected_probability`"""
+    assert expected_probability(counts, i) == prob

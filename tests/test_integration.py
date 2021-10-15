@@ -138,7 +138,7 @@ def rejection_sampling(
     gba_pomdp: GeneralBAPOMDP, b: List[BADDrState], a: int, o: np.ndarray
 ) -> List[BADDrState]:
     """Implements plain particle filtering rejection sampling"""
-    next_b = []
+    next_b: List[BADDrState] = []
 
     while len(next_b) < len(b):
         s = random.choice(b)

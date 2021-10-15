@@ -261,7 +261,7 @@ class GridWorld(Domain):
 
         return np.random.multinomial(1, self.obs_mult, 2).argmax(axis=1) - self.size + 1
 
-    def generate_observation(self, state: np.ndarray) -> np.array:
+    def generate_observation(self, state: np.ndarray) -> np.ndarray:
         """generates a noisy observation of the state
 
         Args:

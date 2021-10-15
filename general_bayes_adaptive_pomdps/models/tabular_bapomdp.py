@@ -69,8 +69,28 @@ def sample_small_dirichlet(counts: np.ndarray) -> int:
     raise ValueError(f"sampled 'probability' {p} < {tot} not reached with {counts}")
 
 
+def expected_model(counts: np.ndarray) -> np.ndarray:
+    """Computes the expected model of `counts`
+
+    :param counts: a 1-dimensional numpy array (positive numbers)
+    :returns: a 1-dimensional numpy array of probabilities
+    """
+    return counts / np.sum(counts)
+
+
+def expected_probability(counts: np.ndarray, i: int) -> np.ndarray:
+    """Computes the (expected) probability of event `i` given `counts`
+
+    :param counts: a 1-dimensional numpy array (positive numbers)
+    :param i: the index/element of the distribution which we want to get the probability of
+    :returns: a probability [0,1]
+    """
+    return expected_model(counts)[i]
+
+
 TransitionCounts = NewType("TransitionCounts", np.ndarray)
 """Bayesian tabular estimate of the transition model (3-D)"""
+
 
 ObservationCounts = NewType("ObservationCounts", np.ndarray)
 """Bayesian tabular estimate of the observation model (3-D)"""
@@ -141,6 +161,36 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
     def observation_space(self) -> DiscreteSpace:
         """The observation space of the underlying POMDP"""
         return self.domain_obs_space
+
+    def transition_counts(
+        self, t: TransitionCounts, domain_state: np.ndarray, action: int
+    ) -> np.ndarray:
+        """Small helper function to get the counts from `t` associated with (`domain_state`, `action`)
+
+        Intended to be an external API for those interested in directly
+        handling counts.
+
+        :param t: the dirichlets counts over the transition model
+        :param state: the domain state at timestep t
+        :param action: action at timestep t
+        :returns: counts over distribution for domain state at timestep t+1
+        """
+        return t[self.domain_state_space.index_of(domain_state), action]
+
+    def observation_counts(
+        self, o: TransitionCounts, action: int, domain_state: np.ndarray
+    ) -> np.ndarray:
+        """Small helper function to get the counts from `o` associated with (`action`, `domain_state`)
+
+        Intended to be an external API for those interested in directly
+        handling counts.
+
+        :param o: the dirichlets counts over the transition model
+        :param action: action at timestep o
+        :param state: the domain state at timestep o+1
+        :returns: counts over distribution for observation at timestep o+1
+        """
+        return o[action, self.domain_state_space.index_of(domain_state)]
 
     def sample_start_state(self) -> TBAPOMDPState:
         """samples an initial `TBAPOMDPState` in the tabular GBA-POMDP

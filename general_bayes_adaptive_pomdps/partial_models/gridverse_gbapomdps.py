@@ -174,7 +174,7 @@ def agent_position_and_orientation(
         orientation = np.zeros(len(Orientation), dtype=int)
         orientation[state.agent.orientation.value] = 1
     else:
-        orientation = [state.agent.orientation.value]
+        orientation = np.array([state.agent.orientation.value])
 
     return np.concatenate([agent_position(state), orientation])
 

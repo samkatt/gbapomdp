@@ -106,14 +106,14 @@ class DomainSimulationStep(Protocol):
 class RewardFunction(Protocol):
     """The protocol of a reward function: func(s, a, s) -> reward"""
 
-    def __call__(self, state: np.ndarray, action: int, next_state: np.ndarray) -> float:
+    def __call__(self, state: np.ndarray, action: int, new_state: np.ndarray) -> float:
         """The reward associated with a (s, a, s') transition"""
 
 
 class TerminalFunction(Protocol):
     """The protocol of a terminal function: func(s, a, s) -> bool"""
 
-    def __call__(self, state: np.ndarray, action: int, next_state: np.ndarray) -> bool:
+    def __call__(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
         """Whether the (s, a, s') transition is terminal"""
 
 
