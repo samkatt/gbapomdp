@@ -20,24 +20,24 @@ def whiten_input(positive_input, max_value):
 
     Networks tend to do better on input that ranges between -1 and 1, hence the
     input is often normalized. This is a simple function that, assuming
-    `positiveinput` is **positive**, will normalize it to range between those
+    ``positiveinput`` is **positive**, will normalize it to range between those
     values
 
-    Here `max_value` is either a float, such that all elements in
-    `positive_input` are normalized to that, or an array of the same type and
+    Here ``max_value`` is either a float, such that all elements in
+    ``positive_input`` are normalized to that, or an array of the same type and
     shape* such that each element seperately is normalized.
 
     NOTE: broadcasting happens all over in python, so good luck.
 
     :param positive_input: assumed > 0, to be normalized
-    :param max_value: float or array of type and shape of `positive_input`
+    :param max_value: float or array of type and shape of ``positive_input``
     :returns: input but normalized in range(-1, 1)
     """
     return 2 * positive_input / max_value - 1
 
 
 def perturb(tensor: torch.Tensor, stdev: float) -> torch.Tensor:
-    """returns a perturbed version (with provided `stdev`) of `tensor`
+    """returns a perturbed version (with provided ``stdev``) of ``tensor``
 
     Args:
          tensor: (`torch.Tensor`): the mean of the returned pertubation
@@ -86,8 +86,8 @@ class ReplayBuffer:
         """stores step in the buffer
 
         Step can be anything, the buffer does not care, but it will be appended
-        to the current episode. When the replay buffer is sampled, `step` may
-        be returned stochastically. If `terminal` is True, then a new episode
+        to the current episode. When the replay buffer is sampled, ``step`` may
+        be returned stochastically. If ``terminal`` is ``True``, then a new episode
         will start after this sample
 
         Args:
@@ -103,7 +103,7 @@ class ReplayBuffer:
 
     @staticmethod
     def sub_sample_episode(episode: List[Any], history_len: int) -> List[Any]:
-        """samples a trace of max `history_len` from the episode
+        """samples a trace of max ``history_len`` from the episode
 
         Args:
              episode: (`List[Any]`): a list of time steps

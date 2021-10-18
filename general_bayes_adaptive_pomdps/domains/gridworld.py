@@ -176,17 +176,17 @@ class GridWorld(Domain):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,num_goals])"""
+        """:class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,num_goals])"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """a `general_bayes_adaptive_pomdps.core.ActionSpace` ([4]) space"""
+        """a :class:`general_bayes_adaptive_pomdps.core.ActionSpace` ([4]) space"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size] + ones * num_goals)"""
+        """a :class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size] + ones * num_goals)"""
         return self._obs_space
 
     @property
@@ -397,7 +397,7 @@ class GridWorld(Domain):
 
     @staticmethod
     def generate_slow_cells(size: int) -> Set[Tuple[int, int]]:
-        """returns a set of cells that the agent are slow on, depending on `size`
+        """returns a set of cells that the agent are slow on, depending on ``size``
 
         Args:
              size: (`int`): the size of the grid
@@ -434,7 +434,7 @@ class GridWorldPrior(DomainPrior):
     """
 
     def __init__(self, size: int, one_hot_encode_goal: bool):
-        """creates a prior for the `gridworld` of size and with `encoding`
+        """a prior for :class:`general_bayes_adaptive_pomdps.domains.gridworld.GridWorld` of ``size`` with ``encoding``
 
         Args:
              size: (`int`):
@@ -447,7 +447,7 @@ class GridWorldPrior(DomainPrior):
         self._one_hot_encode_goal = one_hot_encode_goal
 
     def sample(self) -> Domain:
-        """samples a `general_bayes_adaptive_pomdps.domains.gridworld.GridWorld`
+        """samples a :class:`general_bayes_adaptive_pomdps.domains.gridworld.GridWorld`
 
         Gridworld is of given size and encoding with a random set of slow cells
         """

@@ -41,7 +41,7 @@ def train_from_samples(
 ) -> float:
     """trains a theta with data uniformly sampled from (S,A) space
 
-    Performs `num_epochs` updates of size `batch_size` by sampling from sampler
+    Performs ``num_epochs`` updates of size ``batch_size`` by sampling from sampler
 
     Args:
          theta: (`general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel`):
@@ -109,10 +109,10 @@ def create_dynamics_model(
     batch_size: int,
     dropout_rate: float = 0.0,
 ) -> DynamicsModel:
-    """factory function for creating `DynamicsModel`
+    """factory function for creating :class:`DynamicsModel`
 
-    The `DynamicsModel` consists of a transition and observation model. These
-    are constructed here given the dimensions and training parameters.
+    The :class:`DynamicsModel` consists of a transition and observation model.
+    These are constructed here given the dimensions and training parameters.
 
     Args:
         state_space (`DiscreteSpace'):
@@ -241,7 +241,7 @@ def replay_buffer_update(
     observation: np.ndarray,
     freeze_model_setting: DynamicsModel.FreezeModelSetting,
 ) -> None:
-    """will add transition to model and then invoke a `self learn` step
+    """will add transition to model and then invoke a 'self learn' step
 
     Args:
          model: (`DynamicsModel`):
@@ -350,8 +350,8 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
     ):
         """Creates `BADDr`
 
-        To create `model_update` consider :func:`create_model_updates`.
-        To create `prior_models` consider :func:`create_dynamics_model`.
+        To create ``model_update`` consider :func:`create_model_updates`.
+        To create ``prior_models`` consider :func:`create_dynamics_model`.
 
         Args:
             state_space (`DiscreteSpace'):
@@ -394,7 +394,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """returns `this` observation space
+        """returns `self` observation space
 
         Args:
 
@@ -558,7 +558,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
 
         Leaves the state alone
         If ``optimize`` is true, will modify model in ``to_update``
-        Note: part of `GBAPOMDP` protocol
+        Note: part of :class:`GBAPOMDP` protocol
         """
         model = to_update.model if optimize else copy.deepcopy(to_update.model)
 

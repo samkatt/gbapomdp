@@ -110,13 +110,13 @@ def test_gbapomdp():
         d, "SGD", 0.1, 32, 0.0, 128, 8, 1, "", online_learning_rate=0.01
     )
 
-    # test `action_space`
+    # test :meth:`GVerseGridworld.action_space`
     assert gbapomdp.action_space.n == d.action_space.num_actions
 
     s = gbapomdp.sample_start_state()
     assert isinstance(s, GridversePositionOrientationAugmentedState)
 
-    # testing `simulation_step`
+    # testing :meth:`GVerseGridworld.simulation_step`
     next_step = gbapomdp.simulation_step(s, 0, optimize=False)
     next_s1, obs = next_step.state, next_step.observation
     assert isinstance(s, GridversePositionOrientationAugmentedState)
@@ -128,13 +128,13 @@ def test_gbapomdp():
     assert model_equals(s.learned_model.net, next_s2.learned_model.net)
     assert not s.domain_state == next_s1.domain_state
 
-    # testing `domain_simulation_step`
+    # testing :meth:`GVerseGridworld.domain_simulation_step`
     next_s = gbapomdp.domain_simulation_step(s, 1).state
     assert isinstance(next_s, GridversePositionOrientationAugmentedState)
     assert model_equals(s.learned_model.net, next_s.learned_model.net)
     assert not s.domain_state == next_s1.domain_state
 
-    # testing `model_simulation_step`
+    # testing :meth:`GVerseGridworld.model_simulation_step`
     next_state = gbapomdp.model_simulation_step(s, s, 2, next_s1, obs)
     assert isinstance(next_state, GridversePositionOrientationAugmentedState)
     assert not model_equals(s.learned_model.net, next_state.learned_model.net)
@@ -183,13 +183,15 @@ def test_position_and_orientation_augmented_state():
     # test updating model
     a = 3
 
-    # test `domain_step`
+    # test :meth:`GVerseGridworld.domain_step`
     next_s, o = s.domain_step(a)
     assert isinstance(next_s, GridversePositionOrientationAugmentedState)
     assert not s.domain_state == next_s.domain_state
     assert model_equals(s.learned_model.net, next_s.learned_model.net)
 
-    # test `update_model_distribution` and `model_accuracy`
+    # test
+    # :meth:`GridversePositionOrientationAugmentedState.update_model_distribution`
+    # and :meth:`GridversePositionOrientationAugmentedState.model_accuracy`
     transition_data = [
         (
             (
@@ -217,7 +219,7 @@ def test_position_and_orientation_augmented_state():
         < list(tnet_accuracy(s_with_updated_model.learned_model, transition_data))[0]
     )
 
-    # test `model_accuracy`
+    # test :meth:`GridversePositionOrientationAugmentedState.model_accuracy`
     acc = np.array(list(s.model_accuracy(8)))
 
     assert acc.shape == (8,)

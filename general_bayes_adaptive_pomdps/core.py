@@ -55,12 +55,12 @@ class ActionSpace(DiscreteSpace):
         return f"ActionSpace of size {self.n}"
 
     def contains(self, elem: int) -> bool:
-        """returns whether `this` contains action
+        """returns whether `self` contains action
 
         Args:
              elem: (`int`): an action
 
-        RETURNS (`bool`): true if in `this`
+        RETURNS (`bool`): ``True`` if in `self`
 
         """
         return super().contains(np.array([elem]))
@@ -137,7 +137,7 @@ class GeneralBAPOMDP(Protocol[AugmentedState]):
 
         This space should be the same as the action space of the underlying POMDP
 
-        :return: legal actions in ``self``
+        :return: legal actions in `self`
         """
 
     @property

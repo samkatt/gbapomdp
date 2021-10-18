@@ -64,7 +64,7 @@ def test_index_of():
 
 
 def test_space_from_index():
-    """Tests index => element in `DiscreteSpace`"""
+    """Tests index => element in :class:`DiscreteSpace`"""
 
     n = random.randint(2, 6)
     s = np.random.randint(2, 6, size=n)

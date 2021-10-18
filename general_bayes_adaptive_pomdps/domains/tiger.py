@@ -89,25 +89,25 @@ class Tiger(Domain):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([2]) space"""
+        """a :class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([2]) space"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space"""
+        """a :class:`general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([1,1]) space if one-hot, otherwise [3]"""
+        """a :class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([1,1]) space if one-hot, otherwise [3]"""
         return self._obs_space
 
     def encode_observation(self, observation: int) -> np.ndarray:
-        """encodes the observation for usage outside of `this`
+        """encodes the observation for usage outside of `self`
 
-        This wraps the `int` observation into a numpy array. Either directly,
-        or with one-hot encoding if `Tiger` was initiated with that parameter
-        to true
+        This wraps the `int` ``observation`` into a numpy array. Either
+        directly, or with one-hot encoding if :class:`Tiger` was initiated with that
+        parameter to true
 
         Args:
              observation: (`int`): 0, 1= hear behind door, 2=null
@@ -298,9 +298,8 @@ class TigerPrior(DomainPrior):
     tiger correctly is not. Here we assume a `Dir(prior * total_counts
     ,(1-prior) * total_counts)` belief over this distribution.
 
-    `prior` is computed by the `prior_correctness`: 1 -> .85, whereas 0 ->
+    ``prior`` is computed by the ``prior_correctness``: 1 -> .85, whereas 0 ->
     .625, linear mapping in between
-
     """
 
     def __init__(

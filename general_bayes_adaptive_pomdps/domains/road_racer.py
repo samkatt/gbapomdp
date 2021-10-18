@@ -33,7 +33,7 @@ class RoadRacer(Domain):
     LANE_LENGTH = 6
 
     def __init__(self, lane_probs: np.ndarray):
-        """Creates a domain with transition probability `lane_probs`
+        """Creates a domain with transition probability ``lane_probs``
 
         Args:
              lane_probs: (`np.ndarray`):
@@ -140,13 +140,13 @@ class RoadRacer(Domain):
         return np.array([state[RoadRacer.get_current_lane(state)]])
 
     def reset(self) -> np.ndarray:
-        """implements `general_bayes_adaptive_pomdps.core.Environment`"""
+        """implements :class:`general_bayes_adaptive_pomdps.core.Environment`"""
         self.state = self.sample_start_state()
 
         return RoadRacer.get_observation(self.state)
 
     def step(self, action: int) -> DomainStepResult:
-        """implements `general_bayes_adaptive_pomdps.core.Environment.step`
+        """implements :class:`general_bayes_adaptive_pomdps.core.Environment.step`
 
         action: 0 -> 'go up', 1 -> 'stay', 2 -> 'go down'
 
@@ -177,7 +177,7 @@ class RoadRacer(Domain):
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """implements `general_bayes_adaptive_pomdps.environments.Environment.observation_space`"""
+        """implements :meth:`general_bayes_adaptive_pomdps.environments.Environment.observation_space`"""
         return self.observations
 
     @property

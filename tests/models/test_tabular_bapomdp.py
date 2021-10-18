@@ -23,7 +23,7 @@ from general_bayes_adaptive_pomdps.models.tabular_bapomdp import (
     ],
 )
 def test_sample_dirichlet_corner(counts, expected_val):
-    """Tests output on predictable corner cases of `sample_small_dirichlet`"""
+    """Tests output on predictable corner cases of :func:`sample_small_dirichlet`"""
     assert sample_small_dirichlet(np.array(counts)) == expected_val
     assert sample_large_dirichlet(np.array(counts)) == expected_val
 
@@ -38,7 +38,7 @@ def test_sample_dirichlet_corner(counts, expected_val):
     ],
 )
 def test_sample_dirichlet_all(counts):
-    """Tests output on predictable uniform case of `sample_small_dirichlet`"""
+    """Tests output on predictable uniform case of :func:`sample_small_dirichlet`"""
     samples = {sample_small_dirichlet(np.array(counts)) for _ in range(100)}
     assert {*range(len(counts))} == samples
 
@@ -55,7 +55,7 @@ def test_sample_dirichlet_all(counts):
     ],
 )
 def test_sample_dirichlet_max_min(counts, max_elem, min_elem):
-    """Tests statistics of output on `sample_small_dirichlet`"""
+    """Tests statistics of output on :func:`sample_small_dirichlet`"""
 
     for f in [sample_small_dirichlet, sample_large_dirichlet]:
         samples = Counter(f(np.array(counts)) for _ in range(500))

@@ -86,7 +86,7 @@ class DiscreteSpace:
         return len(self.size)
 
     def contains(self, elem: np.ndarray) -> bool:
-        """returns `this` contains `elem`
+        """returns whether `self` contains ``elem``
 
         Args:
              elem: (`np.ndarray`): element to check against
@@ -112,7 +112,7 @@ class DiscreteSpace:
     def index_of(self, elem: np.ndarray) -> int:
         """returns the index of an element (projects to single dimension)
 
-        See `from_index` for the reverse operation.
+        See :meth:`from_index` for the reverse operation.
 
         Args:
              elem: (`np.ndarray`): the element to project
@@ -126,12 +126,12 @@ class DiscreteSpace:
         return np.dot(elem, self._indexing_steps)
 
     def from_index(self, idx: int) -> np.ndarray:
-        """returns the element associated with index `i`
+        """returns the element associated with index ``i``
 
-        See `index_of` for the reverse operation.
+        See :meth:`index_of` for the reverse operation.
 
         :param i: the index of the element to be returned
-        :returns: an element in this space associated with `i`
+        :returns: an element in this space associated with ``i``
         """
         assert 0 <= idx < self.num_elements, f"{idx} not in {self}"
 

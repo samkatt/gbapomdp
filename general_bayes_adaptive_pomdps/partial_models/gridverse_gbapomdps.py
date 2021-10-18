@@ -286,14 +286,14 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
     ) -> "GridversePositionOrientationAugmentedState":
         """Updates the model distribution parameters with (s,a,s',o) data
 
-        Given the prior over the model in ``self``, computes a new posterior
+        Given the prior over the model in `self`, computes a new posterior
         given the (``state``, ``action``, ``next_state``, ``obs``)
         transition.
 
         Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state
-        according to the model in ``self``.
+        according to the model in `self`.
 
-        NOTE: modifies ``self`` if ``optimize`` is true
+        NOTE: modifies ``self`` if ``optimize`` is ``True``
 
         The updates applied are set during initialization.
 
@@ -301,7 +301,7 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         :param action: action at t
         :param next_state: state at t+1
         :param obs: ignored
-        :param optimize: whether to update model from ``self``
+        :param optimize: whether to update model from `self`
         """
         assert isinstance(state, GridversePositionOrientationAugmentedState)
         assert isinstance(next_state, GridversePositionOrientationAugmentedState)
@@ -320,9 +320,9 @@ class GridversePositionOrientationAugmentedState(GridverseAugmentedGodState):
         )
 
     def domain_step(self, action: int) -> Tuple["AugmentedGodState", np.ndarray]:
-        """Applies ``action`` on POMDP state in ``self``
+        """Applies ``action`` on POMDP state in `self`
 
-        Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state according to the model in ``self``:
+        Part of protocol of :class:`AugmentedGodState`. Updates the POMDP state according to the model in `self`:
 
             #. samples the next position according to learned model
             #. samples next state according to POMDP dynamics
@@ -486,6 +486,8 @@ def uniform_true_transactions(
     batch_size: int,
 ) -> Tuple[List[GVerseState], List[int], List[GVerseState]]:
     """Generates transitions truly uniform according to true dynamics
+
+    TODO: we return tuples, not lists
 
     #. samples _initial_ state
     #. set position and orientation randomly

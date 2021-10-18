@@ -93,17 +93,17 @@ class CollisionAvoidance(Domain):
 
     @property
     def state_space(self) -> DiscreteSpace:
-        """`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([x, y, obs_y])"""
+        """:class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([x, y, obs_y])"""
         return self._state_space
 
     @property
     def action_space(self) -> ActionSpace:
-        """a `general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space"""
+        """a :class:`general_bayes_adaptive_pomdps.core.ActionSpace` ([3]) space"""
         return self._action_space
 
     @property
     def observation_space(self) -> DiscreteSpace:
-        """a `general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,size]) space"""
+        """a :class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size,size]) space"""
         return self._obs_space
 
     def sample_start_state(self) -> np.ndarray:
@@ -212,7 +212,7 @@ class CollisionAvoidance(Domain):
         return reward
 
     def terminal(self, state: np.ndarray, action: int, new_state: np.ndarray) -> bool:
-        """True if reached end in `new_state`
+        """``True`` if reached end in ``new_state``
 
         Args:
              state: (`np.ndarray`):
@@ -281,7 +281,7 @@ class CollisionAvoidancePrior(DomainPrior):
     """
 
     def __init__(self, size: int, num_total_counts: float):
-        """creates a `general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance` prior of `size`
+        """a :class:`general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance` prior of ``size``
 
         Args:
              size: (`int`):
@@ -299,7 +299,7 @@ class CollisionAvoidancePrior(DomainPrior):
         self._num_total_counts = num_total_counts
 
     def sample(self) -> Domain:
-        """returns `general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance`
+        """returns :class:`general_bayes_adaptive_pomdps.domains.collision_avoidance.CollisionAvoidance`
 
         Domain has with random obstacle behavior
         """
