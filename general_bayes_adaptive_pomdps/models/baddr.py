@@ -500,7 +500,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
             self._theta_updates,
         )
 
-        return BADDrState(next_domain_state, next_model), obs
+        return SimulationResult(BADDrState(next_domain_state, next_model), obs)
 
     def reward(self, state: BADDrState, action: int, next_state: BADDrState) -> float:
         """the reward function of the underlying domain
