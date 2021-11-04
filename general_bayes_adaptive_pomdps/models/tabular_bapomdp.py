@@ -78,7 +78,7 @@ def expected_model(counts: np.ndarray) -> np.ndarray:
     return counts / np.sum(counts)
 
 
-def expected_probability(counts: np.ndarray, i: int) -> np.ndarray:
+def expected_probability(counts: np.ndarray, i: int) -> float:
     """Computes the (expected) probability of event `i` given `counts`
 
     :param counts: a 1-dimensional numpy array (positive numbers)
