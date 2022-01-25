@@ -14,92 +14,6 @@ from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 from general_bayes_adaptive_pomdps.models.tabular_bapomdp import DirCounts
 
 
-
-
-class RealDomainPrior(DomainPrior):
-    """standard prior over the tiger domain
-    The transition model is known, however the probability of observing the
-    tiger correctly is not. Here we assume a `Dir(prior * total_counts
-    ,(1-prior) * total_counts)` belief over this distribution.
-    ``prior`` is computed by the ``prior_correctness``: 1 -> .85, whereas 0 ->
-    .625, linear mapping in between
-    """
-
-    def __init__(
-        self,
-        num_total_counts: float,
-        prior_correctness: float,
-        one_hot_encode_observation: bool,
-    ):
-        """initiate the prior, will make observation one-hot encoded
-        Args:
-             num_total_counts: (`float`): Number of total counts of Dir prior
-             prior_correctness: (`float`): How correct the observation model is: [0, 1] -> [.625, .85]
-             one_hot_encode_observation: (`bool`):
-        """
-        super().__init__()
-
-        if num_total_counts <= 0:
-            raise ValueError(
-                f"Assume positive number of total counts, not {num_total_counts}"
-            )
-
-        if not 0 <= prior_correctness <= 1:
-            raise ValueError(
-                f"`prior_correctness` must be [0,1], not {prior_correctness}"
-            )
-        # prior_correctness = []
-        # Linear mapping: [0, 1] -> [.625, .85]
-        self._observation_prob = 0.625 + (prior_correctness * 0.225)
-        self._total_counts = num_total_counts
-        self._one_hot_encode_observation = one_hot_encode_observation
-
-    def sample(self) -> Domain:
-        """returns a Tiger instance with some correct observation prob
-        This prior over the observation probability is a Dirichlet with total
-        counts and observation probability as defined during the initialization
-        RETURNS (`general_bayes_adaptive_pomdps.core.Domain`):
-        """
-        # to get the probabilities of correct observation based on different human working status
-        # while the agent in the workroom.
-        sampled_observation_probs = [
-            np.random.dirichlet(
-                [
-                    self._observation_prob * self._total_counts,
-                    (1 - self._observation_prob) * self._total_counts,
-                ]
-            )[0],
-            np.random.dirichlet(
-                [
-                    self._observation_prob * self._total_counts,
-                    (1 - self._observation_prob) * self._total_counts,
-                ]
-            )[0],
-            np.random.dirichlet(
-                [
-                    self._observation_prob * self._total_counts,
-                    (1 - self._observation_prob) * self._total_counts,
-                ]
-            )[0],
-            np.random.dirichlet(
-                [
-                    self._observation_prob * self._total_counts,
-                    (1 - self._observation_prob) * self._total_counts,
-                ]
-            )[0],
-            np.random.dirichlet(
-                [
-                    self._observation_prob * self._total_counts,
-                    (1 - self._observation_prob) * self._total_counts,
-                ]
-            )[0],
-        ]
-        # 之后会设定参数
-        return RealDomain(
-            one_hot_encode_observation=self._one_hot_encode_observation,
-            correct_obs_probs=sampled_observation_probs,
-        )
-
 # 关于设定 prior counts的概率
 def create_tabular_prior_counts(
     correctness: float = 1, certainty: float = 10
@@ -120,58 +34,56 @@ def create_tabular_prior_counts(
         certainty: (`float`): total number of counts in observation prior
     RETURNS (`DirCounts`): a (set of dirichlet counts) prior
     """
-    # certainty 为observation先验计数
-    # 总计数
-    # episode
-    # horizon
-    # certainty 用法
     tot_counts_for_known = 10000.0
+    
+XXXX here I am not clear why we set correctness here, but I think it is just the implementation detail that not matter much
     correct_prob = 0.625 + (correctness * 0.225)
+    
     # transition counts
-    # t also involves state and action
-    # In the original tiger problem, the agent may hear either left or right with 50%.
     # It is an implementation detail that should not matter much
-    # we still design a empty array at first
-    # in the original array, its shape is [2,3,2] -> 2 states, 3 actions 2 observations;
-    # here we have 2*5*3*3*3*3 states, 5 actions, 5 observations
-    t_realdomain = np.zeros([2,5,3,3,3,3,5,5],dtype=float)
-    # for the action other than listening, we set the same probabilities for each observation
-    # here we can set a value formulation in the future.
-    t_realdomain[0:2,0:5,0:3,0:3,0:3,0:3,0:4,:] = [p * tot_counts_for_known for p in [0.2, 0.2, 0.2, 0.2, 0.2]]
-    # here only involves listening action with different human status
-    t_realdomain[0:2,0,0:3,0:3,0:3,0:3,4,:] = [p * tot_counts_for_known for p in [1.0, 0.0, 0.0, 0.0, 0.0]]
-    t_realdomain[0:2,1,0:3,0:3,0:3,0:3,4,:] = [p * tot_counts_for_known for p in [0.0, 1.0, 0.0, 0.0, 0.0]]
-    t_realdomain[0:2,2,0:3,0:3,0:3,0:3,4,:] = [p * tot_counts_for_known for p in [0.0, 0.0, 1.0, 0.0, 0.0]]
-    t_realdomain[0:2,3,0:3,0:3,0:3,0:3,4,:] = [p * tot_counts_for_known for p in [0.0, 0.0, 0.0, 1.0, 0.0]]
-    t_realdomain[0:2,4,0:3,0:3,0:3,0:3,4,:] = [p * tot_counts_for_known for p in [0.0, 0.0, 0.0, 0.0, 1.0]]
+    # we will design a empty array at first
+    # here we have 810 states, 5 actions
+    # the shape of t_realdomain is (810, 5, 810)-> 3 dimensions
+XXXX here action will change the location of the agent, the status of tools and human working status.
+XXXX Please allow me to set an example, if the inital state s is [0,5,2,2,2,2] and the action is go-to-workroom
+XXXX Then the state s‘ is [1,5,2,2,2,2]. How can we determine the index value of these two states?
+XXXX Or in this situation t_realdomain[?,0,?]
+
+    t_realdomain = np.zeros([810,5,810],dtype=float)
+
 
     # observation prior counts
     # 5 actions: go-to-workroom, go-to-toolroom, pickup, deliver, listen
     # 2 locations: workroom and tool room
     # 5 different working stage
-    # 4 tools with 3 values-> 0: work room; 1: with the robot; 2: deliverd
-    # 6 observations: 0 1 2 3 4 nothing
-    # since it is of large dimension, we need to create empty array at first;
-    o_realdomain = np.zeros([5,2,5,3,3,3,3,6],dtype=float)
-    # a = listen and location in work room and based on human working status, only under this condition can the valid produce;
-    # first of all, we can set the rest parts as seeing nothing!
-    o_realdomain[0:4,0:2,0:5,0:3,0:3,0:3,0:3,:] = [p * tot_counts_for_known for p in [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
-    # listening part:
-    # The listening part in the workroom listen nothing as well.
-    o_realdomain[4,0,0:5,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
+    # tool status has 3 values-> 0: work room; 1: with the robot; 2: deliverd
+    # 6 observations: 0, 1, 2, 3, 4, nothing
+    
     # For the rest part, the listening content depends on human's working status
     a = 1 - correct_prob
-    o_realdomain[4,1,0,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [1-a, a/4, a/4, a/4, a/4, 0.0]]
-    o_realdomain[4,1,1,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [a/4, 1-a, a/4, a/4, a/4, 0.0]]
-    o_realdomain[4,1,2,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [a/4, a/4, 1-a, a/4, a/4, 0.0]]
-    o_realdomain[4,1,3,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [a/4, a/4, a/4, 1-a, a/4, 0.0]]
-    o_realdomain[4,1,4,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [a/4, a/4, a/4, a/4, 1-a, 0.0]]
+    o_realdomain = np.zeros([5,810,6],dtype=float)
+    # If the agent execute non-observation actions, then it will observes nothing
+    # here action == go-to-workroom || go-to-toolroom || pick-up || drop
+    o_realdomain[0:4,0:810,:] = [p * tot_counts_for_known for p in [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
     
-    # Since the agent knows its tool status for the observation, I set another possibilities:
-    # o_realdomain[4,1,0,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [1-a, a/4, a/4, a/4, a/4, 0.0]]
-    # o_realdomain[4,1,1,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [0.0, 1-a, a/3, a/3, a/3, 0.0]]
-    # o_realdomain[4,1,2,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [0.0, 0.0, 1-a, a/2, a/2, 0.0]]
-    # o_realdomain[4,1,3,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [0.0, 0.0, 0.0, 1-a, a, 0.0]]
-    # o_realdomain[4,1,4,0:3,0:3,0:3,0:3,:] = [p * certainty for p in [0.0, 0.0, 0.0, 0.0, 1.0, 0.0]]
+    # we assume the second half indicates that the Turtlebot located at work room
+    # In the first part which indicates that the Turtlebot located at tool room
+    # The agent still observes nothing
+    o_realdomain[4,0:405,:] = [p * certainty for p in [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
+    # In the second part, which indicates that the Turtlebot located at workroom
+    # Only when the agent in the work room and listen, it can observe human's current stauts:
+    # what it will observe based on human's working status
+    
+    # human_working_stauts == 0 && action == listen && the agent located at workroom
+    o_realdomain[4,405:486,:] = [p * certainty for p in [1-a, a/4, a/4, a/4, a/4, 0.0]]
+    # human_working_stauts == 1 && action == listen && the agent located at workroom
+    o_realdomain[4,486:567,:] = [p * certainty for p in [a/4, 1-a, a/4, a/4, a/4, 0.0]]
+    # human_working_stauts == 2 && action == listen && the agent located at workroom
+    o_realdomain[4,567:648,:] = [p * certainty for p in [a/4, a/4, 1-a, a/4, a/4, 0.0]]
+    # human_working_stauts == 3 && action == listen && the agent located at workroom
+    o_realdomain[4,648:729,:] = [p * certainty for p in [a/4, a/4, a/4, 1-a, a/4, 0.0]]
+    # human_working_stauts == 4 && action == listen && the agent located at workroom
+    o_realdomain[4,729:810,:] = [p * certainty for p in [a/4, a/4, a/4, a/4, 1-a, 0.0]]
+    
 
     return DirCounts(t_realdomain, o_realdomain)
