@@ -210,6 +210,10 @@ class Tiger(Domain):
         RETURNS (`float`):
 
         """
+        try:
+            action = action[0]
+        except:
+            pass
 
         assert self.state_space.contains(state), f"{state} not in space"
         assert self.state_space.contains(new_state), f"{new_state} not in space"
@@ -232,6 +236,11 @@ class Tiger(Domain):
 
         """
 
+        try:
+            action = action[0]
+        except:
+            pass
+
         assert self.state_space.contains(state), f"{state} not in space"
         assert self.state_space.contains(new_state), f"{new_state} not in space"
         assert self.action_space.contains(action), f"{action} not in space"
@@ -250,6 +259,11 @@ class Tiger(Domain):
         RETURNS (`general_bayes_adaptive_pomdps.core.EnvironmentInteraction`): the transition
 
         """
+
+        try:
+            action = action[0]
+        except:
+            pass
 
         sim_result = self.simulation_step(self.state, action)
         reward = self.reward(self.state, action, sim_result.state)
