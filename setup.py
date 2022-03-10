@@ -13,7 +13,7 @@ with open("HISTORY.rst") as history_file:
 requirements = [
     "torch",
     "typing_extensions",
-    "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
+    # "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
     "numpy",
     "cached_property",
 ]

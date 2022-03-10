@@ -172,7 +172,6 @@ class TabularBAPOMDP(GeneralBAPOMDP[TBAPOMDPState]):
         """
 
         state_index = self.domain_state_space.index_of(state.domain_state)
-
         next_state_index = self.sample_t(state.counts.T[state_index, action])
         observation_index = self.sample_o(state.counts.O[action, next_state_index])
 
