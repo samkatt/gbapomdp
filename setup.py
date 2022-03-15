@@ -11,7 +11,7 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "torch",
+   "torch",
     "typing_extensions",
     # "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
     "numpy",
