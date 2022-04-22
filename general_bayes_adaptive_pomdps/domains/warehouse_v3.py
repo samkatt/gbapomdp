@@ -4,6 +4,7 @@ from logging import Logger
 from random import random
 from typing import List, Optional
 import itertools as itt
+from general_bayes_adaptive_pomdps.domains.warehouse import isValid
 import numpy as np
 from copy import copy
 import one_to_one
@@ -43,12 +44,16 @@ TASK_FINISHED_REWARD = 100
 WRONG_TOOL_REWARD = -10
 STEP_CORRECT_TOOL_REWARD = 10
 
+# Stochasticity
+PERFECT_HUMAN_OBS_PROB = 0.8
+PERFECT_DROP_PROB = 0.8
 
-class WareHouseV2(Domain):
+
+class WareHouseV3(Domain):
     """Now the agent can only observe human status when at the work room,
     when at the tool room, it observer UNKNOWN_STATUS.
     It also can only observe which tool it is carrying instead of the status 
-    of all tools
+    of all tools. This version has a stochastic dynamics.
     """
 
     def __init__(
@@ -59,7 +64,7 @@ class WareHouseV2(Domain):
 
         Args:
              one_hot_encode_observation: (`bool`):
-             correct_obs_probs: (`Optional[List[float]]`):
+             correct_obs_prob: (`Optional[List[float]]`):
 
         """
         super().__init__()
@@ -69,8 +74,6 @@ class WareHouseV2(Domain):
         self._use_one_hot_obs = False
 
         self._action_space = ActionSpace(NUM_TOOLS + 1)  # Drop, Pick_i for NUM_TOOLS tools
-
-        self._correct_human_stat_probs = 0.8
 
         self._max_human_status = 5
         self._max_tool_status = 3
@@ -146,7 +149,7 @@ class WareHouseV2(Domain):
 
         """
         # Human starts assembling, all tools are available, the agent is at the tool room
-        return np.array([0], dtype=int)
+        return np.array([np.random.choice((0, 1))], dtype=int)
 
     def reset(self) -> np.ndarray:
         """Resets internal state and return first observation
@@ -154,9 +157,11 @@ class WareHouseV2(Domain):
         """
         self._state = self.sample_start_state()
 
-        return np.array([0], dtype=int)
+        obs = self._prepare_obs(self._state_lst[self._state[0]], PERFECT_HUMAN_OBS_PROB)
 
-    def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
+        return np.array([obs.idx])
+
+    def simulation_step(self, state: np.ndarray, action: int, correct_obs_prob=PERFECT_HUMAN_OBS_PROB, drop_prob=PERFECT_DROP_PROB) -> SimulationResult:
         """Simulates stepping from state using action. Returns interaction
 
         Will terminate episode when a wrong tool is delivered or the task finishes,
@@ -179,7 +184,7 @@ class WareHouseV2(Domain):
 
         if action in [DROP]:
 
-            if num_tools_picked == 1:
+            if num_tools_picked == 1 and np.random.rand() < drop_prob:
 
                 # This action brings the agent to the work room
                 if _state.location.value == AT_TOOL_ROOM:
@@ -233,11 +238,11 @@ class WareHouseV2(Domain):
             print("Invalid action", action)
 
         assert(isStateValid(_new_state))
-        obs = self._prepare_obs(_new_state)
+        obs = self._prepare_obs(_new_state, correct_obs_prob)
 
         return SimulationResult(np.array([_new_state.idx]), np.array([obs.idx]))
 
-    def _prepare_obs(self, state):
+    def _prepare_obs(self, state, correct_obs_prob):
         obs = self._obs_lst[0]
 
         obs.location.value = state.location.value
@@ -247,7 +252,7 @@ class WareHouseV2(Domain):
             obs.human_status.value = UNKNOWN_STATUS
         else:
             # At work room, can observe human status with some prob.
-            if np.random.random() < self._correct_human_stat_probs:
+            if np.random.random() < correct_obs_prob:
                 obs.human_status.value = state.human_status.value
             else:
                 obs.human_status.value = UNKNOWN_STATUS
@@ -314,12 +319,18 @@ class WareHouseV2(Domain):
             if num_tools_picked == 1:
                 picked_tool_idx = toolPicked(prev_state)
 
+                # Drop unsucessfully
+                if numToolsPicked(curr_state) == 1:
+                    return STEP_REWARD
+
                 if prev_state.human_status.value == picked_tool_idx:
                     if curr_state.human_status.value == self._max_human_status - 2:
                         return TASK_FINISHED_REWARD
                     else:
+                        # Drop successfully
                         return STEP_CORRECT_TOOL_REWARD
                 else:
+                    # Drop sucecessfully
                     return WRONG_TOOL_REWARD
             else:
                 return STEP_REWARD
@@ -353,12 +364,17 @@ class WareHouseV2(Domain):
             if num_tools_picked == 1:
                 picked_tool_idx = toolPicked(prev_state)
 
+                # Drop unsuccessfully
+                if numToolsPicked(curr_state) == 1:
+                    return False
+
                 if prev_state.human_status.value == picked_tool_idx:
                     if curr_state.human_status.value == self._max_human_status - 2:
                         return True
                     else:
                         return False
                 else:
+                    # Drop a wrong tool
                     return True
             else:
                 return False
@@ -409,7 +425,7 @@ def create_tabular_prior_counts(
     correctness: float = 1, certainty: float = 10
 ) -> DirCounts:
 
-    env = WareHouseV2(False)
+    env = WareHouseV3(False)
     env.reset()
 
     state_space = env.sem_state_space
@@ -422,15 +438,21 @@ def create_tabular_prior_counts(
     for s in state_space.elems:
         for a in action_space.elems:
             if isStateValid(s):
-                simulation_result = env.simulation_step([s.idx], a.idx)
-                next_s_idx = simulation_result.state
-                next_o_idx = simulation_result.observation
+                sim_results = []
+                sim_results.append(env.simulation_step([s.idx], a.idx, correct_obs_prob=0.0, drop_prob=0.0))
+                sim_results.append(env.simulation_step([s.idx], a.idx, correct_obs_prob=0.0, drop_prob=PERFECT_DROP_PROB))
+                sim_results.append(env.simulation_step([s.idx], a.idx, correct_obs_prob=PERFECT_HUMAN_OBS_PROB, drop_prob=0.0))
+                sim_results.append(env.simulation_step([s.idx], a.idx, correct_obs_prob=PERFECT_HUMAN_OBS_PROB, drop_prob=PERFECT_DROP_PROB))
 
-                next_s = env._state_lst[next_s_idx[0]]
-                next_o = env._obs_lst[next_o_idx[0]]
+                for sim_res in sim_results:
+                    next_s_idx = sim_res.state
+                    next_o_idx = sim_res.observation
 
-                if isStateValid(next_s):
-                    T_mat[s.idx, a.idx, next_s_idx[0]] = 1.0
-                    # O_mat[a.idx, next_s_idx[0], next_o_idx[0]] = 1.0
+                    next_s = env._state_lst[next_s_idx[0]]
+                    next_o = env._obs_lst[next_o_idx[0]]
+
+                    if isStateValid(next_s) and isObsValid(next_o):
+                        T_mat[s.idx, a.idx, next_s_idx[0]] = 0.25
+                        O_mat[a.idx, next_s_idx[0], next_o_idx[0]] = 0.25
 
     return DirCounts((1000*T_mat).astype(np.int), (1000*O_mat).astype(np.int))

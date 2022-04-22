@@ -4,6 +4,7 @@ from logging import Logger
 from random import random
 from typing import List, Optional
 import itertools as itt
+from general_bayes_adaptive_pomdps.domains.warehouse import isValid
 import numpy as np
 from copy import copy
 import one_to_one
@@ -41,14 +42,18 @@ UNKNOWN_STATUS = 4
 STEP_REWARD = -1
 TASK_FINISHED_REWARD = 100
 WRONG_TOOL_REWARD = -10
-STEP_CORRECT_TOOL_REWARD = 10
+EMPTY_DROP_REWARD = -5
+
+# Stochasticity
+PERFECT_HUMAN_OBS_PROB = 0.8
+PERFECT_DROP_PROB = 0.8
 
 
-class WareHouseV2(Domain):
+class WareHouseV4(Domain):
     """Now the agent can only observe human status when at the work room,
     when at the tool room, it observer UNKNOWN_STATUS.
     It also can only observe which tool it is carrying instead of the status 
-    of all tools
+    of all tools. This version has a stochastic dynamics.
     """
 
     def __init__(
@@ -59,7 +64,7 @@ class WareHouseV2(Domain):
 
         Args:
              one_hot_encode_observation: (`bool`):
-             correct_obs_probs: (`Optional[List[float]]`):
+             correct_obs_prob: (`Optional[List[float]]`):
 
         """
         super().__init__()
@@ -69,8 +74,6 @@ class WareHouseV2(Domain):
         self._use_one_hot_obs = False
 
         self._action_space = ActionSpace(NUM_TOOLS + 1)  # Drop, Pick_i for NUM_TOOLS tools
-
-        self._correct_human_stat_probs = 0.8
 
         self._max_human_status = 5
         self._max_tool_status = 3
@@ -146,7 +149,7 @@ class WareHouseV2(Domain):
 
         """
         # Human starts assembling, all tools are available, the agent is at the tool room
-        return np.array([0], dtype=int)
+        return np.array([np.random.choice((0, 1))], dtype=int)
 
     def reset(self) -> np.ndarray:
         """Resets internal state and return first observation
@@ -154,7 +157,9 @@ class WareHouseV2(Domain):
         """
         self._state = self.sample_start_state()
 
-        return np.array([0], dtype=int)
+        obs = self._prepare_obs(self._state_lst[self._state[0]])
+
+        return np.array([obs.idx])
 
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
         """Simulates stepping from state using action. Returns interaction
@@ -242,15 +247,11 @@ class WareHouseV2(Domain):
 
         obs.location.value = state.location.value
 
-        # The agent cannot observe human status at tool room
+        # # The agent cannot observe human status at tool room
         if obs.location.value == AT_TOOL_ROOM:
             obs.human_status.value = UNKNOWN_STATUS
         else:
-            # At work room, can observe human status with some prob.
-            if np.random.random() < self._correct_human_stat_probs:
-                obs.human_status.value = state.human_status.value
-            else:
-                obs.human_status.value = UNKNOWN_STATUS
+            obs.human_status.value = state.human_status.value
 
         num_tools_picked = numToolsPicked(state)
 
@@ -318,11 +319,11 @@ class WareHouseV2(Domain):
                     if curr_state.human_status.value == self._max_human_status - 2:
                         return TASK_FINISHED_REWARD
                     else:
-                        return STEP_CORRECT_TOOL_REWARD
+                        return STEP_REWARD
                 else:
                     return WRONG_TOOL_REWARD
             else:
-                return STEP_REWARD
+                return EMPTY_DROP_REWARD
 
         else:
             return STEP_REWARD
@@ -359,8 +360,10 @@ class WareHouseV2(Domain):
                     else:
                         return False
                 else:
+                    # Drop a wrong tool
                     return True
             else:
+                # Drop without a tool picked
                 return False
 
         else:
@@ -409,19 +412,19 @@ def create_tabular_prior_counts(
     correctness: float = 1, certainty: float = 10
 ) -> DirCounts:
 
-    env = WareHouseV2(False)
-    env.reset()
+    env = WareHouseV4(False)
 
     state_space = env.sem_state_space
     obs_space = env.sem_obs_space
     action_space = env.sem_action_space
 
     T_mat = np.zeros((state_space.nelems,  action_space.nelems, state_space.nelems))
-    O_mat = np.ones((action_space.nelems, state_space.nelems,  obs_space.nelems))
+    O_mat = np.zeros((action_space.nelems, state_space.nelems,  obs_space.nelems))
 
     for s in state_space.elems:
         for a in action_space.elems:
             if isStateValid(s):
+
                 simulation_result = env.simulation_step([s.idx], a.idx)
                 next_s_idx = simulation_result.state
                 next_o_idx = simulation_result.observation
@@ -429,8 +432,27 @@ def create_tabular_prior_counts(
                 next_s = env._state_lst[next_s_idx[0]]
                 next_o = env._obs_lst[next_o_idx[0]]
 
-                if isStateValid(next_s):
-                    T_mat[s.idx, a.idx, next_s_idx[0]] = 1.0
-                    # O_mat[a.idx, next_s_idx[0], next_o_idx[0]] = 1.0
+                if a.idx in [DROP]:
 
-    return DirCounts((1000*T_mat).astype(np.int), (1000*O_mat).astype(np.int))
+                    if numToolsPicked(s) == 1:
+                        copy_state = copy(next_s)
+
+                        copy_state.human_status.value = min(s.human_status.value + 1, NUM_TOOLS)
+                        o = env._prepare_obs(copy_state)
+
+                        if isStateValid(copy_state) and isObsValid(o):
+                            T_mat[s.idx, a.idx, copy_state.idx] = 1.0
+                            O_mat[a.idx, copy_state.idx, o.idx] = 1.0
+
+                        copy_state.human_status.value = s.human_status.value
+                        o = env._prepare_obs(copy_state)
+
+                        if isStateValid(copy_state) and isObsValid(o):
+                            T_mat[s.idx, a.idx, copy_state.idx] = 1.0
+                            O_mat[a.idx, copy_state.idx, o.idx] = 1.0
+
+                if isStateValid(next_s) and isObsValid(next_o):
+                    T_mat[s.idx, a.idx, next_s_idx[0]] = 1.0 + 0.15*np.random.choice((-1, 1))
+                    O_mat[a.idx, next_s_idx[0], next_o_idx[0]] = 1.0
+
+    return DirCounts(T_mat, O_mat)
