@@ -1,4 +1,4 @@
-from general_bayes_adaptive_pomdps.domains.small_box_pushing import (
+from general_bayes_adaptive_pomdps.domains.box_pushing.small_box_pushing import (
     SmallBoxPushing,
 )
 import time

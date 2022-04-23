@@ -4,7 +4,7 @@ import gym
 import numpy as np
 
 from gym import spaces
-from general_bayes_adaptive_pomdps.domains.box_pushing_core import Agent, Box
+from general_bayes_adaptive_pomdps.domains.box_pushing.box_pushing_core import Agent, Box
 
 DIRECTION = [(0, 1), (1, 0), (0, -1), (-1, 0)]
 ACTIONS = ["Move_Forward", "Turn_L", "Turn_R", "Stay"]
@@ -43,12 +43,6 @@ class SmallBoxPushing(gym.Env):
         self.createAgents()
         self.createBoxes()
 
-        self.action_size = 4**self.n_agent
-        self.total_obs_size = 4**self.n_agent  # Front cell can be wall, agent, empty, or box
-        grid_size = grid_dim[0] * grid_dim[1]
-        # (x, y) positions of all boxes, (x, y, orientation) of all agents
-        self.state_size = grid_size**len(self.boxes) * (grid_size*4)**self.n_agent
-
     @property
     def obs_size(self):
         return [self.observation_space[0].n] * self.n_agent
@@ -64,7 +58,7 @@ class SmallBoxPushing(gym.Env):
     def action_spaces(self):
         return self.action_space
 
-    def createAgents(self, agent_pos=None):
+    def createAgents(self, agents_pos=None):
 
         if self.ylen >= 8.0:
             A0 = Agent(0, 1.5, 1.5, 1, (self.xlen, self.ylen))
@@ -76,20 +70,19 @@ class SmallBoxPushing(gym.Env):
             A0 = Agent(0, 0.5, 0.5, 1, (self.xlen, self.ylen))
             A1 = Agent(1, 3.5, 0.5, 3, (self.xlen, self.ylen))
 
-        if agent_pos is not None:
-            # direction
-            assert (0 <= agent_pos[2] < 4)
-            assert (0 <= agent_pos[5] < 4)
+        if agents_pos is not None:
+            # orientation
+            assert 0 <= agents_pos[2] < 4
+            assert 0 <= agents_pos[5] < 4
 
             # XY positions of 2 agents
-            assert (0 <= agent_pos[0] < self.xlen)
-            assert (0 <= agent_pos[1] < self.ylen)
-            assert (0 <= agent_pos[3] < self.xlen)
-            assert (0 <= agent_pos[4] < self.ylen)
+            assert 0 <= agents_pos[0] < self.xlen
+            assert 0 <= agents_pos[1] < self.ylen
+            assert 0 <= agents_pos[3] < self.xlen
+            assert 0 <= agents_pos[4] < self.ylen
 
-            scaled_pos = (2*np.array(agent_pos) + 1) * 0.5
-            A0 = Agent(0, scaled_pos[0], scaled_pos[1], agent_pos[2], (self.xlen, self.ylen))
-            A1 = Agent(1, scaled_pos[3], scaled_pos[4], agent_pos[5], (self.xlen, self.ylen))            
+            A0 = Agent(0, agents_pos[0], agents_pos[1], agents_pos[2], (self.xlen, self.ylen))
+            A1 = Agent(1, agents_pos[3], agents_pos[4], agents_pos[5], (self.xlen, self.ylen))
 
         self.agents = [A0, A1]
 
@@ -143,9 +136,8 @@ class SmallBoxPushing(gym.Env):
             SB_1 = Box(1, 3.5, self.ylen / 2 + 0.5, 1.0, 1.0)
 
         if boxes_pos is not None:
-            scaled_pos = (2*np.array(boxes_pos) + 1) * 0.5
-            SB_0 = Agent(0, scaled_pos[0], scaled_pos[1], 1, 1.0, 1.0)
-            SB_1 = Agent(1, scaled_pos[2], scaled_pos[3], 3, 1.0, 1.0)
+            SB_0 = Box(0, boxes_pos[0], boxes_pos[1], 1.0, 1.0)
+            SB_1 = Box(1, boxes_pos[2], boxes_pos[3], 1.0, 1.0)
 
         self.boxes = [SB_0, SB_1]
 
@@ -160,29 +152,29 @@ class SmallBoxPushing(gym.Env):
                 )
             self.boxes.append(SB)
 
-    def reset(self, debug=False, agent_pos=None, boxes_pos=None):
+    def reset(self, debug=False, agents_pos=None, boxes_pos=None):
         """
         Parameter
         ---------
         debug: bool
             if debug, will render the environment for visualization
+        entity_pos:
+            if not None, will specify the positions of agents and boxes
 
         Return
         ------
         List[numpy.array]
             a list of agents' observations
         """
-        self.createAgents(agent_pos=agent_pos)
+        self.createAgents(agents_pos=agents_pos)
         self.createBoxes(boxes_pos=boxes_pos)
-        self.t = 0
-        self.count_step = 0
 
         if debug:
             self.render()
 
-        return self._getobs(), self.get_state()
+        return self._getobs()
 
-    def step(self, actions, debug=False):
+    def step(self, actions, debug=True):
 
         # assume current step does not terminate
         terminate = 0
@@ -191,9 +183,6 @@ class SmallBoxPushing(gym.Env):
             rewards = 0.0
         else:
             rewards = -0.1
-
-        self.count_step += 1
-
         for idx, agent in enumerate(self.agents):
             reward = agent.step(actions[idx], self.boxes)
             if not self.terminal_reward_only:
@@ -256,6 +245,7 @@ class SmallBoxPushing(gym.Env):
                 or agent.ycoord + DIRECTION[agent.ori][1] < 0.0
             ):
                 obs = 2
+                break
 
             # observe agent
             for teamate_idx in range(self.n_agent):
@@ -271,18 +261,23 @@ class SmallBoxPushing(gym.Env):
                         break
 
             if debug:
-                print("Agent_" + str(idx) + " \t small_box  \t\t{}".format(obs[0]))
-                print("          " + " \t large_box \t\t{}".format(obs[1]))
-                print("          " + " \t empty \t\t\t{}".format(obs[2]))
-                print("          " + " \t wall \t\t\t{}".format(obs[3]))
-                print("          " + " \t teammate \t\t{}".format(obs[4]))
-                print("")
+                print("Agent_" + str(idx) + " \t obs  \t\t{}".format(obs))
 
             observations.append(obs)
 
-        self.old_observations = observations
-
         return observations
+
+    def get_obs(self):
+        """
+        Request the current observation
+
+        Return
+        ------
+        list
+            the current type of the cell in-front (empty, box, wall, agent)
+        """
+
+        return np.array(self._getobs(), dtype=int)
 
     def get_state(self):
         """
@@ -296,25 +291,14 @@ class SmallBoxPushing(gym.Env):
 
         positions = []
         for ag in self.agents:
-            positions.append((ag.xcoord - 0.5) // 2)
-            positions.append((ag.ycoord - 0.5) // 2)
+            positions.append(ag.xcoord - 0.5)
+            positions.append(ag.ycoord - 0.5)
             positions.append(ag.ori)
         for bx in self.boxes:
-            positions.append((bx.xcoord - 0.5) // 2)
-            positions.append((bx.ycoord - 0.5) // 2)
-        return positions
+            positions.append(bx.xcoord - 0.5)
+            positions.append(bx.ycoord - 0.5)
 
-    def get_env_info(self):
-        return {
-            "state_shape": len(self.get_state()),
-            "obs_shape": self.obs_size[0],
-            "n_actions": self.n_action[0],
-            "n_agents": self.n_agent,
-            "episode_limit": self.terminate_step,
-        }
-
-    def get_avail_actions(self):
-        return [[1] * n for n in self.n_action]
+        return np.array(positions, dtype=int)
 
     def render(self, mode="human"):
 
@@ -339,7 +323,7 @@ class SmallBoxPushing(gym.Env):
         small_box_in_size = 75.0
 
         if self.viewer is None:
-            from general_bayes_adaptive_pomdps.domains import rendering
+            from general_bayes_adaptive_pomdps.domains.box_pushing import rendering
 
             self.viewer = rendering.Viewer(screen_width, screen_height)
 

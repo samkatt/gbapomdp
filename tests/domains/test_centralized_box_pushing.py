@@ -1,22 +1,17 @@
 """Tests :mod:`general_bayes_adaptive_pomdps.domains`"""
 
-import random
-
 import numpy as np
 import pytest
+import time
 
-from general_bayes_adaptive_pomdps.core import TerminalState
-from general_bayes_adaptive_pomdps.domains.ma_box_pushing import (
-    MultiAgentBoxPushing,
+from general_bayes_adaptive_pomdps.domains.box_pushing.centralized_box_pushing import (
+    CentralizedBoxPushing,
 )
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace
-
-import one_to_one
 
 
-def setup_domain() -> MultiAgentBoxPushing:
+def setup_domain() -> CentralizedBoxPushing:
     """creates a env member"""
-    domain = MultiAgentBoxPushing()
+    domain = CentralizedBoxPushing()
     domain.reset()
     return domain
 
@@ -26,8 +21,22 @@ def test_reset():
 
     env = setup_domain()
 
-    assert env.state in [21269]
+    # assert env.state in [21269]
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    env = CentralizedBoxPushing()
+    env.reset()
+
+    done = False
+
+    while not done:
+        action = np.random.randint(16)
+        print(action)
+        result = env.step(action)
+        done = result.terminal
+        time.sleep(1)
+
+        if done:
+            env.reset()
+            done = False
