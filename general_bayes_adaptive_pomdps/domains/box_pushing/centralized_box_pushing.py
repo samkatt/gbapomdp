@@ -42,8 +42,8 @@ class CentralizedBoxPushing(Domain):
         # each agent has 4 cardinal movements
         self._action_space = ActionSpace(4**n_agents)
 
-        # obs: the type of the pointed cell (empty, either box, wall, agent)
-        self._obs_space = DiscreteSpace([4])
+        # obs: the type of the pointed cell (empty, either box, wall, agent) per agent
+        self._obs_space = DiscreteSpace([4, 4])
 
         self._state = self.sample_start_state()
 

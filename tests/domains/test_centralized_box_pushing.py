@@ -25,7 +25,7 @@ def test_reset():
 
 
 if __name__ == "__main__":
-    env = CentralizedBoxPushing()
+    env = CentralizedBoxPushing(grid_dim=(8, 8))
     env.reset()
 
     done = False
