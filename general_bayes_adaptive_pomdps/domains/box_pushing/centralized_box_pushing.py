@@ -20,18 +20,15 @@ import one_to_one
 
 class CentralizedBoxPushing(Domain):
 
-    def __init__(
-        self, grid_dim=(4, 4)
-    ):
+    def __init__(self, grid_dim=(4, 4)):
         """Construct the tiger domain
-
         Args:
-             one_hot_encode_observation: (`bool`):
-             correct_obs_probs: (`Optional[List[float]]`):
+            grid_dim
 
         """
         super().__init__()
 
+        # Fix the number of agents
         n_agents = 2
 
         self._env = SmallBoxPushing(grid_dim=grid_dim, n_agent=n_agents)
@@ -95,7 +92,7 @@ class CentralizedBoxPushing(Domain):
         RETURNS (`np.ndarray`): [x, y, ori] per agent, [x, y] per box
 
         """
-        self.sample_start_state()
+        self._state = self.sample_start_state()
         return self._env.get_obs()
 
     def simulation_step(self, state: np.ndarray, action: int) -> SimulationResult:
@@ -167,7 +164,7 @@ class CentralizedBoxPushing(Domain):
         _, _, terminates, _ = self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
 
         # terminate when any box is pushed to the goal area
-        return np.sum(terminates) > 0
+        return (np.sum(terminates) == 2)
 
     def step(self, action: int) -> DomainStepResult:
         """
@@ -180,19 +177,15 @@ class CentralizedBoxPushing(Domain):
         agent_actions = self._action_lst[action]
 
         # apply action
-        _, rewards, terminates, _ = self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
+        obs, rewards, terminates, _ = self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
 
         # result of the action
         new_state = self._env.get_state()
-        obs = self._env.get_obs()
 
-        # sim_result = self.simulation_step(self.state, action)
-        # reward = self.reward(self.state, action, sim_result.state)
-        # terminal = self.terminal(self.state, action, sim_result.state)
-
+        terminal = (np.sum(terminates) == 2)
         self.state = new_state
 
-        return DomainStepResult(obs, np.sum(rewards), terminates)
+        return DomainStepResult(obs, np.sum(rewards), terminal)
 
     def _reset_sim(self, state):
         """

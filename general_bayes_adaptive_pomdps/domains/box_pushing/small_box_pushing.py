@@ -81,8 +81,8 @@ class SmallBoxPushing(gym.Env):
             assert 0 <= agents_pos[3] < self.xlen
             assert 0 <= agents_pos[4] < self.ylen
 
-            A0 = Agent(0, agents_pos[0], agents_pos[1], agents_pos[2], (self.xlen, self.ylen))
-            A1 = Agent(1, agents_pos[3], agents_pos[4], agents_pos[5], (self.xlen, self.ylen))
+            A0 = Agent(0, agents_pos[0] + 0.5, agents_pos[1] + 0.5, agents_pos[2], (self.xlen, self.ylen))
+            A1 = Agent(1, agents_pos[3] + 0.5, agents_pos[4] + 0.5, agents_pos[5], (self.xlen, self.ylen))
 
         self.agents = [A0, A1]
 
@@ -136,8 +136,8 @@ class SmallBoxPushing(gym.Env):
             SB_1 = Box(1, 3.5, self.ylen / 2 + 0.5, 1.0, 1.0)
 
         if boxes_pos is not None:
-            SB_0 = Box(0, boxes_pos[0], boxes_pos[1], 1.0, 1.0)
-            SB_1 = Box(1, boxes_pos[2], boxes_pos[3], 1.0, 1.0)
+            SB_0 = Box(0, boxes_pos[0] + 0.5, boxes_pos[1] + 0.5, 1.0, 1.0)
+            SB_1 = Box(1, boxes_pos[2] + 0.5, boxes_pos[3] + 0.5, 1.0, 1.0)
 
         self.boxes = [SB_0, SB_1]
 

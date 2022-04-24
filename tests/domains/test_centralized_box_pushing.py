@@ -32,11 +32,11 @@ if __name__ == "__main__":
 
     while not done:
         action = np.random.randint(16)
-        print(action)
         result = env.step(action)
         done = result.terminal
-        time.sleep(1)
+        time.sleep(0.5)
 
         if done:
+            print("Reset")
             env.reset()
             done = False
