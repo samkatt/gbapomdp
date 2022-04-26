@@ -81,6 +81,8 @@ class DomainStepResult(NamedTuple):
 class TerminalState(Exception):
     """raised when trying to step with a terminal state"""
 
+class InvalidState(Exception):
+    """raised when trying to step with an invalid state"""
 
 class SimulationResult(NamedTuple):
     """The tuple returned by simulations doing steps"""

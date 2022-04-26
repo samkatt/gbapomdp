@@ -16,6 +16,7 @@ from general_bayes_adaptive_pomdps.core import (
     SimulationResult,
     TerminalFunction,
     TerminalState,
+    InvalidState,
     Transition,
 )
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
@@ -95,7 +96,7 @@ def sample_transitions_uniform(
 
             return Transition(state, action, next_state, observation)
 
-        except TerminalState:
+        except (TerminalState, InvalidState):
             continue
 
 

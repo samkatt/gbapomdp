@@ -2,6 +2,7 @@
 
 import gym
 import numpy as np
+import time
 
 from gym import spaces
 from general_bayes_adaptive_pomdps.domains.box_pushing.box_pushing_core import Agent, Box
@@ -25,6 +26,7 @@ class SmallBoxPushing(gym.Env):
         terminate_step=100,
         terminal_reward_only=False,
         small_box_reward=10,
+        render=False,
         *args,
         **kwargs
     ):
@@ -39,6 +41,7 @@ class SmallBoxPushing(gym.Env):
         self.terminal_reward_only = terminal_reward_only
         self.small_box_reward = small_box_reward
         self.viewer = None
+        self.show = render
         # create agents and boxes
         self.createAgents()
         self.createBoxes()
@@ -169,12 +172,12 @@ class SmallBoxPushing(gym.Env):
         self.createAgents(agents_pos=agents_pos)
         self.createBoxes(boxes_pos=boxes_pos)
 
-        if debug:
+        if self.show:
             self.render()
 
         return self._getobs()
 
-    def step(self, actions, debug=True):
+    def step(self, actions, debug=False):
 
         # assume current step does not terminate
         terminate = 0
@@ -196,8 +199,10 @@ class SmallBoxPushing(gym.Env):
                 reward = reward + self.small_box_reward
         rewards += reward
 
-        if debug:
+        if self.show:
             self.render()
+
+        if debug:
             print(" ")
             print("Actions list:")
             for ag in self.agents:
@@ -209,6 +214,44 @@ class SmallBoxPushing(gym.Env):
         observations = self._getobs(debug)
 
         return observations, [rewards] * self.n_agent, [bool(terminate)] * self.n_agent, {}
+
+    def is_terminal_state(self, state):
+        """
+        Check whether the given state is a terminal one by
+        checking if either box is pushed to the goal region
+        """
+        terminate = False
+        box_1y = state[7]
+        box_2y = state[9]
+
+        if box_1y == self.ylen - 1 or box_2y == self.ylen - 1:
+            terminate = True
+
+        return terminate
+
+    def is_valid_state(self, state):
+        """
+        Check whether the given state is a valid one by
+        checking all features are within bounds
+        """
+        valid = False
+
+        agent_1x, agent_1y = state[0], state[1]
+        agent_2x, agent_2y = state[2], state[3]
+        box_1x, box_1y = state[6], state[7]
+        box_2x, box_2y = state[8], state[9]
+
+        if  0 <= box_1x <= self.xlen - 1 and \
+            0 <= box_1y <= self.ylen - 1 and \
+            0 <= box_2x <= self.xlen - 1 and \
+            0 <= box_2y <= self.ylen - 1 and \
+            0 <= agent_1x <= self.xlen - 1 and \
+            0 <= agent_1y <= self.ylen - 1 and \
+            0 <= agent_2x <= self.xlen - 1 and \
+            0 <= agent_2y <= self.ylen - 1:
+            valid = True
+
+        return valid
 
     def _getobs(self, debug=False):
         """
@@ -228,7 +271,7 @@ class SmallBoxPushing(gym.Env):
             # assume empty front
             obs = 0
 
-            # observe small box
+            # observe box
             for box in self.boxes:
                 if (
                     box.xcoord == agent.xcoord + DIRECTION[agent.ori][0]
@@ -245,7 +288,6 @@ class SmallBoxPushing(gym.Env):
                 or agent.ycoord + DIRECTION[agent.ori][1] < 0.0
             ):
                 obs = 2
-                break
 
             # observe agent
             for teamate_idx in range(self.n_agent):
@@ -264,6 +306,8 @@ class SmallBoxPushing(gym.Env):
                 print("Agent_" + str(idx) + " \t obs  \t\t{}".format(obs))
 
             observations.append(obs)
+
+        assert len(observations) == self.n_agent
 
         return observations
 

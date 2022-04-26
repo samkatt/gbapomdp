@@ -1,7 +1,6 @@
 """The tiger problem implemented as domain"""
 
-from logging import Logger
-from typing import List, Optional
+from typing import Tuple
 
 import numpy as np
 
@@ -9,10 +8,11 @@ from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
     DomainStepResult,
     SimulationResult,
+    TerminalState,
+    InvalidState
 )
 from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
-from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
-from general_bayes_adaptive_pomdps.models.tabular_bapomdp import DirCounts
+from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
 from general_bayes_adaptive_pomdps.domains.box_pushing.small_box_pushing import SmallBoxPushing
 import one_to_one
@@ -20,7 +20,7 @@ import one_to_one
 
 class CentralizedBoxPushing(Domain):
 
-    def __init__(self, grid_dim=(4, 4)):
+    def __init__(self, grid_dim=(4, 4), render=False):
         """Construct the tiger domain
         Args:
             grid_dim
@@ -31,7 +31,7 @@ class CentralizedBoxPushing(Domain):
         # Fix the number of agents
         n_agents = 2
 
-        self._env = SmallBoxPushing(grid_dim=grid_dim, n_agent=n_agents)
+        self._env = SmallBoxPushing(grid_dim=grid_dim, n_agent=n_agents, render=render)
 
         grid_x, grid_y = grid_dim
         grid_ori = 4  # max 4 orientations per agent
@@ -43,13 +43,13 @@ class CentralizedBoxPushing(Domain):
         self._action_space = ActionSpace(4**n_agents)
 
         # obs: the type of the pointed cell (empty, either box, wall, agent) per agent
-        self._obs_space = DiscreteSpace([4, 4])
+        self._obs_space = DiscreteSpace([4]*n_agents)
 
         self._state = self.sample_start_state()
 
         self.sem_action_space = one_to_one.JointNamedSpace(
-            a1_a=one_to_one.RangeSpace(4),  # 0: move forward, 1: turn left, 2: turn right, 3: stay
-            a2_a=one_to_one.RangeSpace(4),
+            a1=one_to_one.RangeSpace(4),  # 0: move forward, 1: turn left, 2: turn right, 3: stay
+            a2=one_to_one.RangeSpace(4),
         )
         self._action_lst = list(self.sem_action_space.elems)
 
@@ -105,6 +105,16 @@ class CentralizedBoxPushing(Domain):
         RETURNS (`general_bayes_adaptive_pomdps.core.SimulationResult`):
 
         """
+
+        assert self.action_space.contains(action), f"action {action} not in space"
+        assert self.state_space.contains(state), f"state {state} not in space"
+
+        if self._env.is_terminal_state(state):
+            raise TerminalState(f"state {state} is terminal")
+
+        if not self._env.is_valid_state(state):
+            raise InvalidState(f"state {state} is invalid")
+
         # reset to this state
         self._reset_sim(state)
 
@@ -112,11 +122,14 @@ class CentralizedBoxPushing(Domain):
         agent_actions = self._action_lst[action]
 
         # apply action
-        self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
+        self._env.step([agent_actions.a1.value, agent_actions.a2.value])
 
         # result of the action
         new_state = self._env.get_state()
         obs = self._env.get_obs()
+
+        if not self._env.is_valid_state(new_state):
+            raise InvalidState(f"state {state} is invalid")
 
         return SimulationResult(new_state, obs)
 
@@ -138,7 +151,7 @@ class CentralizedBoxPushing(Domain):
         agent_actions = self._action_lst[action]
 
         # apply action
-        _, rewards, _, _ = self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
+        _, rewards, _, _ = self._env.step([agent_actions.a1.value, agent_actions.a2.value])
 
         # sum of all rewards
         return np.sum(rewards)
@@ -161,9 +174,9 @@ class CentralizedBoxPushing(Domain):
         agent_actions = self._action_lst[action]
 
         # apply action
-        _, _, terminates, _ = self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
+        _, _, terminates, _ = self._env.step([agent_actions.a1.value, agent_actions.a2.value])
 
-        # terminate when any box is pushed to the goal area
+        # terminate when any box is pushed to the goal area, which will return [True, True]
         return (np.sum(terminates) == 2)
 
     def step(self, action: int) -> DomainStepResult:
@@ -174,10 +187,10 @@ class CentralizedBoxPushing(Domain):
         self._reset_sim(self.state)
 
         # convert action
-        agent_actions = self._action_lst[action]
+        joint_action = self._action_lst[action]
 
         # apply action
-        obs, rewards, terminates, _ = self._env.step([agent_actions.a1_a.value, agent_actions.a2_a.value])
+        obs, rewards, terminates, _ = self._env.step([joint_action.a1.value, joint_action.a2.value])
 
         # result of the action
         new_state = self._env.get_state()
@@ -194,3 +207,23 @@ class CentralizedBoxPushing(Domain):
         # 2 x (x, y, orientation) + 2 x (box-x, box-y)
         assert len(state) == 10
         self._env.reset(agents_pos=state[:6], boxes_pos=state[6:])
+
+class CentralizedBoxPushingPrior(DomainPrior):
+    """perfect prior for now
+    """
+
+    def __init__(self, grid_dim: Tuple = (4, 4)):
+        """initiate the prior, will make observation one-hot encoded
+
+        Args:
+             num_lanes: (`float`): number of lanes in the domain
+             num_total_counts: (`float`): number of total counts of Dir prior
+
+        """
+        super().__init__()
+        self.grid_dim = grid_dim
+
+    def sample(self) -> Domain:
+        """
+        """
+        return CentralizedBoxPushing(grid_dim=self.grid_dim)
