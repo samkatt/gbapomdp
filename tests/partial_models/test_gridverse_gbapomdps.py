@@ -1,14 +1,14 @@
 """tests :mod:`general_bayes_adaptive_pomdps.partial_models.gridverse_gbapomdps"""
 
+import gym
 import numpy as np
 import pytest
 import torch
 from gym_gridverse.action import Action as GVerseAction
-from gym_gridverse.envs.factory import env_from_descr
 from gym_gridverse.envs.gridworld import GridWorld as GVerseGridworld
 from gym_gridverse.geometry import Orientation, Position
 from gym_gridverse.representations.observation_representations import (
-    DefaultObservationRepresentation,
+    make_observation_representation,
 )
 
 from general_bayes_adaptive_pomdps.partial_models.gridverse_gbapomdps import (
@@ -28,9 +28,9 @@ from general_bayes_adaptive_pomdps.partial_models.gridverse_gbapomdps import (
 @pytest.mark.parametrize("pos", [((5, 2)), ((0, 0)), ((100, 50))])
 def test_agent_position(pos):
     """Tests :func:`agent_position`"""
-    d = env_from_descr("KeyDoor-16x16-v0")
+    d = gym.make("GV-Keydoor-9x9-v0").outer_env.inner_env
     s = d.functional_reset()
-    s.agent.position = Position.from_position_or_tuple(pos)
+    s.agent.position = Position(*pos)
 
     assert (agent_position(s) == pos).all()
 
@@ -38,9 +38,9 @@ def test_agent_position(pos):
 @pytest.mark.parametrize("pos,orientation", [((5, 2), 0), ((0, 0), 2), ((100, 50), 3)])
 def test_agent_position_and_orientation(pos, orientation):
     """Tests :func:`agent_position_and_orientation`"""
-    d = env_from_descr("KeyDoor-16x16-v0")
+    d = gym.make("GV-Keydoor-9x9-v0").outer_env.inner_env
     s = d.functional_reset()
-    s.agent.position = Position.from_position_or_tuple(pos)
+    s.agent.position = Position(*pos)
     s.agent.orientation = Orientation(orientation)
     y, x, o = agent_position_and_orientation(s)
 
@@ -58,12 +58,14 @@ def test_agent_position_and_orientation(pos, orientation):
 
 
 def test_gverse_obs2array():
-    """Tests :func:`DefaultObservationRepresentation"""
-    d = env_from_descr("Dynamic-Obstacles-6x6-v0")
+    """Tests :func:`make_observation_representation"""
+    d = gym.make("GV-DynamicObstacles-7x7-v0").outer_env.inner_env
     s = d.functional_reset()
 
-    obs = gverse_obs2array(d, DefaultObservationRepresentation(d.observation_space), s)
-    assert obs.shape == (297,)
+    obs = gverse_obs2array(
+        d, make_observation_representation("default", d.observation_space), s
+    )
+    assert obs.shape == (199,)
 
 
 @pytest.mark.parametrize(
@@ -103,7 +105,7 @@ def test_gbapomdp():
     :class:`GBAPOMDPThroughAugmentedState` and tests some basic methods.
     """
 
-    d = env_from_descr("Dynamic-Obstacles-6x6-v0")
+    d = gym.make("GV-DynamicObstacles-7x7-v0").outer_env.inner_env
     assert isinstance(d, GVerseGridworld)
 
     gbapomdp = create_gbapomdp(
@@ -148,13 +150,13 @@ def test_gbapomdp():
 
 def test_sample_state_with_random_agent():
     """Tests :func:`sample_state_with_random_agent`"""
-    d = env_from_descr("Empty-5x5-v0")
+    d = gym.make("GV-Empty-8x8-v0").outer_env.inner_env
 
     states = [sample_state_with_random_agent(d) for _ in range(200)]
-    positions = {s.agent.position.astuple() for s in states}
+    positions = {s.agent.position for s in states}
     orientations = {s.agent.orientation for s in states}
 
-    assert len(positions) == 25
+    assert len(positions) == 36
     assert len(orientations) == 4
 
 
@@ -162,7 +164,7 @@ def test_position_and_orientation_augmented_state():
     """Some random and basic tests on :class:`GridversePositionOrientationAugmentedState`"""
 
     # hacky way of getting a state
-    d = env_from_descr("KeyDoor-16x16-v0")
+    d = gym.make("GV-Keydoor-9x9-v0").outer_env.inner_env
     assert isinstance(d, GVerseGridworld)
     p = create_gbapomdp(
         d,
@@ -181,7 +183,7 @@ def test_position_and_orientation_augmented_state():
     assert isinstance(s, GridversePositionOrientationAugmentedState)
 
     # test updating model
-    a = 3
+    a = GVerseAction.TURN_LEFT.value
 
     # test :meth:`GVerseGridworld.domain_step`
     next_s, o = s.domain_step(a)
@@ -230,7 +232,7 @@ def test_position_and_orientation_augmented_state():
 def test_whitening_functions():
     """Tests :meth:`GridversePositionOrientationAugmentedState.domain_state_to_network_input`"""
 
-    d = env_from_descr("KeyDoor-16x16-v0")
+    d = gym.make("GV-Keydoor-9x9-v0").outer_env.inner_env
     s = d.functional_reset()
 
     network_input = (
@@ -244,7 +246,7 @@ def test_whitening_functions():
 
 def test_noise_turn_orientation_transactions():
     """tests :func:`noise_turn_orientation_transactions`"""
-    d = env_from_descr("Empty-5x5-v0")
+    d = gym.make("GV-Empty-8x8-v0").outer_env.inner_env
     assert isinstance(d, GVerseGridworld)
 
     states, actions, next_states = noise_turn_orientation_transactions(d, 32)
@@ -268,45 +270,49 @@ def test_noise_turn_orientation_transactions():
 @pytest.mark.parametrize(
     "pos,o,forward_positions,max_dist",
     [
-        ((0, 0), Orientation.N, [], None),
-        ((1, 1), Orientation.N, [(1, 1)], None),
-        ((1, 1), Orientation.W, [(1, 1)], None),
-        ((2, 2), Orientation.W, [(2, 2), (2, 1)], None),
-        ((2, 2), Orientation.N, [(2, 2), (1, 2)], None),
-        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)], None),
-        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)], 4),
-        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4), (2, 5)], 3),
-        ((2, 2), Orientation.E, [(2, 2), (2, 3), (2, 4)], 2),
-        ((2, 2), Orientation.E, [(2, 2), (2, 3)], 1),
-        ((2, 2), Orientation.E, [(2, 2)], 0),
+        ((0, 0), Orientation.FORWARD, [], None),
+        ((1, 1), Orientation.FORWARD, [(1, 1)], None),
+        ((1, 1), Orientation.LEFT, [(1, 1)], None),
+        ((2, 2), Orientation.LEFT, [(2, 2), (2, 1)], None),
+        ((2, 2), Orientation.FORWARD, [(2, 2), (1, 2)], None),
+        ((2, 2), Orientation.RIGHT, [(2, 2), (2, 3), (2, 4), (2, 5), (2, 6)], None),
+        ((2, 2), Orientation.RIGHT, [(2, 2), (2, 3), (2, 4), (2, 5), (2, 6)], 4),
+        ((2, 2), Orientation.RIGHT, [(2, 2), (2, 3), (2, 4), (2, 5)], 3),
+        ((2, 2), Orientation.RIGHT, [(2, 2), (2, 3), (2, 4)], 2),
+        ((2, 2), Orientation.RIGHT, [(2, 2), (2, 3)], 1),
+        ((2, 2), Orientation.RIGHT, [(2, 2)], 0),
     ],
 )
 def test_open_forward_positions(pos, o, forward_positions, max_dist):
     """Tests :func:`open_foward_positions`"""
-    s = env_from_descr("Empty-5x5-v0").functional_reset()
-    assert list(open_foward_positions(s, pos, o, max_dist)) == forward_positions
+    s = gym.make("GV-Empty-8x8-v0").outer_env.inner_env.functional_reset()
+    assert list(open_foward_positions(s, Position(*pos), o, max_dist)) == [
+        Position(*p) for p in forward_positions
+    ]
 
 
 @pytest.mark.parametrize(
     "pos,o,backwards_positions,max_dist",
     [
-        ((0, 0), Orientation.S, [], None),
-        ((1, 1), Orientation.S, [(1, 1)], None),
-        ((1, 1), Orientation.E, [(1, 1)], None),
-        ((2, 2), Orientation.E, [(2, 2), (2, 1)], None),
-        ((2, 2), Orientation.S, [(2, 2), (1, 2)], None),
-        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4), (2, 5)], None),
-        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4), (2, 5)], 4),
-        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4), (2, 5)], 3),
-        ((2, 2), Orientation.W, [(2, 2), (2, 3), (2, 4)], 2),
-        ((2, 2), Orientation.W, [(2, 2), (2, 3)], 1),
-        ((2, 2), Orientation.W, [(2, 2)], 0),
+        ((0, 0), Orientation.BACKWARD, [], None),
+        ((1, 1), Orientation.BACKWARD, [(1, 1)], None),
+        ((1, 1), Orientation.RIGHT, [(1, 1)], None),
+        ((2, 2), Orientation.RIGHT, [(2, 2), (2, 1)], None),
+        ((2, 2), Orientation.BACKWARD, [(2, 2), (1, 2)], None),
+        ((2, 2), Orientation.LEFT, [(2, 2), (2, 3), (2, 4), (2, 5), (2, 6)], None),
+        ((2, 2), Orientation.LEFT, [(2, 2), (2, 3), (2, 4), (2, 5), (2, 6)], 4),
+        ((2, 2), Orientation.LEFT, [(2, 2), (2, 3), (2, 4), (2, 5)], 3),
+        ((2, 2), Orientation.LEFT, [(2, 2), (2, 3), (2, 4)], 2),
+        ((2, 2), Orientation.LEFT, [(2, 2), (2, 3)], 1),
+        ((2, 2), Orientation.LEFT, [(2, 2)], 0),
     ],
 )
 def test_open_backwards_positions(pos, o, backwards_positions, max_dist):
     """Tests :func:`open_backwards_positions`"""
-    s = env_from_descr("Empty-5x5-v0").functional_reset()
-    assert list(open_backwards_positions(s, pos, o, max_dist)) == backwards_positions
+    s = gym.make("GV-Empty-8x8-v0").outer_env.inner_env.functional_reset()
+    assert list(open_backwards_positions(s, Position(*pos), o, max_dist)) == [
+        Position(*p) for p in backwards_positions
+    ]
 
 
 if __name__ == "__main__":

@@ -131,7 +131,7 @@ class Tiger(Domain):
         return obs
 
     @staticmethod
-    def sample_start_state() -> np.ndarray:
+    def sample_start_state() -> np.ndarray:  # pylint: disable=W0221
         """samples a random state (tiger left or right)
 
         RETURNS (`np.narray`): an initial state (in [[0],[1]])
