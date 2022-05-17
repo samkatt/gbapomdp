@@ -13,14 +13,14 @@ with open("HISTORY.rst") as history_file:
 requirements = [
     "torch",
     "typing_extensions",
-    "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@master",
+    # this is a really old version, unfortunately I have too many dependencies that have been changed 
+    # to make it worth updating
+    "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@b34e8c4535d9b93ff8fc4eab88df9ef7bb4b90c4",
     "numpy",
     "cached_property",
 ]
 
-setup_requirements = [
-    "pytest-runner",
-]
+setup_requirements = [ ]
 
 test_requirements = [
     "pytest>=3",
