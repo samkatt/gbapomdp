@@ -270,18 +270,17 @@ class GridWorld(Domain):
         RETURNS (`np.array`): [x,y,... hot-encodign-goal-pos....]
 
         """
+        obs = np.zeros(self._obs_space.ndim, dtype=int)
 
         # state + displacement, where displacement is centered through - size
-        obs = self.bound_in_grid(state[:2] + self.obs_noise())
+        obs[:2] = self.bound_in_grid(state[:2] + self.obs_noise())
 
-        if not self._one_hot_goal_encoding:
-            return np.array([*obs, state[2]], dtype=int)
+        if self._one_hot_goal_encoding:
+            obs[state[2] + 2] = 1
+        else:
+            obs[2] = state[2]
 
-        # 1-hot-encoding goal
-        goal_observation = np.zeros(len(self.goals), dtype=int)
-        goal_observation[state[2]] = 1
-
-        return np.hstack([obs, goal_observation])
+        return obs
 
     def reset(self) -> np.ndarray:
         """resets state"""
@@ -316,7 +315,6 @@ class GridWorld(Domain):
             agent_pos = self.bound_in_grid(agent_pos + self.action_to_vec[int(action)])
 
         new_state = np.array([*agent_pos, goal_index], dtype=int)
-
         obs = self.generate_observation(new_state)
 
         return SimulationResult(new_state, obs)
