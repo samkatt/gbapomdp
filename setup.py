@@ -11,11 +11,11 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "torch==1.11.0",
-    "typing_extensions==4.2.0",
+    "torch",
+    "typing_extensions",
     # I'm keeping this static to _hopefully_ not break any builds, until I specifically update
     "gym_gridverse @ git+ssh://git@github.com/abaisero/gym-gridverse.git@424f04f98b3131e9004a5cbcb5560e89532a3892",
-    "numpy==1.22.3",
+    "numpy",
     "cached_property",
 ]
 
