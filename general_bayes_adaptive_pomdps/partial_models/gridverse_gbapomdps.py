@@ -41,13 +41,12 @@ from typing import Callable, Iterable, List, Optional, Protocol, Tuple
 import numpy as np
 import torch
 from cached_property import cached_property
-from gym_gridverse.action import ROTATION_ACTIONS as GVERSE_ROTATION_ACTIONS
 from gym_gridverse.action import Action as GVerseAction
 from gym_gridverse.envs.gridworld import GridWorld as GVerseGridworld
 from gym_gridverse.envs.inner_env import InnerEnv as GVerseEnv
 from gym_gridverse.geometry import Orientation, Position
 from gym_gridverse.representations.observation_representations import (
-    DefaultObservationRepresentation,
+    make_observation_representation,
 )
 from gym_gridverse.representations.representation import ObservationRepresentation
 from gym_gridverse.state import State as GVerseState
@@ -159,7 +158,7 @@ def agent_position(state: GVerseState) -> np.ndarray:
     :param state: the grid-verse state that contains the agent position
     :returns: [y, x]
     """
-    return np.array(state.agent.position.astuple())
+    return np.array(state.agent.position.yx)
 
 
 def agent_position_and_orientation(
@@ -195,7 +194,7 @@ def sample_state_with_random_agent(d: GVerseEnv) -> GVerseState:
     """
     s = d.functional_reset()
     random_open_position = random.choice(
-        [p for p in s.grid.positions() if not s.grid[p].blocks]
+        [p for p in s.grid.area.positions() if not s.grid[p].blocks_movement]
     )
     random_orientation = random.choice(list(Orientation))
 
@@ -525,8 +524,7 @@ def noise_turn_orientation_transactions(
     :returns: lists of states, action, next states
     """
     turn_actions = [
-        domain.action_space.action_to_int(rot_act)
-        for rot_act in GVERSE_ROTATION_ACTIONS
+        domain.action_space.action_to_int(a) for a in GVerseAction if a.is_turn()
     ]
 
     states, actions, next_states = uniform_true_transactions(domain, batch_size)
@@ -552,7 +550,7 @@ def open_backwards_positions(
     :param max: maximum distance in front of agent (infinite if not given)
     :returns: a generator of positions that are not blocked
     """
-    delta_pos = o.as_position()
+    delta_pos = Position.from_orientation(o)
 
     it = itt.count() if max_dist is None else range(max_dist + 1)
 
@@ -560,7 +558,7 @@ def open_backwards_positions(
         pos + Position(delta_pos.y * -i, delta_pos.x * -i) for i in it
     )
     possible_positions = itt.takewhile(
-        lambda pos: not s.grid[pos].blocks, candidate_forward_positions
+        lambda pos: not s.grid[pos].blocks_vision, candidate_forward_positions
     )
 
     return possible_positions
@@ -580,7 +578,7 @@ def open_foward_positions(
     :param max: maximum distance in front of agent (infinite if not given)
     :returns: a generator of positions that are not blocked
     """
-    delta_pos = o.as_position()
+    delta_pos = Position.from_orientation(o)
 
     it = itt.count() if max_dist is None else range(max_dist + 1)
 
@@ -588,7 +586,7 @@ def open_foward_positions(
         pos + Position(delta_pos.y * i, delta_pos.x * i) for i in it
     )
     possible_positions = itt.takewhile(
-        lambda pos: not s.grid[pos].blocks, candidate_forward_positions
+        lambda pos: not s.grid[pos].blocks_vision, candidate_forward_positions
     )
 
     return possible_positions
@@ -718,7 +716,7 @@ def create_gbapomdp(
     obs_rep = partial(
         gverse_obs2array,
         domain,
-        DefaultObservationRepresentation(domain.observation_space),
+        make_observation_representation("default", domain.observation_space),
     )
 
     # XXX: ugly
