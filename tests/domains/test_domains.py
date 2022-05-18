@@ -355,11 +355,9 @@ def test_utils_gridworld():
     env = GridWorld(3, one_hot_encode_goal=True)
 
     # test bound_in_grid
-    np.testing.assert_array_equal(env.bound_in_grid(np.array([2, 2])), [2, 2])
-
-    np.testing.assert_array_equal(env.bound_in_grid(np.array([3, 2])), [2, 2])
-
-    np.testing.assert_array_equal(env.bound_in_grid(np.array([-1, 3])), [0, 2])
+    assert env.bound_in_grid(2, 2) == (2, 2)
+    assert env.bound_in_grid(3, 2) == (2, 2)
+    assert env.bound_in_grid(-1, 3) == (0, 2)
 
     list_of_goals = [
         GridWorld.Goal(1, 2, 0),
@@ -900,8 +898,8 @@ def test_encoding_gridworld_prior():
 def test_default_slow_cells_gridworld_prior():
     """tests Gridworlds sampled from prior have no slow cells"""
 
-    sample_gridworld_1 = GridWorldPrior(size=4, one_hot_encode_goal=False).sample()
-    sample_gridworld_2 = GridWorldPrior(size=4, one_hot_encode_goal=False).sample()
+    sample_gridworld_1 = GridWorldPrior(size=5, one_hot_encode_goal=False).sample()
+    sample_gridworld_2 = GridWorldPrior(size=5, one_hot_encode_goal=False).sample()
 
     assert isinstance(sample_gridworld_1, GridWorld)
     assert isinstance(sample_gridworld_2, GridWorld)

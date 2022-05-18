@@ -17,13 +17,22 @@ from general_bayes_adaptive_pomdps.misc import DiscreteSpace, LogLevel
 class GridWorld(Domain):
     """The gridworld domain
 
-    A 2-d grid world where the agent needs to go to a goal location (part of
-    the state space). The agent has 4 actions, a step in each direction, that
-    is carried out succesfully 95% of the time (and is a no-op otherwise),
-    except for some 'bad' cells, where the successrate drops to 15%. The
-    observation function is noisy, with gaussian probability around the agent's
-    real location (that accumulates around the edges).
+    A 2-d grid world where the agent needs to go to a (variable) goal location.
+    The agent has 4 actions, a step in each direction, that is carried out
+    succesfully 95% of the time and is a no-op otherwise. However, there are
+    (stationary) 'bad' cells in the grid, which reduce the successrate to 15%.
 
+    The observation contains two quantities: the agent's and goal's location.
+    The goal (index) is _always_ observed, with no uncertainty, however the
+    agent's location is like a noisy GPS: there is some noise added which build
+    up along the edges. The probability of correctly observing the correct x
+    _or_ y position is set to 0.8, and the rest of the probability is spread,
+    where the probability halves at each step.
+
+    The domain allows for two 'forms' of representation depending on the
+    construction input `one_hot_encode_goal`. If this is set to true, then the
+    goal index/location is described (both in state and observation) in a
+    one-hot encoding.
     """
 
     # consts
@@ -36,8 +45,11 @@ class GridWorld(Domain):
     MOVE_SUCCESS_PROB = 0.95
     SLOW_MOVE_SUCCESS_PROB = 0.15
 
-    action_to_vec = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+    action_to_x = [0, 1, 0, -1]
+    action_to_y = [1, 0, -1, 0]
     action_to_string = ["UP", "RIGHT", "DOWN", "LEFT"]
+
+    NOISE_SAMPLE_CACHE_SIZE = 5000
 
     class Goal(NamedTuple):
         """A goal in gridworld represented by its location and index"""
@@ -55,44 +67,53 @@ class GridWorld(Domain):
         """creates a gridworld of provided size and verbosity
 
         Args:
-             domain_size: (`int`): the size (assumed odd) of the grid
+             domain_size: (`int`): the size (odd, positive) of the grid
              one_hot_encode_goal: (`bool`): the observation encoding
              slow_cells: (`Set[Tuple[int, int]]`): the cells that are slow (default assignment if left None)
 
         """
-
-        assert domain_size > 0
+        assert domain_size > 0 and domain_size % 2 == 1
 
         super().__init__()
         self._logger = Logger(self.__class__.__name__)
 
         # confs
-        self._size = domain_size
+        self.size = domain_size
         self._one_hot_goal_encoding = one_hot_encode_goal
 
-        # generate multinomial probabilities for the observation function (1-D)
-        obs_mult = [self.CORRECT_OBSERVATION_PROB]
+        # the noisey observation is fairly complex because
+        #   (1) the distibution is non-trivial
+        #   (2): we cache it for performance
+        #  How the distribution is computed can be seen in :func:`generate_multinominal_noise`
+        self._obs_mult = GridWorld.generate_multinominal_noise(
+            GridWorld.CORRECT_OBSERVATION_PROB, self.size
+        )
 
-        left_over_p = 1 - self.CORRECT_OBSERVATION_PROB
-        for _ in range(int(self.size - 2)):
-            left_over_p *= 0.5
-            obs_mult.append(left_over_p / 2)
-            obs_mult.insert(0, left_over_p / 2)
+        # We use this to "move" the observation. The distribution is centered
+        # around... the (list) center. However, we add noise by adding a `diff`
+        # to the real observation, which means that the 'center' diff is zero.
+        self._obs_diff = list(range(-self.size + 1, self.size))
 
-        obs_mult.append(left_over_p / 2)
-        obs_mult.insert(0, left_over_p / 2)
+        # This is a cache/database of 'noise' samples. Instead of computing the
+        # noise each time, we commit to a relatively large compute
+        # every-now-and-then. Here we store these (to be computed later).
+        self._noise_samples = np.array([])
 
-        self.obs_mult = np.array(obs_mult)
+        # Will keep track of whether the cache must be updated: Whenever we
+        # used the 'last' noise sample, we should re-compute the cache. We
+        # start with the max value, since we leave the computation to the
+        # actual noise computation function :func:`obs_noise`.
+        self._noise_sample_index = GridWorld.NOISE_SAMPLE_CACHE_SIZE
 
         # generate slow locations
-        self._slow_cells = (
+        self.slow_cells = (
             slow_cells
             if slow_cells is not None
             else GridWorld.generate_slow_cells(self.size)
         )
 
         # generate goal locations
-        self._goal_cells: List[GridWorld.Goal] = []
+        self.goals: List[GridWorld.Goal] = []
 
         goal_edge_start = (
             self.size - 2
@@ -104,45 +125,55 @@ class GridWorld(Domain):
 
         edge = self.size - 1
         for pos in range(goal_edge_start, self.size - 1):
-            self._goal_cells.append(
-                GridWorld.Goal(pos, edge, len(self._goal_cells))  # fill top side
+            self.goals.append(
+                GridWorld.Goal(pos, edge, len(self.goals))  # fill top side
             )
 
-            self._goal_cells.append(
-                GridWorld.Goal(edge, pos, len(self._goal_cells))  # fill right side
+            self.goals.append(
+                GridWorld.Goal(edge, pos, len(self.goals))  # fill right side
             )
 
-        self._goal_cells.append(  # top right corner
-            GridWorld.Goal(edge, edge, len(self._goal_cells))
+        self.goals.append(  # top right corner
+            GridWorld.Goal(edge, edge, len(self.goals))
         )
 
         if self.size > 3:
-            self._goal_cells.append(
-                GridWorld.Goal(edge - 1, edge - 1, len(self._goal_cells))
-            )
+            self.goals.append(GridWorld.Goal(edge - 1, edge - 1, len(self.goals)))
 
         if self.size > 6:
-            self._goal_cells.append(
-                GridWorld.Goal(edge - 2, edge - 1, len(self._goal_cells))
-            )
-            self._goal_cells.append(
-                GridWorld.Goal(edge - 1, edge - 2, len(self._goal_cells))
-            )
+            self.goals.append(GridWorld.Goal(edge - 2, edge - 1, len(self.goals)))
+            self.goals.append(GridWorld.Goal(edge - 1, edge - 2, len(self.goals)))
 
-        self._state_space = DiscreteSpace([self.size, self.size, len(self._goal_cells)])
+        self._state_space = DiscreteSpace([self.size, self.size, len(self.goals)])
         self._action_space = ActionSpace(4)
 
         if not self._one_hot_goal_encoding:
-            self._obs_space = DiscreteSpace(
-                [self.size, self.size, len(self._goal_cells)]
-            )
+            self._obs_space = DiscreteSpace([self.size, self.size, len(self.goals)])
         else:
             self._obs_space = DiscreteSpace(
-                [self.size, self.size]
-                + (2 * np.ones(len(self._goal_cells))).astype(int).tolist()
+                [self.size, self.size] + [2] * len(self.goals)
             )
 
         self._state = self.sample_start_state()
+
+    @property
+    def obs_mult(self) -> np.ndarray:
+        """The multinomial distribution noise of the observations"""
+        return self._obs_mult
+
+    @obs_mult.setter
+    def obs_mult(self, v: np.ndarray):
+        """Sets the multinomial noise distribution of the observations"""
+        assert 0.99 < v.sum() < 1.001
+        assert len(v) == len(self._obs_diff)
+
+        # sets the 'cache index' to max:
+        # at the first call for noise the cache will be re-computed
+        # this will ensure that the new `v` will actually be used
+        # as distribution, and not the old one due to cache
+        self._noise_sample_index = GridWorld.NOISE_SAMPLE_CACHE_SIZE
+
+        self._obs_mult = v
 
     @property
     def state(self) -> np.ndarray:
@@ -189,17 +220,6 @@ class GridWorld(Domain):
         """a :class:`general_bayes_adaptive_pomdps.misc.DiscreteSpace` ([size,size] + ones * num_goals)"""
         return self._obs_space
 
-    @property
-    def slow_cells(self) -> Set[Tuple[int, int]]:
-        """all the cells where the agent is slow on
-
-        Args:
-
-        RETURNS (`Set[Tuple[int, int]]`):
-
-        """
-        return self._slow_cells
-
     def sample_start_state(self) -> np.ndarray:
         """returns [[0,0], some_goal]
 
@@ -210,39 +230,25 @@ class GridWorld(Domain):
         """
         return np.array([0, 0, self.sample_goal().index], dtype=int)
 
-    @property
-    def size(self) -> int:
-        """size of grid (square)
+    def bound_in_grid(self, x: int, y: int) -> Tuple[int, int]:
+        """returns [x, y] bounded s.t. it is within the grid
 
-        RETURNS (`int`):
-
-        """
-        return self._size
-
-    @property
-    def goals(self) -> List["GridWorld.Goal"]:
-        """returns the number of **possible** goals
+        Retursn x / y [0, self.size - 1]
 
         Args:
+            x: (`int`): some integer value (representing position x)
+            y: (`int`): some integer value (representing position y)
 
-        RETURNS (`List[` `GridWorld.Goal` `]`):
-
-        """
-        return self._goal_cells
-
-    def bound_in_grid(self, state_or_obs: np.ndarray) -> np.ndarray:
-        """returns bounded state or obs s.t. it is within the grid
-
-        simpy returns state_or_obs if it is in the grid size,
-        otherwise returns the edge value
-
-        Args:
-             state_or_obs: (`np.ndarray`): some (x,y) position on the grid
-
-        RETURNS (`np.ndarray`): the bounded value state_or_obs
+        RETURNS (`x, y`): x / with minimum value 0 and maximum value size of grid
 
         """
-        return np.maximum(0, np.minimum(state_or_obs, self.size - 1))
+        # very basic min/max, apparently quicker than either:
+        #   (1): np.clip
+        #   (2): min(max(lower_bound, x), higher_bound)
+        x = 0 if x < 0 else self.size - 1 if x > self.size - 1 else x
+        y = 0 if y < 0 else self.size - 1 if y > self.size - 1 else y
+
+        return x, y
 
     def sample_goal(self) -> "GridWorld.Goal":
         """samples a goal position
@@ -250,7 +256,7 @@ class GridWorld(Domain):
         RETURNS (`Tuple[GridWorld.Goal]`): the goal state
 
         """
-        return random.choice(self._goal_cells)
+        return random.choice(self.goals)
 
     def obs_noise(self) -> np.ndarray:
         """returns the noise that comes with an observation
@@ -258,8 +264,14 @@ class GridWorld(Domain):
         RETURNS (`np.ndarray`): [x,y] int noise
 
         """
+        if self._noise_sample_index == GridWorld.NOISE_SAMPLE_CACHE_SIZE:
+            self._noise_samples = np.random.choice(
+                self._obs_diff, (GridWorld.NOISE_SAMPLE_CACHE_SIZE, 2), p=self.obs_mult
+            )
+            self._noise_sample_index = 0
 
-        return np.random.multinomial(1, self.obs_mult, 2).argmax(axis=1) - self.size + 1
+        self._noise_sample_index += 1
+        return self._noise_samples[self._noise_sample_index - 1]
 
     def generate_observation(self, state: np.ndarray) -> np.ndarray:
         """generates a noisy observation of the state
@@ -273,7 +285,7 @@ class GridWorld(Domain):
         obs = np.zeros(self._obs_space.ndim, dtype=int)
 
         # state + displacement, where displacement is centered through - size
-        obs[:2] = self.bound_in_grid(state[:2] + self.obs_noise())
+        obs[:2] = self.bound_in_grid(*state[:2] + self.obs_noise())
 
         if self._one_hot_goal_encoding:
             obs[state[2] + 2] = 1
@@ -300,21 +312,21 @@ class GridWorld(Domain):
         RETURNS (`general_bayes_adaptive_pomdps.core.SimulationResult`): the transition
 
         """
-
         assert 4 > action >= 0, "agent can only move in 4 directions"
 
-        agent_x, agent_y, goal_index = state
-        agent_pos = np.array([agent_x, agent_y], dtype=int)
+        x, y, goal_index = state
 
-        if tuple(agent_pos) not in self.slow_cells:
+        if (x, y) not in self.slow_cells:
             move_prob = self.MOVE_SUCCESS_PROB
         else:
             move_prob = self.SLOW_MOVE_SUCCESS_PROB
 
         if np.random.uniform() < move_prob:
-            agent_pos = self.bound_in_grid(agent_pos + self.action_to_vec[int(action)])
+            x, y = self.bound_in_grid(
+                x + GridWorld.action_to_x[action], y + GridWorld.action_to_y[action]
+            )
 
-        new_state = np.array([*agent_pos, goal_index], dtype=int)
+        new_state = np.array([x, y, goal_index], dtype=int)
         obs = self.generate_observation(new_state)
 
         return SimulationResult(new_state, obs)
@@ -421,6 +433,37 @@ class GridWorld(Domain):
             slow_cells.add((edge - 2, edge - 2))
 
         return slow_cells
+
+    @staticmethod
+    def generate_multinominal_noise(correct_prob: float, grid_size: int) -> np.ndarray:
+        """Generate a (1-D) multinominal distribution
+
+        This distribution is used to sample _noise_, or how much an observation
+        is 'off' (shifted). It puts ``correct_prob`` in the 'middle' of the
+        distribution, and exponentially decreasing probabilities towards the
+        start/end.
+
+        Args:
+            correct_prob: (`float`): probability of _correct_ observation [0,1]
+            grid_size: (`int`): size of grid
+
+        RETURNS (`np.ndarray`): (1 + 2 * grid_size,) probabilities
+        """
+        assert 0 < correct_prob < 1
+        assert grid_size > 2
+
+        ret = [correct_prob]
+        left_over_prob = 1 - correct_prob
+
+        for _ in range(grid_size - 2):
+            left_over_prob /= 2
+            ret.append(left_over_prob / 2)
+            ret.insert(0, left_over_prob / 2)
+
+        ret.append(left_over_prob / 2)
+        ret.insert(0, left_over_prob / 2)
+
+        return np.array(ret)
 
 
 class GridWorldPrior(DomainPrior):

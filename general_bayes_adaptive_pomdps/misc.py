@@ -63,6 +63,7 @@ class DiscreteSpace:
             [np.prod(self.size[:i]) for i in range(len(self.size))]
         ).astype(int)
         self.dim_cumsum = np.concatenate([[0], np.cumsum(self.size)])
+        self.ndim = len(self.size)
 
     @property
     def n(self) -> int:
@@ -75,15 +76,6 @@ class DiscreteSpace:
 
         """
         return self.num_elements
-
-    @property
-    def ndim(self) -> int:
-        """returns the numbe of dimensions
-
-        RETURNS (`int`): number of dimensions
-
-        """
-        return len(self.size)
 
     def contains(self, elem: np.ndarray) -> bool:
         """returns whether `self` contains ``elem``
