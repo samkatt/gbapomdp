@@ -52,20 +52,24 @@ def train_from_samples(
 
     RETURNS (`float`): loss
     """
-    loss = 0.0
+    loss_t = []
+    loss_o = []
 
     for _ in range(num_epochs):
         states, actions, new_states, observations = zip(
             *[sampler() for _ in range(batch_size)]
         )
-        loss += theta.batch_update(
+        new_loss_t, new_loss_o = theta.batch_update(
             np.array(states),
             np.array(actions),
             np.array(new_states),
             np.array(observations),
         )
 
-    return loss
+        loss_t.append(new_loss_t)
+        loss_o.append(new_loss_o)
+
+    return (loss_t, loss_o)
 
 
 def sample_transitions_uniform(
@@ -366,9 +370,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
             use_gpu (`bool`): whether to use the GPU
 
         """
-
-        pytorch_api.set_device(use_gpu)
-
         # domain knowledge
         self.domain_action_space = action_space
         self.domain_obs_space = observation_space

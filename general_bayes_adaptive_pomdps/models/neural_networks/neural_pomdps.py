@@ -601,19 +601,20 @@ class DynamicsModel:
         next_states = torch.from_numpy(next_states).to(device())
         obs = torch.from_numpy(obs).to(device())
 
-        loss = 0.0
+        loss_t = 0.0
+        loss_o = 0.0
 
         # transition model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_T:
-            loss += self.t.batch_train(states, actions, next_states)
+            loss_t += self.t.batch_train(states, actions, next_states)
 
         # observation model
         if conf != DynamicsModel.FreezeModelSetting.FREEZE_O:
-            loss += self.o.batch_train(states, actions, next_states, obs)
+            loss_o += self.o.batch_train(states, actions, next_states, obs)
 
         self.num_batches += 1
 
-        return loss
+        return (loss_t, loss_o)
 
     def self_learn(
         self, conf: FreezeModelSetting = FreezeModelSetting.FREEZE_NONE

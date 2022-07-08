@@ -20,7 +20,7 @@ import one_to_one
 
 class CentralizedBoxPushing(Domain):
 
-    def __init__(self, grid_dim=(4, 4), render=False):
+    def __init__(self, grid_dim, render=False):
         """Construct the tiger domain
         Args:
             grid_dim
@@ -212,7 +212,7 @@ class CentralizedBoxPushingPrior(DomainPrior):
     """perfect prior for now
     """
 
-    def __init__(self, grid_dim: Tuple = (4, 4)):
+    def __init__(self, grid_dim: Tuple):
         """initiate the prior, will make observation one-hot encoded
 
         Args:

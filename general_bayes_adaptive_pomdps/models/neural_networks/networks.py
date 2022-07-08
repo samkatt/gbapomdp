@@ -35,6 +35,7 @@ class Net(torch.nn.Module):
 
         self.layer_1 = torch.nn.Linear(input_size, layer_size)
         self.layer_2 = torch.nn.Linear(layer_size, layer_size)
+        self.layer_3 = torch.nn.Linear(layer_size, layer_size)
 
         self.out = torch.nn.Linear(layer_size, output_size)
 
@@ -49,6 +50,7 @@ class Net(torch.nn.Module):
         """
         activations = self.dropout(torch.tanh(self.layer_1(net_input)))
         activations = torch.tanh(self.layer_2(activations))
+        activations = torch.tanh(self.layer_3(activations))
 
         if self.prior:
             return self.out(activations) + self.prior_scaling * self.prior(net_input)

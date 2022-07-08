@@ -234,22 +234,15 @@ class SmallBoxPushing(gym.Env):
         Check whether the given state is a valid one by
         checking all features are within bounds
         """
-        valid = False
+        state = np.array(state)
 
-        agent_1x, agent_1y = state[0], state[1]
-        agent_2x, agent_2y = state[2], state[3]
-        box_1x, box_1y = state[6], state[7]
-        box_2x, box_2y = state[8], state[9]
+        high = [self.xlen, self.ylen, 4]*2 + [self.xlen, self.ylen]*2
+        high = np.array(high)
 
-        if  0 <= box_1x <= self.xlen - 1 and \
-            0 <= box_1y <= self.ylen - 1 and \
-            0 <= box_2x <= self.xlen - 1 and \
-            0 <= box_2y <= self.ylen - 1 and \
-            0 <= agent_1x <= self.xlen - 1 and \
-            0 <= agent_1y <= self.ylen - 1 and \
-            0 <= agent_2x <= self.xlen - 1 and \
-            0 <= agent_2y <= self.ylen - 1:
-            valid = True
+        valid = (
+            (state >= 0).all()
+            and (state < high).all()
+        )
 
         return valid
 
