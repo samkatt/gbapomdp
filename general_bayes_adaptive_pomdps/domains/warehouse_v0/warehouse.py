@@ -4,13 +4,13 @@ from typing import Tuple
 from general_bayes_adaptive_pomdps.domains.warehouse.env_warehouse import TurtleBot
 
 import numpy as np
+import random
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
     DomainStepResult,
     SimulationResult,
     TerminalState,
-    InvalidState
 )
 from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
@@ -18,10 +18,20 @@ from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 from general_bayes_adaptive_pomdps.domains.warehouse_v0.env_warehouse import EnvWareHouse, Human
 import one_to_one
 
+from itertools import permutations
+
+Go_to_WR = 0
+Go_to_TR = 1
+Get_tool_1 = 2
+Get_tool_2 = 3
+Get_tool_3 = 4
+Get_tool_4 = 5
+Deliver_tool = 6
+No_Op = 7
 
 class WareHouse(Domain):
 
-    def __init__(self, render=False):
+    def __init__(self, correct_tool_order=None):
         """Construct the tiger domain
         Args:
             grid_dim
@@ -31,20 +41,27 @@ class WareHouse(Domain):
 
         self.n_turtlebots = 1
 
+        if correct_tool_order is None:
+            self.correct_tool_order = [1, 2, 3, 4]
+        else:
+            self.correct_tool_order = correct_tool_order
+
         # state: (location, current-tool) per turtlebot + (human-status, desired-tool, human-step-cnt)
+
         # location: 0 (tool-room) or 1 (work-room) (2)
         # current-tool: 0, 1, 2, 3, 4 (5)
         # human-status: working or waiting (2)
-        # desired-tool: 0, 1, 2, 3, 4 (5)
+        # desired-tool: 0, 1, 2, 3, 4 (5) 0: means tool#1
         # human step count: 0, 1, 2 (3)
         self._state_space = DiscreteSpace([2, 5]*self.n_turtlebots + [2, 5] + [3])
 
-        # obs: (location, current-tool) per turtlebot + (human-status)
+        # obs: (location, current-tool) per turtlebot + (human-status, desired-tool-index)
+
         # location: tool-room or work-room (2)
         # current-tool: 0, 1, 2, 3, 4 (5)
-        # human-status: working, waiting, NULL (3) (only available when one turtlebot is at the work room)
-        # desired-tool: 1, 2, 3, 4, 5 (5) (only available when one turtlebot is at the work room)
-        self._obs_space = DiscreteSpace([2, 5]*self.n_turtlebots + [3, 5])
+        # human-status: working, waiting (2) (only available when one turtlebot is at the work room)
+        # task-stage: 0, 1, 2, 3, 4 (5) (only available when one turtlebot is at the work room)
+        self._obs_space = DiscreteSpace([2, 5]*self.n_turtlebots + [2, 5])
 
         self._state = self.sample_start_state()
 
@@ -81,15 +98,15 @@ class WareHouse(Domain):
 
         Args:
 
-        RETURNS (`np.ndarray`): [x, y, ori] per agent, [x, y] per box
+        RETURNS (`np.ndarray`):
 
         """
-        env = EnvWareHouse()
+        env = EnvWareHouse(self.correct_tool_order)
         env.reset()
         return env.get_state()
 
     def generate_observation(self, state: np.ndarray = None) -> np.ndarray:
-        """generates an observation of the state (noisy obstacle sensor)
+        """generates an observation of the state
 
         Args:
              state: (`np.ndarray`): 
@@ -106,18 +123,19 @@ class WareHouse(Domain):
 
         # these only useful when the turtlebot is in the workroom
         # human-status: working, waiting, null (3)
-        # desired-tool: 1, 2, 3, 4, 5 (5)
+        # task-stage: 0, 1, 2, 3, 4 (5)
 
 
         bot_location = state[0]
         if bot_location == TurtleBot.AT_WORK_ROOM:
             human_status = state[2]
             desired_tool = state[3]
+            task_stage = self.correct_tool_order.index(desired_tool + 1) + 1
         else:
-            human_status = 2  # NULL
-            desired_tool = 0
+            human_status = 0
+            task_stage = 0
 
-        obs = [state[0], state[1], human_status, desired_tool]
+        obs = [state[0], state[1], human_status, task_stage]
 
         return np.array(obs, dtype=int)
 
@@ -146,13 +164,10 @@ class WareHouse(Domain):
         assert self.action_space.contains(action), f"action {action} not in space"
         assert self.state_space.contains(state), f"state {state} not in space"
 
-        env = EnvWareHouse()
+        env = EnvWareHouse(self.correct_tool_order)
 
         # reset to this state
         env.reset(state)
-
-        if env.is_terminal_state(state):
-            raise TerminalState(f"state {state} is terminal")
 
         # convert action
         agent_actions = self._action_lst[action]
@@ -184,12 +199,8 @@ class WareHouse(Domain):
         current_desired_tool = new_state[3]
 
         # human just receives a desired tool
-        if prev_desired_tool + 1 == current_desired_tool:
+        if prev_desired_tool != current_desired_tool:
             reward += 10
-
-        # human finished using the final tool
-        # if current_desired_tool == 4 and current_human_time == 2:
-            # reward += 100
 
         return reward
 
@@ -205,11 +216,10 @@ class WareHouse(Domain):
 
         """
         done = False
-        # the current desired tool is the final tool
-        # the agent finishes using that tool
+        # the current desired tool is the final tool and human just receives it
         current_desired_tool = new_state[3]
-        current_human_time = new_state[4]
-        if current_desired_tool == 4 and current_human_time == 2:
+        current_human_status = new_state[2]
+        if current_desired_tool == self.correct_tool_order[-1] and current_human_status == Human.WORKING:
             done = True
 
         return done
@@ -218,7 +228,7 @@ class WareHouse(Domain):
         """
         Combine all
         """
-        env = EnvWareHouse()
+        env = EnvWareHouse(self.correct_tool_order)
 
         # reset to this state
         env.reset(self.state)
@@ -242,7 +252,35 @@ class WareHousePrior(DomainPrior):
         """
         super().__init__()
 
-    def sample(self) -> Domain:
+    def sample(self, correct_prior=False) -> Domain:
         """
         """
-        return WareHouse()
+        if correct_prior:
+            correct_tool_order = [1, 2, 3, 4]
+        else:
+            perm = list(permutations([1, 2, 3, 4]))
+            correct_tool_order = random.choice(perm)
+
+        return WareHouse(list(correct_tool_order))
+
+if __name__ == "__main__":
+    env = WareHouse(correct_tool_order=[1, 2, 3, 4])
+    env.reset()
+
+    action_lst = ['Go_to_WR', 'Go_to_TR', 'Get_Tool_0', 'Get_Tool_1',
+                'Get_Tool_2', 'Get_Tool_3', 'Deliver', 'No_Op']
+
+
+    def action_to_str(action_idx):
+        return f"Action: {action_lst[action_idx]}"
+
+    action_list = [Go_to_TR, Get_tool_1, Go_to_WR, Deliver_tool, Go_to_TR, Get_tool_2, Go_to_WR, Deliver_tool]
+    action_list += [Go_to_TR, Get_tool_3, Go_to_WR, Deliver_tool, Go_to_TR, Get_tool_4, Go_to_WR, Deliver_tool]
+
+    for action in action_list:
+        print(action_to_str(action))
+        state = env.step(action)
+    #     # print(state.reward)
+        print(env.state)
+        print(state.reward)
+        print()
