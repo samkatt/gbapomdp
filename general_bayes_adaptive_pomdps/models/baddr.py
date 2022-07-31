@@ -75,6 +75,7 @@ def train_from_samples(
 def sample_transitions_uniform(
     state_space: DiscreteSpace,
     action_space: ActionSpace,
+    valid_checker,
     domain_simulation_step: DomainSimulationStep,
 ) -> Transition:
     """Samples transitions uniformly from simulator
@@ -92,16 +93,16 @@ def sample_transitions_uniform(
     """
 
     while True:
-        try:
-            state = state_space.sample()
-            action = action_space.sample_as_int()
+        state = state_space.sample()
+        action = action_space.sample_as_int()
 
-            next_state, observation = domain_simulation_step(state, action)
-
-            return Transition(state, action, next_state, observation)
-
-        except (TerminalState, InvalidState):
+        # only sample valid states
+        if not valid_checker(state):
             continue
+
+        next_state, observation = domain_simulation_step(state, action)
+
+        return Transition(state, action, next_state, observation)
 
 
 def create_dynamics_model(

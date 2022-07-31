@@ -18,10 +18,11 @@ from general_bayes_adaptive_pomdps.core import (
     TerminalState,
     InvalidState,
     Transition,
+    FactoredTransition
 )
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 from general_bayes_adaptive_pomdps.models.neural_networks import pytorch_api
-from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps_cavia import (
+from general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps_factored import (
     DynamicsModel,
     get_optimizer_builder,
 )
@@ -38,8 +39,7 @@ def train_from_samples(
     theta: DynamicsModel,
     sampler: TransitionSampler,
     num_epochs: int,
-    k_meta_train: int,
-    tasks_per_metaupdate: int,
+    batch_size: int,
 ) -> float:
     """trains a theta with data uniformly sampled from (S,A) space
 
@@ -53,35 +53,33 @@ def train_from_samples(
 
     RETURNS (`float`): loss
     """
-    all_mt_loss_t = []
-    all_mt_loss_o = []
+    loss_t = []
+    loss_o = []
+
     for _ in range(num_epochs):
+        states, actions, new_states, z_observations = zip(
+            *[sampler() for _ in range(batch_size)]
+        )
+        new_loss_t, new_loss_o = theta.batch_update(
+            np.array(states),
+            np.array(actions),
+            np.array(new_states),
+            np.array(z_observations),
+        )
 
-        # initialise meta-gradient
-        mt_grad_t, mt_grad_o = theta.initialize_meta_gradient()
+        loss_t.append(new_loss_t)
+        loss_o.append(new_loss_o)
 
-        # meta-training phase 1
-        for _ in range(tasks_per_metaupdate):
-            theta.meta_train_phase_1(sampler, k_meta_train)
-
-        # meta-training phase 2
-        mt_loss_t, mt_loss_o, mt_grad_t, mt_grad_o = theta.meta_train_phase_2(sampler, k_meta_train, mt_grad_t, mt_grad_o)
-
-        # do update step on shared model
-        theta.meta_update(mt_grad_t, mt_grad_o, tasks_per_metaupdate)
-
-        all_mt_loss_t.append(mt_loss_t.item())
-        all_mt_loss_o.append(mt_loss_o.item())
-
-    return (all_mt_loss_t, all_mt_loss_o)
+    return (loss_t, loss_o)
 
 
 def sample_transitions_uniform(
     state_space: DiscreteSpace,
     action_space: ActionSpace,
     valid_checker,
+    extract_z,
     domain_simulation_step: DomainSimulationStep,
-) -> Transition:
+) -> FactoredTransition:
     """Samples transitions uniformly from simulator
 
     Samples state-action pairs uniformly from the domain (the next state
@@ -90,6 +88,8 @@ def sample_transitions_uniform(
     Args:
         state_space (`DiscreteSpace`):
         action_space (`ActionSpace`):
+        valid_checker: a function to check state
+        extract_z: a function to get the z component of an observation
         domain_simulation_step
 
     Returns:
@@ -106,16 +106,18 @@ def sample_transitions_uniform(
 
         next_state, observation = domain_simulation_step(state, action)
 
-        return Transition(state, action, next_state, observation)
+        z_observation = extract_z(observation)
+
+        return FactoredTransition(state, action, next_state, z_observation)
 
 
 def create_dynamics_model(
     state_space: DiscreteSpace,
     action_space: ActionSpace,
     observation_space: DiscreteSpace,
+    z_observation_space: DiscreteSpace,
     optimizer: str,
-    learning_rate_inner: float,
-    learning_rate_meta: float,
+    learning_rate: float,
     network_size: int,
     batch_size: int,
     dropout_rate: float = 0.0,
@@ -129,6 +131,7 @@ def create_dynamics_model(
         state_space (`DiscreteSpace'):
         action_space (`ActionSpace'):
         observation_space (`DiscreteSpace'):
+        z_observation_space (`DiscreteSpace'): observe component rather than x
         optimizer (`str`): in ["SGD" or "Adam"], sets type of optimizer
         learning_rate (`float`):
         network_size (`int`): number of nodes in each fully connected layer
@@ -144,10 +147,9 @@ def create_dynamics_model(
     obs_model = DynamicsModel.ONet(
         state_space,
         action_space,
-        observation_space,
+        z_observation_space,
         optimizer_builder,
-        learning_rate_inner,
-        learning_rate_meta,
+        learning_rate,
         network_size,
         dropout_rate,
     )
@@ -156,8 +158,7 @@ def create_dynamics_model(
         state_space,
         action_space,
         optimizer_builder,
-        learning_rate_inner,
-        learning_rate_meta,
+        learning_rate,
         network_size,
         dropout_rate,
     )
@@ -354,6 +355,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         self,
         action_space: ActionSpace,
         observation_space: DiscreteSpace,
+        z_observation_space: DiscreteSpace,
         sample_domain_start_state: DomainStatePrior,
         reward_function: RewardFunction,
         terminal_function: TerminalFunction,
@@ -370,6 +372,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
             state_space (`DiscreteSpace'):
             action_space (`ActionSpace'):
             observation_space (`ObservationSpace'):
+            z_observation_space (`ObservationSpace'):
             sample_domain_start_state (`Callable'):
             reward_function (`RewardFunction`):
             terminal_function (`TerminalFunction`):
@@ -380,7 +383,7 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         """
         # domain knowledge
         self.domain_action_space = action_space
-        self.domain_obs_space = observation_space
+        self.domain_obs_space = z_observation_space
         self.sample_domain_start_state = sample_domain_start_state
         self.domain_reward = reward_function
         self.domain_terminal = terminal_function
@@ -570,11 +573,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         If ``optimize`` is true, will modify model in ``to_update``
         Note: part of `GBAPOMDP` protocol
         """
-
-        # reset context vectors
-        to_update.model.t.net.reset_context_params()
-        to_update.model.o.net.reset_context_params()
-
         model = to_update.model if optimize else copy.deepcopy(to_update.model)
 
         self.update_theta(

@@ -42,6 +42,9 @@ class WareHouseV0(Domain):
 
         self.correct_tool_order = correct_tool_order
 
+        # a state s = (x, y) and an observation = (x, z)
+        # x is part of the state that is fully observable
+
         # location: 0 (tool-room) or 1 (work-room) (2)
         # current-tool carried by the turtlebot: 0, 1, 2, 3, 4 (5)
         # task-stage: 0, 1, 2, 3, 4 (5)
@@ -62,6 +65,7 @@ class WareHouseV0(Domain):
         # task-stage: 0, 1, 2, 3, 4 (5) (only available when at the work room)
         # or desired-tool: 0, 1, 2, 3 (4) (only available when at the work room)
         self._obs_space = DiscreteSpace([2, 5, 2, 4])
+        self._z_obs_space = DiscreteSpace([2, 4])
 
         self._state = self.sample_start_state()
 
@@ -93,6 +97,10 @@ class WareHouseV0(Domain):
     def observation_space(self) -> DiscreteSpace:
         return self._obs_space
 
+    @property
+    def z_observation_space(self) -> DiscreteSpace:
+        return self._z_obs_space
+
     def sample_start_state(self) -> np.ndarray:
         """returns the (deterministic) start state
 
@@ -104,6 +112,18 @@ class WareHouseV0(Domain):
         env = EnvWareHouse(self.correct_tool_order)
         env.reset()
         return env.get_state()
+
+    def sample_start_ystate(self) -> np.ndarray:
+        """returns the (deterministic) start y component of state
+
+        Args:
+
+        RETURNS (`np.ndarray`):
+
+        """
+        env = EnvWareHouse(self.correct_tool_order)
+        env.reset()
+        return env.get_state()[2:]
 
     def generate_observation(self, state: np.ndarray = None) -> np.ndarray:
         """generates an observation of the state
@@ -148,6 +168,18 @@ class WareHouseV0(Domain):
         obs = [state[0], state[1], human_status, desired_tool]
 
         return np.array(obs, dtype=int)
+
+    def extract_z(self, obs):
+        """extract the z component of an observation"""
+        return obs[2:]
+    
+    # def extract_y(self, s):
+    #     """extract the z component of a state"""
+    #     return s[2:]
+
+    def extract_x(self, o):
+        """extract the x component of an observation"""
+        return o[:2]
 
     def reset(self) -> np.ndarray:
         """reset the state

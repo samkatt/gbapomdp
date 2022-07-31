@@ -21,6 +21,13 @@ class Transition(NamedTuple):
     next_state: np.ndarray
     observation: np.ndarray
 
+class FactoredTransition(NamedTuple):
+    """a POMDP step factor transition (s, y_s, a, s', o)"""
+
+    state: np.ndarray
+    action: int
+    next_state: np.ndarray
+    observation: np.ndarray
 
 class ActionSpace(DiscreteSpace):
     """action space for domains"""
