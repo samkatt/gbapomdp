@@ -351,7 +351,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         sample_domain_start_state: DomainStatePrior,
         reward_function: RewardFunction,
         terminal_function: TerminalFunction,
-        get_xstate_function,
         prior_models: List[DynamicsModel],
         model_update: List[ModelUpdate],
         use_gpu: bool = False,
@@ -379,7 +378,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         self.sample_domain_start_state = sample_domain_start_state
         self.domain_reward = reward_function
         self.domain_terminal = terminal_function
-        self.get_xstate = get_xstate_function
 
         self._models = prior_models
         self._theta_updates = model_update
