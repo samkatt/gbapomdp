@@ -65,6 +65,7 @@ class WareHouseV0(Domain):
         # task-stage: 0, 1, 2, 3, 4 (5) (only available when at the work room)
         # or desired-tool: 0, 1, 2, 3 (4) (only available when at the work room)
         self._obs_space = DiscreteSpace([2, 5, 2, 4])
+        self._z_obs_space = DiscreteSpace([2, 4])
 
         self._state = self.sample_start_state()
 
@@ -96,8 +97,9 @@ class WareHouseV0(Domain):
     def observation_space(self) -> DiscreteSpace:
         return self._obs_space
 
-    def get_xstate(self) -> np.ndarray:
-        return self._state[:2]
+    @property
+    def z_observation_space(self) -> DiscreteSpace:
+        return self._z_obs_space
 
     def sample_start_state(self) -> np.ndarray:
         """returns the (deterministic) start state
@@ -111,17 +113,9 @@ class WareHouseV0(Domain):
         env.reset()
         return env.get_state()
 
-    def sample_start_ystate(self) -> np.ndarray:
-        """returns the (deterministic) start y component of state
-
-        Args:
-
-        RETURNS (`np.ndarray`):
-
-        """
-        env = EnvWareHouse(self.correct_tool_order)
-        env.reset()
-        return env.get_state()[2:]
+    def z_from_o(self, o):
+        """extract z component from an observation"""
+        return o[2:]
 
     def generate_observation(self, state: np.ndarray = None) -> np.ndarray:
         """generates an observation of the state
@@ -166,10 +160,6 @@ class WareHouseV0(Domain):
         obs = [state[0], state[1], human_status, desired_tool]
 
         return np.array(obs, dtype=int)
-
-    def extract_x(self, o):
-        """extract the x component of an observation"""
-        return o[:2]
 
     def reset(self) -> np.ndarray:
         """reset the state

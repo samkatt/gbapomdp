@@ -59,6 +59,7 @@ def train_from_samples(
         states, actions, new_states, observations = zip(
             *[sampler() for _ in range(batch_size)]
         )
+
         new_loss_t, new_loss_o = theta.batch_update(
             np.array(states),
             np.array(actions),
@@ -76,6 +77,7 @@ def sample_transitions_uniform(
     state_space: DiscreteSpace,
     action_space: ActionSpace,
     valid_checker,
+    z_from_o,
     domain_simulation_step: DomainSimulationStep,
 ) -> Transition:
     """Samples transitions uniformly from simulator
@@ -87,6 +89,7 @@ def sample_transitions_uniform(
         state_space (`DiscreteSpace`):
         action_space (`ActionSpace`):
         valid_checker: a function to check state
+        z_from_o: a function to extract z from observation
         domain_simulation_step
 
     Returns:
@@ -103,7 +106,7 @@ def sample_transitions_uniform(
 
         next_state, observation = domain_simulation_step(state, action)
 
-        return Transition(state, action, next_state, observation)
+        return Transition(state, action, next_state, z_from_o(observation))
 
 
 def create_dynamics_model(
@@ -351,7 +354,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         sample_domain_start_state: DomainStatePrior,
         reward_function: RewardFunction,
         terminal_function: TerminalFunction,
-        get_xstate_function,
         prior_models: List[DynamicsModel],
         model_update: List[ModelUpdate],
         use_gpu: bool = False,
@@ -379,16 +381,12 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         self.sample_domain_start_state = sample_domain_start_state
         self.domain_reward = reward_function
         self.domain_terminal = terminal_function
-        self.get_xstate = get_xstate_function
 
         self._models = prior_models
         self._theta_updates = model_update
 
     def __len__(self):
         return len(self._models)
-
-    def get_x(self):
-        return self.get_xstate()
 
     @property
     def action_space(self) -> ActionSpace:

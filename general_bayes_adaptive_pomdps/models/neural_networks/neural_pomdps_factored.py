@@ -353,11 +353,10 @@ class DynamicsModel:
             Returns:
                 `float`: loss
             """
-            state_action_state_triplets = torch.cat(
+            action_state_triplets = torch.cat(
                 (actions, next_states.float()), dim=1
             )
-            observation_logits = self.net(state_action_state_triplets)
-
+            observation_logits = self.net(action_state_triplets)
             loss = torch.stack(
                 [
                     self.criterion(
@@ -589,7 +588,7 @@ class DynamicsModel:
 
         states = torch.from_numpy(states).float().to(device())
         actions = (
-            torch.tensor([self.action_space.one_hot(a) for a in actions])
+            torch.tensor(np.array([self.action_space.one_hot(a) for a in actions]))
             .float()
             .to(device())
         )
