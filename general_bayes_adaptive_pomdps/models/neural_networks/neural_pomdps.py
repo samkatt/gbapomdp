@@ -594,7 +594,7 @@ class DynamicsModel:
 
         states = torch.from_numpy(states).float().to(device())
         actions = (
-            torch.tensor([self.action_space.one_hot(a) for a in actions])
+            torch.tensor(np.array([self.action_space.one_hot(a) for a in actions]))
             .float()
             .to(device())
         )

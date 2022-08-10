@@ -38,15 +38,15 @@ class ToolDeliveryV0(Domain):
         self.core_env = EnvToolDelivery(correct_tool_order, render=render)
 
         # STATE
-        # discrete locations: 2
+        # discrete locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
-        # the correct tool order: [n_objs]*n_objs
-        # human working step: 4
+        # human working step: [n_objs + 1]
+        # human working or not [2]
         n_objs = 3
         self.n_objs = n_objs
         self._state_space = DiscreteSpace([2] + [2]*n_objs +
-                                          [2]*n_objs + [n_objs]*n_objs + [n_objs + 1] + [2])
+                                          [2]*n_objs + [n_objs + 1] + [2])
 
         # OBSERVATION
         # discrete locations: 2
@@ -81,6 +81,17 @@ class ToolDeliveryV0(Domain):
         RETURNS (`np.ndarray`):
 
         """
+
+        # STATE
+        # discrete locations: 2
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs
+        # human working step: 4
+        # accept tool: [2]
+
+        init_state = [0, 0, 0, 0, 0, 0, 0] + [0, 0]
+        return np.array(init_state, dtype=int)
+
         self.core_env.reset()
         return self.core_env.get_state()
 
@@ -109,8 +120,6 @@ class ToolDeliveryV0(Domain):
         # discrete locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
-        # the correct tool order: [n_objs]*n_objs
-        # human working step: [4]
         # human currently accepts tool: [2]
 
         reward = -1
@@ -119,23 +128,23 @@ class ToolDeliveryV0(Domain):
 
         new_human_stage = new_state[-2]
 
-        if prev_human_stage + 1 == new_human_stage:
+        # Deliver a good tool
+        if prev_human_stage + 1 == new_human_stage and action == self.n_objs:
             reward += 100
 
-        correct_tool_orders = state[2*self.n_objs + 1 : 3*self.n_objs + 1]
-        carrying_tools = state[1:self.n_objs + 1]
+        # # Deliver but not carrying a good tool (stage does not change)
+        # if prev_human_stage == new_human_stage and action == self.n_objs:
+        #     reward += -1
 
-        # Deliver but not carrying a good tool
-        if action == self.n_objs and prev_human_stage < self.n_objs:
-            requested_tool_idx = correct_tool_orders[prev_human_stage]
-            if carrying_tools[requested_tool_idx] != 1:
-                # assert reward < 0, f"{state}, {requested_tool_idx}, {carrying_tools}"
-                reward += -1
+        #     # deliver but human is not accepting tools
+        #     accept_tool = state[-1]
+        #     if not accept_tool:
+        #         reward += -10
 
-            # deliver but human is not accepting tools
-            accept_tool = state[-1]
-            if not accept_tool:
-                reward += -10
+        # Carying many tools
+        carrying_tools = new_state[1:1 + self.n_objs]
+        penalty = max(0.0, np.sum(carrying_tools) - 1)
+        reward += -30*penalty
 
         return reward
 
@@ -154,12 +163,11 @@ class ToolDeliveryV0(Domain):
         # discrete locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
-        # the correct tool order: [n_objs]*n_objs
         # human working step: [4]
         # human currently accepts tool: [2]
 
         done = False
-        human_stage = new_state[-1]
+        human_stage = new_state[-2]
 
         if human_stage == 3:
             done = True

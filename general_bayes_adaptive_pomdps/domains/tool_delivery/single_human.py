@@ -126,7 +126,7 @@ class ObjSearchDelivery(gym.Env):
         screen_height = 500
 
         if self.viewer is None:
-            import rendering
+            import general_bayes_adaptive_pomdps.domains.tool_delivery.rendering as rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
             line = rendering.Line((0.0, 0.0), (0.0, screen_height))
@@ -550,8 +550,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # discrete locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
-        # the correct tool order: [n_objs - 1]*n_objs (order starts from 0)
-        # the human status n_objs (order starts from 0)
         # the human is accepting a tool or not [2]
 
         state = []
@@ -578,9 +576,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                     print("Take Tool:", tool_idx)
                 objs[tool_idx] = 1.0
         state += objs.tolist()
-
-        # the correct tool orders
-        state += self.tool_order
 
         if self.rendering:
             print(f"Len of state: {len(state)}")
