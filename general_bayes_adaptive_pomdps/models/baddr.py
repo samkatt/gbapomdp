@@ -35,10 +35,11 @@ class TransitionSampler(Protocol):
 
 
 def train_from_samples(
-    theta: DynamicsModel,
-    sampler: TransitionSampler,
-    num_epochs: int,
-    batch_size: int,
+        theta: DynamicsModel,
+        prior,
+        max_ep_len: int,
+        num_epochs: int,
+        batch_size: int,
 ) -> float:
     """trains a theta with data uniformly sampled from (S,A) space
 
@@ -46,7 +47,7 @@ def train_from_samples(
 
     Args:
          theta: (`general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel`):
-         sampler: (`TransitionSampler`): method to sample transitions from
+         prior: The simulator
          num_epochs: (`int`): number of batch updates
          batch_size: (`int`): size of a batch update
 
@@ -55,15 +56,43 @@ def train_from_samples(
     loss_t = []
     loss_o = []
 
+    # generate data
+    done = True
+    prior.reset()
+    ep_len = 0
+
+    states = []
+    actions = []
+    new_states = []
+    obss = []
+
+    while True:
+        action = prior.action_space.sample_as_int()
+        state = prior.get_state()
+        sim_result = prior.step(action)
+        obs = sim_result.observation
+        done = sim_result.terminal
+        next_state = prior.get_state()
+        ep_len += 1
+
+        states.append(state)
+        actions.append(action)
+        new_states.append(next_state)
+        obss.append(obs)
+
+        if done or ep_len >= max_ep_len:
+            prior.reset()
+            ep_len = 0
+
+        if len(states) >= batch_size:
+            break
+
     for _ in range(num_epochs):
-        states, actions, new_states, observations = zip(
-            *[sampler() for _ in range(batch_size)]
-        )
         new_loss_t, new_loss_o = theta.batch_update(
             np.array(states),
             np.array(actions),
             np.array(new_states),
-            np.array(observations),
+            np.array(obss),
         )
 
         loss_t.append(new_loss_t)
@@ -104,6 +133,40 @@ def sample_transitions_uniform(
 
         return Transition(state, action, next_state, observation)
 
+def sample_transitions_random(
+    env,
+    max_ep_len: int,
+) -> Transition:
+    """Samples transitions using a random actor from simulator
+
+    Args:
+        state_space (`DiscreteSpace`):
+        action_space (`ActionSpace`):
+        domain_simulation_step
+
+    Returns:
+        `Transition`: transition (s,a,s',o)
+    """
+
+    done = False
+    ep_cnt = 0
+    env.reset()
+    transitions = []
+    while True:
+        action = env.action_space.sample_as_int()
+
+        state = env.get_state()
+
+        observation, _, done, _ = env.step(action)
+
+        next_state = env.get_state()
+
+        transitions.append([state, action, next_state, observation])
+
+        if done or ep_cnt >= max_ep_len:
+            break
+
+    return transitions, len(transitions)
 
 def create_dynamics_model(
     state_space: DiscreteSpace,

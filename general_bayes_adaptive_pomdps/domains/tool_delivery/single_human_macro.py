@@ -25,7 +25,7 @@ class ObjSearchDelivery(gym.Env):
                  tool_order,
                  n_objs=3,
                  n_each_obj=1,
-                 human_speed_per_step=[[2, 2, 2, 2]],
+                 human_speed_per_step=[[4, 4, 4, 4]],
                  TB_move_speed=0.6,
                  fetch_look_for_obj_tc=6,
                  render=False,
@@ -377,9 +377,9 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         self.T_MAs = []
 
         for i in range(self.n_objs):
-            self.T_MAs.append(MacroAction(f'Get_Tool_{i}', i, expected_t_cost=1, ma_bwpterm=0))
+            self.T_MAs.append(MacroAction(f'Get_Tool_{i}', i, expected_t_cost=None, ma_bwpterm=0))
 
-        self.T_MAs.append(MacroAction('Deliver', self.n_objs, expected_t_cost=1, ma_bwpterm=1))
+        self.T_MAs.append(MacroAction('Deliver', self.n_objs, expected_t_cost=None, ma_bwpterm=1))
 
     def create_fetch_actions(self):
         self.action_space_F = spaces.Discrete(self.n_objs)
@@ -389,7 +389,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         for i in range(self.n_objs):
             F_MA = MacroAction(f'Find_Pass_Tool_{i}',
                                i + 1,
-                               expected_t_cost=1)
+                               expected_t_cost=self.fetch_look_for_obj_tc)
             self.F_MAs.append(F_MA)
 
     def createAgents(self):
@@ -422,6 +422,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                 "The current macro-action's indices"
         """
 
+        terminate = 0
         cur_actions = []
         cur_actions_done = []
 
@@ -440,6 +441,10 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # collect the info about the cur_actions and if they are finished
         for idx, agent in enumerate(self.agents):
             cur_actions_done.append(1 if agent.cur_action_done else 0)
+
+        if (self.humans[0].cur_step == self.n_steps_human_task - 2) \
+            and self.humans[0].next_requested_obj_obtained:
+            terminate = 1
 
         # each human executes one step
         for idx, human in enumerate(self.humans):
@@ -476,7 +481,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                 print("      " + " \t\t whole_task_finished  \t\t{}".format(human.whole_task_finished))
                 print(" ")
 
-        return np.array(observations, dtype=int), 0, False, {}
+        return np.array(observations, dtype=int), 0, terminate, {}
 
     def _getobs(self):
         #--------------------get observations at the beginning of each episode
@@ -547,12 +552,11 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         return observations
 
     def get_state(self):
-        # discrete locations: [2]
+        # discrete locations: 2
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # the correct tool order: [n_objs - 1]*n_objs (order starts from 0)
         # the human status n_objs (order starts from 0)
-        # the human is accepting a tool or not [2]
 
         state = []
 
@@ -595,51 +599,4 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # the human status
         state += [self.humans[0].cur_step]
 
-        # tool accept?
-        accept_tool = self.humans[0].cur_step_time_left <= 1
-        state += [accept_tool]
-
         return np.array(state, dtype=int)
-
-if __name__ == "__main__":
-    import time
-
-    env = ObjSearchDelivery_v4(tool_order=[2, 0, 1], render=True)
-
-    step_delay = 1
-
-    env.reset()
-
-    optimal = False
-
-    # Optimal
-    if optimal:
-        for tool in [2, 0, 1]:
-            # Get tool
-            env.step([tool])
-            time.sleep(step_delay)
-
-            # Deliver
-            env.step([3])
-            time.sleep(step_delay)
-
-        # Deliver
-        for _ in range(2):
-            env.step([3])
-            time.sleep(step_delay)
-
-    # Sub-optimal (10 actions in total)
-    else:
-        # Get all tools
-        env.step([0])
-        time.sleep(step_delay)
-
-        env.step([1])
-        time.sleep(step_delay)
-
-        env.step([2])
-        time.sleep(step_delay)
-
-        for _ in range(7):
-            env.step([3])
-            time.sleep(step_delay)

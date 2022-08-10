@@ -105,6 +105,29 @@ def sample_transitions_uniform(
 
         return Transition(state, action, next_state, observation)
 
+def sample_transitions_random(
+    env,
+) -> Transition:
+    """Samples transitions using a random actor from simulator
+
+    Args:
+        state_space (`DiscreteSpace`):
+        action_space (`ActionSpace`):
+        valid_checker: a function to check state
+        domain_simulation_step
+
+    Returns:
+        `Transition`: transition (s,a,s',o)
+    """
+
+    while True:
+        action = env.sample_actions()
+
+        state = env.get_state()
+
+        next_state, observation = env.step(action)
+
+        return Transition(state, action, next_state, observation)
 
 def create_dynamics_model(
     state_space: DiscreteSpace,

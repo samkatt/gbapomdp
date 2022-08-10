@@ -11,23 +11,21 @@ class AgentTurtlebot_v4(object):
 
     """Properties for a Turtlebot"""
 
-    def __init__(self, 
-                 idx, 
-                 init_x, 
+    def __init__(self,
+                 idx,
+                 init_x,
                  init_y,
                  beliefwaypoints,
                  MAs,
                  n_objs,
-                 speed = 0.6,
-                 move_noisy=0.0,
-                 get_tool_wait=10,
-                 delay_delivery_penalty=False):
+                 fetch,
+                 speed=0.6):
 
         # unique agent's id
         self.idx = idx
         # agent's name
         self.name = 'Turtlebot'+ str(self.idx)
-        # agent's 2D position x 
+        # agent's 2D position x
         self.xcoord = init_x
         # agent's 2D position y
         self.ycoord = init_y
@@ -44,16 +42,16 @@ class AgentTurtlebot_v4(object):
         self.cur_action_done = True
         # turtlebot base movement speed
         self.speed = speed
-        self.move_noisy = move_noisy
+
+        # reached receipt spot
+        self.reached_receipt_spot = False
 
         # communication info
         self.n_objs = n_objs
+        # fetch robot
+        self.fetch = fetch
         # keep tracking the objects in the basket
         self.objs_in_basket = np.zeros(n_objs)
-        # keep tracking the message of request objects received by Fetch robot
-        self.request_objs = np.zeros(n_objs)
-        self.get_tool_wait = get_tool_wait
-        self.delay_delivery_penalty = delay_delivery_penalty
 
     def step(self, action, humans):
 
@@ -63,76 +61,85 @@ class AgentTurtlebot_v4(object):
 
         assert action < len(self.macro_actions), "The action received is out of the range"
 
-        reward = 0.0
-
         # update current action info
         self.cur_action = self.macro_actions[action]
         self.cur_action_done = False
+        self.reached_receipt_spot = False
 
-        # action 0 - 2
-        if action <= 10:
-            bwpterm_idx = self.cur_action.ma_bwpterm
-            if self.cur_action.expected_t_cost != 1:
-                dist = round(self._get_dist(self.BWPs[bwpterm_idx].xcoord, self.BWPs[bwpterm_idx].ycoord), 2)
-                if dist <= self.speed:
-                    self.xcoord = self.BWPs[bwpterm_idx].xcoord
-                    self.ycoord = self.BWPs[bwpterm_idx].ycoord
-                    self.cur_BWP = self.BWPs[bwpterm_idx]
-                    if self.cur_action_time_left > 0.0:
-                        self.cur_action_time_left = 0.0
-                        if action == 2:
-                            return reward
-                    if action < 2:
-                        self.cur_action_done = True
-                    else:
-                        # indicates turtlebot has been ready to get obj from fetch
-                        self.cur_action_time_left -= 1.0
-                        if self.cur_action_time_left < -self.get_tool_wait:   #----get_tool action automatically terminate after waiting for 10s
-                            self.cur_action_time_left = -1.0
-                            self.cur_action_done = True
-                else:
-                    delta_x = self.speed / dist * (self.BWPs[bwpterm_idx].xcoord - self.xcoord) + np.random.normal(0.0, self.move_noisy)
-                    delta_y = self.speed / dist * (self.BWPs[bwpterm_idx].ycoord - self.ycoord) + np.random.normal(0.0, self.move_noisy)
-                    self.xcoord += delta_x
-                    self.ycoord += delta_y
-                    self.cur_action_time_left = dist - self.speed
-            else:
+        # move to the corresponding waypoints
+        bwpterm_idx = self.cur_action.ma_bwpterm
+        if self.cur_action.expected_t_cost != 1:
+            dist = round(self._get_dist(self.BWPs[bwpterm_idx]), 2)
+            if dist <= self.speed:
                 self.xcoord = self.BWPs[bwpterm_idx].xcoord
                 self.ycoord = self.BWPs[bwpterm_idx].ycoord
                 self.cur_BWP = self.BWPs[bwpterm_idx]
+                if self.cur_action_time_left > 0.0:
+                    self.cur_action_time_left = 0.0
 
-        # action 3
-        elif action >= self.n_objs + 1:
-            if self.xcoord < 3.5:
-                self.request_objs[action - self.n_objs - 1] = 1.0
-            self.cur_action_done = True
+                # Deliver_Tool action
+                if action == self.n_objs:
+                    self.cur_action_done = True
+                # Get_Tool_i action
+                else:
+                    self.reached_receipt_spot = True
+            else:
+                delta_x = self.speed / dist * (self.BWPs[bwpterm_idx].xcoord - self.xcoord)
+                delta_y = self.speed / dist * (self.BWPs[bwpterm_idx].ycoord - self.ycoord)
+                self.xcoord += delta_x
+                self.ycoord += delta_y
+                self.cur_action_time_left = dist - self.speed
+        else:
+            self.xcoord = self.BWPs[bwpterm_idx].xcoord
+            self.ycoord = self.BWPs[bwpterm_idx].ycoord
+            self.cur_BWP = self.BWPs[bwpterm_idx]
 
-        # change the human's properties when turtlebot deliever correct objects
+            # Deliver_Tool action
+            if action == self.n_objs:
+                self.cur_action_done = True
+            # Get_Tool_i action
+            else:
+                self.reached_receipt_spot = True
+
+        # change the human's properties when turtlebot delivers correct objects
         if self.cur_BWP is not None and \
-           (action == 0 and self.cur_BWP.idx == action):
-            human = humans[self.cur_BWP.idx]
+            self.cur_action_done and \
+            (action == self.n_objs):
+
+            human = humans[0]
+
             if not human.next_requested_obj_obtained and \
-                    self.objs_in_basket[human.next_request_obj_idx] > 0.0:
-                        self.objs_in_basket[human.next_request_obj_idx] -= 1.0
-                        if human.cur_step_time_left < 0 and self.delay_delivery_penalty:
-                            reward += 20
-                        else:
-                            reward += 100
-                        human.next_requested_obj_obtained = True
+                human.cur_step_time_left <= 1 and \
+                self.objs_in_basket[human.next_request_obj_idx] > 0.0:
 
-        return reward
+                self.objs_in_basket[human.next_request_obj_idx] -= 1.0
+                human.next_requested_obj_obtained = True
 
-    def _get_dist(self, g_xcoord, g_ycoord):
-        return np.sqrt((g_xcoord - self.xcoord)**2 + (g_ycoord - self.ycoord)**2)
+        # ask Fetch to hand over the desired tool when at the receipt spot
+        if action < self.n_objs and self.reached_receipt_spot:
+            self.fetch.step(action)
+
+            # Fetch done then the whole action is also done
+            if self.fetch.cur_action_done:
+                if self.fetch.tool_found:
+                    obj_idx = action
+                    self.objs_in_basket[obj_idx] += 1.0
+
+                self.cur_action_done = True
+
+        return
+
+    def _get_dist(self, goal):
+        """Compute the distance from the turtlebot to a goal waypoint"""
+        return np.sqrt((goal.xcoord - self.xcoord)**2 + (goal.ycoord - self.ycoord)**2)
 
 class AgentFetch_v4(object):
+    """Properties for a Fetch robot
+    """
 
-    """Properties for a Fetch robot"""
-    """Double Check for passing obj action, beginning and end"""
-
-    def __init__(self, 
-                 idx, 
-                 init_x, 
+    def __init__(self,
+                 idx,
+                 init_x,
                  init_y,
                  MAs,
                  n_objs,
@@ -152,119 +159,45 @@ class AgentFetch_v4(object):
         self.cur_action = None
         # how much time left to finish current macro_action
         self.cur_action_time_left = 0.0
-        self.cur_action_done = True
+        self.cur_action_done = False
         # the number of different objects in this env
         self.n_objs = n_objs
-        # the amout of each obj in the env
+        # the number of each obj in the env
         self.n_each_obj = n_each_obj
         self.count_found_obj = np.zeros(n_objs)
-        
+
         ################# communication info ######################
-        # indicates if fetch is serving or not
-        self.serving = False   
-        self.serving_failed = False
-        # [0,0] means there is no any object ready for Turtlebot1 and Turtlebot2
-        self.ready_objs = np.zeros(2)
-        self.found_objs = []
+        self.tool_found = False
 
-    def step(self, action, agents):
+        # list of tools that are passed to the turtlebot
+        self.passed_tools = []
 
-        """Depends on the input macro-action to run low-level controller to achieve 
-           primitive action execution.
+    def step(self, action):
+
+        """Depends on the input macro-action to run low-level controller to
+           achieve primitive action execution.
         """
 
         reward = 0.0
 
+        self.cur_action = self.macro_actions[action]
+
+        if self.cur_action_time_left == 0.0:
+            self.cur_action_time_left = self.cur_action.t_cost
+            self.cur_action_done = False
+
         self.cur_action_time_left -= 1.0
-        
-        if self.cur_action_time_left  > 0.0:
+
+        if self.cur_action_time_left > 0.0:
             return reward
         else:
-            if self.cur_action_done:
-                self.cur_action = self.macro_actions[action]
-                self.cur_action_time_left = self.cur_action.t_cost - 1.0
-                # action 0 wait request
-                if self.cur_action.idx == 0:
-                    self.cur_action_done = True
-                else:
-                    self.cur_action_done = False
+            found_obj_idx = self.cur_action.idx - 1
+            self.tool_found = False
+            if self.count_found_obj[found_obj_idx] < self.n_each_obj:
+                self.count_found_obj[found_obj_idx] += 1.0
+                self.tool_found = True
+                self.passed_tools.append(found_obj_idx)
 
-                # when fetch execute pass_obj action, the corresponding turtlebot has to have been beside table
-                if self.cur_action.idx == 1:
-                    self.serving = True
-                    if agents[0].cur_BWP is None or \
-                       agents[0].cur_BWP.name != "ToolRoomTable" or \
-                       agents[0].cur_action_time_left > -1.0:
-                        self.serving_failed = True
-                elif self.cur_action.idx == 2:
-                    self.serving = True
-                    if agents[1].cur_BWP is None or \
-                       agents[1].cur_BWP.name != "ToolRoomTable" or \
-                       agents[1].cur_action_time_left > -1.0:
-                        self.serving_failed = True
-
-                return reward
-
-            # action 1 Pass_obj_T0
-            elif self.cur_action.idx == 1:
-                self.serving = False
-                if not self.serving_failed and \
-                   agents[0].cur_action_time_left < 0.0 and \
-                   agents[0].cur_action.name == "Get_Tool":
-
-                    if len(self.found_objs) > 0:
-                        obj_idx = self.found_objs.pop(0)
-                        agents[0].objs_in_basket[obj_idx] += 1.0
-                    agents[0].cur_action_done = True
-                    agents[0].cur_action_time_left = 0.0
-                        
-                    # check if there is still any other object ready for turtlebot 1
-                    self.ready_objs = np.zeros(2)
-                    if len(self.found_objs) == 1:
-                        self.ready_objs[0]=1.0
-
-                else:
-                    reward += -10.0
-
-                self.serving_failed = False
-
-            # action 2 Pass_obj_T1
-            elif self.cur_action.idx == 2:
-                self.serving = False
-                if not self.serving_failed and \
-                   agents[1].cur_action_time_left < 0.0 and \
-                   agents[1].cur_action.name == "Get_Tool":
-
-                    if len(self.found_objs) > 0:
-                        obj_idx = self.found_objs.pop(0)
-                        agents[1].objs_in_basket[obj_idx] += 1.0
-                    agents[1].cur_action_done = True
-                    agents[1].cur_action_time_left = 0.0
-
-                    # check if there is still any other object ready for turtlebot 1
-                    self.ready_objs = np.zeros(2)
-                    if len(self.found_objs) == 1:
-                        self.ready_objs[0] = 1.0
-
-                else:
-                    reward += -10.0
-                
-                self.serving_failed = False
-
-            # action Look_for_T0_obj
-            elif self.cur_action.idx < 3+self.n_objs: 
-                found_obj_idx = self.cur_action.idx - 3
-                if len(self.found_objs) < 2 and self.count_found_obj[found_obj_idx] < self.n_each_obj:   #---------------tweak 3
-                    self.count_found_obj[found_obj_idx] += 1.0
-                    self.found_objs.append(found_obj_idx)
-                    if len(self.found_objs) == 2:
-                        self.ready_objs[1] = 1.0
-                        self.ready_objs[0] = 0.0
-                    else:
-                        self.ready_objs[0] = 1.0
-                        self.ready_objs[1] = 0.0
-
-            # indicate the current action finished
             self.cur_action_done = True
 
         return reward
@@ -277,9 +210,7 @@ class AgentHuman(object):
                  idx,
                  task_total_steps,
                  expected_timecost_per_task_step,
-                 request_objs_per_task_step,
-                 std=None,
-                 seed=None):
+                 request_objs_per_task_step):
 
         # unique agent's id
         self.idx = idx
@@ -287,17 +218,11 @@ class AgentHuman(object):
         self.task_total_steps = task_total_steps
         # a vector to indicate the expected time cost for each human to finish each task step
         self.expected_timecost_per_task_step = expected_timecost_per_task_step
-        # std is used to sample the actual time cost for each human to finish each task step
-        self.time_cost_std_per_task_step = std
         # a vector to inidcate the tools needed for each task step
         self.request_objs_per_task_step = request_objs_per_task_step
 
-        self.cur_step = 0 
-        if std is None:
-            self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
-        else:
-            # sample the time cost for the current task step, which will be counted down step by step
-            self.cur_step_time_left = self.np.random.normal(self.expected_timecost_per_task_step[self.cur_step], self.time_cost_std_per_task_step)
+        self.cur_step = 0
+        self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
 
         # indicates the tool needed for next task step
         self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]
@@ -310,14 +235,11 @@ class AgentHuman(object):
 
         # check if the human already finished whole task
         if self.cur_step + 1 == self.task_total_steps:
-            assert self.whole_task_finished == False
+            assert self.whole_task_finished is False
             self.whole_task_finished = True
         else:
             self.cur_step += 1
-            if self.time_cost_std_per_task_step is None:
-                self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
-            else:
-                self.cur_step_time_left = self.np.random.normal(self.expected_timecost_per_task_step[self.cur_step], self.time_cost_std_per_task_step)
+            self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
             # update the request obj for next step
             if self.cur_step + 1 < self.task_total_steps:
                 self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step] 
@@ -325,11 +247,7 @@ class AgentHuman(object):
 
     def reset(self):
         self.cur_step = 0
-        if self.time_cost_std_per_task_step is None:
-            self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
-        else:
-            # sample the time cost for the current task step, which will be counted down step by step
-            self.cur_step_time_left = self.np.random.normal(self.expected_timecost_per_task_step[self.cur_step], self.time_cost_std_per_task_step)
+        self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
 
         # indicates the tool needed for next task step
         self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]  
@@ -373,7 +291,7 @@ class MacroAction(object):
         else:
             # resample a time cost for the macro-action
             return round(np.random.normal(self.expected_t_cost, self.std),1)
- 
+
 class BeliefWayPoint(object):
 
     """Properties for a waypoint in the 2D sapce"""
@@ -383,7 +301,7 @@ class BeliefWayPoint(object):
                  idx,
                  xcoord,
                  ycoord):
-        
+
         self.name = name
         self.idx = idx
         self.xcoord = xcoord
