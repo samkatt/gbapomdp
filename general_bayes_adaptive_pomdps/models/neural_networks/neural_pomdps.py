@@ -176,6 +176,9 @@ class DynamicsModel:
             network_size: int,
             dropout_rate: float,
             input_state_size: Optional[int] = None,
+            known_dyn_fcn=None,
+            process_ns_fcn=None,
+            process_s_fcn=None,
         ):
             """Initiates a neural network transition model
 
@@ -200,9 +203,26 @@ class DynamicsModel:
             :param dropout_rate: rate of dropping nodes
             :param input_state_size: overwrites the number of input nodes
                 (otherwise set to # dimensions in ``state_space``)
+            :param known_dyn_fcn: specify a function that describes a known part of the dynamics
+            :param process_ns_fcn: a function that will process next state before training
             """
             if not input_state_size:
                 input_state_size = state_space.ndim
+
+            if known_dyn_fcn:
+                self.known_dyn_fcn = known_dyn_fcn
+            else:
+                self.known_dyn_fcn = None
+
+            if process_ns_fcn:
+                self.process_ns_fcn = process_ns_fcn
+            else:
+                self.process_ns_fcn = None
+
+            if process_s_fcn:
+                self.process_s_fcn = process_s_fcn
+            else:
+                self.process_s_fcn = None
 
             net = Net(
                 input_size=input_state_size + action_space.n,
@@ -231,8 +251,14 @@ class DynamicsModel:
             Returns:
                 `float`: loss
             """
+            if self.process_s_fcn:
+                states = self.process_s_fcn(states)
+
             state_action_pairs = torch.cat((states, actions), dim=1)
             next_state_logits = self.net(state_action_pairs)
+
+            if self.process_ns_fcn:
+                next_states = self.process_ns_fcn(next_states)
 
             loss = torch.stack(
                 [
@@ -310,8 +336,19 @@ class DynamicsModel:
             Returns:
                 `np.ndarray`: `num` states
             """
+            if self.known_dyn_fcn:
+                known_model = self.known_dyn_fcn(state, action, return_dist=True)
+
+            if self.process_s_fcn:
+                state = self.process_s_fcn(state)
             transition_model = self.model(state, action)
-            return DynamicsModel.sample_from_model(transition_model, num)
+
+            if self.known_dyn_fcn:
+                # assume that known_model containing the features that are before
+                # those in transition_model
+                return DynamicsModel.sample_from_model(known_model + transition_model, num)
+            else:
+                return DynamicsModel.sample_from_model(transition_model, num)
 
     class ONet(NN):
         """Neural Network implementation of observation model in `DynamicsModel`"""
@@ -325,6 +362,8 @@ class DynamicsModel:
             learning_rate: float,
             network_size: int,
             dropout_rate: float,
+            process_s_fcn=None,
+            process_o_fcn=None,
         ):
 
             net = Net(
@@ -337,6 +376,16 @@ class DynamicsModel:
             super().__init__(net, optimizer_builder, learning_rate)
             self.action_space = action_space
             self.obs_space = obs_space
+
+            if process_s_fcn:
+                self.process_s_fcn = process_s_fcn
+            else:
+                self.process_s_fcn = None
+
+            if process_o_fcn:
+                self.process_o_fcn = process_o_fcn
+            else:
+                self.process_o_fcn = None
 
         def batch_train(
             self,
@@ -356,6 +405,13 @@ class DynamicsModel:
             Returns:
                 `float`: loss
             """
+            if self.process_s_fcn:
+                states = self.process_s_fcn(states)
+                next_states = self.process_s_fcn(next_states)
+
+            if self.process_o_fcn:
+                obs = self.process_o_fcn(obs)
+
             state_action_state_triplets = torch.cat(
                 (states, actions, next_states.float()), dim=1
             )
@@ -444,6 +500,10 @@ class DynamicsModel:
             Returns:
                 `np.ndarray`: `num` observations
             """
+            if self.process_s_fcn:
+                state = self.process_s_fcn(state)
+                next_state = self.process_s_fcn(next_state)
+
             obs_model = self.model(state, action, next_state)
             return DynamicsModel.sample_from_model(obs_model, num)
 
@@ -550,7 +610,7 @@ class DynamicsModel:
         for model in [self.t, self.o]:
             model.set_learning_rate(learning_rate)
 
-    def simulation_step(self, state: np.array, action: int) -> SimulationResult:
+    def simulation_step(self, state: np.array, action: int, known_dynamics_fcn=None) -> SimulationResult:
         """The simulation step of this dynamics model: S x A -> S, O
 
         Args:

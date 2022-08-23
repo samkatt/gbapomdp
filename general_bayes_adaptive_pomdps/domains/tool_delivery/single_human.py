@@ -70,7 +70,6 @@ class ObjSearchDelivery(gym.Env):
         self.TB_move_speed = TB_move_speed
         self.fetch_look_for_obj_tc = fetch_look_for_obj_tc
         self.human_speed = human_speed_per_step
-        self.human_waiting_steps = []
 
         self.rendering = render
 
@@ -367,11 +366,12 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         self.action_space_T = spaces.Discrete(self.n_objs + 1)
 
-        # discrete locations: 2
-        # which object in the basket: n_objs [2, 2, 2]
-        # which object are on the table: n_objs [2, 2, 2]
-        # human working step: 3
-        self.observation_space = spaces.MultiDiscrete([2] + [2]*self.n_objs + [2]*self.n_objs + [3])
+        # discrete room locations: [2]
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs (only observable in the tool-room)
+        # human working step: [n_objs + 1] (only observable in the work-room)
+        self.observation_space = spaces.MultiDiscrete([2] + [2]*self.n_objs
+                                                      + [2]*self.n_objs + [self.n_objs + 1])
 
         #-----------------def macro-actions for Turtlebot
         self.T_MAs = []
@@ -388,7 +388,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         self.F_MAs = []
         for i in range(self.n_objs):
             F_MA = MacroAction(f'Find_Pass_Tool_{i}',
-                               i + 1,
+                               i,
                                expected_t_cost=1)
             self.F_MAs.append(F_MA)
 
@@ -446,9 +446,11 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             if idx in self.n_human_finished:
                 continue
             human.cur_step_time_left -= 1.0
+            if human.cur_step_time_left <= 0:
+                human.accept_tool = True
+            else:
+                human.accept_tool = False
             if human.cur_step_time_left <= 0.0 and human.next_requested_obj_obtained:
-                if human.cur_step_time_left < 0.0:
-                    self.human_waiting_steps.append(human.cur_step_time_left)
                 human.step()
             if human.whole_task_finished:
                 self.n_human_finished.append(idx)
@@ -479,6 +481,12 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         return np.array(observations, dtype=int), 0, False, {}
 
     def _getobs(self):
+        # OBSERVATION
+        # discrete room locations: [2]
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs (only observable in the tool-room)
+        # human working step: [n_objs + 1] (only observable in the work-room)
+
         #--------------------get observations at the beginning of each episode
         if self.t == 0:
             observations = np.zeros(len(self.observation_space))
@@ -498,7 +506,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         if not agent.cur_action_done:
             observations.append(self.old_observations)
         else:
-            # get observation about location
+            # get observation about room location
             # tool-room
             if agent.xcoord < 3.5:
                 room = 0
@@ -547,10 +555,11 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         return observations
 
     def get_state(self):
-        # discrete locations: [2]
+        # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
-        # the human is accepting a tool or not [2]
+        # human working step: [n_objs + 1]
+        # accept tool/not [2]
 
         state = []
 
@@ -565,6 +574,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         state.append(room)
 
         # which objects in basket
+        # 0 means not in the basket
         state += self.agents[0].objs_in_basket.tolist()
 
         # which objects are at the staging area
@@ -590,8 +600,8 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # the human status
         state += [self.humans[0].cur_step]
 
-        # tool accept?
-        accept_tool = self.humans[0].cur_step_time_left <= 1
+        # accept tool or not
+        accept_tool = self.humans[0].accept_tool
         state += [accept_tool]
 
         return np.array(state, dtype=int)
@@ -605,7 +615,7 @@ if __name__ == "__main__":
 
     env.reset()
 
-    optimal = False
+    optimal = True
 
     # Optimal
     if optimal:
@@ -623,7 +633,7 @@ if __name__ == "__main__":
             env.step([3])
             time.sleep(step_delay)
 
-    # Sub-optimal (10 actions in total)
+    # Sub-optimal
     else:
         # Get all tools
         env.step([0])
@@ -635,6 +645,6 @@ if __name__ == "__main__":
         env.step([2])
         time.sleep(step_delay)
 
-        for _ in range(7):
+        for _ in range(5):
             env.step([3])
             time.sleep(step_delay)

@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import gym
 import numpy as np
+import time
+from typing import Any, Dict, List, Tuple
 
 from general_bayes_adaptive_pomdps.domains.tool_delivery.core_single_room import (
     AgentTurtlebot_v4,
@@ -25,7 +27,7 @@ class ObjSearchDelivery(gym.Env):
                  tool_order,
                  n_objs=3,
                  n_each_obj=1,
-                 human_speed_per_step=[[4, 4, 4, 4]],
+                 human_speed_per_step=[[18, 18, 18, 18]],
                  TB_move_speed=0.6,
                  fetch_look_for_obj_tc=6,
                  render=False,
@@ -62,15 +64,17 @@ class ObjSearchDelivery(gym.Env):
         self.BWPs = []
         self.BWPs.append(BeliefWayPoint('ReceiveToolSpot', 0, 1.5, 3.5))
         self.BWPs.append(BeliefWayPoint('ToolDeliverySpot', 1, 6.0, 3.0))
+        self.BWPs.append(BeliefWayPoint('StartingSpot', 2, 2.0, 2.0))
 
         self.BWPs_T0 = self.BWPs.copy()
 
         self.viewer = None
+        self.max_timesteps = 500
+        self.num_rooms = 2
 
         self.TB_move_speed = TB_move_speed
         self.fetch_look_for_obj_tc = fetch_look_for_obj_tc
         self.human_speed = human_speed_per_step
-        self.human_waiting_steps = []
 
         self.rendering = render
 
@@ -126,7 +130,7 @@ class ObjSearchDelivery(gym.Env):
         screen_height = 500
 
         if self.viewer is None:
-            import rendering
+            import general_bayes_adaptive_pomdps.domains.tool_delivery.rendering as rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
             line = rendering.Line((0.0, 0.0), (0.0, screen_height))
@@ -367,11 +371,12 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         self.action_space_T = spaces.Discrete(self.n_objs + 1)
 
-        # discrete locations: 2
-        # which object in the basket: n_objs [2, 2, 2]
-        # which object are on the table: n_objs [2, 2, 2]
-        # human working step: 3
-        self.observation_space = spaces.MultiDiscrete([2] + [2]*self.n_objs + [2]*self.n_objs + [3])
+        # discrete room locations: [2]
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs (only observable in the tool-room)
+        # human working step: [n_objs + 1] (only observable in the work-room)
+        self.observation_space = spaces.MultiDiscrete([2] + [2]*self.n_objs
+                                                      + [2]*self.n_objs + [self.n_objs + 1])
 
         #-----------------def macro-actions for Turtlebot
         self.T_MAs = []
@@ -381,6 +386,49 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         self.T_MAs.append(MacroAction('Deliver', self.n_objs, expected_t_cost=None, ma_bwpterm=1))
 
+    def known_dyn_fcn(self, s, a: int, return_dist=False) -> List:
+        """Implement a known part of the dynamics
+        return_dist: if want to return categorical distributions for 
+        features"""
+
+        cur_room = s[0]
+        cur_timestep = s[1]
+
+        if cur_room == 0: # is at tool-room
+            if cur_timestep == 0:
+                if a < self.n_objs: # get-tool actions
+                    next_room = 0 # stay at tool-room
+                    next_timestep = 10
+                else:  # deliver tool
+                    next_room = 1 # will go to the work-room
+                    next_timestep = 5
+            else:
+                if a < self.n_objs:  # get-tool actions
+                    next_room = 0 # stay at tool-room
+                    next_timestep = cur_timestep + 6
+                else:  # deliver tool
+                    next_room = 1 # will go to the work-room
+                    next_timestep = cur_timestep + 8
+
+        else: # is at work-room
+            # assert cur_timestep > 0
+            if a < self.n_objs:  # get-tool actions
+                next_room = 0 # will go to the work-room
+                next_timestep = cur_timestep + 13
+            else:  # deliver tool
+                next_room = 1 # will go to the work-room
+                next_timestep = cur_timestep + 1
+
+        if return_dist:
+            next_room_onehot = np.zeros(self.num_rooms)
+            next_room_onehot[next_room] = 1.0
+
+            next_timestep_onehot = np.zeros(self.max_timesteps)
+            next_timestep_onehot[next_timestep] = 1.0
+            return [next_room_onehot, next_timestep_onehot]
+        else:
+            return [next_room, next_timestep]
+
     def create_fetch_actions(self):
         self.action_space_F = spaces.Discrete(self.n_objs)
 
@@ -388,8 +436,8 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         self.F_MAs = []
         for i in range(self.n_objs):
             F_MA = MacroAction(f'Find_Pass_Tool_{i}',
-                               i + 1,
-                               expected_t_cost=self.fetch_look_for_obj_tc)
+                               i,
+                               expected_t_cost=6)
             self.F_MAs.append(F_MA)
 
     def createAgents(self):
@@ -397,7 +445,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         Fetch = AgentFetch_v4(2, 0.9, 1.8, self.F_MAs, self.n_objs, self.n_each_obj)
 
         #-----------------initialize Turtlebot
-        Turtlebot = AgentTurtlebot_v4(0, 3.0, 1.5, self.BWPs_T0, self.T_MAs, self.n_objs,
+        Turtlebot = AgentTurtlebot_v4(0, 3.5, 2.0, self.BWPs_T0, self.T_MAs, self.n_objs,
                                       fetch=Fetch, speed=self.TB_move_speed)
 
         self.agents = [Turtlebot]
@@ -422,73 +470,77 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                 "The current macro-action's indices"
         """
 
-        terminate = 0
         cur_actions = []
         cur_actions_done = []
-
-        self.count_step += 1
 
         # Turtlebot executes one step
         for idx, turtlebot in enumerate(self.agents[0:1]):
             # when the previous macro-action has not been finished, return the previous action id
-            if not turtlebot.cur_action_done:
-                turtlebot.step(turtlebot.cur_action.idx, self.humans)
-                cur_actions.append(turtlebot.cur_action.idx)
-            else:
+            while not turtlebot.cur_action_done:
                 turtlebot.step(action[idx], self.humans)
                 cur_actions.append(action[idx])
+
+                self.count_step += 1
+
+                # each human executes one step
+                for jdx, human in enumerate(self.humans):
+                    if jdx in self.n_human_finished:
+                        continue
+                    human.cur_step_time_left -= 1.0
+                    if human.cur_step_time_left <= 0:
+                        human.accept_tool = True
+                    else:
+                        human.accept_tool = False
+                    if human.cur_step_time_left <= 0.0 and human.next_requested_obj_obtained:
+                        human.step()
+                    if human.whole_task_finished:
+                        self.n_human_finished.append(jdx)
+
+                if self.rendering:
+                    self.render()
+                    time.sleep(0.5)
+
+                    print(" ")
+                    print("Actions list:")
+                    print("Turtlebot  \t action \t\t{}".format(self.agents[0].cur_action.name))
+                    print("           \t action_t_left \t\t{}".format(self.agents[0].cur_action_time_left))
+                    print("           \t action_done \t\t{}".format(self.agents[0].cur_action_done))
+                    print("           \t action_t_left \t\t{}".format(self.agents[0].fetch.cur_action_time_left))
+                    print("           \t action_done \t\t{}".format(self.agents[0].fetch.cur_action_done))
+
+                if self.rendering:
+                    print("")
+                    print("Humans status:")
+                    for kdx, human in enumerate(self.humans):
+                        print("Human" + str(kdx) + " \t\t cur_step  \t\t\t{}".format(human.cur_step))
+                        print("      " + " \t\t cur_step_t_left  \t\t{}".format(human.cur_step_time_left))
+                        print("      " + " \t\t next_request_obj  \t\t{}".format(human.next_request_obj_idx))
+                        print("      " + " \t\t requested_obj_obtain  \t\t{}".format(human.next_requested_obj_obtained))
+                        print("      " + " \t\t whole_task_finished  \t\t{}".format(human.whole_task_finished))
+                        print(" ")
+
+            # Reset to accept another macro-action
+            turtlebot.cur_action_done = False
 
         # collect the info about the cur_actions and if they are finished
         for idx, agent in enumerate(self.agents):
             cur_actions_done.append(1 if agent.cur_action_done else 0)
 
-        if (self.humans[0].cur_step == self.n_steps_human_task - 2) \
-            and self.humans[0].next_requested_obj_obtained:
-            terminate = 1
-
-        # each human executes one step
-        for idx, human in enumerate(self.humans):
-            if idx in self.n_human_finished:
-                continue
-            human.cur_step_time_left -= 1.0
-            if human.cur_step_time_left <= 0.0 and human.next_requested_obj_obtained:
-                if human.cur_step_time_left < 0.0:
-                    self.human_waiting_steps.append(human.cur_step_time_left)
-                human.step()
-            if human.whole_task_finished:
-                self.n_human_finished.append(idx)
-
-        if self.rendering:
-            self.render()
-            print(" ")
-            print("Actions list:")
-            print("Turtlebot  \t action \t\t{}".format(self.agents[0].cur_action.name))
-            print("           \t action_t_left \t\t{}".format(self.agents[0].cur_action_time_left))
-            print("           \t action_done \t\t{}".format(self.agents[0].cur_action_done))
-            print("           \t action_t_left \t\t{}".format(self.agents[0].fetch.cur_action_time_left))
-            print("           \t action_done \t\t{}".format(self.agents[0].fetch.cur_action_done))
-
         observations = self._getobs()
 
-        if self.rendering:
-            print("")
-            print("Humans status:")
-            for idx, human in enumerate(self.humans):
-                print("Human" + str(idx) + " \t\t cur_step  \t\t\t{}".format(human.cur_step))
-                print("      " + " \t\t cur_step_t_left  \t\t{}".format(human.cur_step_time_left))
-                print("      " + " \t\t next_request_obj  \t\t{}".format(human.next_request_obj_idx))
-                print("      " + " \t\t requested_obj_obtain  \t\t{}".format(human.next_requested_obj_obtained))
-                print("      " + " \t\t whole_task_finished  \t\t{}".format(human.whole_task_finished))
-                print(" ")
-
-        return np.array(observations, dtype=int), 0, terminate, {}
+        return np.array(observations, dtype=int), 0, False, {}
 
     def _getobs(self):
+        # OBSERVATION
+        # discrete room locations: [2]
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs (only observable in the tool-room)
+        # human working step: [n_objs + 1] (only observable in the work-room)
+
         #--------------------get observations at the beginning of each episode
         if self.t == 0:
             observations = np.zeros(len(self.observation_space))
             self.t = 1
-            self.old_observations = observations
 
             return observations
 
@@ -499,64 +551,58 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         observations = []
         agent = self.agents[0]
-        # won't get new obs until current macro-action finished
-        if not agent.cur_action_done:
-            observations.append(self.old_observations)
+        # get observation about room location
+        # tool-room
+        if agent.xcoord < 3.5:
+            room = 0
+        # work-room
         else:
-            # get observation about location
-            # tool-room
-            if agent.xcoord < 3.5:
-                room = 0
-            # work-room
-            else:
-                room = 1
-            obs_0 = [room]
+            room = 1
+        obs_0 = [room]
 
-            if self.rendering:
-                if room == 0:
-                    print("Turtlebot" + " \t loc  \t\t\t tool-room")
-                else:
-                    print("Turtlebot" + " \t loc  \t\t\t work-room")
-
-            # get observation about which tools are in the basket
-            obs_1 = agent.objs_in_basket
-
-            if self.rendering:
-                print(f"          \t Basket_objs \t\t{obs_1}")
-
-            # get observation about which tools are on the table (only available in the tool-room)
-            obs_2 = np.zeros(self.n_objs)
-            if len(agent.fetch.passed_tools) > 0 and room == 0:
-                for tool_idx in agent.fetch.passed_tools:
-                    obs_2[tool_idx] = 1.0
-
-            if self.rendering:
-                print(f"          \t Table_objs \t\t{obs_2}")
-
-            # get observation about the human's current step (only available in the work-room)
+        if self.rendering:
             if room == 0:
-                obs_3 = [0]
+                print("Turtlebot" + " \t loc  \t\t\t tool-room")
             else:
-                obs_3 = [self.humans[0].cur_step]
+                print("Turtlebot" + " \t loc  \t\t\t work-room")
 
-            if self.rendering:
-                print(f"          \t Hm_cur_step \t\t{obs_3[0]}")
+        # get observation about which tools are in the basket
+        obs_1 = agent.objs_in_basket
 
-            # combine all observations
-            obs = np.hstack((obs_0, obs_1, obs_2, obs_3))
+        if self.rendering:
+            print(f"          \t Basket_objs \t\t{obs_1}")
 
-            observations.append(obs)
+        # get observation about which tools are on the table (only available in the tool-room)
+        obs_2 = np.zeros(self.n_objs)
+        if len(agent.fetch.passed_tools) > 0 and room == 0:
+            for tool_idx in agent.fetch.passed_tools:
+                obs_2[tool_idx] = 1.0
 
-            self.old_observations = obs
+        if self.rendering:
+            print(f"          \t Table_objs \t\t{obs_2}")
+
+        # get observation about the human's current step (only available in the work-room)
+        if room == 0:
+            obs_3 = [0]
+        else:
+            obs_3 = [self.humans[0].cur_step]
+
+        if self.rendering:
+            print(f"          \t Hm_cur_step \t\t{obs_3[0]}")
+
+        # combine all observations
+        obs = np.hstack((obs_0, obs_1, obs_2, obs_3))
+
+        observations.append(obs)
 
         return observations
 
     def get_state(self):
-        # discrete locations: 2
+        # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
-        # the correct tool order: [n_objs - 1]*n_objs (order starts from 0)
-        # the human status n_objs (order starts from 0)
+        # human working step: [n_objs + 1]
+        # accept tool/not [2]
 
         state = []
 
@@ -570,7 +616,11 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             room = 1
         state.append(room)
 
+       # current timestep
+        state += [self.count_step]
+
         # which objects in basket
+        # 0 means not in the basket
         state += self.agents[0].objs_in_basket.tolist()
 
         # which objects are at the staging area
@@ -582,9 +632,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                     print("Take Tool:", tool_idx)
                 objs[tool_idx] = 1.0
         state += objs.tolist()
-
-        # the correct tool orders
-        state += self.tool_order
 
         if self.rendering:
             print(f"Len of state: {len(state)}")
@@ -600,3 +647,39 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         state += [self.humans[0].cur_step]
 
         return np.array(state, dtype=int)
+
+if __name__ == "__main__":
+    import time
+
+    env = ObjSearchDelivery_v4(tool_order=[2, 0, 1], render=True)
+
+    step_delay = 1
+
+    env.reset()
+
+    optimal = True
+
+    # Optimal
+    if optimal:
+        for tool in [2, 0, 1]:
+            # Get tool
+            env.step([tool])
+
+            # Deliver
+            env.step([3])
+
+        # Deliver
+        for _ in range(2):
+            env.step([3])
+
+    # Sub-optimal
+    else:
+        # Get all tools
+        env.step([0])
+
+        env.step([1])
+
+        env.step([2])
+
+        for _ in range(5):
+            env.step([3])

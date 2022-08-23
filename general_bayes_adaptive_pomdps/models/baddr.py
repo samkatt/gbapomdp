@@ -34,14 +34,14 @@ class TransitionSampler(Protocol):
         """plain call to generate s,a,s',o sample"""
 
 
-def train_from_samples(
+def train_from_samples_random_policy(
         theta: DynamicsModel,
         prior,
         max_ep_len: int,
         num_epochs: int,
         batch_size: int,
 ) -> float:
-    """trains a theta with data uniformly sampled from (S,A) space
+    """trains a theta with data generated using a random policy
 
     Performs `num_epochs` updates of size `batch_size` by sampling from sampler
 
@@ -169,14 +169,19 @@ def sample_transitions_random(
     return transitions, len(transitions)
 
 def create_dynamics_model(
-    state_space: DiscreteSpace,
-    action_space: ActionSpace,
-    observation_space: DiscreteSpace,
-    optimizer: str,
-    learning_rate: float,
-    network_size: int,
-    batch_size: int,
-    dropout_rate: float = 0.0,
+        state_space: DiscreteSpace,
+        action_space: ActionSpace,
+        observation_space: DiscreteSpace,
+        optimizer: str,
+        learning_rate: float,
+        network_size: int,
+        batch_size: int,
+        dropout_rate: float = 0.0,
+        rstate_space: DiscreteSpace = None,
+        known_dyn_fcn=None,
+        process_ns_fcn=None,
+        process_s_fcn=None,
+        process_o_fcn=None,
 ) -> DynamicsModel:
     """factory function for creating `DynamicsModel`
 
@@ -207,15 +212,24 @@ def create_dynamics_model(
         learning_rate,
         network_size,
         dropout_rate,
+        process_s_fcn=process_s_fcn,
+        process_o_fcn=process_o_fcn,
     )
 
+    if not rstate_space:
+        rstate_space = state_space
+
     trans_model = DynamicsModel.TNet(
-        state_space,
+        rstate_space,
         action_space,
         optimizer_builder,
         learning_rate,
         network_size,
         dropout_rate,
+        input_state_size=state_space.ndim,
+        known_dyn_fcn=known_dyn_fcn,
+        process_ns_fcn=process_ns_fcn,
+        process_s_fcn=process_s_fcn,
     )
 
     return DynamicsModel(

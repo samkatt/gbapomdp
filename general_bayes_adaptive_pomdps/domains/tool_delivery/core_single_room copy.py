@@ -39,7 +39,7 @@ class AgentTurtlebot_v4(object):
         self.cur_action = None
         # how much time left to finish current macro_action
         self.cur_action_time_left = 0.0
-        self.cur_action_done = False
+        self.cur_action_done = True
         # turtlebot base movement speed
         self.speed = speed
 

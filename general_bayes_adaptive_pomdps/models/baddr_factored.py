@@ -34,19 +34,21 @@ class TransitionSampler(Protocol):
         """plain call to generate s,a,s',o sample"""
 
 
-def train_from_samples(
-    theta: DynamicsModel,
-    sampler: TransitionSampler,
-    num_epochs: int,
-    batch_size: int,
+def train_from_samples_random_policy(
+        theta: DynamicsModel,
+        prior,
+        max_ep_len: int,
+        num_epochs: int,
+        batch_size: int,
+        process_obs_fcn=None,
 ) -> float:
-    """trains a theta with data uniformly sampled from (S,A) space
+    """trains a theta with data generated using a random policy
 
     Performs `num_epochs` updates of size `batch_size` by sampling from sampler
 
     Args:
          theta: (`general_bayes_adaptive_pomdps.models.neural_networks.neural_pomdps.DynamicsModel`):
-         sampler: (`TransitionSampler`): method to sample transitions from
+         prior: The simulator
          num_epochs: (`int`): number of batch updates
          batch_size: (`int`): size of a batch update
 
@@ -55,16 +57,45 @@ def train_from_samples(
     loss_t = []
     loss_o = []
 
-    for _ in range(num_epochs):
-        states, actions, new_states, observations = zip(
-            *[sampler() for _ in range(batch_size)]
-        )
+    # generate data
+    done = True
+    prior.reset()
+    ep_len = 0
 
+    states = []
+    actions = []
+    new_states = []
+    obss = []
+
+    while True:
+        action = prior.action_space.sample_as_int()
+        state = prior.get_state()
+        sim_result = prior.step(action)
+        obs = sim_result.observation
+        if process_obs_fcn is not None:
+            obs = process_obs_fcn(obs)
+        done = sim_result.terminal
+        next_state = prior.get_state()
+        ep_len += 1
+
+        states.append(state)
+        actions.append(action)
+        new_states.append(next_state)
+        obss.append(obs)
+
+        if done or ep_len >= max_ep_len:
+            prior.reset()
+            ep_len = 0
+
+        if len(states) >= batch_size:
+            break
+
+    for _ in range(num_epochs):
         new_loss_t, new_loss_o = theta.batch_update(
             np.array(states),
             np.array(actions),
             np.array(new_states),
-            np.array(observations),
+            np.array(obss),
         )
 
         loss_t.append(new_loss_t)
@@ -77,7 +108,7 @@ def sample_transitions_uniform(
     state_space: DiscreteSpace,
     action_space: ActionSpace,
     valid_checker,
-    z_from_o,
+    oy_from_o,
     domain_simulation_step: DomainSimulationStep,
 ) -> Transition:
     """Samples transitions uniformly from simulator
@@ -89,7 +120,7 @@ def sample_transitions_uniform(
         state_space (`DiscreteSpace`):
         action_space (`ActionSpace`):
         valid_checker: a function to check state
-        z_from_o: a function to extract z from observation
+        oy_from_o: a function to extract non-x component from observation
         domain_simulation_step
 
     Returns:
@@ -106,7 +137,7 @@ def sample_transitions_uniform(
 
         next_state, observation = domain_simulation_step(state, action)
 
-        return Transition(state, action, next_state, z_from_o(observation))
+        return Transition(state, action, next_state, oy_from_o(observation))
 
 
 def create_dynamics_model(
@@ -356,7 +387,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
         terminal_function: TerminalFunction,
         prior_models: List[DynamicsModel],
         model_update: List[ModelUpdate],
-        use_gpu: bool = False,
     ):
         """Creates `BADDr`
 
@@ -372,8 +402,6 @@ class BADDr(GeneralBAPOMDP[BADDrState]):
             terminal_function (`TerminalFunction`):
             prior_models (`List[DynamicsModel]`): list of models to start with a-priori
             model_update (`List[ModelUpdate]`): list of operations to perform to update a model posterior
-            use_gpu (`bool`): whether to use the GPU
-
         """
         # domain knowledge
         self.domain_action_space = action_space

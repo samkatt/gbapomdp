@@ -52,6 +52,7 @@ class ToolDeliveryV0(Domain):
         # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
         self._obs_space = DiscreteSpace([2] + [2]*n_objs + [2]*n_objs + [n_objs + 1])
+        self._oy_obs_space = DiscreteSpace([2]*n_objs + [n_objs + 1])
 
         # each agent has 4 possible actions: Get_Tool_i(0:n_objs - 1), Deliver
         self._action_space = ActionSpace(n_objs + 1)
@@ -68,8 +69,21 @@ class ToolDeliveryV0(Domain):
     def observation_space(self) -> DiscreteSpace:
         return self._obs_space
 
+    @property
+    def oy_observation_space(self) -> DiscreteSpace:
+        return self._oy_obs_space
+
     def get_state(self) -> np.ndarray:
         return self.core_env.get_state()
+
+    def oy_from_o(self, o):
+        """extract oy component from an observation"""
+        # OBSERVATION
+        # discrete room locations: [2]
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs (only observable in the tool-room)
+        # human working step: [n_objs + 1] (only observable in the work-room)
+        return o[1 + self.n_objs:]
 
     def sample_start_state(self) -> np.ndarray:
         """returns the (deterministic) start state
@@ -81,11 +95,11 @@ class ToolDeliveryV0(Domain):
         """
 
         # STATE
-        # discrete room locations: [2]
-        # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
-        # human working step: [n_objs + 1]
-        # accept tool/not [2]
+        # discrete room locations: [2] - 0: tool-room
+        # which object in the basket: [2]*n_objs - 0: not in the basket
+        # which object are on the table: [2]*n_objs - 0: on the table
+        # human working step: [n_objs + 1] - 0: start at 0
+        # accept tool/not [2] - 0: not accept tools
 
         init_state = np.zeros(self._state_space.ndim)
         return np.array(init_state, dtype=int)
@@ -221,20 +235,17 @@ if __name__ == "__main__":
         for action in act_list:
             print(action_to_str(action))
             state = env.step(action)
-            print("Accept tool:", env.get_state()[-1])
             print(state.observation, state.reward, state.terminal)
             print()
             rewards.append(state.reward)
             time.sleep(1)
     else:
-        act_list = [GET_TOOL_0, GET_TOOL_1, GET_TOOL_2] + [DELIVER]*5
+        act_list = [GET_TOOL_0, GET_TOOL_1, GET_TOOL_2] + [DELIVER]*3
 
         for action in act_list:
             print(action_to_str(action))
             state = env.step(action)
-            print(state.reward, state.observation, state.terminal)
-            print(env.get_state())
-            print("Accept tool:", env.get_state()[-1])
+            print(state.reward, state.terminal)
             print()
             rewards.append(state.reward)
             time.sleep(1)
