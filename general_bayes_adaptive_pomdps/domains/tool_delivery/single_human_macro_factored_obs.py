@@ -79,6 +79,11 @@ class ObjSearchDelivery(gym.Env):
 
         self.rendering = render
 
+        self.coord_x_idx = 0
+        self.coord_y_idx = 1
+        self.timestep_idx = 2
+        self.room_idx = 3
+
     def get_state(self):
         raise NotImplementedError
 
@@ -387,65 +392,22 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         self.T_MAs.append(MacroAction('Deliver', self.n_objs, expected_t_cost=None, ma_bwpterm=1))
 
-    def known_dyn_fcn(self, s, a: int, return_dist=False) -> List:
-        """Implement a known part of the dynamics
-        return_dist: if want to return categorical distributions for 
-        features"""
-
-        cur_room = s[2]
-        cur_timestep = s[3]
-
-        if cur_room == 0: # is at tool-room
-            if cur_timestep == 0:
-                if a < self.n_objs: # get-tool actions
-                    next_room = 0 # stay at tool-room
-                    next_timestep = 10
-                else:  # deliver tool
-                    next_room = 1 # will go to the work-room
-                    next_timestep = 5
-            else:
-                if a < self.n_objs:  # get-tool actions
-                    next_room = 0 # stay at tool-room
-                    next_timestep = cur_timestep + 6
-                else:  # deliver tool
-                    next_room = 1 # will go to the work-room
-                    next_timestep = cur_timestep + 8
-
-        else: # is at work-room
-            # assert cur_timestep > 0
-            if a < self.n_objs:  # get-tool actions
-                next_room = 0 # will go to the tool-room
-                next_timestep = cur_timestep + 13
-            else:  # deliver tool
-                next_room = 1 # will go to the work-room
-                next_timestep = cur_timestep + 1
-
-        if return_dist:
-            next_room_onehot = np.zeros(self.num_rooms)
-            next_room_onehot[next_room] = 1.0
-
-            next_timestep_onehot = np.zeros(self.max_timesteps)
-            next_timestep_onehot[next_timestep] = 1.0
-            return [next_room_onehot, next_timestep_onehot]
-        else:
-            return [next_room, next_timestep]
-
     def known_dyn_coord_fcn(self, s, a: int, return_dist=False) -> List:
         """Implement a known part of the dynamics
         return_dist: if want to return categorical distributions for 
-        features"""
+        features
+        this version does not predict the next room location
+        """
 
-        x = s[0]
-        y = s[1]
-        room = s[2]
-        cur_timestep = s[3]
+        x = s[self.coord_x_idx]
+        y = s[self.coord_y_idx]
+        room = s[self.room_idx]
+        cur_timestep = s[self.timestep_idx]
 
         if a < self.n_objs:  # get tool actions
             goal_idx = 0  # tool-room
-            next_room = 0
         else:  # deliver
             goal_idx = 1
-            next_room = 1  # work-room
 
         # BeliefWayPoint('ReceiveToolSpot', 0, 1.5, 3.5))
         # BeliefWayPoint('ToolDeliverySpot', 1, 6.0, 3.0))
@@ -483,14 +445,11 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         next_timestep = int(next_timestep)
 
         if return_dist:
-            next_room_onehot = np.zeros(self.num_rooms)
-            next_room_onehot[next_room] = 1.0
-
             next_timestep_onehot = np.zeros(self.max_timesteps)
             next_timestep_onehot[next_timestep] = 1.0
-            return [dest_x, dest_y], [next_room_onehot, next_timestep_onehot]
+            return [dest_x, dest_y], [next_timestep_onehot]
         else:
-            return [dest_x, dest_y], [next_room, next_timestep]
+            return [dest_x, dest_y], [next_timestep]
 
 
     def create_fetch_actions(self):
@@ -663,16 +622,19 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
     def get_state(self):
         # x_coord, y_coord
+        # current timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        # accept tool/not [2]
 
         state = []
 
         state.append(self.agents[0].xcoord)
         state.append(self.agents[0].ycoord)
+
+       # current timestep
+        state += [self.count_step]
 
         # turtlebot room [tool-room, work-room]
         assert len(self.agents) == 1
@@ -683,9 +645,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         else:
             room = 1
         state.append(room)
-
-       # current timestep
-        state += [self.count_step]
 
         # which objects in basket
         # 0 means not in the basket
@@ -711,7 +670,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             print(f"Objs in staging area {state[4:7]}")
             print(f"Tool order {state[7:]}")
 
-        # the human status
+        # the human working step
         state += [self.humans[0].cur_step]
 
         return np.array(state)

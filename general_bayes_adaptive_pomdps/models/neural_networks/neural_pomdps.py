@@ -78,7 +78,7 @@ class DynamicsModel:
     """POMDP dynamics (s,a) -> p(s',o)"""
 
     @staticmethod
-    def sample_from_model(model: List[np.ndarray], num: int) -> np.ndarray:
+    def sample_from_model(model: List[np.ndarray], num: int, continuous_states=None) -> np.ndarray:
         """samples `num` instances from model
 
         The model is a list of categorical distributions, where each element
@@ -93,15 +93,25 @@ class DynamicsModel:
             `np.ndarray`: list of samples, ith element is a sample with
             len(model) features
         """
-
-        # sample value for each dimension iteratively
-        return np.array(
-            [
-                torch.multinomial(torch.from_numpy(probs), num, replacement=True).item()
-                for probs in model
-            ],
-            dtype=int,
-        )
+        if not continuous_states:
+            # sample value for each dimension iteratively
+            return np.array(
+                [
+                    torch.multinomial(torch.from_numpy(probs), num, replacement=True).item()
+                    for probs in model
+                ],
+                dtype=int,
+            )
+        else:
+            continuous_states = np.array(continuous_states)
+            # sample value for each dimension iteratively
+            return np.concatenate((continuous_states, np.array(
+                [
+                    torch.multinomial(torch.from_numpy(probs), num, replacement=True).item()
+                    for probs in model
+                ],
+                dtype=int,
+            )))
 
     class NN:
         """A neural network in the `DynamicsModel`"""
@@ -337,7 +347,7 @@ class DynamicsModel:
                 `np.ndarray`: `num` states
             """
             if self.known_dyn_fcn:
-                known_model = self.known_dyn_fcn(state, action, return_dist=True)
+                continuous_states, known_model = self.known_dyn_fcn(state, action, return_dist=True)
 
             if self.process_s_fcn:
                 state = self.process_s_fcn(state)
@@ -346,7 +356,7 @@ class DynamicsModel:
             if self.known_dyn_fcn:
                 # assume that known_model containing the features that are before
                 # those in transition_model
-                return DynamicsModel.sample_from_model(known_model + transition_model, num)
+                return DynamicsModel.sample_from_model(known_model + transition_model, num, continuous_states)
             else:
                 return DynamicsModel.sample_from_model(transition_model, num)
 
@@ -462,7 +472,6 @@ class DynamicsModel:
                 .to(device())
                 .float()
             )
-
             with torch.no_grad():
                 logits = self.net(state_action_state)
 
@@ -503,7 +512,6 @@ class DynamicsModel:
             if self.process_s_fcn:
                 state = self.process_s_fcn(state)
                 next_state = self.process_s_fcn(next_state)
-
             obs_model = self.model(state, action, next_state)
             return DynamicsModel.sample_from_model(obs_model, num)
 
@@ -621,7 +629,7 @@ class DynamicsModel:
 
         """
 
-        assert self.state_space.contains(state), f"{state} not in {self.state_space}"
+        # assert self.state_space.contains(state), f"{state} not in {self.state_space}"
         assert self.action_space.contains(
             action
         ), f"{action} not in {self.action_space}"

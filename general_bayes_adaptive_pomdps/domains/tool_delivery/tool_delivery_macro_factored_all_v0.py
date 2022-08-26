@@ -7,6 +7,7 @@ from general_bayes_adaptive_pomdps.domains.warehouse.env_warehouse import Turtle
 import numpy as np
 import random
 import time
+import copy
 
 from general_bayes_adaptive_pomdps.core import (
     ActionSpace,
@@ -15,7 +16,7 @@ from general_bayes_adaptive_pomdps.core import (
 from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
-from general_bayes_adaptive_pomdps.domains.tool_delivery.single_human import ObjSearchDelivery_v4 as EnvToolDelivery
+from general_bayes_adaptive_pomdps.domains.tool_delivery.single_human_macro_factored_all import ObjSearchDelivery_v4 as EnvToolDelivery
 
 from itertools import permutations
 
@@ -36,15 +37,29 @@ class ToolDeliveryV0(Domain):
         self.core_env = EnvToolDelivery(correct_tool_order, render=render)
 
         # STATE
+        # x_coord, y_coord
+        # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        # accept tool/not [2]
         n_objs = 3
+        max_timestep = 500
         self.n_objs = n_objs
-        self._state_space = DiscreteSpace([2] + [2]*n_objs +
-                                          [2]*n_objs + [n_objs + 1] + [2])
+        self._state_space = DiscreteSpace([2] + [2] + [max_timestep] + [2] + [2]*n_objs +
+                                          [2]*n_objs + [n_objs + 1])
+
+        self.coord_x_idx = 0
+        self.coord_y_idx = 1
+        self.timestep_idx = 2
+        self.room_idx = 3
+
+        # reduced STATE
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs
+        # human working step: [n_objs + 1]
+        self._rstate_space = DiscreteSpace([2]*n_objs +
+                                           [2]*n_objs + [n_objs + 1])
 
         # OBSERVATION
         # discrete room locations: [2]
@@ -52,7 +67,11 @@ class ToolDeliveryV0(Domain):
         # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
         self._obs_space = DiscreteSpace([2] + [2]*n_objs + [2]*n_objs + [n_objs + 1])
-        self._oy_obs_space = DiscreteSpace([2]*n_objs + [n_objs + 1])
+
+        # REDUCED-OBSERVATION
+        # which object are on the table: [2]*n_objs (only observable in the tool-room)
+        # human working step: [n_objs + 1] (only observable in the work-room)
+        self._robs_space = DiscreteSpace([2]*n_objs + [n_objs + 1])
 
         # each agent has 4 possible actions: Get_Tool_i(0:n_objs - 1), Deliver
         self._action_space = ActionSpace(n_objs + 1)
@@ -62,6 +81,14 @@ class ToolDeliveryV0(Domain):
         return self._state_space
 
     @property
+    def rstate_space(self) -> DiscreteSpace:
+        return self._rstate_space
+
+    @property
+    def robservation_space(self) -> DiscreteSpace:
+        return self._robs_space
+
+    @property
     def action_space(self) -> ActionSpace:
         return self._action_space
 
@@ -69,21 +96,44 @@ class ToolDeliveryV0(Domain):
     def observation_space(self) -> DiscreteSpace:
         return self._obs_space
 
-    @property
-    def oy_observation_space(self) -> DiscreteSpace:
-        return self._oy_obs_space
-
     def get_state(self) -> np.ndarray:
         return self.core_env.get_state()
 
-    def oy_from_o(self, o):
-        """extract oy component from an observation"""
-        # OBSERVATION
+    # remove the room location and the tools that are carried
+    def process_o_fcn(self, o):
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
-        return o[1 + self.n_objs:]
+        return o[:, 1 + self.n_objs:]
+
+    def known_dyn_fcn(self, s, a, return_dist=False):
+        # return self.core_env.known_dyn_fcn(s, a, return_dist)
+        return self.core_env.known_dyn_coord_fcn(s, a, return_dist)
+
+    # remove coordinates, primitive timestep, and room location from the next state
+    def process_ns_fcn(self, ns):
+        return ns[:, 4:].long()
+
+    # zeroing the current primitive timestep, coordinates
+    def process_s_fcn(self, s):
+        s_copy = copy.deepcopy(s)
+        if len(s.shape) == 2:
+            s_copy[:, self.timestep_idx] = 0
+            s_copy[:, self.coord_x_idx] = 0
+            s_copy[:, self.coord_y_idx] = 0
+
+            return s_copy.long()
+
+        elif len(s.shape) == 1:
+            s_copy[self.timestep_idx] = 0
+            s_copy[self.coord_x_idx] = 0
+            s_copy[self.coord_y_idx] = 0
+
+            return s_copy.astype(int)
+
+        else:
+            raise NotImplementedError
 
     def sample_start_state(self) -> np.ndarray:
         """returns the (deterministic) start state
@@ -95,13 +145,14 @@ class ToolDeliveryV0(Domain):
         """
 
         # STATE
-        # discrete room locations: [2] - 0: tool-room
-        # which object in the basket: [2]*n_objs - 0: not in the basket
-        # which object are on the table: [2]*n_objs - 0: on the table
-        # human working step: [n_objs + 1] - 0: start at 0
-        # accept tool/not [2] - 0: not accept tools
+        # x_coord, y_coord
+        # current primitive timestep
+        # discrete room locations: [2]
+        # which object in the basket: [2]*n_objs
+        # which object are on the table: [2]*n_objs
+        # human working step: [n_objs + 1]
 
-        init_state = np.zeros(self._state_space.ndim)
+        init_state = np.zeros(self.state_space.ndim)
         return np.array(init_state, dtype=int)
 
     def reset(self) -> np.ndarray:
@@ -126,36 +177,24 @@ class ToolDeliveryV0(Domain):
 
         """
         # STATE
+        # x_coord, y_coord
+        # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        # accept tool/not [2]
+        assert len(state) == (2 + 1 + 2*self.n_objs + 2), f"Len state {len(state)} is wrong "
 
-        reward = -1
+        delta_time = new_state[self.timestep_idx] - state[self.timestep_idx]
+        reward = -delta_time
 
-        prev_human_stage = state[-2]
+        prev_human_stage = state[-1]
 
-        new_human_stage = new_state[-2]
+        new_human_stage = new_state[-1]
 
         # Deliver a good tool
         if prev_human_stage + 1 == new_human_stage and action == self.n_objs:
             reward += 100
-
-        # Deliver but not carrying a good tool (stage does not change)
-        if prev_human_stage == new_human_stage and action == self.n_objs:
-            reward += -10
-
-            # deliver but human is currently working and not accept tool
-            accept_tool = state[-1]
-            if not accept_tool:
-                reward += -10
-
-        # Penalize when carrying more than 1 tool
-        carrying_tools = state[1:1 + self.n_objs]
-        total_tools = np.sum(carrying_tools)
-        penalty = max(0.0, total_tools - 1)
-        reward += -30*penalty
 
         return reward
 
@@ -171,14 +210,15 @@ class ToolDeliveryV0(Domain):
 
         """
         # STATE
+        # x_coord, y_coord
+        # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        # accept tool/not [2]
 
         done = False
-        human_stage = new_state[-2]
+        human_stage = new_state[-1]
 
         if human_stage == 3:
             done = True
@@ -224,7 +264,7 @@ if __name__ == "__main__":
     def action_to_str(action_idx):
         return f"Action: {index_2_str[action_idx]}"
 
-    optimal = False
+    optimal = True
 
     rewards = []
 
@@ -235,17 +275,19 @@ if __name__ == "__main__":
         for action in act_list:
             print(action_to_str(action))
             state = env.step(action)
+            print("Timestep:", env.get_state()[3])
             print(state.observation, state.reward, state.terminal)
             print()
             rewards.append(state.reward)
-            time.sleep(1)
     else:
-        act_list = [GET_TOOL_0, GET_TOOL_1, GET_TOOL_2] + [DELIVER]*3
+        act_list = [GET_TOOL_0, GET_TOOL_1, GET_TOOL_2] + [DELIVER]*5
 
         for action in act_list:
             print(action_to_str(action))
             state = env.step(action)
-            print(state.reward, state.terminal)
+            print(state.reward, state.observation, state.terminal)
+            print(env.get_state())
+            print("Timestep:", env.get_state()[3])
             print()
             rewards.append(state.reward)
             time.sleep(1)

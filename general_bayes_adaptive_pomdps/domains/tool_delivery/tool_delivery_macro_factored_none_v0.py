@@ -16,7 +16,7 @@ from general_bayes_adaptive_pomdps.core import (
 from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
-from general_bayes_adaptive_pomdps.domains.tool_delivery.single_human_macro import ObjSearchDelivery_v4 as EnvToolDelivery
+from general_bayes_adaptive_pomdps.domains.tool_delivery.single_human_macro_factored_none import ObjSearchDelivery_v4 as EnvToolDelivery
 
 from itertools import permutations
 
@@ -37,25 +37,29 @@ class ToolDeliveryV0(Domain):
         self.core_env = EnvToolDelivery(correct_tool_order, render=render)
 
         # STATE
-        # discrete room locations: [2]
+        # x_coord, y_coord
         # current primitive timestep
+        # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
         n_objs = 3
         max_timestep = 500
         self.n_objs = n_objs
-        self._state_space = DiscreteSpace([2] + [max_timestep] + [2]*n_objs +
+        self._state_space = DiscreteSpace([2] + [2] + [max_timestep] + [2] + [2]*n_objs +
                                           [2]*n_objs + [n_objs + 1])
 
-        self.room_idx = 0
-        self.timestep_idx = 1
+        self.coord_x_idx = 0
+        self.coord_y_idx = 1
+        self.timestep_idx = 2
+        self.room_idx = 3
 
         # reduced STATE
+        # discrete room location: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        self._rstate_space = DiscreteSpace([2]*n_objs +
+        self._rstate_space = DiscreteSpace([2] + [2]*n_objs +
                                            [2]*n_objs + [n_objs + 1])
 
         # OBSERVATION
@@ -105,25 +109,32 @@ class ToolDeliveryV0(Domain):
         return o[:, 1 + self.n_objs:]
 
     def known_dyn_fcn(self, s, a, return_dist=False):
-        return self.core_env.known_dyn_fcn(s, a, return_dist)
+        # this version however does not predict the next room location
+        return self.core_env.known_dyn_coord_fcn(s, a, return_dist)
 
-    # remove the room location and the current primitive timestep from the next state
+    # remove coordinates, primitive timestep from the next state
     def process_ns_fcn(self, ns):
-        return ns[:, 2:]
+        return ns[:, 3:].long()
 
-    # zeroing the current primitive timestep
+    # zeroing the current primitive timestep, coordinates
     def process_s_fcn(self, s):
         s_copy = copy.deepcopy(s)
         if len(s.shape) == 2:
             s_copy[:, self.timestep_idx] = 0
+            s_copy[:, self.coord_x_idx] = 0
+            s_copy[:, self.coord_y_idx] = 0
+
+            return s_copy.long()
 
         elif len(s.shape) == 1:
             s_copy[self.timestep_idx] = 0
+            s_copy[self.coord_x_idx] = 0
+            s_copy[self.coord_y_idx] = 0
+
+            return s_copy.astype(int)
 
         else:
             raise NotImplementedError
-
-        return s_copy
 
     def sample_start_state(self) -> np.ndarray:
         """returns the (deterministic) start state
@@ -135,8 +146,9 @@ class ToolDeliveryV0(Domain):
         """
 
         # STATE
-        # discrete room locations: [2]
+        # x_coord, y_coord
         # current primitive timestep
+        # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
@@ -166,12 +178,13 @@ class ToolDeliveryV0(Domain):
 
         """
         # STATE
-        # discrete room locations: [2]
+        # x_coord, y_coord
         # current primitive timestep
+        # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        assert len(state) == (1 + 2*self.n_objs + 2), f"Len state {len(state)} is wrong "
+        assert len(state) == (2 + 1 + 2*self.n_objs + 2), f"Len state {len(state)} is wrong "
 
         delta_time = new_state[self.timestep_idx] - state[self.timestep_idx]
         reward = -delta_time
@@ -198,8 +211,9 @@ class ToolDeliveryV0(Domain):
 
         """
         # STATE
-        # discrete room locations: [2]
+        # x_coord, y_coord
         # current primitive timestep
+        # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
@@ -262,7 +276,7 @@ if __name__ == "__main__":
         for action in act_list:
             print(action_to_str(action))
             state = env.step(action)
-            print("Timestep:", env.get_state()[-1])
+            print("Timestep:", env.get_state()[3])
             print(state.observation, state.reward, state.terminal)
             print()
             rewards.append(state.reward)
@@ -274,7 +288,7 @@ if __name__ == "__main__":
             state = env.step(action)
             print(state.reward, state.observation, state.terminal)
             print(env.get_state())
-            print("Timestep:", env.get_state()[-1])
+            print("Timestep:", env.get_state()[3])
             print()
             rewards.append(state.reward)
             time.sleep(1)
