@@ -2,7 +2,6 @@
 
 from ast import List
 from typing import Tuple
-from general_bayes_adaptive_pomdps.domains.warehouse.env_warehouse import TurtleBot
 
 import numpy as np
 import random
@@ -16,7 +15,7 @@ from general_bayes_adaptive_pomdps.core import (
 from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
-from general_bayes_adaptive_pomdps.domains.tool_delivery.single_human_macro_factored_all import ObjSearchDelivery_v4 as EnvToolDelivery
+from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.macro_factored_none import ObjSearchDelivery_v4 as EnvToolDelivery
 
 from itertools import permutations
 
@@ -55,10 +54,11 @@ class ToolDeliveryV0(Domain):
         self.room_idx = 3
 
         # reduced STATE
+        # discrete room location: [2]
         # which object in the basket: [2]*n_objs
         # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        self._rstate_space = DiscreteSpace([2]*n_objs +
+        self._rstate_space = DiscreteSpace([2] + [2]*n_objs +
                                            [2]*n_objs + [n_objs + 1])
 
         # OBSERVATION
@@ -108,12 +108,12 @@ class ToolDeliveryV0(Domain):
         return o[:, 1 + self.n_objs:]
 
     def known_dyn_fcn(self, s, a, return_dist=False):
-        # return self.core_env.known_dyn_fcn(s, a, return_dist)
+        # this version however does not predict the next room location
         return self.core_env.known_dyn_coord_fcn(s, a, return_dist)
 
-    # remove coordinates, primitive timestep, and room location from the next state
+    # remove coordinates, primitive timestep from the next state
     def process_ns_fcn(self, ns):
-        return ns[:, 4:].long()
+        return ns[:, 3:].long()
 
     # zeroing the current primitive timestep, coordinates
     def process_s_fcn(self, s):

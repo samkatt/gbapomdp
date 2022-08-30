@@ -1,12 +1,11 @@
 #!/usr/bin/python
-from tkinter import wantobjects
 import gym
 import numpy as np
 import time
 import math
 from typing import Any, Dict, List, Tuple
 
-from general_bayes_adaptive_pomdps.domains.tool_delivery.core_single_room import (
+from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.core import (
     AgentTurtlebot_v4,
     AgentFetch_v4,
     AgentHuman,
@@ -136,7 +135,7 @@ class ObjSearchDelivery(gym.Env):
         screen_height = 500
 
         if self.viewer is None:
-            import general_bayes_adaptive_pomdps.domains.tool_delivery.rendering as rendering
+            import general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.rendering as rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
             line = rendering.Line((0.0, 0.0), (0.0, screen_height))
@@ -345,8 +344,8 @@ class ObjSearchDelivery(gym.Env):
 
         if self.agents[0].fetch.cur_action is not None and \
                 self.agents[0].fetch.cur_action_time_left <= 0.0 and \
-                self.pass_objs < self.n_objs and \
                 np.sum(self.agents[0].fetch.count_found_obj) <= self.n_objs and \
+                self.pass_objs < self.n_objs and \
                 self.agents[0].fetch.tool_found:
             self.pass_objs += 1
             self.arm0.set_color(0.0, 0.0, 0.0)
@@ -374,8 +373,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         self.createHumans()
 
     def create_turtlebot_actions(self):
-
-        self.action_space_T = spaces.Discrete(self.n_objs + 1)
 
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
@@ -513,10 +510,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                     if jdx in self.n_human_finished:
                         continue
                     human.cur_step_time_left -= 1.0
-                    if human.cur_step_time_left <= 0:
-                        human.accept_tool = True
-                    else:
-                        human.accept_tool = False
                     if human.cur_step_time_left <= 0.0 and human.next_requested_obj_obtained:
                         human.step()
                     if human.whole_task_finished:

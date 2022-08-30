@@ -6,7 +6,7 @@ import time
 import math
 from typing import Any, Dict, List, Tuple
 
-from general_bayes_adaptive_pomdps.domains.tool_delivery.core_single_room import (
+from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.core import (
     AgentTurtlebot_v4,
     AgentFetch_v4,
     AgentHuman,
@@ -136,7 +136,7 @@ class ObjSearchDelivery(gym.Env):
         screen_height = 500
 
         if self.viewer is None:
-            import general_bayes_adaptive_pomdps.domains.tool_delivery.rendering as rendering
+            import general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.rendering as rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
             line = rendering.Line((0.0, 0.0), (0.0, screen_height))
@@ -374,8 +374,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         self.createHumans()
 
     def create_turtlebot_actions(self):
-
-        self.action_space_T = spaces.Discrete(self.n_objs + 1)
 
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs

@@ -354,7 +354,7 @@ class DynamicsModel:
             transition_model = self.model(state, action)
 
             if self.known_dyn_fcn:
-                # assume that known_model containing the features that are before
+                # assume that known_model containing the features that stands before
                 # those in transition_model
                 return DynamicsModel.sample_from_model(known_model + transition_model, num, continuous_states)
             else:

@@ -2,7 +2,6 @@
 
 from ast import List
 from typing import Tuple
-from general_bayes_adaptive_pomdps.domains.warehouse.env_warehouse import TurtleBot
 
 import numpy as np
 import random
@@ -16,7 +15,7 @@ from general_bayes_adaptive_pomdps.core import (
 from general_bayes_adaptive_pomdps.domains.domain import Domain, DomainPrior
 from general_bayes_adaptive_pomdps.misc import DiscreteSpace
 
-from general_bayes_adaptive_pomdps.domains.tool_delivery.single_human_macro_factored_obs import ObjSearchDelivery_v4 as EnvToolDelivery
+from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.macro_factored_obs import ObjSearchDelivery_v4 as EnvToolDelivery
 
 from itertools import permutations
 
