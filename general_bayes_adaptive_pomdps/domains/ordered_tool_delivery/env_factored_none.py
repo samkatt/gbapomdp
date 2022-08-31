@@ -1,8 +1,3 @@
-"""The tiger problem implemented as domain"""
-
-from ast import List
-from typing import Tuple
-
 import numpy as np
 import random
 import time
@@ -108,7 +103,6 @@ class ToolDeliveryV0(Domain):
         return o[:, 1 + self.n_objs:]
 
     def known_dyn_fcn(self, s, a, return_dist=False):
-        # this version however does not predict the next room location
         return self.core_env.known_dyn_coord_fcn(s, a, return_dist)
 
     # remove coordinates, primitive timestep from the next state

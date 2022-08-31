@@ -1,5 +1,3 @@
-#!/usr/bin/python
-from tkinter import wantobjects
 import gym
 import numpy as np
 import time
@@ -508,10 +506,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                     if jdx in self.n_human_finished:
                         continue
                     human.cur_step_time_left -= 1.0
-                    if human.cur_step_time_left <= 0:
-                        human.accept_tool = True
-                    else:
-                        human.accept_tool = False
                     if human.cur_step_time_left <= 0.0 and human.next_requested_obj_obtained:
                         human.step()
                     if human.whole_task_finished:

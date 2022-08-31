@@ -29,7 +29,7 @@ class AgentTurtlebot_v4(object):
         self.cur_BWP = None
         # obtain applicable macro_actions
         self.macro_actions = MAs
-        # agent's current macro_action 
+        # agent's current macro_action
         self.cur_action = None
         # how much time left to finish current macro_action
         self.cur_action_time_left = 0.0
@@ -106,7 +106,6 @@ class AgentTurtlebot_v4(object):
             if not human.next_requested_obj_obtained and \
                 human.cur_step_time_left <= 1 and \
                 self.objs_in_basket[human.next_request_obj_idx] > 0.0:
-
                 self.objs_in_basket[human.next_request_obj_idx] -= 1.0
                 human.next_requested_obj_obtained = True
 

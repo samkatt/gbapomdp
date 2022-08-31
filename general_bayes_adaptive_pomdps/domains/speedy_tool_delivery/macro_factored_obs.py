@@ -36,7 +36,7 @@ class ObjSearchDelivery(gym.Env):
         self.n_objs = n_objs
         # total amount of each obj in the env
         self.n_each_obj = n_each_obj
-        # define the number of steps for each human finishing the task 
+        # define the number of steps for each human finishing the task
         self.n_steps_human_task = self.n_objs + 1
 
         #-----------------def belief waypoints
@@ -49,7 +49,7 @@ class ObjSearchDelivery(gym.Env):
 
         self.viewer = None
         self.max_timesteps = 500
-        self.num_rooms = 2
+        self.num_rooms = 3
 
         self.TB_move_speed = TB_move_speed
         self.fetch_look_for_obj_tc = fetch_look_for_obj_tc
@@ -449,10 +449,12 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         # 3: Normal step time
         step_time = 0
+        # at delivery spot 0
         if room == 1 and goal_idx == 1 and y == 3.0:
             if a == self.n_objs:
                 step_time = 1
 
+        # at delivery spot 1
         if room == 2 and goal_idx == 2 and y == 2.0:
             if a == self.n_objs + 1:
                 step_time = 1
@@ -467,6 +469,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             return [dest_x, dest_y], [next_timestep_onehot]
         else:
             return [dest_x, dest_y], [next_timestep]
+
 
     def create_fetch_actions(self):
         self.action_space_F = spaces.Discrete(self.n_objs)
@@ -678,7 +681,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         state += self.agents[0].objs_in_basket.tolist()
 
         # which objects are at the staging area
-        # 0 means is at
+        # 0 means is on the table
         objs = np.zeros(self.n_objs)
         if len(self.agents[0].fetch.passed_tools) > 0:
             for tool_idx in self.agents[0].fetch.passed_tools:

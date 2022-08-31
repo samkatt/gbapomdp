@@ -110,7 +110,6 @@ class ToolDeliveryV0(Domain):
         return o[:, 1 + self.n_objs:]
 
     def known_dyn_fcn(self, s, a, return_dist=False):
-        # this version however does not predict the next room location
         return self.core_env.known_dyn_coord_fcn(s, a, return_dist)
 
     # remove coordinates, primitive timestep from the next state
@@ -200,20 +199,19 @@ class ToolDeliveryV0(Domain):
         reward = -delta_time
 
         # human 0
-        prev_human_stage = state[-2]
-
-        new_human_stage = new_state[-2]
+        prev_human0_stage = state[-2]
+        new_human0_stage = new_state[-2]
 
         # Deliver a good tool for human 0
-        if prev_human_stage + 1 == new_human_stage and action == self.n_objs:
+        if prev_human0_stage + 1 == new_human0_stage and action == self.n_objs:
             reward += 100
 
         # human 1
-        prev_human_stage = state[-1]
-        new_human_stage = new_state[-1]
+        prev_human1_stage = state[-1]
+        new_human1_stage = new_state[-1]
 
         # Deliver a good tool for human 1
-        if prev_human_stage + 1 == new_human_stage and action == self.n_objs + 1:
+        if prev_human1_stage + 1 == new_human1_stage and action == self.n_objs + 1:
             reward += 100
 
         return reward
@@ -275,7 +273,7 @@ class ToolDeliveryV0Prior(DomainPrior):
         if prior:
             random_speeds = prior
         else:
-            random_speeds = random.sample(self.speed_list, 2)
+            random_speeds = random.choices(self.speed_list, k=2)  # random w/ replacements
         return ToolDeliveryV0(human_speeds=random_speeds)
 
 if __name__ == "__main__":

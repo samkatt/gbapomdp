@@ -719,7 +719,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 if __name__ == "__main__":
     import time
 
-    env = ObjSearchDelivery_v4(human_speeds=[10, 15], render=True)
+    env = ObjSearchDelivery_v4(human_speeds=[10, 15], render=False)
 
     step_delay = 1
 
@@ -734,31 +734,6 @@ if __name__ == "__main__":
             env.step([tool])
             print(env.get_state())
 
-            # Deliver-1
-            env.step([4])
-            print(env.get_state())
-
-        # env.step([4])
-        # print(env.get_state())
-
-        # env.step([0])
-        # print(env.get_state())
-
-        # env.step([1])
-        # print(env.get_state())
-
-        # env.step([2])
-        # print(env.get_state())
-
-        # env.step([2])
-        # print(env.get_state())
-
-        # env.step([2])
-        # print(env.get_state())
-
-        # Deliver
-        for tool in [0, 1, 2]:
-            # Get tool
             env.step([tool])
             print(env.get_state())
 
@@ -766,20 +741,6 @@ if __name__ == "__main__":
             env.step([3])
             print(env.get_state())
 
-    # Sub-optimal
-    else:
-        # Get all tools
-        env.step([0])
-
-        env.step([1])
-
-        env.step([2])
-
-        env.step([0])
-
-        env.step([1])
-
-        env.step([2])
-
-        for _ in range(6):
-            env.step([3])
+            # Deliver-1
+            env.step([4])
+            print(env.get_state())

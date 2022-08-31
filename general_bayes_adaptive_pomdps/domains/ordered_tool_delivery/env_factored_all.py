@@ -102,7 +102,6 @@ class ToolDeliveryV0(Domain):
         return o[:, 1 + self.n_objs:]
 
     def known_dyn_fcn(self, s, a, return_dist=False):
-        # return self.core_env.known_dyn_fcn(s, a, return_dist)
         return self.core_env.known_dyn_coord_fcn(s, a, return_dist)
 
     # remove coordinates, primitive timestep, and room location from the next state

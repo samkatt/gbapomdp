@@ -113,82 +113,6 @@ class ToolDeliveryV0(Domain):
     def get_state(self) -> np.ndarray:
         return self.core_env.get_state()
 
-    # Function to sample a state (not complete state)
-    def sample_state(self) -> np.ndarray:
-        return [0, 0, 0] + list(self._sstate_space.sample())
-
-    # Function to check if a state is a valid one
-    # x_coord [3]: 0: 0.0, 1: 1.5, 2: 6.0
-    # y_coord [4]: 0: 0.0, 1: 2.0, 2: 3.0, 3: 3.5
-    # discrete room locations: [2]
-    # which object in the basket: [3]*n_objs
-    # which object are on the table: [2]*n_objs
-    # human 0 working step: [n_objs + 1]
-    # human 1 working step: [n_objs + 1]
-    # def isValid(self, s) -> bool:
-    #     room = s[3]
-
-    #     basketed_tools = s[4:4+self.n_objs]
-    #     staged_tools = s[4+self.n_objs:4+2*self.n_objs]
-
-    #     h0_step = s[-2]
-    #     h1_step = s[-1]
-
-    #     return True
-
-    def domain_simulation_step(self, s, a):
-
-        room = s[3]
-
-        basketed_tools = s[4:4+self.n_objs]
-        staged_tools = s[4+self.n_objs:4+2*self.n_objs]
-        human_0_step = s[-2]
-        human_1_step = s[-1]
-
-        if a < self.n_objs:  # get tool actions
-            if staged_tools[a] == 0:  # the tool is on the table
-                room = 0  # to tool room
-                if basketed_tools[a] < self.n_objs - 1:
-                    basketed_tools[a] += 1
-                    if basketed_tools[a] == self.n_objs - 1:
-                        staged_tools[a] = 1  # all of this tools are gone
-        elif a == self.n_objs:  # deliver 0
-            room = 1  # to work room
-            if human_0_step < self.n_objs:  # human 0 can still receive tools
-                if basketed_tools[human_0_step] > 0:  # needed tool is in the basket
-                    basketed_tools[human_0_step] -= 1
-                    human_0_step += 1
-
-        elif a == self.n_objs + 1:  # deliver 1
-            room = 1  # to work room
-            if human_1_step < self.n_objs:  # human 1 can still receive tools
-                if basketed_tools[human_1_step] > 0:  # needed tool is in the basket
-                    basketed_tools[human_1_step] -= 1
-                    human_1_step += 1
-
-        else:
-            raise NotImplementedError
-
-        next_s = [0, 0, 0] + [room] + basketed_tools + staged_tools + [human_0_step, human_1_step]
-
-        assert human_0_step <= self.n_objs
-        assert human_1_step <= self.n_objs
-        assert np.max(staged_tools) <= 1, staged_tools
-        assert np.max(basketed_tools) <= 2, basketed_tools
-
-        # discrete room locations: [2]
-        # which object in the basket: [3]*n_objs
-        # which object are on the table: [2]*n_objs (only observable in the tool-room)
-        # human 0 working step: [n_objs + 1] (only observable in the work-room)
-        # human 1 working step: [n_objs + 1] (only observable in the work-room)
-        obs_staged_tools = np.zeros(self.n_objs) if room == 1 else staged_tools
-        obs_h0_step = human_0_step if room == 1 else 0
-        obs_h1_step = human_1_step if room == 1 else 0
-
-        obs = [room] + basketed_tools + list(obs_staged_tools) + [obs_h0_step, obs_h1_step]
-
-        return next_s, obs
-
     # remove the room location and the tools that are carried
     def process_o_fcn(self, o):
         # discrete room locations: [3]
@@ -288,20 +212,19 @@ class ToolDeliveryV0(Domain):
         reward = -delta_time
 
         # human 0
-        prev_human_stage = state[-2]
-
-        new_human_stage = new_state[-2]
+        prev_human0_stage = state[-2]
+        new_human0_stage = new_state[-2]
 
         # Deliver a good tool for human 0
-        if prev_human_stage + 1 == new_human_stage and action == self.n_objs:
+        if prev_human0_stage + 1 == new_human0_stage and action == self.n_objs:
             reward += 100
 
         # human 1
-        prev_human_stage = state[-1]
-        new_human_stage = new_state[-1]
+        prev_human1_stage = state[-1]
+        new_human1_stage = new_state[-1]
 
         # Deliver a good tool for human 1
-        if prev_human_stage + 1 == new_human_stage and action == self.n_objs + 1:
+        if prev_human1_stage + 1 == new_human1_stage and action == self.n_objs + 1:
             reward += 100
 
         return reward
@@ -381,12 +304,9 @@ if __name__ == "__main__":
 
     if optimal:
 
-        act_list = [GET_TOOL_0] + [DELIVER_0] \
-                 + [GET_TOOL_1] + [DELIVER_0] \
-                 + [GET_TOOL_2] + [DELIVER_0] \
-                 + [GET_TOOL_0] + [DELIVER_1] \
-                 + [GET_TOOL_1] + [DELIVER_1] \
-                 + [GET_TOOL_2] + [DELIVER_1]
+        act_list = [GET_TOOL_0] + [GET_TOOL_0] + [DELIVER_0] + [DELIVER_1]\
+                 + [GET_TOOL_1] + [GET_TOOL_1] + [DELIVER_0] + [DELIVER_1]\
+                 + [GET_TOOL_2] + [GET_TOOL_2] + [DELIVER_0] + [DELIVER_1]
 
         for action in act_list:
             print(action_to_str(action))
@@ -395,18 +315,6 @@ if __name__ == "__main__":
             print(state.observation, state.reward, state.terminal)
             print()
             rewards.append(state.reward)
-    else:
-        act_list = [GET_TOOL_0, GET_TOOL_1, GET_TOOL_2] + [DELIVER_0]*5
-
-        for action in act_list:
-            print(action_to_str(action))
-            state = env.step(action)
-            print(state.reward, state.observation, state.terminal)
-            print(env.get_state())
-            print("Timestep:", env.get_state()[3])
-            print()
-            rewards.append(state.reward)
-            time.sleep(1)
 
     print(rewards)
     discounted_return = sum(

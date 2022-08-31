@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import gym
 import numpy as np
 import time
@@ -344,8 +343,8 @@ class ObjSearchDelivery(gym.Env):
 
         if self.agents[0].fetch.cur_action is not None and \
                 self.agents[0].fetch.cur_action_time_left <= 0.0 and \
-                np.sum(self.agents[0].fetch.count_found_obj) <= self.n_objs and \
                 self.pass_objs < self.n_objs and \
+                np.sum(self.agents[0].fetch.count_found_obj) <= self.n_objs and \
                 self.agents[0].fetch.tool_found:
             self.pass_objs += 1
             self.arm0.set_color(0.0, 0.0, 0.0)
