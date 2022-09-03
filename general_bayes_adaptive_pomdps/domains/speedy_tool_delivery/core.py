@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import numpy as np
+import random
 
 class AgentTurtlebot_v4(object):
 
@@ -240,7 +241,7 @@ class AgentHuman(object):
             self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
             # update the request obj for next step
             if self.cur_step + 1 < self.task_total_steps:
-                self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step] 
+                self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]
                 self.next_requested_obj_obtained = False
 
     def reset(self):

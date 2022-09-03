@@ -247,7 +247,7 @@ class AgentHuman(object):
         self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
 
         # indicates the tool needed for next task step
-        self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]  
+        self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]
         # indicates if the tool needed for next step has been delivered
         self.next_requested_obj_obtained = False
         # indicates if the human has finished the whole task
