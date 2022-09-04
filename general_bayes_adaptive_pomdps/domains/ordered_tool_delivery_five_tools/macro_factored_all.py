@@ -4,7 +4,7 @@ import time
 import math
 from typing import Any, Dict, List, Tuple
 
-from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery_four_tools.core import (
+from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery_five_tools.core import (
     AgentTurtlebot_v4,
     AgentFetch_v4,
     AgentHuman,
@@ -25,9 +25,9 @@ class ObjSearchDelivery(gym.Env):
 
     def __init__(self,
                  tool_order,
-                 n_objs=3,
+                 n_objs=5,
                  n_each_obj=1,
-                 human_speed_per_step=[[15, 15, 15, 15]],
+                 human_speed_per_step=[[15, 15, 15, 15, 15, 15]],
                  TB_move_speed=0.6,
                  fetch_look_for_obj_tc=6,
                  render=False,
@@ -673,7 +673,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 if __name__ == "__main__":
     import time
 
-    env = ObjSearchDelivery_v4(tool_order=[2, 0, 1], render=True)
+    env = ObjSearchDelivery_v4(tool_order=[4, 3, 0, 1, 2], render=True)
 
     step_delay = 1
 
@@ -683,16 +683,12 @@ if __name__ == "__main__":
 
     # Optimal
     if optimal:
-        for tool in [2, 0, 1]:
+        for tool in [4, 3, 0, 1, 2]:
             # Get tool
             env.step([tool])
 
             # Deliver
-            env.step([3])
-
-        # Deliver
-        for _ in range(2):
-            env.step([3])
+            env.step([4])
 
     # Sub-optimal
     else:
