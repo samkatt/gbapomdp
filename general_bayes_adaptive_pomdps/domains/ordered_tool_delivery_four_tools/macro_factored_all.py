@@ -4,7 +4,7 @@ import time
 import math
 from typing import Any, Dict, List, Tuple
 
-from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery.core import (
+from general_bayes_adaptive_pomdps.domains.ordered_tool_delivery_four_tools.core import (
     AgentTurtlebot_v4,
     AgentFetch_v4,
     AgentHuman,

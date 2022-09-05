@@ -688,7 +688,7 @@ if __name__ == "__main__":
             env.step([tool])
 
             # Deliver
-            env.step([4])
+            env.step([5])
 
     # Sub-optimal
     else:
