@@ -628,12 +628,13 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         if self.rendering:
             print(f"          \t Table_objs \t\t{obs_2}")
 
-        # get observation about the human's current step (only available in the work-room)
+        # get observation about the human's current step (only available in the work-room-0)
         if room in [0, 2]:
             obs_3 = [0]
         else:
             obs_3 = [self.humans[0].cur_step]
 
+        # get observation about the human's current step (only available in the work-room-1)
         if room in [0, 1]:
             obs_4 = [0]
         else:
@@ -660,6 +661,8 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # which object are on the table: [2]*(n_objs)
         # human 0 working step: [n_objs + 1]
         # human 1 working step: [n_objs + 1]
+        # human 0 is waiting or not [2]
+        # human 1 is waiting or not [2]
 
         state = []
 
@@ -715,12 +718,16 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         state += [self.humans[0].cur_step]
         state += [self.humans[1].cur_step]
 
+        # bits indicate if each human is waiting or not
+        state += [self.humans[0].cur_step_time_left <= 1]
+        state += [self.humans[1].cur_step_time_left <= 1]
+
         return np.array(state)
 
 if __name__ == "__main__":
     import time
 
-    env = ObjSearchDelivery_v4(human_speeds=[10, 15], render=False)
+    env = ObjSearchDelivery_v4(human_speeds=[10, 30], render=False)
 
     step_delay = 1
 

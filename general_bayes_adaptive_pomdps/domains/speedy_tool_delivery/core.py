@@ -57,7 +57,11 @@ class AgentTurtlebot_v4(object):
         assert action < len(self.macro_actions), "The action received is out of the range"
 
         # update current action info
-        self.cur_action = self.macro_actions[action]
+        try:
+            self.cur_action = self.macro_actions[action]
+        except TypeError:
+            self.cur_action = self.macro_actions[action[0]]
+
         self.cur_action_done = False
         self.reached_receipt_spot = False
 
@@ -178,7 +182,10 @@ class AgentFetch_v4(object):
 
         reward = 0.0
 
-        self.cur_action = self.macro_actions[action]
+        try:
+            self.cur_action = self.macro_actions[action]
+        except TypeError:
+            self.cur_action = self.macro_actions[action[0]]
 
         if self.cur_action_time_left == 0.0:
             self.cur_action_time_left = self.cur_action.t_cost
