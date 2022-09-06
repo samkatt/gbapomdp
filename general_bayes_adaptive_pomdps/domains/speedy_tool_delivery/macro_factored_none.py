@@ -3,6 +3,7 @@ import gym
 import numpy as np
 from typing import List
 import math
+import time
 
 from general_bayes_adaptive_pomdps.domains.speedy_tool_delivery.core import (
     AgentTurtlebot_v4,
@@ -621,12 +622,13 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         if self.rendering:
             print(f"          \t Table_objs \t\t{obs_2}")
 
-        # get observation about the human's current step (only available in the work-room)
+        # get observation about the human's current step (only available in the work-room-0)
         if room in [0, 2]:
             obs_3 = [0]
         else:
             obs_3 = [self.humans[0].cur_step]
 
+        # get observation about the human's current step (only available in the work-room-1)
         if room in [0, 1]:
             obs_4 = [0]
         else:
@@ -708,12 +710,16 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         state += [self.humans[0].cur_step]
         state += [self.humans[1].cur_step]
 
+        # bits indicate if each human is waiting or not
+        state += [self.humans[0].cur_step_time_left <= 1]
+        state += [self.humans[1].cur_step_time_left <= 1]
+
         return np.array(state)
 
 if __name__ == "__main__":
     import time
 
-    env = ObjSearchDelivery_v4(human_speeds=[10, 15], render=False)
+    env = ObjSearchDelivery_v4(human_speeds=[10, 30], render=False)
 
     step_delay = 1
 
@@ -723,57 +729,18 @@ if __name__ == "__main__":
 
     # Optimal
     if optimal:
-        # for tool in [0, 1, 2]:
-        #     # Get tool
-        #     env.step([tool])
-        #     print(env.get_state())
+        for tool in [0, 1, 2]:
+            # Get tool
+            env.step([tool])
+            print(env.get_state())
 
-        #     # Deliver-1
-        #     env.step([4])
-        #     print(env.get_state())
+            env.step([tool])
+            print(env.get_state())
 
-        env.step([4])
-        print(env.get_state())
-
-        env.step([0])
-        print(env.get_state())
-
-        # env.step([1])
-        # print(env.get_state())
-
-        # env.step([2])
-        # print(env.get_state())
-
-        # env.step([2])
-        # print(env.get_state())
-
-        # env.step([2])
-        # print(env.get_state())
-
-        # # Deliver
-        # for tool in [0, 1, 2]:
-        #     # Get tool
-        #     env.step([tool])
-        #     print(env.get_state())
-
-        #     # Deliver-0
-        #     env.step([3])
-        #     print(env.get_state())
-
-    # Sub-optimal
-    else:
-        # Get all tools
-        env.step([0])
-
-        env.step([1])
-
-        env.step([2])
-
-        env.step([0])
-
-        env.step([1])
-
-        env.step([2])
-
-        for _ in range(6):
+            # Deliver-0
             env.step([3])
+            print(env.get_state())
+
+            # Deliver-1
+            env.step([4])
+            print(env.get_state())
