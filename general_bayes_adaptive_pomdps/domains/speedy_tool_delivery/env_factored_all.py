@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
     rewards = []
 
-    delivers = [DELIVER_1, DELIVER_0]
+    delivers = [DELIVER_0, DELIVER_1]
 
     if optimal:
 

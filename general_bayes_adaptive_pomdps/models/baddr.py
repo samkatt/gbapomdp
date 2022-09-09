@@ -66,6 +66,9 @@ def train_from_samples_random_policy(
     new_states = []
     obss = []
 
+    random_seed = 0
+    random.seed(random_seed)
+
     while True:
         action = prior.action_space.sample_as_int()
         state = prior.get_state()
@@ -83,6 +86,8 @@ def train_from_samples_random_policy(
         if done or ep_len >= max_ep_len:
             prior.reset()
             ep_len = 0
+            random_seed += 1
+            random.seed(random_seed)
 
         if len(states) >= batch_size:
             break
