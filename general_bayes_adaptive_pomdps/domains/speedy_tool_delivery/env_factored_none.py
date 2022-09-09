@@ -209,11 +209,11 @@ class ToolDeliveryV0(Domain):
         reward = -delta_time
 
         if self.human_speeds[0] < self.human_speeds[1]:
-            human0_wait_penalty = -5
-            human1_wait_penalty = -5
+            human0_wait_penalty = -20
+            human1_wait_penalty = -10
         else:
-            human0_wait_penalty = -5
-            human1_wait_penalty = -5
+            human0_wait_penalty = -10
+            human1_wait_penalty = -20
 
         # human 0
         prev_human0_stage = state[-4]
