@@ -708,8 +708,10 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             print(f"Len of state: {len(state)}")
             if state[0] == 0:
                 print(f"Turtlebot pos: Tool-Room {state[0]}")
+            elif state[0] == 1:
+                print(f"Turtlebot pos: Work-Room-{state[0]}")
             else:
-                print(f"Turtlebot pos: Work-Room {state[0]}")
+                print(f"Turtlebot pos: Work-Room-{state[0]}")
             print(f"Objs in Turtlebot basket {state[1:4]}")
             print(f"Objs in staging area {state[4:7]}")
             print(f"Tool order {state[7:]}")
@@ -727,7 +729,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 if __name__ == "__main__":
     import time
 
-    env = ObjSearchDelivery_v4(human_speeds=[10, 30], render=False)
+    env = ObjSearchDelivery_v4(human_speeds=[10, 20], render=True)
 
     step_delay = 1
 

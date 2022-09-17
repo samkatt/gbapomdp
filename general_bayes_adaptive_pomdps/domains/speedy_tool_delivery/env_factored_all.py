@@ -202,11 +202,12 @@ class ToolDeliveryV0(Domain):
         # human 1 working step: [n_objs + 1]
         # human 0 is working or not [2]
         # human 1 is working or not [2]
-        assert len(state) == (2 + 1 + 1 + 2*self.n_objs + 2 + 2), f"Len state {len(state)} is wrong "
+        assert len(state) == (2*self.n_objs + 8), f"Len state {len(state)} is wrong"
 
         delta_time = new_state[self.timestep_idx] - state[self.timestep_idx]
         reward = -delta_time
 
+        # faster human waiting incurs more penalty
         if self.human_speeds[0] < self.human_speeds[1]:
             human0_wait_penalty = -30
             human1_wait_penalty = -10
@@ -315,7 +316,7 @@ if __name__ == "__main__":
 
     rewards = []
 
-    delivers = [DELIVER_0, DELIVER_1]
+    delivers = [DELIVER_1, DELIVER_0]
 
     if optimal:
 
