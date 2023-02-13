@@ -35,16 +35,14 @@ class ToolDeliveryV0(Domain):
         # discrete room locations: [3]
         # which object in the basket: [3]*n_objs
         # which object are on the table: [2]*n_objs
-        # human 0 working step: [n_objs + 1]
-        # human 1 working step: [n_objs + 1]
-        # human 0 is waiting or not [2]
-        # human 1 is waiting or not [2]
+        # which object is waited for - human 0: [n_objs]
+        # which object is waited for - human 1: [n_objs]
         n_objs = 3
         max_timestep = 500
         self.n_objs = n_objs
         self._state_space = DiscreteSpace([2] + [2] + [max_timestep] + [3]
                                           + [3]*n_objs + [2]*n_objs
-                                          + [n_objs + 1] + [n_objs + 1] + [2] + [2])
+                                          + [n_objs] + [n_objs])
 
         self.coord_x_idx = 0
         self.coord_y_idx = 1
@@ -54,13 +52,11 @@ class ToolDeliveryV0(Domain):
         # reduced STATE
         # which object in the basket: [3]*n_objs
         # which object are on the table: [2]*n_objs
-        # human 0 working step: [n_objs + 1]
-        # human 1 working step: [n_objs + 1]
-        # human 0 is waiting or not [2]
-        # human 1 is waiting or not [2]
+        # which object is waited for - human 0: [n_objs]
+        # which object is waited for - human 1: [n_objs]
         self._rstate_space = DiscreteSpace([3]*n_objs +
-                                           [2]*n_objs + [n_objs + 1]
-                                           + [n_objs + 1] + [2] + [2])
+                                           [2]*n_objs
+                                           + [n_objs] + [n_objs])
 
         # OBSERVATION
         # discrete room locations: [3]
@@ -122,10 +118,8 @@ class ToolDeliveryV0(Domain):
     # discrete room locations: [3]
     # which object in the basket: [3]*n_objs
     # which object are on the table: [2]*n_objs
-    # human 0 working step: [n_objs + 1]
-    # human 1 working step: [n_objs + 1]
-    # human 0 is waiting or not [2]
-    # human 1 is waiting or not [2]
+    # which object is waited for - human 0: [n_objs]
+    # which object is waited for - human 1: [n_objs]
     def process_ns_fcn(self, ns):
         return ns[:, 4:].long()
 
@@ -159,14 +153,13 @@ class ToolDeliveryV0(Domain):
         """
 
         # STATE
-        # x_coord, y_coord
-        # current primitive timestep
-        # discrete room locations: [2]
-        # which object in the basket: [2]*n_objs
+        # x_coord, y_coord [2] [2]
+        # current primitive timestep [max_step]
+        # discrete room locations: [3]
+        # which object in the basket: [3]*n_objs
         # which object are on the table: [2]*n_objs
-        # human working step: [n_objs + 1]
-        # human 0 is waiting or not [2] (0: not waiting)
-        # human 1 is waiting or not [2] (0: not waiting)
+        # which object is waited for - human 0: [n_objs]
+        # which object is waited for - human 1: [n_objs]
 
         init_state = np.zeros(self.state_space.ndim)
         return np.array(init_state, dtype=int)
@@ -198,11 +191,9 @@ class ToolDeliveryV0(Domain):
         # discrete room locations: [3]
         # which object in the basket: [3]*n_objs
         # which object are on the table: [2]*n_objs
-        # human 0 working step: [n_objs + 1]
-        # human 1 working step: [n_objs + 1]
-        # human 0 is working or not [2]
-        # human 1 is working or not [2]
-        assert len(state) == (2*self.n_objs + 8), f"Len state {len(state)} is wrong"
+        # which object is waited for - human 0: [n_objs]
+        # which object is waited for - human 1: [n_objs]
+        assert len(state) == (2*self.n_objs + 6), f"Len state {len(state)} is wrong"
 
         delta_time = new_state[self.timestep_idx] - state[self.timestep_idx]
         reward = -delta_time
@@ -215,29 +206,32 @@ class ToolDeliveryV0(Domain):
             human0_wait_penalty = -10
             human1_wait_penalty = -30
 
+        objs_in_basket = state[4:4+self.n_objs]
+        next_objs_in_basket = new_state[4:4+self.n_objs]
+
         # human 0
-        prev_human0_stage = state[-4]
-        new_human0_stage = new_state[-4]
-        human0_waiting = state[-2]
+        curr_human0_needed_obj = int(state[-2])
+
+        deliver_success = (action == self.n_objs) and \
+                          (sum(next_objs_in_basket) < sum(objs_in_basket))
 
         # Deliver a good tool for human 0
-        if prev_human0_stage + 1 == new_human0_stage and action == self.n_objs:
+        if objs_in_basket[curr_human0_needed_obj] > 0 and deliver_success:
             reward += 100
-
-        if human0_waiting:
+        else:
             reward += human0_wait_penalty
 
         # human 1
-        prev_human1_stage = state[-3]
-        new_human1_stage = new_state[-3]
-        human1_waiting = state[-1]
+        curr_human1_needed_obj = int(state[-1])
 
-        if human1_waiting:
-            reward += human1_wait_penalty
+        deliver_success = (action == self.n_objs + 1) and \
+                          (sum(next_objs_in_basket) < sum(objs_in_basket))
 
         # Deliver a good tool for human 1
-        if prev_human1_stage + 1 == new_human1_stage and action == self.n_objs + 1:
+        if objs_in_basket[curr_human1_needed_obj] > 0 and deliver_success:
             reward += 100
+        else:
+            reward += human1_wait_penalty
 
         return reward
 
@@ -258,16 +252,16 @@ class ToolDeliveryV0(Domain):
         # discrete room locations: [3]
         # which object in the basket: [3]*n_objs
         # which object are on the table: [2]*n_objs
-        # human 0 working step: [n_objs + 1]
-        # human 1 working step: [n_objs + 1]
-        # human 0 is waiting or not [2]
-        # human 1 is waiting or not [2]
+        # which object is waited for - human 0: [n_objs]
+        # which object is waited for - human 1: [n_objs]
 
         done = False
-        human_stage_0 = new_state[-4]
-        human_stage_1 = new_state[-3]
 
-        if human_stage_0 >= self.n_objs and human_stage_1 >= self.n_objs:
+        objs_in_basket = new_state[4:4+self.n_objs]
+        objs_in_table = new_state[4+self.n_objs:4+2*self.n_objs]
+
+        # the basket is empty and all objects are not on the table
+        if sum(objs_in_basket) == 0 and sum(objs_in_table) == self.n_objs:
             done = True
 
         return done
@@ -316,13 +310,13 @@ if __name__ == "__main__":
 
     rewards = []
 
-    delivers = [DELIVER_1, DELIVER_0]
+    delivers = [DELIVER_0, DELIVER_1]
 
     if optimal:
 
-        # act_list = [GET_TOOL_0] + [GET_TOOL_0] + [DELIVER_1] + [DELIVER_0]\
-        #          + [GET_TOOL_1] + [GET_TOOL_1] + [DELIVER_1] + [DELIVER_0]\
-        #          + [GET_TOOL_2] + [GET_TOOL_2] + [DELIVER_1] + [DELIVER_0]
+        # act_list = [GET_TOOL_0] + [GET_TOOL_1] + [DELIVER_1] + [DELIVER_1] + [DELIVER_1] + [DELIVER_1]
+                #  + [GET_TOOL_1] + [GET_TOOL_1] + [DELIVER_1] + [DELIVER_0]\
+                #  + [GET_TOOL_2] + [GET_TOOL_2] + [DELIVER_1] + [DELIVER_0]
 
         act_list = [GET_TOOL_0, GET_TOOL_0] + delivers + \
                    [GET_TOOL_1, GET_TOOL_1] + delivers + \

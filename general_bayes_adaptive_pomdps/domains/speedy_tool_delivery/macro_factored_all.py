@@ -654,15 +654,13 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         return observations
 
     def get_state(self):
-        # x_coord, y_coord
-        # current timestep
-        # discrete room locations: [2]
-        # which object in the basket: [3]*(n_objs)
-        # which object are on the table: [2]*(n_objs)
-        # human 0 working step: [n_objs + 1]
-        # human 1 working step: [n_objs + 1]
-        # human 0 is waiting or not [2]
-        # human 1 is waiting or not [2]
+        # x_coord, y_coord [2] [2]
+        # current primitive timestep [max_step]
+        # discrete room locations: [3]
+        # which object in the basket: [3]*n_objs
+        # which object are on the table: [2]*n_objs
+        # which object is waited for - human 0: [n_objs]
+        # which object is waited for - human 1: [n_objs]
 
         state = []
 
@@ -717,19 +715,15 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             print(f"Tool order {state[7:]}")
 
         # the human working step
-        state += [self.humans[0].cur_step]
-        state += [self.humans[1].cur_step]
-
-        # bits indicate if each human is waiting or not
-        state += [self.humans[0].cur_step_time_left <= 1]
-        state += [self.humans[1].cur_step_time_left <= 1]
+        state += [self.humans[0].next_request_obj_idx]
+        state += [self.humans[1].next_request_obj_idx]
 
         return np.array(state)
 
 if __name__ == "__main__":
     import time
 
-    env = ObjSearchDelivery_v4(human_speeds=[10, 20], render=True)
+    env = ObjSearchDelivery_v4(human_speeds=[10, 20], render=False)
 
     step_delay = 1
 
