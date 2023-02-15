@@ -1,6 +1,5 @@
 import numpy as np
 import random
-import time
 import copy
 
 from general_bayes_adaptive_pomdps.core import (
@@ -55,8 +54,9 @@ class ToolDeliveryV0(Domain):
         # which object is waited for - human 0: [n_objs]
         # which object is waited for - human 1: [n_objs]
         self._rstate_space = DiscreteSpace([3]*n_objs +
-                                           [2]*n_objs
-                                           + [n_objs] + [n_objs])
+                                           [2]*n_objs +
+                                           [n_objs] +
+                                           [n_objs])
 
         # OBSERVATION
         # discrete room locations: [3]

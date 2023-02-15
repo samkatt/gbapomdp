@@ -256,7 +256,7 @@ class AgentHuman(object):
         self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
 
         # indicates the tool needed for next task step
-        self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]  
+        self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]
         # indicates if the tool needed for next step has been delivered
         self.next_requested_obj_obtained = False
         # indicates if the human has finished the whole task
@@ -267,7 +267,7 @@ class MacroAction(object):
 
     """Properties for a macro_action"""
 
-    def __init__(self, 
+    def __init__(self,
                  name,
                  idx,
                  expected_t_cost=None,
@@ -277,7 +277,7 @@ class MacroAction(object):
         # the name of this macro-action
         self.name = name
         # the index of this macro-action
-        self.idx = idx    
+        self.idx = idx
         # None is for moving action. When it is done depends on the specify speed.
         self.expected_t_cost = expected_t_cost
         self.std = std

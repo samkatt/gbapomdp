@@ -687,8 +687,9 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # 0 means not in the basket
         state += self.agents[0].objs_in_basket.tolist()
 
-        # which objects are at the staging area
-        # 0 means is on the table
+        # which objects are on the table
+        # 0 means is on the table (at least 1 tool of that class is on the table)
+        # 1 means all tools of that class are gone
         objs = np.zeros(self.n_objs)
         if len(self.agents[0].fetch.passed_tools) > 0:
             for tool_idx in self.agents[0].fetch.passed_tools:

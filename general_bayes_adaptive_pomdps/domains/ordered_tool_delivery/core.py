@@ -239,7 +239,7 @@ class AgentHuman(object):
             self.cur_step_time_left = self.expected_timecost_per_task_step[self.cur_step]
             # update the request obj for next step
             if self.cur_step + 1 < self.task_total_steps:
-                self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step] 
+                self.next_request_obj_idx = self.request_objs_per_task_step[self.cur_step]
                 self.next_requested_obj_obtained = False
 
     def reset(self):
@@ -268,7 +268,7 @@ class MacroAction(object):
         # the name of this macro-action
         self.name = name
         # the index of this macro-action
-        self.idx = idx    
+        self.idx = idx 
         # None is for moving action. When it is done depends on the specify speed.
         self.expected_t_cost = expected_t_cost
         self.std = std
