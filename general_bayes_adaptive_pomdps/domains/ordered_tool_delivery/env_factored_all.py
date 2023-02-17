@@ -21,27 +21,26 @@ DELIVER = 3
 
 class ToolDeliveryV0(Domain):
 
-    def __init__(self, correct_tool_order, render=False):
+    def __init__(self, correct_tool_order, obs_corr_prob=1.0, render=False):
         """Construct domain
         Args:
         """
         super().__init__()
 
         self.correct_tool_order = correct_tool_order
-        self.core_env = EnvToolDelivery(correct_tool_order, render=render)
+        self.core_env = EnvToolDelivery(correct_tool_order, obs_corr_prob, render=render)
 
         # STATE
         # x_coord, y_coord
         # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
         n_objs = 3
         max_timestep = 500
         self.n_objs = n_objs
         self._state_space = DiscreteSpace([2] + [2] + [max_timestep] + [2] + [2]*n_objs +
-                                          [2]*n_objs + [n_objs + 1])
+                                          [n_objs + 1])
 
         self.coord_x_idx = 0
         self.coord_y_idx = 1
@@ -50,22 +49,19 @@ class ToolDeliveryV0(Domain):
 
         # reduced STATE
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
         self._rstate_space = DiscreteSpace([2]*n_objs +
-                                           [2]*n_objs + [n_objs + 1])
+                                           [n_objs + 1])
 
         # OBSERVATION
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
-        self._obs_space = DiscreteSpace([2] + [2]*n_objs + [2]*n_objs + [n_objs + 1])
+        self._obs_space = DiscreteSpace([2] + [2]*n_objs + [n_objs + 1])
 
         # REDUCED-OBSERVATION
-        # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
-        self._robs_space = DiscreteSpace([2]*n_objs + [n_objs + 1])
+        self._robs_space = DiscreteSpace([n_objs + 1])
 
         # each agent has 4 possible actions: Get_Tool_i(0:n_objs - 1), Deliver
         self._action_space = ActionSpace(n_objs + 1)
@@ -97,7 +93,6 @@ class ToolDeliveryV0(Domain):
     def process_o_fcn(self, o):
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
         return o[:, 1 + self.n_objs:]
 
@@ -142,7 +137,6 @@ class ToolDeliveryV0(Domain):
         # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
 
         init_state = np.zeros(self.state_space.ndim)
@@ -174,9 +168,8 @@ class ToolDeliveryV0(Domain):
         # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
-        assert len(state) == (2 + 1 + 2*self.n_objs + 2), f"Len state {len(state)} is wrong "
+        assert len(state) == (2 + 1 + self.n_objs + 2), f"Len state {len(state)} is wrong "
 
         delta_time = new_state[self.timestep_idx] - state[self.timestep_idx]
         reward = -delta_time
@@ -207,7 +200,6 @@ class ToolDeliveryV0(Domain):
         # current primitive timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
 
         done = False
@@ -237,7 +229,7 @@ class ToolDeliveryV0Prior(DomainPrior):
         """
         super().__init__()
 
-    def sample(self, prior=None) -> Domain:
+    def sample(self, prior=None, obs_correct_prob=1.0) -> Domain:
         """
         Prior that the correct order will start with the first tool
         """
@@ -246,7 +238,7 @@ class ToolDeliveryV0Prior(DomainPrior):
         else:
             perm = list(permutations([0, 2, 1]))
             correct_tool_order = random.choice(perm)
-        return ToolDeliveryV0(list(correct_tool_order))
+        return ToolDeliveryV0(list(correct_tool_order), obs_correct_prob)
 
 if __name__ == "__main__":
     env = ToolDeliveryV0(correct_tool_order=[2, 1, 0], render=False)

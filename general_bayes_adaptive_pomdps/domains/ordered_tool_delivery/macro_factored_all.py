@@ -25,6 +25,7 @@ class ObjSearchDelivery(gym.Env):
 
     def __init__(self,
                  tool_order,
+                 correct_obs_prob=1.0,
                  n_objs=3,
                  n_each_obj=1,
                  human_speed_per_step=[[15, 15, 15, 15]],
@@ -53,6 +54,7 @@ class ObjSearchDelivery(gym.Env):
         #-----------------basic settings for this domain
         assert len(tool_order) == n_objs
         self.tool_order = tool_order
+        self.correct_obs_prob = correct_obs_prob
         # define the number of different objects needs for each human to finish the whole task
         self.n_objs = n_objs
         # total amount of each obj in the env
@@ -375,10 +377,9 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
         self.observation_space = spaces.MultiDiscrete([2] + [2]*self.n_objs
-                                                      + [2]*self.n_objs + [self.n_objs + 1])
+                                                      + [self.n_objs + 1])
 
         #-----------------def macro-actions for Turtlebot
         self.T_MAs = []
@@ -552,7 +553,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # OBSERVATION
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs (only observable in the tool-room)
         # human working step: [n_objs + 1] (only observable in the work-room)
 
         #--------------------get observations at the beginning of each episode
@@ -585,19 +585,23 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
                 print("Turtlebot" + " \t loc  \t\t\t work-room")
 
         # get observation about which tools are in the basket
-        obs_1 = agent.objs_in_basket
+
+        if np.random.rand() < self.correct_obs_prob:
+            obs_1 = agent.objs_in_basket
+        else:
+            obs_1 = np.zeros_like(agent.objs_in_basket)
 
         if self.rendering:
             print(f"          \t Basket_objs \t\t{obs_1}")
 
         # get observation about which tools are on the table (only available in the tool-room)
-        obs_2 = np.zeros(self.n_objs)
-        if len(agent.fetch.passed_tools) > 0 and room == 0:
-            for tool_idx in agent.fetch.passed_tools:
-                obs_2[tool_idx] = 1.0
+        # obs_2 = np.zeros(self.n_objs)
+        # if len(agent.fetch.passed_tools) > 0 and room == 0:
+        #     for tool_idx in agent.fetch.passed_tools:
+        #         obs_2[tool_idx] = 1.0
 
-        if self.rendering:
-            print(f"          \t Table_objs \t\t{obs_2}")
+        # if self.rendering:
+        #     print(f"          \t Table_objs \t\t{obs_2}")
 
         # get observation about the human's current step (only available in the work-room)
         if room == 0:
@@ -609,7 +613,7 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
             print(f"          \t Hm_cur_step \t\t{obs_3[0]}")
 
         # combine all observations
-        obs = np.hstack((obs_0, obs_1, obs_2, obs_3))
+        obs = np.hstack((obs_0, obs_1, obs_3))
 
         observations.append(obs)
 
@@ -620,7 +624,6 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
         # current timestep
         # discrete room locations: [2]
         # which object in the basket: [2]*n_objs
-        # which object are on the table: [2]*n_objs
         # human working step: [n_objs + 1]
 
         state = []
@@ -647,13 +650,13 @@ class ObjSearchDelivery_v4(ObjSearchDelivery):
 
         # which objects are at the staging area
         # 0 means is at
-        objs = np.zeros(self.n_objs)
-        if len(self.agents[0].fetch.passed_tools) > 0:
-            for tool_idx in self.agents[0].fetch.passed_tools:
-                if self.rendering:
-                    print("Take Tool:", tool_idx)
-                objs[tool_idx] = 1.0
-        state += objs.tolist()
+        # objs = np.zeros(self.n_objs)
+        # if len(self.agents[0].fetch.passed_tools) > 0:
+        #     for tool_idx in self.agents[0].fetch.passed_tools:
+        #         if self.rendering:
+        #             print("Take Tool:", tool_idx)
+        #         objs[tool_idx] = 1.0
+        # state += objs.tolist()
 
         if self.rendering:
             print(f"Len of state: {len(state)}")

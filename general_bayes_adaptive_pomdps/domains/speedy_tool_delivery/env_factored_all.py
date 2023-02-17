@@ -298,7 +298,7 @@ class ToolDeliveryV0Prior(DomainPrior):
         return ToolDeliveryV0(human_speeds=random_speeds)
 
 if __name__ == "__main__":
-    env = ToolDeliveryV0(human_speeds=[10, 20], render=False)
+    env = ToolDeliveryV0(human_speeds=[20, 10], render=False)
     env.reset()
 
     index_2_str = ['Get_Tool_0', 'Get_Tool_1', 'Get_Tool_2', 'Deliver_0', 'Deliver_1']
@@ -310,7 +310,7 @@ if __name__ == "__main__":
 
     rewards = []
 
-    delivers = [DELIVER_0, DELIVER_1]
+    delivers = [DELIVER_1, DELIVER_0]
 
     if optimal:
 
